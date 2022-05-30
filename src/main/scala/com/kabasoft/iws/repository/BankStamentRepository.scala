@@ -1,0 +1,47 @@
+package com.kabasoft.iws.repository
+
+import zio.stream._
+import com.kabasoft.iws.domain._
+import com.kabasoft.iws.domain.AppError.RepositoryError
+import zio._
+
+trait BankStatementRepository {
+  type BS = BankStatement
+  def create(item: BS): ZIO[Any, RepositoryError, Unit]
+  def create(models: List[BS]): ZIO[Any, RepositoryError, Int]
+  def delete(item: String, company: String): ZIO[Any, RepositoryError, Int]
+  def delete(items: List[String], company: String): ZIO[Any, RepositoryError, List[Int]] =
+    ZIO.collectAll(items.map(delete(_, company)))
+  def list(company: String): ZStream[Any, RepositoryError, BankStatement]
+  def getBy(id: String, company: String): ZIO[Any, RepositoryError, BankStatement]
+  def getByModelId(modelid: Int, company: String): ZIO[Any, RepositoryError, BankStatement]
+  def modify(model: BS): ZIO[Any, RepositoryError, Int]
+  // def update(model:BS, company: String): ZIO[Any, RepositoryError, Int]
+  // def findSome(company: String, param: Seq[String]): ZStream[Any, RepositoryError, BS]
+}
+
+object BankStatementRepository {
+  type BSRepository = BankStatementRepository
+  type BS           = BankStatement
+  def create(item: BS): ZIO[BSRepository, RepositoryError, Unit]                                     =
+    ZIO.serviceWithZIO[BSRepository](_.create(item))
+  def create(items: List[BS]): ZIO[BSRepository, RepositoryError, Int]                               =
+    ZIO.serviceWithZIO[BSRepository](_.create(items))
+  def delete(item: String, company: String): ZIO[BSRepository, RepositoryError, Int]                 =
+    ZIO.serviceWithZIO[BSRepository](_.delete(item, company))
+  def delete(items: List[String], company: String): ZIO[BSRepository, RepositoryError, List[Int]]    =
+    ZIO.collectAll(items.map(delete(_, company)))
+  def list(company: String): ZStream[BSRepository, RepositoryError, BankStatement]                   =
+    ZStream.serviceWithStream[BSRepository](_.list(company))
+  def getBy(id: String, company: String): ZIO[BSRepository, RepositoryError, BankStatement]          =
+    ZIO.serviceWithZIO[BSRepository](_.getBy(id, company))
+  def getByModelId(modelid: Int, company: String): ZIO[BSRepository, RepositoryError, BankStatement] =
+    ZIO.serviceWithZIO[BSRepository](_.getByModelId(modelid, company))
+  def modify(model: BS): ZIO[BSRepository, RepositoryError, Int]                                     =
+    ZIO.serviceWithZIO[BSRepository](_.modify(model))
+  // def update(model: BS, company: String): ZIO[BSRepository, RepositoryError, Int]=
+  //   ZIO.serviceWithZIO[BSRepository](_.update(model, company))
+  // def findSome(company: String, param: String*): ZStream[BSRepository, RepositoryError, BS]=
+  //  ZStream.serviceWithStream[BSRepository](_.findSome(company,param))
+
+}
