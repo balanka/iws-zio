@@ -35,28 +35,19 @@ id   bigint default nextval('bankstatement_id_seq'::regclass) not null
     companyiban varchar(50),
     posted      boolean,
     modelid     integer);
-/*
-CREATE TABLE bankstatements(
-    id bigint,
-    depositor character varying(50),
-    postingdate timestamp without time zone,
-    valuedate timestamp without time zone,
-    postingtext character varying(300),
-    purpose character varying(350),
-    beneficiary character varying(250),
-    accountno character varying(50),
-    bankcode character varying(50),
-    amount numeric,
-    currency character varying(200),
-    info character varying(250),
-    company character varying(50),
-    companyiban character varying(50),
-    posted boolean,
-    modelid integer,
-    PRIMARY KEY(id)
-);
 
- */
+create table  bank
+(
+    id            varchar(50)                    not null
+    primary key,
+    name          varchar(255)                   not null,
+    description   varchar(255),
+    posting_date  timestamp default CURRENT_DATE not null,
+    modified_date timestamp default CURRENT_DATE not null,
+    enter_date    timestamp default CURRENT_DATE not null,
+    company       varchar(50)                    not null,
+    modelid       integer                        not null
+    );
 
 
 insert into customers
@@ -102,3 +93,7 @@ values
 values
 (4711, 'B Mady',current_timestamp, current_timestamp,'TEST POSTING','TEST PURPOSE','B Mady','430000000ACTNO','43007711BIC', 1000, 'EUR','INFO TXT','1000','47114300IBAN',false,18 );
 
+insert into bank
+(id, name, description, posting_date, modified_date, enter_date,  company, modelid)
+values
+    ('4711','myFirstBank','myFirstBank',current_timestamp, current_timestamp, current_timestamp, '1000',11)
