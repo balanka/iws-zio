@@ -14,6 +14,28 @@ create table orders
     order_date date not null
 );
 
+create sequence bankstatement_id_seq;
+
+CREATE TABLE bankstatement(
+id   bigint default nextval('bankstatement_id_seq'::regclass) not null
+        constraint bankstatement_pkey
+            primary key,
+    depositor   varchar(50),
+    postingdate timestamp,
+    valuedate   timestamp,
+    postingtext varchar(300),
+    purpose     varchar(350),
+    beneficiary varchar(250),
+    accountno   varchar(50),
+    bankcode    varchar(50),
+    amount      numeric(12, 2),
+    currency    varchar(200),
+    info        varchar(250),
+    company     varchar(50),
+    companyiban varchar(50),
+    posted      boolean,
+    modelid     integer);
+/*
 CREATE TABLE bankstatements(
     id bigint,
     depositor character varying(50),
@@ -33,6 +55,8 @@ CREATE TABLE bankstatements(
     modelid integer,
     PRIMARY KEY(id)
 );
+
+ */
 
 
 insert into customers
@@ -73,8 +97,8 @@ values
     ('0a48ffb0-ec61-4147-af56-fc4dbca8de0a', 'f76c9ace-be07-4bf3-bd4c-4a9c62882e64', '2019-05-14'),
     ('5883cb62-d792-4ee3-acbc-fe85b6baa998', '784426a5-b90a-4759-afbb-571b7a0ba35e', '2020-04-30');
 
- insert into bankstatements
- (id, depositor, postingdate, valuedate, postingtext, purpose, beneficiary, accountno, bankCode,amount, currency, info, company, companyIban, posted, modelid)
+ insert into bankstatement
+ (id,depositor, postingdate, valuedate, postingtext, purpose, beneficiary, accountno, bankCode,amount, currency, info, company, companyIban, posted, modelid)
 values
 (4711, 'B Mady',current_timestamp, current_timestamp,'TEST POSTING','TEST PURPOSE','B Mady','430000000ACTNO','43007711BIC', 1000, 'EUR','INFO TXT','1000','47114300IBAN',false,18 );
 

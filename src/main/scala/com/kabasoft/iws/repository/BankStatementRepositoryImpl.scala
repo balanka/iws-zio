@@ -69,7 +69,7 @@ final class BankStatementRepositoryImpl(pool: ConnectionPool)
       .where((modelid === modelId) && (company === companyId))
 
     ZIO.logInfo(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
-      execute(selectAll.to(BankStatement.apply _)).findFirstLong(driverLayer, modelId.toLong)
+      execute(selectAll.to(BankStatement.apply _)).findFirstInt(driverLayer, modelId)
   }
   /*
   override def findById(id: String): ZIO[Any, RepositoryError, BankStatement] = {
