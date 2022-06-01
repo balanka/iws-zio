@@ -24,7 +24,7 @@ trait IWSTableDescriptionPostgres extends PostgresSqlModule with PostgresJdbcMod
     def findFirst(driver: ULayer[SqlDriver], id: String): ZIO[Any, RepositoryError, T] =
       zstream.runHead.some.tapError {
         case None    => ZIO.unit
-        case Some(e) => ZIO.logError(e.getMessage())
+        case Some(e) => {println("Message:"+e.getMessage());ZIO.logError(e.getMessage())}
       }.mapError {
         case None    =>
           RepositoryError(

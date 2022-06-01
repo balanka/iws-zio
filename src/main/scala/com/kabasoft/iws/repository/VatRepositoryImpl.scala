@@ -11,8 +11,8 @@ final class VatRepositoryImpl(pool: ConnectionPool) extends VatRepository with I
 
   val vat              =
     (string("id") ++ string("name") ++ string("description") ++ bigDecimal("percent") ++ string(
-      "inputVatAccount"
-    ) ++ string("outputVatAccount")
+      "inputvataccount"
+    ) ++ string("outputvataccount")
       ++ instant("enter_date") ++ instant("modified_date") ++ instant("posting_date") ++ string("company") ++ int(
         "modelid"
       ))
