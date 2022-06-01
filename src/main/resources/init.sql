@@ -14,7 +14,7 @@ create table orders
     order_date date not null
 );
 
-CREATE TABLE bankstatement(
+CREATE TABLE bankstatements(
     id bigint,
     depositor character varying(50),
     postingdate timestamp without time zone,
@@ -32,7 +32,8 @@ CREATE TABLE bankstatement(
     posted boolean,
     modelid integer,
     PRIMARY KEY(id)
-)
+);
+
 
 insert into customers
     (id, first_name, last_name, verified, dob)
@@ -72,9 +73,8 @@ values
     ('0a48ffb0-ec61-4147-af56-fc4dbca8de0a', 'f76c9ace-be07-4bf3-bd4c-4a9c62882e64', '2019-05-14'),
     ('5883cb62-d792-4ee3-acbc-fe85b6baa998', '784426a5-b90a-4759-afbb-571b7a0ba35e', '2020-04-30');
 
-    insert into bankstatements
-    (bid, depositor, postingdate, valuedate, postingtext, purpose, beneficiary, accountno, bankCode
-  ,amount, currency, info, company, companyIban, posted, modelid)
+ insert into bankstatements
+ (id, depositor, postingdate, valuedate, postingtext, purpose, beneficiary, accountno, bankCode,amount, currency, info, company, companyIban, posted, modelid)
 values
-(4711, 'B Mady',current_timestamp, current_timestamp,'TEST POSTING','TEST PURPOSE',
-'B Mady','430000000ACTNO','43007711BIC', 1000, 'EUR','INFO TXT','47114300IBAN',false,18 );
+(4711, 'B Mady',current_timestamp, current_timestamp,'TEST POSTING','TEST PURPOSE','B Mady','430000000ACTNO','43007711BIC', 1000, 'EUR','INFO TXT','1000','47114300IBAN',false,18 );
+

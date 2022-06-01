@@ -6,7 +6,6 @@ import zio.config.ConfigDescriptor._
 import zio.config.typesafe.TypesafeConfigSource
 import com.typesafe.config.ConfigFactory
 import zio.config.magnolia._
-//import zio.config.magnolia.DeriveConfigDescriptor.descriptor
 import zio.sql.ConnectionPoolConfig
 
 import java.util.Properties
@@ -62,11 +61,8 @@ object DbConfig {
   val connectionPoolConfig: ZLayer[DbConfig, Throwable, ConnectionPoolConfig] =
     ZLayer(
       for {
-        serverConfig <- ZIO.service[DbConfig]
-      } yield (ConnectionPoolConfig(
-        serverConfig.url,
-        connProperties(serverConfig.user, serverConfig.password)
-      ))
+        config <- ZIO.service[DbConfig]
+      } yield ConnectionPoolConfig(config.url, connProperties( config.user, config.password))
     )
 
   private def connProperties(user: String, password: String): Properties = {
