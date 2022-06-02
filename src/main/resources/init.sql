@@ -48,7 +48,21 @@ create table  bank
     company       varchar(50)                    not null,
     modelid       integer                        not null
     );
-
+create table  vat
+(
+    id               varchar(50)                         not null
+    primary key,
+    name             varchar(255)                        not null,
+    description      varchar(255),
+    percent          numeric(12, 2) default 0            not null,
+    inputvataccount  varchar(50)                         not null,
+    outputvataccount varchar(50)                         not null,
+    posting_date     timestamp      default CURRENT_DATE not null,
+    modified_date    timestamp      default CURRENT_DATE not null,
+    enter_date       timestamp      default CURRENT_DATE not null,
+    company          varchar(50)                         not null,
+    modelid          integer                             not null
+    );
 
 insert into customers
     (id, first_name, last_name, verified, dob)
@@ -95,5 +109,9 @@ values
 
 insert into bank
 (id, name, description, posting_date, modified_date, enter_date,  company, modelid)
+values('4711','myFirstBank','myFirstBank',current_timestamp, current_timestamp, current_timestamp, '1000',11);
+
+insert into vat
+(id, name, description, percent, inputvataccount, outputvataccount, posting_date, modified_date, enter_date,  company, modelid)
 values
-    ('4711','myFirstBank','myFirstBank',current_timestamp, current_timestamp, current_timestamp, '1000',11)
+    ('4711','myFirstVat','myFirstVat',1, '1406', '3806', current_timestamp, current_timestamp, current_timestamp, '1000',6)
