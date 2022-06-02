@@ -11,9 +11,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
       "enterdate"
     )
       ++ instant("postingdate") ++ int("period") ++ boolean("posted") ++ int("modelid") ++ string("company") ++ string(
-        "text"
-      )
-      ++ int("typeJournal") ++ int("file_content"))
+        "headertext") ++ int("typeJournal") ++ int("file_content"))
       .table("master_compta")
 
   val transactionDetails =
