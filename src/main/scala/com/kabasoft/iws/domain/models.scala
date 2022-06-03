@@ -1,7 +1,7 @@
 package com.kabasoft.iws.domain
 
-import java.util.{ Locale, UUID }
-import java.time.{ Instant, LocalDate, LocalDateTime, ZoneId }
+import java.util.{Locale, UUID}
+import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 import zio.prelude._
 import zio.prelude.NonEmptyList
 import zio.stm._
@@ -9,6 +9,8 @@ import zio._
 
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
+import scala.collection.Seq
+import scala.collection.immutable.{::, Nil}
 
 object common  {
   type Amount = scala.math.BigDecimal
@@ -89,11 +91,172 @@ final case class Account(
   }
 }
 object Account {
+  type Account_Type = (
+    String,
+      String,
+      String,
+      Instant,
+      Instant,
+      Instant,
+      String,
+      Int,
+      String,
+      Boolean,
+      Boolean,
+      String,
+      BigDecimal,
+      BigDecimal,
+      BigDecimal,
+      BigDecimal
+    )
+  def apply(acc: Account_Type): Account =
+    Account(
+      acc._1,
+      acc._2,
+      acc._3,
+      acc._4,
+      acc._5,
+      acc._6,
+      acc._7,
+      acc._8,
+      acc._9,
+      acc._10,
+      acc._11,
+      acc._12,
+      acc._13,
+      acc._14,
+      acc._15,
+      acc._16,
+      Nil.toSet
+    )
+  val dummy = Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", 9, "", false, false, "EUR")
+  def group(accounts: List[Account]): List[Account] =
+    accounts
+      .groupBy(_.id).map({
+        case (k, v: List[Account]) => v match {
+          case Nil => dummy
+          case (x::xs) =>NonEmptyList.fromIterable(x, xs).reduce.copy(id = k)
+        }
+      }).toList
+
+  def removeSubAccounts(account: Account): Account =
+    account.subAccounts.toList match {
+      case Nil => account
+      case rest @ _ =>
+        val sub = account.subAccounts.filterNot((acc => acc.balance == 0 && acc.subAccounts.size == 0))
+        if (account.subAccounts.size > 0)
+          account.copy(subAccounts = sub.map(removeSubAccounts))
+        else account
+    }
+  def addSubAccounts2(account: Account, accMap: Map[String, List[Account]]): Account =
+    accMap.get(account.id) match {
+      case Some(acc) => {
+        val x = account.subAccounts ++ acc.map(x => addSubAccounts(x, accMap))
+        account.copy(subAccounts = x)
+      }
+      case None =>
+        if (account.subAccounts.size > 0)
+          account.copy(
+            subAccounts = account.subAccounts ++ account.subAccounts.toList.map(x => addSubAccounts(x, accMap))
+          )
+        else account
+    }
+  def addSubAccounts(account: Account, accMap: Map[String, List[Account]]): Account =
+    accMap.get(account.id) match {
+      case Some(accList) =>
+        //account.copy(subAccounts = account.subAccounts ++ (group(accList).map(x => addSubAccounts(x, accMap))))
+        account.copy(subAccounts = account.subAccounts ++ accList.map(x => addSubAccounts(x, accMap)))
+      case None =>
+        if (account.subAccounts.size > 0)
+          account.copy(
+            subAccounts = account.subAccounts ++ account.subAccounts.toList.map(x => addSubAccounts(x, accMap))
+          )
+        else account
+    }
+  def getInitialDebitCredit(accId: String, pacs: List[PeriodicAccountBalance], side: Boolean): BigDecimal =
+    pacs.find(x => x.account == accId) match {
+      case Some(acc) => if (side) acc.idebit else acc.icredit
+      case None => BigDecimal(0)
+    }
+  def getAllSubBalances(account: Account, pacs: List[PeriodicAccountBalance]): Account =
+    account.subAccounts.toList match {
+      case Nil =>
+        account.copy(
+          idebit = getInitialDebitCredit(account.id, pacs, true),
+          icredit = getInitialDebitCredit(account.id, pacs, false)
+        )
+      case rest @ _ =>
+        val sub = account.subAccounts.map(acc => getAllSubBalances(acc, pacs))
+        val subALl = sub.toList match {
+          case Nil =>dummy
+          case x :: xs => NonEmptyList.fromIterable(x, xs).reduce
+        }
+         account
+          .idebiting(subALl.idebit)
+          .icrediting(subALl.icredit)
+          .debiting(subALl.debit)
+          .crediting(subALl.credit)
+          .copy(subAccounts = sub)
+    }
+
+  def unwrapDataTailRec(account: Account): List[Account] = {
+    //@tailrec
+    def unwrapData(res: List[Account]): List[Account] =
+      res.flatMap(
+        acc =>
+          acc.subAccounts.toList match {
+            case Nil => if (acc.balance == 0.0 && acc.subAccounts.isEmpty) List.empty[Account] else List(acc)
+            case (head: Account) :: tail => List(acc, head) ++ unwrapData(tail)
+          }
+      )
+    unwrapData(account.subAccounts.toList)
+  }
+
+  def wrapAsData(account: Account): Data =
+    account.subAccounts.toList match {
+      case Nil => Data(BaseData(account))
+      case rest @ _ =>
+        Data(BaseData(account)).copy(children = account.subAccounts.toList.map(wrapAsData))
+    }
+
+  def consolidateData(acc: Account): Data =
+    List(acc).map(wrapAsData) match {
+      case Nil => Data(BaseData(Account.dummy))
+      case account :: _ => account
+    }
+
+  def consolidate(accId: String, accList: List[Account], pacs: List[PeriodicAccountBalance]): Account = {
+    val accMap = accList.groupBy(_.account)
+    accList.find(x => x.id == accId) match {
+      case Some(acc) =>
+        val x: Account = addSubAccounts(acc, accMap) //List(acc)
+        val y = getAllSubBalances(x, pacs)
+        val z = removeSubAccounts(y.copy(id = acc.id))
+        z
+      case None => Account.dummy
+    }
+  }
+
+  def withChildren(accId: String, accList: List[Account]): Account =
+    accList.find(x => x.id == accId) match {
+      case Some(acc) =>addSubAccounts2(acc, accList.groupBy(_.account)).copy(id = accId)//.map({
+       // case (k, x :: xs) => NonEmptyList.fromIterable(x, xs).reduce.copy(id = k)
+     // })).copy(id = accId)
+
+      case None => Account.dummy
+    }
+  def flattenTailRec(ls: Set[Account]): Set[Account] = {
+    //@tailrec
+    def flattenR(res: List[Account], rem: List[Account]): List[Account] = rem match {
+      case Nil => res
+      case (head: Account) :: tail => flattenR(res ++ List(head), head.subAccounts.toList ++ tail)
+    }
+    flattenR(List.empty[Account], ls.toList).toSet
+  }
 
   implicit def reduce[A: Identity](as: NonEmptyList[A]): A = as.reduce
   type Balance_Type = (BigDecimal, BigDecimal, BigDecimal, BigDecimal)
 
-  val dummy = Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", 9, "", false, false, "EUR")
 
   implicit val accMonoid: Identity[Account] = new Identity[Account] {
     def identity: Account                       = dummy
@@ -108,6 +271,49 @@ object Account {
   }
 
 }
+final case class BaseData(
+                           id: String,
+                           name: String,
+                           description: String,
+                           modelId: Int = 19,
+                           isDebit: Boolean,
+                           balancesheet: Boolean,
+                           idebit: BigDecimal,
+                           icredit: BigDecimal,
+                           debit: BigDecimal,
+                           credit: BigDecimal,
+                           currency: String,
+                           company: String
+                         ) {
+  def debiting(amount: BigDecimal) = copy(debit = debit.+(amount))
+  def crediting(amount: BigDecimal) = copy(credit = credit.+(amount))
+  def idebiting(amount: BigDecimal) = copy(idebit = idebit.+(amount))
+  def icrediting(amount: BigDecimal) = copy(icredit = icredit.+(amount))
+  def fdebit = debit + idebit
+  def fcredit = credit + icredit
+  def dbalance = fdebit - fcredit
+  def cbalance = fcredit - fdebit
+  def balance = if (isDebit) dbalance else cbalance
+
+}
+object BaseData {
+  def apply(acc: Account): BaseData =
+    BaseData(
+      acc.id,
+      acc.name,
+      acc.description,
+      19,
+      acc.isDebit,
+      acc.balancesheet,
+      acc.idebit,
+      acc.icredit,
+      acc.debit,
+      acc.credit,
+      acc.currency,
+      acc.company
+    )
+}
+final case class Data(data: BaseData, children: Seq[Data] = Nil)
 final case class Order(
   id: UUID,
   customerId: UUID,
