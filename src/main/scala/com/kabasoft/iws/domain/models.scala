@@ -12,7 +12,9 @@ import java.time.format.DateTimeFormatter
 import scala.collection.Seq
 import scala.collection.immutable.{::, Nil}
 
+
 object common  {
+
   type Amount = scala.math.BigDecimal
   def getMonthAsString(month: Int): String       =
     if (month <= 9) {
@@ -239,9 +241,10 @@ object Account {
 
   def withChildren(accId: String, accList: List[Account]): Account =
     accList.find(x => x.id == accId) match {
-      case Some(acc) =>addSubAccounts2(acc, accList.groupBy(_.account)).copy(id = accId)//.map({
-       // case (k, x :: xs) => NonEmptyList.fromIterable(x, xs).reduce.copy(id = k)
-     // })).copy(id = accId)
+      case Some(acc) =>  //addSubAccounts2(acc, accList.groupBy(_.account)).copy(id = accId)//.map({
+    List(acc)
+    .foldMap(addSubAccounts2(_, accList.groupBy(_.account)))//(accMonoid)
+    .copy(id = accId)
 
       case None => Account.dummy
     }
