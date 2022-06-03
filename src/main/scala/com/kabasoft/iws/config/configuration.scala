@@ -62,7 +62,7 @@ object DbConfig {
     ZLayer(
       for {
         config <- ZIO.service[DbConfig]
-      } yield ConnectionPoolConfig(config.url, connProperties( config.user, config.password))
+      } yield ConnectionPoolConfig(config.url, connProperties(config.user, config.password))
     )
 
   private def connProperties(user: String, password: String): Properties = {

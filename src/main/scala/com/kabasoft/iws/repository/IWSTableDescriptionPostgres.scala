@@ -24,7 +24,7 @@ trait IWSTableDescriptionPostgres extends PostgresSqlModule with PostgresJdbcMod
     def findFirst(driver: ULayer[SqlDriver], id: String): ZIO[Any, RepositoryError, T] =
       zstream.runHead.some.tapError {
         case None    => ZIO.unit
-        case Some(e) => {println("Message:"+e.getMessage());ZIO.logError(e.getMessage())}
+        case Some(e) => println("Message:" + e.getMessage()); ZIO.logError(e.getMessage())
       }.mapError {
         case None    =>
           RepositoryError(
@@ -50,7 +50,7 @@ trait IWSTableDescriptionPostgres extends PostgresSqlModule with PostgresJdbcMod
     def findFirstLong(driver: ULayer[SqlDriver], id: Long): ZIO[Any, RepositoryError, T] =
       zstream.runHead.some.tapError {
         case None    => ZIO.unit
-        case Some(e) => {println("Message:"+e.getMessage());ZIO.logError(e.getMessage)}
+        case Some(e) => println("Message:" + e.getMessage()); ZIO.logError(e.getMessage)
       }.mapError {
         case None    =>
           RepositoryError(
@@ -65,7 +65,7 @@ trait IWSTableDescriptionPostgres extends PostgresSqlModule with PostgresJdbcMod
     def provideAndLog(driver: ULayer[SqlDriver]): ZIO[Any, RepositoryError, T] =
       zio
         .tapError(e => ZIO.logError(e.getMessage()))
-        .mapError(e => {println("Message:"+e.getMessage()); RepositoryError(e.getCause())})
+        .mapError { e => println("Message:" + e.getMessage()); RepositoryError(e.getCause()) }
         .provide(driver)
   }
 }

@@ -2,7 +2,7 @@ package com.kabasoft.iws
 
 import com.kabasoft.iws.config.DbConfig
 import com.kabasoft.iws.domain.Customer
-import com.kabasoft.iws.repository.{CustomerRepository, CustomerRepositoryImpl}
+import com.kabasoft.iws.repository.{ CustomerRepository, CustomerRepositoryImpl }
 import zio.sql.ConnectionPool
 import zio._
 import java.time.LocalDate

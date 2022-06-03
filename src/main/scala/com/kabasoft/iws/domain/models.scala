@@ -1,7 +1,7 @@
 package com.kabasoft.iws.domain
 
-import java.util.{Locale, UUID}
-import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
+import java.util.{ Locale, UUID }
+import java.time.{ Instant, LocalDate, LocalDateTime, ZoneId }
 import zio.prelude._
 import zio.prelude.NonEmptyList
 import zio.stm._
@@ -10,10 +10,9 @@ import zio._
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
 import scala.collection.Seq
-import scala.collection.immutable.{::, Nil}
+import scala.collection.immutable.{ ::, Nil }
 
-
-object common  {
+object common {
 
   type Amount = scala.math.BigDecimal
   def getMonthAsString(month: Int): String       =
@@ -95,23 +94,23 @@ final case class Account(
 object Account {
   type Account_Type = (
     String,
-      String,
-      String,
-      Instant,
-      Instant,
-      Instant,
-      String,
-      Int,
-      String,
-      Boolean,
-      Boolean,
-      String,
-      BigDecimal,
-      BigDecimal,
-      BigDecimal,
-      BigDecimal
-    )
-  def apply(acc: Account_Type): Account =
+    String,
+    String,
+    Instant,
+    Instant,
+    Instant,
+    String,
+    Int,
+    String,
+    Boolean,
+    Boolean,
+    String,
+    BigDecimal,
+    BigDecimal,
+    BigDecimal,
+    BigDecimal
+  )
+  def apply(acc: Account_Type): Account             =
     Account(
       acc._1,
       acc._2,
@@ -131,44 +130,45 @@ object Account {
       acc._16,
       Nil.toSet
     )
-  val dummy = Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", 9, "", false, false, "EUR")
+  val dummy                                         = Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", 9, "", false, false, "EUR")
   def group(accounts: List[Account]): List[Account] =
     accounts
-      .groupBy(_.id).map({
-        case (k, v: List[Account]) => v match {
-          case Nil => dummy
-          case (x::xs) =>NonEmptyList.fromIterable(x, xs).reduce.copy(id = k)
+      .groupBy(_.id)
+      .map { case (k, v: List[Account]) =>
+        v match {
+          case Nil       => dummy
+          case (x :: xs) => NonEmptyList.fromIterable(x, xs).reduce.copy(id = k)
         }
-      }).toList
+      }
+      .toList
 
-  def removeSubAccounts(account: Account): Account =
+  def removeSubAccounts(account: Account): Account                                                        =
     account.subAccounts.toList match {
-      case Nil => account
+      case Nil      => account
       case rest @ _ =>
         val sub = account.subAccounts.filterNot((acc => acc.balance == 0 && acc.subAccounts.size == 0))
         if (account.subAccounts.size > 0)
           account.copy(subAccounts = sub.map(removeSubAccounts))
         else account
     }
-  def addSubAccounts2(account: Account, accMap: Map[String, List[Account]]): Account =
+  def addSubAccounts2(account: Account, accMap: Map[String, List[Account]]): Account                      =
     accMap.get(account.id) match {
-      case Some(acc) => {
+      case Some(acc) =>
         val x = account.subAccounts ++ acc.map(x => addSubAccounts(x, accMap))
         account.copy(subAccounts = x)
-      }
-      case None =>
+      case None      =>
         if (account.subAccounts.size > 0)
           account.copy(
             subAccounts = account.subAccounts ++ account.subAccounts.toList.map(x => addSubAccounts(x, accMap))
           )
         else account
     }
-  def addSubAccounts(account: Account, accMap: Map[String, List[Account]]): Account =
+  def addSubAccounts(account: Account, accMap: Map[String, List[Account]]): Account                       =
     accMap.get(account.id) match {
       case Some(accList) =>
-        //account.copy(subAccounts = account.subAccounts ++ (group(accList).map(x => addSubAccounts(x, accMap))))
+        // account.copy(subAccounts = account.subAccounts ++ (group(accList).map(x => addSubAccounts(x, accMap))))
         account.copy(subAccounts = account.subAccounts ++ accList.map(x => addSubAccounts(x, accMap)))
-      case None =>
+      case None          =>
         if (account.subAccounts.size > 0)
           account.copy(
             subAccounts = account.subAccounts ++ account.subAccounts.toList.map(x => addSubAccounts(x, accMap))
@@ -178,22 +178,22 @@ object Account {
   def getInitialDebitCredit(accId: String, pacs: List[PeriodicAccountBalance], side: Boolean): BigDecimal =
     pacs.find(x => x.account == accId) match {
       case Some(acc) => if (side) acc.idebit else acc.icredit
-      case None => BigDecimal(0)
+      case None      => BigDecimal(0)
     }
-  def getAllSubBalances(account: Account, pacs: List[PeriodicAccountBalance]): Account =
+  def getAllSubBalances(account: Account, pacs: List[PeriodicAccountBalance]): Account                    =
     account.subAccounts.toList match {
-      case Nil =>
+      case Nil      =>
         account.copy(
           idebit = getInitialDebitCredit(account.id, pacs, true),
           icredit = getInitialDebitCredit(account.id, pacs, false)
         )
       case rest @ _ =>
-        val sub = account.subAccounts.map(acc => getAllSubBalances(acc, pacs))
+        val sub    = account.subAccounts.map(acc => getAllSubBalances(acc, pacs))
         val subALl = sub.toList match {
-          case Nil =>dummy
+          case Nil     => dummy
           case x :: xs => NonEmptyList.fromIterable(x, xs).reduce
         }
-         account
+        account
           .idebiting(subALl.idebit)
           .icrediting(subALl.icredit)
           .debiting(subALl.debit)
@@ -202,28 +202,27 @@ object Account {
     }
 
   def unwrapDataTailRec(account: Account): List[Account] = {
-    //@tailrec
+    // @tailrec
     def unwrapData(res: List[Account]): List[Account] =
-      res.flatMap(
-        acc =>
-          acc.subAccounts.toList match {
-            case Nil => if (acc.balance == 0.0 && acc.subAccounts.isEmpty) List.empty[Account] else List(acc)
-            case (head: Account) :: tail => List(acc, head) ++ unwrapData(tail)
-          }
+      res.flatMap(acc =>
+        acc.subAccounts.toList match {
+          case Nil                     => if (acc.balance == 0.0 && acc.subAccounts.isEmpty) List.empty[Account] else List(acc)
+          case (head: Account) :: tail => List(acc, head) ++ unwrapData(tail)
+        }
       )
     unwrapData(account.subAccounts.toList)
   }
 
   def wrapAsData(account: Account): Data =
     account.subAccounts.toList match {
-      case Nil => Data(BaseData(account))
+      case Nil      => Data(BaseData(account))
       case rest @ _ =>
         Data(BaseData(account)).copy(children = account.subAccounts.toList.map(wrapAsData))
     }
 
   def consolidateData(acc: Account): Data =
     List(acc).map(wrapAsData) match {
-      case Nil => Data(BaseData(Account.dummy))
+      case Nil          => Data(BaseData(Account.dummy))
       case account :: _ => account
     }
 
@@ -231,27 +230,24 @@ object Account {
     val accMap = accList.groupBy(_.account)
     accList.find(x => x.id == accId) match {
       case Some(acc) =>
-        val x: Account = addSubAccounts(acc, accMap) //List(acc)
-        val y = getAllSubBalances(x, pacs)
-        val z = removeSubAccounts(y.copy(id = acc.id))
+        val x: Account = addSubAccounts(acc, accMap) // List(acc)
+        val y          = getAllSubBalances(x, pacs)
+        val z          = removeSubAccounts(y.copy(id = acc.id))
         z
-      case None => Account.dummy
+      case None      => Account.dummy
     }
   }
 
   def withChildren(accId: String, accList: List[Account]): Account =
     accList.find(x => x.id == accId) match {
-      case Some(acc) =>  //addSubAccounts2(acc, accList.groupBy(_.account)).copy(id = accId)//.map({
-    List(acc)
-    .foldMap(addSubAccounts2(_, accList.groupBy(_.account)))//(accMonoid)
-    .copy(id = accId)
-
-      case None => Account.dummy
+      case Some(acc) => List(acc).foldMap(addSubAccounts2(_, accList.groupBy(_.account))).copy(id = accId)
+      case None      => Account.dummy
     }
+
   def flattenTailRec(ls: Set[Account]): Set[Account] = {
-    //@tailrec
+    // @tailrec
     def flattenR(res: List[Account], rem: List[Account]): List[Account] = rem match {
-      case Nil => res
+      case Nil                     => res
       case (head: Account) :: tail => flattenR(res ++ List(head), head.subAccounts.toList ++ tail)
     }
     flattenR(List.empty[Account], ls.toList).toSet
@@ -259,7 +255,6 @@ object Account {
 
   implicit def reduce[A: Identity](as: NonEmptyList[A]): A = as.reduce
   type Balance_Type = (BigDecimal, BigDecimal, BigDecimal, BigDecimal)
-
 
   implicit val accMonoid: Identity[Account] = new Identity[Account] {
     def identity: Account                       = dummy
@@ -275,28 +270,28 @@ object Account {
 
 }
 final case class BaseData(
-                           id: String,
-                           name: String,
-                           description: String,
-                           modelId: Int = 19,
-                           isDebit: Boolean,
-                           balancesheet: Boolean,
-                           idebit: BigDecimal,
-                           icredit: BigDecimal,
-                           debit: BigDecimal,
-                           credit: BigDecimal,
-                           currency: String,
-                           company: String
-                         ) {
-  def debiting(amount: BigDecimal) = copy(debit = debit.+(amount))
-  def crediting(amount: BigDecimal) = copy(credit = credit.+(amount))
-  def idebiting(amount: BigDecimal) = copy(idebit = idebit.+(amount))
+  id: String,
+  name: String,
+  description: String,
+  modelId: Int = 19,
+  isDebit: Boolean,
+  balancesheet: Boolean,
+  idebit: BigDecimal,
+  icredit: BigDecimal,
+  debit: BigDecimal,
+  credit: BigDecimal,
+  currency: String,
+  company: String
+) {
+  def debiting(amount: BigDecimal)   = copy(debit = debit.+(amount))
+  def crediting(amount: BigDecimal)  = copy(credit = credit.+(amount))
+  def idebiting(amount: BigDecimal)  = copy(idebit = idebit.+(amount))
   def icrediting(amount: BigDecimal) = copy(icredit = icredit.+(amount))
-  def fdebit = debit + idebit
-  def fcredit = credit + icredit
-  def dbalance = fdebit - fcredit
-  def cbalance = fcredit - fdebit
-  def balance = if (isDebit) dbalance else cbalance
+  def fdebit                         = debit + idebit
+  def fcredit                        = credit + icredit
+  def dbalance                       = fdebit - fcredit
+  def cbalance                       = fcredit - fdebit
+  def balance                        = if (isDebit) dbalance else cbalance
 
 }
 object BaseData {

@@ -39,6 +39,5 @@ object FinancialsHttpRoutes {
           case Left(_)  => Response.status(Status.BadRequest)
         }
 
-
     }
 }

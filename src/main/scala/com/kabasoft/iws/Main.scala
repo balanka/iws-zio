@@ -5,21 +5,21 @@ import zhttp.service.{ EventLoopGroup, Server }
 import zio._
 import zio.config._
 import zio.sql.ConnectionPool
-import com.kabasoft.iws.api.{FinancialsHttpRoutes, HttpRoutes, MasterfilesHttpRoutes, PacHttpRoutes, VatHttpRoutes}
+import com.kabasoft.iws.api.{ FinancialsHttpRoutes, HttpRoutes, MasterfilesHttpRoutes, PacHttpRoutes, VatHttpRoutes }
 import com.kabasoft.iws.repository._
 import com.kabasoft.iws.service._
 import com.kabasoft.iws.healthcheck.Healthcheck
-import com.kabasoft.iws.config.{DbConfig, ServerConfig}
+import com.kabasoft.iws.config.{ DbConfig, ServerConfig }
 
 object Main extends ZIOAppDefault {
- override def run =
+  override def run =
     getConfig[ServerConfig]
       .map(config =>
         Server.port(config.port) ++
           Server.app(
             FinancialsHttpRoutes.app ++
               HttpRoutes.app
-             ++ MasterfilesHttpRoutes.app
+              ++ MasterfilesHttpRoutes.app
               ++ PacHttpRoutes.app ++ VatHttpRoutes.app ++ Healthcheck.expose
           )
       )
