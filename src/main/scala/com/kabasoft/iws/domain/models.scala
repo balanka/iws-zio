@@ -110,26 +110,7 @@ object Account {
     BigDecimal,
     BigDecimal
   )
-/*
-  def apply(  id: String,
-              name: String,
-              description: String,
-              enterdate: Instant = Instant.now(),
-              changedate: Instant = Instant.now(),
-              postingdate: Instant = Instant.now(),
-              company: String,
-              modelid: Int = 9,
-              account: String = "",
-              isDebit: Boolean,
-              balancesheet: Boolean,
-              currency: String = "EUR ",
-              idebit: BigDecimal = BigDecimal(0),
-              icredit: BigDecimal = BigDecimal(0),
-              debit: BigDecimal = BigDecimal(0),
-              credit: BigDecimal = BigDecimal(0)):Account = Account(id, name, description, enterdate, changedate, postingdate,
-    company, modelid, account ,isDebit, balancesheet, currency, idebit, icredit, debit, credit,Nil.toSet)
-    
- */
+
 
   def apply(acc: Account_Type): Account             =
      new Account(
@@ -275,7 +256,7 @@ object Account {
     flattenR(List.empty[Account], ls.toList).toSet
   }
 
-  implicit def reduce[A: Identity](as: NonEmptyList[A]): A = as.reduce
+  //implicit def reduce[A: Identity](as: NonEmptyList[A]): A = as.reduce
   type Balance_Type = (BigDecimal, BigDecimal, BigDecimal, BigDecimal)
 
   implicit val accMonoid: Identity[Account] = new Identity[Account] {
