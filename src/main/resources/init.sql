@@ -122,9 +122,9 @@ values
     ('5883cb62-d792-4ee3-acbc-fe85b6baa998', '784426a5-b90a-4759-afbb-571b7a0ba35e', '2020-04-30');
 insert into account
 (id, name, description, posting_date, modified_date, enter_date,  company, modelid,account,
- isdebit, balancesheet, idebit, icredit, debit, credit, currency)values
+ isdebit, balancesheet, idebit, icredit, debit, credit, currency) values
   ('4711','myFirstAccount','myFirstAccount',current_timestamp, current_timestamp, current_timestamp, '1000',11
-  , true,true, 0.0, 0.0, 0.0, 0.0, 'EUR');
+  , '9999', true, true, 0.0, 0.0, 0.0, 0.0, 'EUR');
 
  insert into bankstatement
  (id,depositor, postingdate, valuedate, postingtext, purpose, beneficiary, accountno, bankCode,amount, currency, info, company, companyIban, posted, modelid)
