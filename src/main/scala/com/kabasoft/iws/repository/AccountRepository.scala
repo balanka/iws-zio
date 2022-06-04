@@ -19,5 +19,32 @@ trait AccountRepository {
   // def update(model:TYPE_, company: String): ZIO[Any, RepositoryError, Int]
   // def findSome(company: String, param: Seq[String]): ZStream[Any, RepositoryError, TYPE_]
 }
+object AccountRepository {
 
+  type TYPE_ = Account
+
+  def create(item: TYPE_): ZIO[AccountRepository, RepositoryError, Unit] =
+    ZIO.serviceWithZIO[AccountRepository](_.create(item))
+
+  def create(items: List[TYPE_]): ZIO[AccountRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[AccountRepository](_.create(items))
+
+  def delete(item: String, company: String): ZIO[AccountRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[AccountRepository](_.delete(item, company))
+
+  def delete(items: List[String], company: String): ZIO[AccountRepository, RepositoryError, List[Int]] =
+    ZIO.collectAll(items.map(delete(_, company)))
+
+  def list(company: String): ZStream[AccountRepository, RepositoryError, TYPE_] =
+    ZStream.serviceWithStream[AccountRepository](_.list(company))
+
+  def getBy(id: String, company: String): ZIO[AccountRepository, RepositoryError, TYPE_] =
+    ZIO.serviceWithZIO[AccountRepository](_.getBy(id, company))
+
+  def getByModelId(modelid: Int, company: String): ZIO[AccountRepository, RepositoryError, TYPE_] =
+    ZIO.serviceWithZIO[AccountRepository](_.getByModelId(modelid, company))
+
+  def modify(model: TYPE_): ZIO[AccountRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[AccountRepository](_.modify(model))
+}
 
