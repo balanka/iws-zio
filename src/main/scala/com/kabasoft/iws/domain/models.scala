@@ -110,8 +110,29 @@ object Account {
     BigDecimal,
     BigDecimal
   )
+/*
+  def apply(  id: String,
+              name: String,
+              description: String,
+              enterdate: Instant = Instant.now(),
+              changedate: Instant = Instant.now(),
+              postingdate: Instant = Instant.now(),
+              company: String,
+              modelid: Int = 9,
+              account: String = "",
+              isDebit: Boolean,
+              balancesheet: Boolean,
+              currency: String = "EUR ",
+              idebit: BigDecimal = BigDecimal(0),
+              icredit: BigDecimal = BigDecimal(0),
+              debit: BigDecimal = BigDecimal(0),
+              credit: BigDecimal = BigDecimal(0)):Account = Account(id, name, description, enterdate, changedate, postingdate,
+    company, modelid, account ,isDebit, balancesheet, currency, idebit, icredit, debit, credit,Nil.toSet)
+    
+ */
+
   def apply(acc: Account_Type): Account             =
-    Account(
+     new Account(
       acc._1,
       acc._2,
       acc._3,
@@ -130,16 +151,17 @@ object Account {
       acc._16,
       Nil.toSet
     )
-  val dummy                                         = Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", 9, "", false, false, "EUR")
+  val dummy                                         = Account("", "", "", Instant.now(), Instant.now(), Instant.now()
+    , "1000", 9, "", false, false, "EUR", BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0), Nil.toSet)
   def group(accounts: List[Account]): List[Account] =
     accounts
       .groupBy(_.id)
-      .map { case (k, v: List[Account]) =>
+      .map ({ case (k, v: List[Account]) =>
         v match {
           case Nil       => dummy
           case (x :: xs) => NonEmptyList.fromIterable(x, xs).reduce.copy(id = k)
         }
-      }
+      })
       .toList
 
   def removeSubAccounts(account: Account): Account                                                        =
@@ -862,7 +884,7 @@ object FinancialsTransaction        {
     new FinancialsTransaction(
       x.id,
       x.oid,
-      "100",
+      x.oaccount,
       x.account,
       x.transdate,
       x.enterdate,
