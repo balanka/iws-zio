@@ -63,7 +63,26 @@ create table  vat
     company          varchar(50)                         not null,
     modelid          integer                             not null
     );
-
+create table  account
+(
+    id            varchar(50)                         not null
+    primary key,
+    name          varchar(255)                        not null,
+    description   varchar(255),
+    posting_date  timestamp      default CURRENT_DATE not null,
+    modified_date timestamp      default CURRENT_DATE not null,
+    enter_date    timestamp      default CURRENT_DATE not null,
+    company       varchar(50)                         not null,
+    modelid       integer        default 9            not null,
+    account       varchar(50),
+    isdebit       boolean        default true         not null,
+    balancesheet  boolean        default false        not null,
+    idebit        numeric(12, 2) default 0,
+    icredit       numeric(12, 2) default 0,
+    debit         numeric(12, 2) default 0,
+    credit        numeric(12, 2) default 0,
+    currency      varchar(5)     default ''::character varying
+    );
 insert into customers
     (id, first_name, last_name, verified, dob)
 values
@@ -101,6 +120,11 @@ values
     ('5011d206-8eff-42c4-868e-f1a625e1f186', '636ae137-5b1a-4c8c-b11f-c47c624d9cdc', '2019-01-23'),
     ('0a48ffb0-ec61-4147-af56-fc4dbca8de0a', 'f76c9ace-be07-4bf3-bd4c-4a9c62882e64', '2019-05-14'),
     ('5883cb62-d792-4ee3-acbc-fe85b6baa998', '784426a5-b90a-4759-afbb-571b7a0ba35e', '2020-04-30');
+insert into account
+(id, name, description, posting_date, modified_date, enter_date,  company, modelid,account,
+ isdebit, balancesheet, idebit, icredit, debit, credit, currency)values
+  ('4711','myFirstAccount','myFirstAccount',current_timestamp, current_timestamp, current_timestamp, '1000',11
+  , true,true, 0.0, 0.0, 0.0, 0.0, 'EUR');
 
  insert into bankstatement
  (id,depositor, postingdate, valuedate, postingtext, purpose, beneficiary, accountno, bankCode,amount, currency, info, company, companyIban, posted, modelid)
