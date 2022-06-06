@@ -12,10 +12,23 @@ object Protocol {
   final case class CustomerWrapper(customers: List[CustomerWithOrderDate])
 
   final case class BankStatements(bankStatements: Chunk[BankStatement])
+  final case class Datas(data: Chunk[Daten])
+  final case class BaseDatas(baseData: Chunk[BaseData])
 
+  final case class Accounts(accounts: Chunk[Account])
   final case class CustomerCountWrapper(
     customers: List[CustomerWithOrderNumber]
   )
+  implicit val accountEncoder: JsonEncoder[Account] = DeriveJsonEncoder.gen[Account]
+  implicit val accountDecoder: JsonDecoder[Account] = DeriveJsonDecoder.gen[Account]
+
+  implicit val baseDataEncoder: JsonEncoder[BaseData] = DeriveJsonEncoder.gen[BaseData]
+  implicit val baseDataDecoder: JsonDecoder[BaseData] = DeriveJsonDecoder.gen[BaseData]
+
+  implicit val datenEncoder: JsonEncoder[Daten] = DeriveJsonEncoder.gen[Daten]
+  implicit val datenDecoder: JsonDecoder[Daten] = DeriveJsonDecoder.gen[Daten]
+
+
 
   implicit val vatEncoder: JsonEncoder[Vat] = DeriveJsonEncoder.gen[Vat]
   implicit val vatDecoder: JsonDecoder[Vat] = DeriveJsonDecoder.gen[Vat]

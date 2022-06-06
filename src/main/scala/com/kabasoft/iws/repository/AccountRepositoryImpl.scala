@@ -84,7 +84,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
 }
 
 object AccountRepositoryImpl {
-  val live: ZLayer[ConnectionPool, Throwable, AccountRepository] =
+  val live: ZLayer[ConnectionPool, RepositoryError, AccountRepository] =
     ZLayer.fromFunction(new AccountRepositoryImpl(_))
 }
 

@@ -5,20 +5,24 @@ import zhttp.service.{ EventLoopGroup, Server }
 import zio._
 import zio.config._
 import zio.sql.ConnectionPool
-import com.kabasoft.iws.api.{ FinancialsHttpRoutes, HttpRoutes, MasterfilesHttpRoutes, PacHttpRoutes, VatHttpRoutes }
+import com.kabasoft.iws.api._
 import com.kabasoft.iws.repository._
 import com.kabasoft.iws.service._
+//import com.kabasoft.iws.domain.AppError._
 import com.kabasoft.iws.healthcheck.Healthcheck
 import com.kabasoft.iws.config.{ DbConfig, ServerConfig }
 
 object Main extends ZIOAppDefault {
+
+  //val serviceLayer: ZLayer[ConnectionPool, RepositoryError, AccountRepository with PacRepository] =
+  //  AccountRepositoryImpl.live ++ PacRepositoryImpl.live
   override def run =
     getConfig[ServerConfig]
       .map(config =>
         Server.port(config.port) ++
           Server.app(
-            FinancialsHttpRoutes.app ++
-              HttpRoutes.app
+            AccountHttpRoutes.app++FinancialsHttpRoutes.app
+              ++HttpRoutes.app
               ++ MasterfilesHttpRoutes.app
               ++ PacHttpRoutes.app ++ VatHttpRoutes.app ++ Healthcheck.expose
           )
@@ -28,14 +32,17 @@ object Main extends ZIOAppDefault {
         ServerConfig.layer,
         ServerChannelFactory.auto,
         EventLoopGroup.auto(),
+        //AccountRepositoryImpl.live,
         OrderRepositoryImpl.live,
         CustomerRepositoryImpl.live,
         BankRepositoryImpl.live,
         BankStatementRepositoryImpl.live,
         TransactionRepositoryImpl.live,
-        PacRepositoryImpl.live,
+        //PacRepositoryImpl.live,
         VatRepositoryImpl.live,
         QueryServiceImpl.live,
+        //serviceLayer,
+        AccountRepositoryImpl.live ++ PacRepositoryImpl.live,
         DbConfig.layer,
         ConnectionPool.live,
         DbConfig.connectionPoolConfig

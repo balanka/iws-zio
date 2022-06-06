@@ -3,13 +3,11 @@ package com.kabasoft.iws.domain
 import java.util.{ Locale, UUID }
 import java.time.{ Instant, LocalDate, LocalDateTime, ZoneId }
 import zio.prelude._
-import zio.prelude.NonEmptyList
 import zio.stm._
 import zio._
 
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
-import scala.collection.Seq
 import scala.collection.immutable.{ ::, Nil }
 
 object common {
@@ -139,7 +137,7 @@ object Account {
       .groupBy(_.id)
       .map ({ case (k, v: List[Account]) =>
         v match {
-          case Nil       => dummy
+          case Nil       => Account.dummy
           case (x :: xs) => NonEmptyList.fromIterable(x, xs).reduce.copy(id = k)
         }
       })
@@ -193,7 +191,7 @@ object Account {
       case rest @ _ =>
         val sub    = account.subAccounts.map(acc => getAllSubBalances(acc, pacs))
         val subALl = sub.toList match {
-          case Nil     => dummy
+          case Nil     => Account.dummy
           case x :: xs => NonEmptyList.fromIterable(x, xs).reduce
         }
         account
@@ -216,16 +214,16 @@ object Account {
     unwrapData(account.subAccounts.toList)
   }
 
-  def wrapAsData(account: Account): Data =
+  def wrapAsData(account: Account): Daten =
     account.subAccounts.toList match {
-      case Nil      => Data(BaseData(account))
+      case Nil      => Daten(BaseData(account))
       case rest @ _ =>
-        Data(BaseData(account)).copy(children = account.subAccounts.toList.map(wrapAsData))
+        Daten(BaseData(account)).copy(children = account.subAccounts.toList.map(wrapAsData))
     }
 
-  def consolidateData(acc: Account): Data =
+  def consolidateData(acc: Account): Daten =
     List(acc).map(wrapAsData) match {
-      case Nil          => Data(BaseData(Account.dummy))
+      case Nil          => Daten(BaseData(Account.dummy))
       case account :: _ => account
     }
 
@@ -260,7 +258,7 @@ object Account {
   type Balance_Type = (BigDecimal, BigDecimal, BigDecimal, BigDecimal)
 
   implicit val accMonoid: Identity[Account] = new Identity[Account] {
-    def identity: Account                       = dummy
+    def identity: Account                       = Account.dummy
     def combine(m1: => Account, m2: => Account) =
       m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
   }
@@ -314,7 +312,7 @@ object BaseData {
       acc.company
     )
 }
-final case class Data(data: BaseData, children: Seq[Data] = Nil)
+final case class Daten(data: BaseData, children: List[Daten] = Nil) extends Serializable
 final case class Order(
   id: UUID,
   customerId: UUID,
@@ -627,7 +625,7 @@ final case class PeriodicAccountBalance(
 
 object PeriodicAccountBalance {
   import zio.prelude._
-  import zio.NonEmptyChunk
+ // import zio.NonEmptyChunk
 
   val MODELID = 106
 
@@ -636,16 +634,17 @@ object PeriodicAccountBalance {
       _.copy(idebit = BigDecimal(0), debit = BigDecimal(0), icredit = BigDecimal(0), credit = BigDecimal(0))
     )
   def createId(period: Int, accountId: String)  = period.toString.concat(accountId)
-  val empty                                     =
+  val dummy                                     =
     PeriodicAccountBalance("", "", 0, BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0), "EUR", "1000")
 
-  implicit val pacMonoid: Associative[PeriodicAccountBalance]  =
-    new Associative[PeriodicAccountBalance] {
-      def combine(m1: => PeriodicAccountBalance, m2: => PeriodicAccountBalance) =
-        m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
-    }
-  implicit def reduce[A: Associative](as: NonEmptyChunk[A]): A = as.reduce(_ <> _)
-  println(reduce(NonEmptyChunk(empty, empty)))
+
+  //implicit def reduce[A: Associative](as: NonEmptyChunk[A]): A = as.reduce(_ <> _)
+
+  implicit val pacMonoid: Identity[PeriodicAccountBalance] = new Identity[PeriodicAccountBalance] {
+    def identity: PeriodicAccountBalance                       = PeriodicAccountBalance.dummy
+    def combine(m1: => PeriodicAccountBalance, m2: => PeriodicAccountBalance) =
+      m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
+  }
 }
 
 sealed trait BusinessPartner        {
