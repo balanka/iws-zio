@@ -16,17 +16,23 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
       ++ bigDecimal("debit") ++ bigDecimal("credit") ++ string("currency") ++ string("company") ++ int("modelid"))
       .table("periodic_account_balance")
 
-  val (id, account, period, idebit, icredit, debit, credit, currency, company, modelid) = pac.columns
+  val (id,  account, period, idebit, icredit, debit, credit, currency, company, modelid) = pac.columns
 
-  def getQuery(fromPeriod:Int, toPeriod:Int,  companyId:String) = {
-    println(s" ${fromPeriod} ${toPeriod} ${companyId}  ")
+  def getQuery(fromPeriod:Int, toPeriod:Int,  companyId:String) =
     select((Max(id) as "id"), account, (Max(period) as "period"), (Min(idebit ) as "idebit"),  (Min(icredit) as "icredit")
       ,  (SumB(debit) as "debit"), (SumB(credit) as "credit" ), currency, company, modelid)
       .from(pac)
       .groupBy(account, currency, company, modelid)
       .where((company === companyId) && (period >=  fromPeriod) && (period <= toPeriod))
       .orderBy(account.descending)
-  }
+
+  def getBalancesQuery(fromPeriod:Int, toPeriod:Int,  companyId:String) =
+    select((Max(id) as "id"), account, (Max(period) as "period"), (SumB(idebit ) as "idebit"),  (SumB(icredit) as "icredit")
+      ,  (SumB(debit) as "debit"), (SumB(credit) as "credit" ), currency, company, modelid)
+      .from(pac)
+      .groupBy(account, currency, company, modelid)
+      .where((company === companyId) && (period >=  fromPeriod) && (period <= toPeriod))
+      .orderBy(account.descending)
 
   val X = id ++ account ++ period ++ idebit ++ icredit ++ debit ++ credit ++ currency ++ company ++ modelid
 
@@ -86,6 +92,15 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
     val query = getQuery(fromPeriod, toPeriod, companyId)
     ZStream.fromZIO(
       ZIO.logInfo(s"Query to execute findBalance4Period is ${renderRead(query)}")
+    ) *>
+      execute(query.to((PeriodicAccountBalance.apply _).tupled))
+        .provideDriver(driverLayer)
+  }
+
+  def getBalances4Period(fromPeriod: Int, toPeriod: Int, companyId: String):ZStream[Any, RepositoryError, TYPE_]  = {
+    val query = getBalancesQuery(fromPeriod, toPeriod, companyId)
+    ZStream.fromZIO(
+      ZIO.logInfo(s"Query to execute getBalances4Period is ${renderRead(query)}")
     ) *>
       execute(query.to((PeriodicAccountBalance.apply _).tupled))
         .provideDriver(driverLayer)

@@ -17,6 +17,7 @@ trait PacRepository {
   def getByModelId(modelid: Int, company: String): IO[RepositoryError, TYPE_]
   def findBalance4Period(fromPeriod: Int, toPeriod: Int, company: String):ZStream[Any, RepositoryError, TYPE_]
   def find4Period(fromPeriod: Int, toPeriod: Int, company: String):ZStream[Any, RepositoryError, TYPE_]
+  def getBalances4Period(fromPeriod: Int, toPeriod: Int, companyId: String):ZStream[Any, RepositoryError, TYPE_]
   // def update(models: List[TYPE_], company: String): ZIO[Any, RepositoryError, List[Int]]
   // def update(model:TYPE_, company: String): ZIO[Any, RepositoryError, Int]
   // def findSome(company: String, param: Seq[String]): ZStream[Any, RepositoryError, TYPE_]
@@ -43,6 +44,8 @@ object PacRepository {
     ZStream.serviceWithStream[PacRepository](_.findBalance4Period(fromPeriod, toPeriod, company))
   def find4Period(fromPeriod: Int, toPeriod: Int, company: String):ZStream[PacRepository, RepositoryError, TYPE_]=
     ZStream.serviceWithStream[PacRepository](_.find4Period(fromPeriod, toPeriod, company))
+  def getBalances4Period(fromPeriod: Int, toPeriod: Int, company: String):ZStream[PacRepository, RepositoryError, TYPE_]=
+    ZStream.serviceWithStream[PacRepository](_.getBalances4Period(fromPeriod, toPeriod, company))
   // def update(models: List[TYPE_], company: String): ZIO[PacRepository, RepositoryError, Int]=
   //  ZIO.collectAll(models.map(update(_, company)))
   // def update(model: TYPE_, company: String): ZIO[PacRepository, RepositoryError, Int]=
