@@ -58,7 +58,7 @@ final class AccountServiceImpl(accRepo:AccountRepository, pacRepo:PacRepository)
       pac_created <- pacRepo.create(pacList)
     } yield pac_created
 
-  def net(acc: accRepo.TYPE_, pac:pacRepo.TYPE_, nextPeriod:Int) = {
+  def net(acc: accRepo.TYPE_, pac:PeriodicAccountBalance, nextPeriod:Int) = {
     if(acc.isDebit){
       pac
         .copy(id = PeriodicAccountBalance.createId(nextPeriod, acc.id), period = nextPeriod)

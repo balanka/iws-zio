@@ -16,8 +16,7 @@ trait AccountRepository {
   def getBy(id: String, company: String): ZIO[Any, RepositoryError, TYPE_]
   def getByModelId(modelid: Int, company: String): ZIO[Any, RepositoryError, TYPE_]
   def modify(model: TYPE_): ZIO[Any, RepositoryError, Int]
-  // def update(model:TYPE_, company: String): ZIO[Any, RepositoryError, Int]
-  // def findSome(company: String, param: Seq[String]): ZStream[Any, RepositoryError, TYPE_]
+  def modify(models: List[TYPE_]): ZIO[Any, RepositoryError, Int]
 }
 object AccountRepository {
 
@@ -46,5 +45,8 @@ object AccountRepository {
 
   def modify(model: TYPE_): ZIO[AccountRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[AccountRepository](_.modify(model))
+
+  def modify(models: List[TYPE_]): ZIO[AccountRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[AccountRepository](_.modify(models))
 }
 

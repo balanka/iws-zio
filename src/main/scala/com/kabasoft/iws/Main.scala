@@ -38,6 +38,8 @@ object Main extends ZIOAppDefault {
         PacRepositoryImpl.live,
         VatRepositoryImpl.live,
         QueryServiceImpl.live,
+        JournalRepositoryImpl.live,
+        FinancialsServiceImpl.live,
         DbConfig.layer,
         ConnectionPool.live,
         DbConfig.connectionPoolConfig

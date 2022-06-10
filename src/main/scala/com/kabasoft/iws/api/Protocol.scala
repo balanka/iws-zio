@@ -16,6 +16,7 @@ object Protocol {
   final case class BaseDatas(baseData: Chunk[BaseData])
 
   final case class Accounts(accounts: Chunk[Account])
+  final case class Journals(journals: Chunk[Journal])
   final case class CustomerCountWrapper(
     customers: List[CustomerWithOrderNumber]
   )
@@ -47,6 +48,9 @@ object Protocol {
 
   implicit val financialsEncoder: JsonEncoder[DerivedTransaction] = DeriveJsonEncoder.gen[DerivedTransaction]
   implicit val financialsDecoder: JsonDecoder[DerivedTransaction] = DeriveJsonDecoder.gen[DerivedTransaction]
+
+  implicit val journalEncoder: JsonEncoder[Journal] = DeriveJsonEncoder.gen[Journal]
+  implicit val journalDecoder: JsonDecoder[Journal] = DeriveJsonDecoder.gen[Journal]
 
   implicit val orderEncoder: JsonEncoder[Order] = DeriveJsonEncoder.gen[Order]
   implicit val orderDecoder: JsonDecoder[Order] = DeriveJsonDecoder.gen[Order]

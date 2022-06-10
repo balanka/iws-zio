@@ -269,6 +269,12 @@ object Account {
       new Balance_Type(m1._1 + m2._1, m1._2 + m2._2, m1._3 + m2._3, m1._4 + m2._4)
   }
 
+  implicit val pacMonoid: Identity[PeriodicAccountBalance] = new Identity[PeriodicAccountBalance] {
+    def identity: PeriodicAccountBalance                       = PeriodicAccountBalance.dummy
+    def combine(m1: => PeriodicAccountBalance, m2: => PeriodicAccountBalance) =
+      m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
+  }
+
 }
 final case class BaseData(
   id: String,
@@ -755,10 +761,10 @@ final case class FinancialsTransaction(
 }
 object FinancialsTransactionDetails {
   import FinancialsTransaction.FinancialsTransaction_Type2
-  val EMPTY                                                   = FinancialsTransactionDetails(0, 0, "", true, "", BigDecimal(0), Instant.now(), "", "EUR")
+  val dummy = FinancialsTransactionDetails(0, 0, "", true, "", BigDecimal(0), Instant.now(), "", "EUR")
   implicit val monoid: Identity[FinancialsTransactionDetails] =
     new Identity[FinancialsTransactionDetails] {
-      def identity                                                                          = EMPTY
+      def identity                                                                          = dummy
       def combine(m1: => FinancialsTransactionDetails, m2: => FinancialsTransactionDetails) =
         m2.copy(amount = m2.amount.+(m1.amount))
     }
@@ -899,3 +905,60 @@ final case class DerivedTransaction(
   currency: String,
   terms: String = ""
 )
+final case class Journal(
+                          id: Long,
+                          transid: Long,
+                          //oid: Long,
+                          account: String,
+                          oaccount: String,
+                          transdate: Instant,
+                          postingdate: Instant,
+                          enterdate: Instant,
+                          period: Int,
+                          amount: BigDecimal,
+                          idebit: BigDecimal,
+                          debit: BigDecimal,
+                          icredit: BigDecimal,
+                          credit: BigDecimal,
+                          currency: String,
+                          //side: Boolean,
+                          text: String = "",
+                          month: Int,
+                          year: Int,
+                          company: String,
+                          //typeJournal: Int = 0,
+                          file: Int = 0,
+                          modelid: Int
+
+                        )
+/*object Journal {
+
+  def apply(x: Journal) =
+    new Journal(
+      x.id,
+      x.transid,
+      x.oid,
+      x.account,
+      x.oaccount,
+      x.transdate,
+      x.postingdate,
+      x.enterdate,
+      x.period,
+      x.amount,
+      x.idebit,
+      x.icredit,
+      x.debit,
+      x.credit,
+      x.currency,
+      x.side,
+      x.text,
+      x.month,
+      x.year,
+      x.company,
+     // x.typeJournal,
+      x.file_content,
+      x.modelid
+    )
+   
+} 
+*/

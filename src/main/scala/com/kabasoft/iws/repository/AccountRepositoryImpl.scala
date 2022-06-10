@@ -46,18 +46,33 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getCause()))
 
-  override def modify(model: Account): ZIO[Any, RepositoryError, Int] = {
-    val update_ = update(account)
+  private def build(model: Account)=
+    update(account)
+      .set(id, model.id)
       .set(name, model.name)
       .set(description, model.description)
+      .set(company, model.company)
+      .set(isDebit, model.isDebit)
+      .set(balancesheet, model.balancesheet)
+      .set(currency, model.currency)
       .where((id === model.id) && (company === model.company))
+
+  override def modify(model: Account): ZIO[Any, RepositoryError, Int] = {
+    val update_ = build(model)
     ZIO.logInfo(s"Query Update Account is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
         .mapError(e => RepositoryError(e.getCause()))
   }
+  override def modify(models: List[Account]): ZIO[Any, RepositoryError, Int] = {
+    val update_ = models.map(build(_))
+    //ZIO.logInfo(s"Query Update Account is ${renderUpdate(update_)}") //*>
+      executeBatchUpdate(update_)
+        .provideLayer(driverLayer).map(_.sum)
+        .mapError(e => RepositoryError(e.getCause()))
+  }
 
-  override def list(companyId: String): ZStream[Any, RepositoryError, Account]                   = {
+  override def list(companyId: String): ZStream[Any, RepositoryError, Account]  = {
     val selectAll = select(X).from(account)
 
     ZStream.fromZIO(

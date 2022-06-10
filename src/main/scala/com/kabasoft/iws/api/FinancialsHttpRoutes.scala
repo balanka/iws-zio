@@ -5,11 +5,12 @@ import zio._
 import zio.json._
 import com.kabasoft.iws.domain._
 import com.kabasoft.iws.repository._
+import com.kabasoft.iws.service.FinancialsService
 import Protocol._
 
 object FinancialsHttpRoutes {
 
-  val app: HttpApp[TransactionRepository, Throwable] =
+  val app: HttpApp[TransactionRepository with FinancialsService, Throwable] =
     Http.collectZIO {
 
       case Method.GET -> !! / "ftr" =>
@@ -22,6 +23,11 @@ object FinancialsHttpRoutes {
         TransactionRepository.getBy(id, "1000").either.map {
           case Right(o) => Response.json(o.toJson)
           case Left(e)  => Response.text(e.getMessage() + "ID" + id)
+        }
+      case Method.GET -> !! / "ftr" / fromPeriod / toPeriod    =>
+        FinancialsService.postTransaction4Period(fromPeriod.toInt, toPeriod.toInt, "1000").either.map {
+          case Right(o) => Response.json(o.toJson)
+          case Left(e)  => Response.text(e.getMessage() + "fromPeriod:" + fromPeriod+ "toPeriod:" + toPeriod)
         }
       case req @ Method.POST -> !! / "ftr" =>
         (for {

@@ -15,11 +15,12 @@ trait TransactionRepository {
   def list(company: String): ZStream[Any, RepositoryError, TYPE_]
   def getBy(id: String, company: String): ZIO[Any, RepositoryError, TYPE_]
   def getByModelId(modelid: Int, company: String): ZStream[Any, RepositoryError, TYPE_]
-  // def modify(model: TYPE_): ZIO[Any, RepositoryError, Int]
-  // def findTransactionWithDetails(): ZStream[Any, RepositoryError, DerivedTransaction]
-  // def update(models: List[TYPE_], company: String): ZIO[Any, RepositoryError, List[Int]]
-  // def update(model:TYPE_, company: String): ZIO[Any, RepositoryError, Int]
-  // def findSome(company: String, param: Seq[String]): ZStream[Any, RepositoryError, TYPE_]
+  def find4Period(fromPeriod: Int, toPeriod: Int, company: String):ZStream[Any, RepositoryError, DerivedTransaction]
+  def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int]
+  def modify(model: DerivedTransaction): ZIO[Any, RepositoryError, Int]
+  def modify(models: List[DerivedTransaction]): ZIO[Any, RepositoryError, Int]//=
+    //ZIO.collectAll(models.map(modify(_)))
+
 }
 
 object TransactionRepository {
@@ -39,13 +40,17 @@ object TransactionRepository {
     ZIO.serviceWithZIO[TransactionRepository](_.getBy(id, company))
   def getByModelId(modelid: Int, company: String): ZStream[TransactionRepository, RepositoryError, TYPE_]  =
     ZStream.serviceWithStream[TransactionRepository](_.getByModelId(modelid, company))
-  // def modify(model: TYPE_): ZIO[TransactionRepository, RepositoryError, Int]=
-  // ZIO.serviceWithZIO[TransactionRepository](_.modify(model))
-  // def update(models: List[TYPE_], company: String): ZIO[TransactionRepository, RepositoryError, Int]=
-  //  ZIO.collectAll(models.map(update(_, company)))
-  // def update(model: TYPE_, company: String): ZIO[TransactionRepository, RepositoryError, Int]=
-  //   ZIO.serviceWithZIO[TransactionRepository](_.update(model, company))
-  // def findSome(company: String, param: String*): ZStream[TransactionRepository, RepositoryError, TYPE_]=
-  //  ZStream.serviceWithStream[TransactionRepository](_.findSome(company,param))
+  def find4Period(fromPeriod: Int, toPeriod: Int, company: String):ZStream[TransactionRepository, RepositoryError, TYPE_]=
+    ZStream.serviceWithStream[TransactionRepository](_.find4Period(fromPeriod, toPeriod, company))  
+  def modify(model: FinancialsTransaction): ZIO[TransactionRepository, RepositoryError, Int]=
+    ZIO.serviceWithZIO[TransactionRepository](_.modify(model))
+  def modify(model: DerivedTransaction): ZIO[TransactionRepository, RepositoryError, Int]=
+    ZIO.serviceWithZIO[TransactionRepository](_.modify(model))
+  def modify(models: List[DerivedTransaction]): ZIO[TransactionRepository, RepositoryError, Int]=
+    ZIO.serviceWithZIO[TransactionRepository](_.modify(models))
+
+ // def modify(models: List[DerivedTransaction]): ZIO[TransactionRepository, RepositoryError, Int]=
+    //ZIO.serviceWithZIO[TransactionRepository](_.modify(models))
+//   ZIO.collectAll(models.map(modify(_))).map(_.sum)
 
 }
