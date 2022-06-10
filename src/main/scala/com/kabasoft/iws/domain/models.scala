@@ -109,9 +109,8 @@ object Account {
     BigDecimal
   )
 
-
   def apply(acc: Account_Type): Account             =
-     new Account(
+    new Account(
       acc._1,
       acc._2,
       acc._3,
@@ -130,17 +129,34 @@ object Account {
       acc._16,
       Nil.toSet
     )
-  val dummy                                         = Account("", "", "", Instant.now(), Instant.now(), Instant.now()
-    , "1000", 9, "", false, false, "EUR", BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0), Nil.toSet)
+  val dummy                                         = Account(
+    "",
+    "",
+    "",
+    Instant.now(),
+    Instant.now(),
+    Instant.now(),
+    "1000",
+    9,
+    "",
+    false,
+    false,
+    "EUR",
+    BigDecimal(0),
+    BigDecimal(0),
+    BigDecimal(0),
+    BigDecimal(0),
+    Nil.toSet
+  )
   def group(accounts: List[Account]): List[Account] =
     accounts
       .groupBy(_.id)
-      .map ({ case (k, v: List[Account]) =>
+      .map { case (k, v: List[Account]) =>
         v match {
           case Nil       => Account.dummy
           case (x :: xs) => NonEmptyList.fromIterable(x, xs).reduce.copy(id = k)
         }
-      })
+      }
       .toList
 
   def removeSubAccounts(account: Account): Account                                                        =
@@ -254,7 +270,7 @@ object Account {
     flattenR(List.empty[Account], ls.toList).toSet
   }
 
-  //implicit def reduce[A: Identity](as: NonEmptyList[A]): A = as.reduce
+  // implicit def reduce[A: Identity](as: NonEmptyList[A]): A = as.reduce
   type Balance_Type = (BigDecimal, BigDecimal, BigDecimal, BigDecimal)
 
   implicit val accMonoid: Identity[Account] = new Identity[Account] {
@@ -270,7 +286,7 @@ object Account {
   }
 
   implicit val pacMonoid: Identity[PeriodicAccountBalance] = new Identity[PeriodicAccountBalance] {
-    def identity: PeriodicAccountBalance                       = PeriodicAccountBalance.dummy
+    def identity: PeriodicAccountBalance                                      = PeriodicAccountBalance.dummy
     def combine(m1: => PeriodicAccountBalance, m2: => PeriodicAccountBalance) =
       m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
   }
@@ -631,7 +647,7 @@ final case class PeriodicAccountBalance(
 
 object PeriodicAccountBalance {
   import zio.prelude._
- // import zio.NonEmptyChunk
+  // import zio.NonEmptyChunk
 
   val MODELID = 106
 
@@ -643,11 +659,10 @@ object PeriodicAccountBalance {
   val dummy                                     =
     PeriodicAccountBalance("", "", 0, BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0), "EUR", "1000")
 
-
-  //implicit def reduce[A: Associative](as: NonEmptyChunk[A]): A = as.reduce(_ <> _)
+  // implicit def reduce[A: Associative](as: NonEmptyChunk[A]): A = as.reduce(_ <> _)
 
   implicit val pacMonoid: Identity[PeriodicAccountBalance] = new Identity[PeriodicAccountBalance] {
-    def identity: PeriodicAccountBalance                       = PeriodicAccountBalance.dummy
+    def identity: PeriodicAccountBalance                                      = PeriodicAccountBalance.dummy
     def combine(m1: => PeriodicAccountBalance, m2: => PeriodicAccountBalance) =
       m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
   }
@@ -761,7 +776,7 @@ final case class FinancialsTransaction(
 }
 object FinancialsTransactionDetails {
   import FinancialsTransaction.FinancialsTransaction_Type2
-  val dummy = FinancialsTransactionDetails(0, 0, "", true, "", BigDecimal(0), Instant.now(), "", "EUR")
+  val dummy                                                   = FinancialsTransactionDetails(0, 0, "", true, "", BigDecimal(0), Instant.now(), "", "EUR")
   implicit val monoid: Identity[FinancialsTransactionDetails] =
     new Identity[FinancialsTransactionDetails] {
       def identity                                                                          = dummy
@@ -906,31 +921,30 @@ final case class DerivedTransaction(
   terms: String = ""
 )
 final case class Journal(
-                          id: Long,
-                          transid: Long,
-                          //oid: Long,
-                          account: String,
-                          oaccount: String,
-                          transdate: Instant,
-                          postingdate: Instant,
-                          enterdate: Instant,
-                          period: Int,
-                          amount: BigDecimal,
-                          idebit: BigDecimal,
-                          debit: BigDecimal,
-                          icredit: BigDecimal,
-                          credit: BigDecimal,
-                          currency: String,
-                          //side: Boolean,
-                          text: String = "",
-                          month: Int,
-                          year: Int,
-                          company: String,
-                          //typeJournal: Int = 0,
-                          file: Int = 0,
-                          modelid: Int
-
-                        )
+  id: Long,
+  transid: Long,
+  // oid: Long,
+  account: String,
+  oaccount: String,
+  transdate: Instant,
+  postingdate: Instant,
+  enterdate: Instant,
+  period: Int,
+  amount: BigDecimal,
+  idebit: BigDecimal,
+  debit: BigDecimal,
+  icredit: BigDecimal,
+  credit: BigDecimal,
+  currency: String,
+  // side: Boolean,
+  text: String = "",
+  month: Int,
+  year: Int,
+  company: String,
+  // typeJournal: Int = 0,
+  file: Int = 0,
+  modelid: Int
+)
 /*object Journal {
 
   def apply(x: Journal) =
@@ -959,6 +973,6 @@ final case class Journal(
       x.file_content,
       x.modelid
     )
-   
-} 
-*/
+
+}
+ */

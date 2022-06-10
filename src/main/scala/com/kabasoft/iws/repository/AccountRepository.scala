@@ -5,7 +5,7 @@ import com.kabasoft.iws.domain._
 import zio._
 import zio.stream._
 
-trait AccountRepository {
+trait AccountRepository  {
   type TYPE_ = Account
   def create(item: TYPE_): ZIO[Any, RepositoryError, Unit]
   def create(models: List[TYPE_]): ZIO[Any, RepositoryError, Int]
@@ -49,4 +49,3 @@ object AccountRepository {
   def modify(models: List[TYPE_]): ZIO[AccountRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[AccountRepository](_.modify(models))
 }
-

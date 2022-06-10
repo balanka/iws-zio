@@ -19,17 +19,17 @@ object FinancialsHttpRoutes {
           .runCollect
           .map(ch => Response.json(ch.toJson))
 
-      case Method.GET -> !! / "ftr" / id   =>
+      case Method.GET -> !! / "ftr" / id                    =>
         TransactionRepository.getBy(id, "1000").either.map {
           case Right(o) => Response.json(o.toJson)
           case Left(e)  => Response.text(e.getMessage() + "ID" + id)
         }
-      case Method.GET -> !! / "ftr" / fromPeriod / toPeriod    =>
+      case Method.GET -> !! / "ftr" / fromPeriod / toPeriod =>
         FinancialsService.postTransaction4Period(fromPeriod.toInt, toPeriod.toInt, "1000").either.map {
           case Right(o) => Response.json(o.toJson)
-          case Left(e)  => Response.text(e.getMessage() + "fromPeriod:" + fromPeriod+ "toPeriod:" + toPeriod)
+          case Left(e)  => Response.text(e.getMessage() + "fromPeriod:" + fromPeriod + "toPeriod:" + toPeriod)
         }
-      case req @ Method.POST -> !! / "ftr" =>
+      case req @ Method.POST -> !! / "ftr"                  =>
         (for {
           body <- req.bodyAsString
                     .flatMap(request =>

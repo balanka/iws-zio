@@ -52,7 +52,7 @@ final class VatRepositoryImpl(pool: ConnectionPool) extends VatRepository with I
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getCause()))
 
-  override def modify(model: Vat): ZIO[Any, RepositoryError, Int] = {
+  override def modify(model: Vat): ZIO[Any, RepositoryError, Int]        = {
     val update_ = build(model)
     ZIO.logInfo(s"Query Update vat is ${renderUpdate(update_)}") *>
       execute(update_)
@@ -61,12 +61,13 @@ final class VatRepositoryImpl(pool: ConnectionPool) extends VatRepository with I
   }
   override def modify(models: List[Vat]): ZIO[Any, RepositoryError, Int] = {
     val update_ = models.map(build(_))
-    //ZIO.logInfo(s"Query Update vat is ${renderUpdate(update_)}") *>
-      executeBatchUpdate(update_)
-        .provideLayer(driverLayer).map(_.sum)
-        .mapError(e => RepositoryError(e.getCause()))
+    // ZIO.logInfo(s"Query Update vat is ${renderUpdate(update_)}") *>
+    executeBatchUpdate(update_)
+      .provideLayer(driverLayer)
+      .map(_.sum)
+      .mapError(e => RepositoryError(e.getCause()))
   }
-  private def build(model: TYPE_) = {
+  private def build(model: TYPE_)                                        =
     update(vat)
       .set(name, model.name)
       .set(description, model.description)
@@ -74,7 +75,6 @@ final class VatRepositoryImpl(pool: ConnectionPool) extends VatRepository with I
       .set(inputVatAccount, model.inputVatAccount)
       .set(outputVatAccount, model.outputVatAccount)
       .where((id === model.id) && (company === model.company))
-  }
 
   override def list(companyId: String): ZStream[Any, RepositoryError, Vat]                   = {
     val selectAll = select(X).from(vat)

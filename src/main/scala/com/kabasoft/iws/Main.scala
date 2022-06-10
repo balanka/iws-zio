@@ -18,8 +18,8 @@ object Main extends ZIOAppDefault {
       .map(config =>
         Server.port(config.port) ++
           Server.app(
-            AccountHttpRoutes.app++FinancialsHttpRoutes.app
-              ++HttpRoutes.app
+            AccountHttpRoutes.app ++ FinancialsHttpRoutes.app
+              ++ HttpRoutes.app
               ++ MasterfilesHttpRoutes.app
               ++ PacHttpRoutes.app ++ VatHttpRoutes.app ++ Healthcheck.expose
           )

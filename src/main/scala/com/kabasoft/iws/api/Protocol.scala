@@ -29,8 +29,6 @@ object Protocol {
   implicit val datenEncoder: JsonEncoder[Daten] = DeriveJsonEncoder.gen[Daten]
   implicit val datenDecoder: JsonDecoder[Daten] = DeriveJsonDecoder.gen[Daten]
 
-
-
   implicit val vatEncoder: JsonEncoder[Vat] = DeriveJsonEncoder.gen[Vat]
   implicit val vatDecoder: JsonDecoder[Vat] = DeriveJsonDecoder.gen[Vat]
 

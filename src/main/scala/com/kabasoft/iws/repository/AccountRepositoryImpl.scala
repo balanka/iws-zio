@@ -12,20 +12,58 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
 
   val account =
-    (string("id") ++ string("name") ++ string("description") ++ instant("posting_date") ++ instant("modified_date") ++ instant(
-      "enter_date") ++ string("company") ++ int("modelid") ++ string("account")++ boolean("isdebit") ++ boolean("balancesheet")
-      ++  string("currency")++ bigDecimal("idebit")++bigDecimal("icredit") ++ bigDecimal("debit") ++ bigDecimal("credit") )
+    (string("id") ++ string("name") ++ string("description") ++ instant("posting_date") ++ instant(
+      "modified_date"
+    ) ++ instant("enter_date") ++ string("company") ++ int("modelid") ++ string("account") ++ boolean(
+      "isdebit"
+    ) ++ boolean("balancesheet")
+      ++ string("currency") ++ bigDecimal("idebit") ++ bigDecimal("icredit") ++ bigDecimal("debit") ++ bigDecimal(
+        "credit"
+      ))
       .table("account")
 
-  def tuple2(acc:Account)=(acc.id, acc.name, acc.description, acc.enterdate, acc.changedate, acc.postingdate, acc.company
-    , acc.modelid, acc.account, acc.isDebit, acc.balancesheet, acc.currency, acc.idebit, acc.icredit, acc.debit, acc.credit)
+  def tuple2(acc: Account) = (
+    acc.id,
+    acc.name,
+    acc.description,
+    acc.enterdate,
+    acc.changedate,
+    acc.postingdate,
+    acc.company,
+    acc.modelid,
+    acc.account,
+    acc.isDebit,
+    acc.balancesheet,
+    acc.currency,
+    acc.idebit,
+    acc.icredit,
+    acc.debit,
+    acc.credit
+  )
 
-  val (id, name, description, enterdate, changedate, postingdate, company, modelid, accountid,
-    isDebit, balancesheet, currency, idebit, icredit, debit, credit) = account.columns
+  val (
+    id,
+    name,
+    description,
+    enterdate,
+    changedate,
+    postingdate,
+    company,
+    modelid,
+    accountid,
+    isDebit,
+    balancesheet,
+    currency,
+    idebit,
+    icredit,
+    debit,
+    credit
+  ) = account.columns
 
-  val X = id++name++description++enterdate++changedate++postingdate++company++modelid++accountid++isDebit++balancesheet++currency++idebit++icredit++debit++credit
+  val X =
+    id ++ name ++ description ++ enterdate ++ changedate ++ postingdate ++ company ++ modelid ++ accountid ++ isDebit ++ balancesheet ++ currency ++ idebit ++ icredit ++ debit ++ credit
 
-  override def create(c: Account): ZIO[Any, RepositoryError, Unit]                        = {
+  override def create(c: Account): ZIO[Any, RepositoryError, Unit]                     = {
     val query = insertInto(account)(X).values(tuple2(c))
 
     ZIO.logInfo(s"Query to insert Account is ${renderInsert(query)}") *>
@@ -33,7 +71,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
         .provideAndLog(driverLayer)
         .unit
   }
-  override def create(models: List[Account]): ZIO[Any, RepositoryError, Int]              = {
+  override def create(models: List[Account]): ZIO[Any, RepositoryError, Int]           = {
     val data  = models.map(tuple2(_))
     val query = insertInto(account)(X).values(data)
 
@@ -46,7 +84,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getCause()))
 
-  private def build(model: Account)=
+  private def build(model: Account) =
     update(account)
       .set(id, model.id)
       .set(name, model.name)
@@ -57,7 +95,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
       .set(currency, model.currency)
       .where((id === model.id) && (company === model.company))
 
-  override def modify(model: Account): ZIO[Any, RepositoryError, Int] = {
+  override def modify(model: Account): ZIO[Any, RepositoryError, Int]        = {
     val update_ = build(model)
     ZIO.logInfo(s"Query Update Account is ${renderUpdate(update_)}") *>
       execute(update_)
@@ -66,33 +104,34 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
   }
   override def modify(models: List[Account]): ZIO[Any, RepositoryError, Int] = {
     val update_ = models.map(build(_))
-    //ZIO.logInfo(s"Query Update Account is ${renderUpdate(update_)}") //*>
-      executeBatchUpdate(update_)
-        .provideLayer(driverLayer).map(_.sum)
-        .mapError(e => RepositoryError(e.getCause()))
+    // ZIO.logInfo(s"Query Update Account is ${renderUpdate(update_)}") //*>
+    executeBatchUpdate(update_)
+      .provideLayer(driverLayer)
+      .map(_.sum)
+      .mapError(e => RepositoryError(e.getCause()))
   }
 
-  override def list(companyId: String): ZStream[Any, RepositoryError, Account]  = {
+  override def list(companyId: String): ZStream[Any, RepositoryError, Account]                   = {
     val selectAll = select(X).from(account)
 
     ZStream.fromZIO(
       ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")
     ) *>
-      execute(selectAll.to(c=>(Account.apply(c))))
+      execute(selectAll.to(c => (Account.apply(c))))
         .provideDriver(driverLayer)
   }
   override def getBy(Id: String, companyId: String): ZIO[Any, RepositoryError, Account]          = {
     val selectAll = select(X).from(account).where((id === Id) && (company === companyId))
 
     ZIO.logInfo(s"Query to execute findBy is ${renderRead(selectAll)}") *>
-      execute(selectAll.to(c=>(Account.apply(c))))
+      execute(selectAll.to(c => (Account.apply(c))))
         .findFirst(driverLayer, Id)
   }
   override def getByModelId(modelId: Int, companyId: String): ZIO[Any, RepositoryError, Account] = {
     val selectAll = select(X).from(account).where((modelid === modelId) && (company === companyId))
 
     ZIO.logInfo(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
-      execute(selectAll.to(c=>(Account.apply(c))))
+      execute(selectAll.to(c => (Account.apply(c))))
         .findFirstInt(driverLayer, modelId)
   }
 
@@ -102,5 +141,3 @@ object AccountRepositoryImpl {
   val live: ZLayer[ConnectionPool, RepositoryError, AccountRepository] =
     ZLayer.fromFunction(new AccountRepositoryImpl(_))
 }
-
-

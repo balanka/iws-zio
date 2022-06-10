@@ -13,7 +13,9 @@ object AccountHttpRoutes {
     Http.collectZIO {
 
       case Method.GET -> !! / "acc" =>
-        AccountRepository.list("1000").runCollect
+        AccountRepository
+          .list("1000")
+          .runCollect
           .map(ch => Response.json(ch.toJson))
 
       case Method.GET -> !! / "acc" / id   =>
