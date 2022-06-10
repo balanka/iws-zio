@@ -18,8 +18,7 @@ trait TransactionRepository {
   def find4Period(fromPeriod: Int, toPeriod: Int, company: String): ZStream[Any, RepositoryError, DerivedTransaction]
   def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int]
   def modify(model: DerivedTransaction): ZIO[Any, RepositoryError, Int]
-  def modify(models: List[DerivedTransaction]): ZIO[Any, RepositoryError, Int] // =
-  // ZIO.collectAll(models.map(modify(_)))
+  def modify(models: List[DerivedTransaction]): ZIO[Any, RepositoryError, Int]
 
 }
 
@@ -52,9 +51,5 @@ object TransactionRepository {
     ZIO.serviceWithZIO[TransactionRepository](_.modify(model))
   def modify(models: List[DerivedTransaction]): ZIO[TransactionRepository, RepositoryError, Int]           =
     ZIO.serviceWithZIO[TransactionRepository](_.modify(models))
-
-  // def modify(models: List[DerivedTransaction]): ZIO[TransactionRepository, RepositoryError, Int]=
-  // ZIO.serviceWithZIO[TransactionRepository](_.modify(models))
-//   ZIO.collectAll(models.map(modify(_))).map(_.sum)
 
 }

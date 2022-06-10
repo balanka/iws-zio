@@ -75,14 +75,6 @@ final class TransactionRepositoryImpl(pool: ConnectionPool)
   override def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int]     = {
     val detailsUpdate = model.lines.map(d => updateDetails(d))
     val update_       = build(model)
-
-    /*for {
-     i <- execute(update_).provideLayer(driverLayer)
-     j <- executeBatchUpdate(detailsUpdate)
-       .provideLayer(driverLayer).map(_.sum)
-    }yield i+j
-     */
-
     execute(update_).provideLayer(driverLayer) // *>
     executeBatchUpdate(detailsUpdate)
       .provideLayer(driverLayer)
@@ -92,9 +84,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool)
   override def modify(models: List[DerivedTransaction]): ZIO[Any, RepositoryError, Int] = {
     val trans         = models.map(FinancialsTransaction.apply1)
     val detailsUpdate = trans.flatMap(_.lines).map(updateDetails)
-    // val detailsUpdate = details.map(updateDetails(_))
     val update_       = trans.map(build)
-    // val result=for{
     executeBatchUpdate(update_).provideLayer(driverLayer) // *>
     executeBatchUpdate(detailsUpdate)
       .provideLayer(driverLayer)
