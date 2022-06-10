@@ -1,14 +1,16 @@
 package com.kabasoft.iws.domain
 
-import java.util.{ Locale, UUID }
-import java.time.{ Instant, LocalDate, LocalDateTime, ZoneId }
+import com.kabasoft.iws.domain.common.reduce
+
+import java.util.{Locale, UUID}
+import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 import zio.prelude._
 import zio.stm._
 import zio._
 
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
-import scala.collection.immutable.{ ::, Nil }
+import scala.collection.immutable.{::, Nil}
 
 object common {
 
@@ -19,6 +21,8 @@ object common {
       case Nil     => dummy
       case x :: xs => NonEmptyList.fromIterable(x, xs).reduce
     }
+
+
   def getMonthAsString(month: Int): String       =
     if (month <= 9) {
       "0".concat(month.toString)
@@ -50,8 +54,8 @@ final case class Account(
   debit: BigDecimal = BigDecimal(0),
   credit: BigDecimal = BigDecimal(0),
   subAccounts: Set[Account] = Nil.toSet
-  // parent: Option[Account] = None
-) /*extends IWS*/ {
+
+)  {
   def debiting(amount: BigDecimal) = copy(debit = debit.+(amount))
 
   def crediting(amount: BigDecimal) = copy(credit = credit.+(amount))
@@ -79,13 +83,8 @@ final case class Account(
   def updateBalance(acc: Account): Account =
     idebiting(acc.idebit).icrediting(acc.icredit).debiting(acc.debit).crediting(acc.credit)
 
-  def childBalances: BigDecimal = // subAccounts.toList.reduceLeft((x,y) => x + y).balance
-    if (subAccounts.size > 0) {
-      subAccounts.toList match {
-        case Nil     => BigDecimal.apply(0)
-        case x :: xs => NonEmptyList.fromIterable(x, xs).reduce.balance
-
-      }
+  def childBalances: BigDecimal =
+    if (subAccounts.nonEmpty) { reduce(subAccounts,Account.dummy).balance
     } else {
       BigDecimal.apply(0)
     }
@@ -157,20 +156,16 @@ object Account {
   def group(accounts: List[Account]): List[Account] =
     accounts
       .groupBy(_.id)
-      .map { case (k, v: List[Account]) =>
-        v match {
-          case Nil       => Account.dummy
-          case (x :: xs) => NonEmptyList.fromIterable(x, xs).reduce.copy(id = k)
-        }
-      }
+      .map { case (k, v: List[Account]) =>reduce(v,Account.dummy).copy(id = k)}
+      .filterNot(_.id==Account.dummy.id)
       .toList
 
   def removeSubAccounts(account: Account): Account                                                        =
     account.subAccounts.toList match {
       case Nil      => account
       case rest @ _ =>
-        val sub = account.subAccounts.filterNot((acc => acc.balance == 0 && acc.subAccounts.size == 0))
-        if (account.subAccounts.size > 0)
+        val sub = account.subAccounts.filterNot((acc => acc.balance == 0 && acc.subAccounts.isEmpty))
+        if (account.subAccounts.nonEmpty)
           account.copy(subAccounts = sub.map(removeSubAccounts))
         else account
     }
@@ -180,7 +175,7 @@ object Account {
         val x = account.subAccounts ++ acc.map(x => addSubAccounts(x, accMap))
         account.copy(subAccounts = x)
       case None      =>
-        if (account.subAccounts.size > 0)
+        if (account.subAccounts.nonEmpty)
           account.copy(
             subAccounts = account.subAccounts ++ account.subAccounts.toList.map(x => addSubAccounts(x, accMap))
           )
@@ -189,10 +184,9 @@ object Account {
   def addSubAccounts(account: Account, accMap: Map[String, List[Account]]): Account                       =
     accMap.get(account.id) match {
       case Some(accList) =>
-        // account.copy(subAccounts = account.subAccounts ++ (group(accList).map(x => addSubAccounts(x, accMap))))
         account.copy(subAccounts = account.subAccounts ++ accList.map(x => addSubAccounts(x, accMap)))
       case None          =>
-        if (account.subAccounts.size > 0)
+        if (account.subAccounts.nonEmpty)
           account.copy(
             subAccounts = account.subAccounts ++ account.subAccounts.toList.map(x => addSubAccounts(x, accMap))
           )
@@ -212,10 +206,7 @@ object Account {
         )
       case rest @ _ =>
         val sub    = account.subAccounts.map(acc => getAllSubBalances(acc, pacs))
-        val subALl = sub.toList match {
-          case Nil     => Account.dummy
-          case x :: xs => NonEmptyList.fromIterable(x, xs).reduce
-        }
+        val subALl = reduce(sub, Account.dummy)
         account
           .idebiting(subALl.idebit)
           .icrediting(subALl.icredit)
@@ -278,7 +269,7 @@ object Account {
 
   // implicit def reduce[A: Identity](as: NonEmptyList[A]): A = as.reduce
   type Balance_Type = (BigDecimal, BigDecimal, BigDecimal, BigDecimal)
-
+  val Balance_dummy                            = (BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0))
   implicit val accMonoid: Identity[Account] = new Identity[Account] {
     def identity: Account                       = Account.dummy
     def combine(m1: => Account, m2: => Account) =
@@ -286,7 +277,7 @@ object Account {
   }
 
   implicit val balanceMonoid: Identity[Balance_Type] = new Identity[Balance_Type] {
-    def identity: Balance_Type                            = (BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0))
+    def identity: Balance_Type                            = Balance_dummy
     def combine(m1: => Balance_Type, m2: => Balance_Type) =
       new Balance_Type(m1._1 + m2._1, m1._2 + m2._2, m1._3 + m2._3, m1._4 + m2._4)
   }
@@ -653,7 +644,6 @@ final case class PeriodicAccountBalance(
 
 object PeriodicAccountBalance {
   import zio.prelude._
-  // import zio.NonEmptyChunk
 
   val MODELID = 106
 
@@ -664,8 +654,6 @@ object PeriodicAccountBalance {
   def createId(period: Int, accountId: String)  = period.toString.concat(accountId)
   val dummy                                     =
     PeriodicAccountBalance("", "", 0, BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0), "EUR", "1000")
-
-  // implicit def reduce[A: Associative](as: NonEmptyChunk[A]): A = as.reduce(_ <> _)
 
   implicit val pacMonoid: Identity[PeriodicAccountBalance] = new Identity[PeriodicAccountBalance] {
     def identity: PeriodicAccountBalance                                      = PeriodicAccountBalance.dummy
@@ -951,34 +939,3 @@ final case class Journal(
   file: Int = 0,
   modelid: Int
 )
-/*object Journal {
-
-  def apply(x: Journal) =
-    new Journal(
-      x.id,
-      x.transid,
-      x.oid,
-      x.account,
-      x.oaccount,
-      x.transdate,
-      x.postingdate,
-      x.enterdate,
-      x.period,
-      x.amount,
-      x.idebit,
-      x.icredit,
-      x.debit,
-      x.credit,
-      x.currency,
-      x.side,
-      x.text,
-      x.month,
-      x.year,
-      x.company,
-     // x.typeJournal,
-      x.file_content,
-      x.modelid
-    )
-
-}
- */

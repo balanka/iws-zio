@@ -53,21 +53,11 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
                         .filterNot(x => x.id == PeriodicAccountBalance.dummy.id)
                         .toList
 
-      filteredList = initpacList.filterNot { x =>
-                       list.find(_.id == x.account) match {
-                         case Some(_) => true
-                         case None    => false
-                       }
-                     }
+      filteredList = initpacList.filterNot { x =>list.find(_.id == x.account).fold(false)(_=>true)}
 
       pacList = filteredList
                   .filterNot(x => x.dbalance == 0 || x.cbalance == 0)
-                  .map(pac =>
-                    allAccounts.find(_.id == pac.account) match {
-                      case Some(acc) => net(acc, pac, nextPeriod)
-                      case None      => pac
-                    }
-                  )
+                  .map(pac => allAccounts.find(_.id == pac.account).fold(pac)(acc=>net(acc,pac, nextPeriod)))
 
       pac_created <- pacRepo.create(pacList)
     } yield pac_created

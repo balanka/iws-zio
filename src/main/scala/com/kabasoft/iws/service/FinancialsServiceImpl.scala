@@ -15,76 +15,47 @@ import java.time.Instant
 import zio._
 
 
-final class FinancialsServiceImpl(
-  /*accRepo:AccountRepository,*/ pacRepo: PacRepository,
+final class FinancialsServiceImpl(pacRepo: PacRepository,
   ftrRepo: TransactionRepository,
   journalRepo: JournalRepository
 ) extends FinancialsService {
   type DPAC      = PeriodicAccountBalance
   type FTDetails = FinancialsTransactionDetails
-  // def closePeriod(fromPeriod: Int, toPeriod: Int,  inStmtAccId:String, company: String):ZIO[Any, RepositoryError, Int]
 
-  // def copyAll(ids: List[Long], modelId: Int, company: String): ZIO[Any, RepositoryError, List[Int]] =???
-
-  /*(for {
-      queries <- SQL.FinancialsTransaction
-        .getTransaction4Ids(NonEmptyList.fromList(ids).getOrElse(NonEmptyList.of(-1)), company)
-        .to[List]
-      transactions = queries.map(
-        ftr =>
-          FinancialsTransaction
-            .apply(ftr)
-            .copy(
-              modelid = if (modelId == 114) 112 else 122,
-              oid = ftr._1
-            )
-      )
-      payables <- transactions
-        .filter(m => m.modelid == 112)
-        .traverse(ftr => SQL.FinancialsTransaction.create3Supplier(ftr))
-      receivables <- transactions
-        .filter(m => m.modelid == 122)
-        .traverse(ftr => SQL.FinancialsTransaction.create3Supplier(ftr))
-
-    } yield payables.flatten ++ receivables.flatten).transact(transactor)
-   */
   override def postAll(ids: List[Long], company: String): ZIO[Any, RepositoryError, List[Int]] =
-    (for {
-      queries <- ZIO.collectAll(ids.map(id => ftrRepo.getBy(id.toString, company))) // .filter(_.posted == false))
-      // .map(FinancialsTransaction.apply1(_)))
+    for {
+      queries <- ZIO.collectAll(ids.map(id => ftrRepo.getBy(id.toString, company)))
       models   = queries.map(FinancialsTransaction.apply1(_)).filter(_.posted == false)
-      all     <- ZIO.collectAll(                                                    // queries.filter(_.posted == false)
+      all     <- ZIO.collectAll(
                    models.map(debitOrCreditPACAll(_, company))
                  )
-    } yield all) // map(_.sum)
+    } yield all
 
   override def postTransaction4Period(
     fromPeriod: Int,
     toPeriod: Int,
     company: String
   ): ZIO[Any, RepositoryError, List[Int]] =
-    (for {
+    for {
       queries                            <- ftrRepo.find4Period(fromPeriod, toPeriod, company).runCollect
       models: List[FinancialsTransaction] = queries.toList.map(FinancialsTransaction.apply1(_))
       all                                <- ZIO.collectAll(models.map(trans => debitOrCreditPACAll(trans, company)))
-      // all <-debitOrCreditPACAll(models, company)
-    } yield all) // .map(_.sum)
+    } yield all
 
   override def post(model: DerivedTransaction, company: String): ZIO[Any, RepositoryError, List[Int]] =
     postAll(List(model.lid), company)
 
   private[this] def debitOrCreditPACAll(model: FinancialsTransaction, company: String): ZIO[Any, RepositoryError, Int] =
     for {
-      // pac <- getIds(model).traverse(SQL.PeriodicAccountBalance.getBy(_, company).option)
       pac           <- ZIO.collectAll(getIds(model).map(pacRepo.getBy(_, company)))
       oldRecords     = getOldPac(pac, model)
       newRecords     = getNewPac(pac, model)
       journalEntries = newJournalEntries(model, oldRecords ::: newRecords)
-      pac_created   <- pacRepo.create(newRecords)         // .map(_.sum)
-      pac_updated   <- pacRepo.modify(oldRecords)         // .map(_.sum)
+      pac_created   <- pacRepo.create(newRecords)
+      pac_updated   <- pacRepo.modify(oldRecords)
       model_         = model.copy(posted = true).copy(postingdate = Instant.now())
-      trans_posted  <- ftrRepo.modify(model_)             // .map(_.sum)
-      journal       <- journalRepo.create(journalEntries) // .map(_.sum)
+      trans_posted  <- ftrRepo.modify(model_)
+      journal       <- journalRepo.create(journalEntries)
     } yield pac_created + pac_updated + journal + trans_posted
 
   private[this] def getIds(model: FinancialsTransaction): List[String] = {
@@ -130,22 +101,14 @@ final class FinancialsServiceImpl(
       .find(pac_ => pac_.id == PeriodicAccountBalance.createId(period, line.oaccount))
       .map(_.crediting(line.amount))
 
- /* def reduce[A: Identity](all: Iterable[A], dummy: A): A =
-    all.toList match {
-      case Nil     => dummy
-      case x :: xs => NonEmptyList.fromIterable(x, xs).reduce
-    }
-
-  */
-
   private[this] def getAndDebitCreditOldPacs(
     pacList: List[DPAC],
     period: Int,
     lines: List[FTDetails]
   ): List[DPAC] = {
 
-    val pacx1: List[DPAC]              = lines.flatMap(line => getOldPacs(pacList, period, line.account)).toSet.toList
-    val poacx1: List[DPAC]             = lines.flatMap(line => getOldPacs(pacList, period, line.oaccount)).toSet.toList
+    val pacx1: List[DPAC]              = lines.flatMap(line => getOldPacs(pacList, period, line.account)).distinct
+    val poacx1: List[DPAC]             = lines.flatMap(line => getOldPacs(pacList, period, line.oaccount)).distinct
     val groupedLines: List[FTDetails]  =
       lines.groupBy(_.account).map { case (_, v) => reduce(v, FinancialsTransactionDetails.dummy) }.toList
     val groupedOLines: List[FTDetails] =
@@ -163,10 +126,10 @@ final class FinancialsServiceImpl(
   ): List[DPAC] = {
 
     val pacx1                                 = lines.map(line => createIfNone(pacList, period, line, line.account, company))
-    val pacx1x: List[DPAC]                    = pacx1.filter(_._2 == true).flatMap(m => m._1).toSet.toList
+    val pacx1x: List[DPAC]                    = pacx1.filter(_._2 == true).flatMap(m => m._1).distinct
     val poacx1: List[(Option[DPAC], Boolean)] = lines
       .map(line => createIfNone(pacList, period, line, line.oaccount, company))
-    val poacx1x: List[DPAC]                   = poacx1.filter(_._2 == true).flatMap(m => m._1).toSet.toList
+    val poacx1x: List[DPAC]                   = poacx1.filter(_._2 == true).flatMap(m => m._1).distinct
     val groupedLines: List[FTDetails]         =
       lines.groupBy(_.account).map { case (_, v) => reduce(v, FinancialsTransactionDetails.dummy) }.toList
     val groupedOLines: List[FTDetails]        =
