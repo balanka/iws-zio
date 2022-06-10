@@ -16,8 +16,7 @@ trait VatRepository {
   def getBy(id: String, company: String): ZIO[Any, RepositoryError, TYPE_]
   def getByModelId(modelid: Int, company: String): ZIO[Any, RepositoryError, TYPE_]
   def modify(model: TYPE_): ZIO[Any, RepositoryError, Int]
-  // def update(model:TYPE_, company: String): ZIO[Any, RepositoryError, Int]
-  // def findSome(company: String, param: Seq[String]): ZStream[Any, RepositoryError, TYPE_]
+  def modify(models: List[TYPE_]): ZIO[Any, RepositoryError, Int]
 }
 
 object VatRepository {
@@ -39,9 +38,7 @@ object VatRepository {
     ZIO.serviceWithZIO[VatRepository](_.getByModelId(modelid, company))
   def modify(model: TYPE_): ZIO[VatRepository, RepositoryError, Int]                               =
     ZIO.serviceWithZIO[VatRepository](_.modify(model))
-  // def update(model: TYPE_, company: String): ZIO[VatRepository, RepositoryError, Int]=
-  //   ZIO.serviceWithZIO[VatRepository](_.update(model, company))
-  // def findSome(company: String, param: String*): ZStream[VatRepository, RepositoryError, TYPE_]=
-  //  ZStream.serviceWithStream[VatRepository](_.findSome(company,param))
+  def modify(models: List[TYPE_]): ZIO[VatRepository, RepositoryError, Int]                        =
+    ZIO.serviceWithZIO[VatRepository](_.modify(models))
 
 }
