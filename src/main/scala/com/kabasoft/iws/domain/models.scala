@@ -13,6 +13,12 @@ import scala.collection.immutable.{ ::, Nil }
 object common {
 
   type Amount = scala.math.BigDecimal
+
+  def reduce[A: Identity](all: Iterable[A], dummy: A): A =
+    all.toList match {
+      case Nil     => dummy
+      case x :: xs => NonEmptyList.fromIterable(x, xs).reduce
+    }
   def getMonthAsString(month: Int): String       =
     if (month <= 9) {
       "0".concat(month.toString)

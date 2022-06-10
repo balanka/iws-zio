@@ -2,9 +2,9 @@ package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain._
+import com.kabasoft.iws.domain.common._
 import com.kabasoft.iws.repository.{ AccountRepository, PacRepository }
 import zio._
-import zio.prelude._
 
 final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepository) extends AccountService {
 
@@ -49,12 +49,7 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
       list          = Account.flattenTailRec(Set(Account.withChildren(inStmtAccId, allAccounts)))
       initpacList   = (pacs ++: initial)
                         .groupBy(_.account)
-                        .map { case (_, v) =>
-                          v match {
-                            case Nil     => PeriodicAccountBalance.dummy
-                            case x :: xs => NonEmptyList.fromIterable(x, xs).reduce
-                          }
-                        }
+                        .map { case (_, v) =>reduce(v, PeriodicAccountBalance.dummy)}
                         .filterNot(x => x.id == PeriodicAccountBalance.dummy.id)
                         .toList
 

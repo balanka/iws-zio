@@ -1,6 +1,7 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.domain.common._
 import com.kabasoft.iws.domain.{
   DerivedTransaction,
   FinancialsTransaction,
@@ -12,7 +13,7 @@ import com.kabasoft.iws.repository.{ JournalRepository, PacRepository, Transacti
 
 import java.time.Instant
 import zio._
-import zio.prelude._
+
 
 final class FinancialsServiceImpl(
   /*accRepo:AccountRepository,*/ pacRepo: PacRepository,
@@ -129,11 +130,13 @@ final class FinancialsServiceImpl(
       .find(pac_ => pac_.id == PeriodicAccountBalance.createId(period, line.oaccount))
       .map(_.crediting(line.amount))
 
-  def reduce[A: Identity](all: Iterable[A], dummy: A): A =
+ /* def reduce[A: Identity](all: Iterable[A], dummy: A): A =
     all.toList match {
       case Nil     => dummy
       case x :: xs => NonEmptyList.fromIterable(x, xs).reduce
     }
+
+  */
 
   private[this] def getAndDebitCreditOldPacs(
     pacList: List[DPAC],
