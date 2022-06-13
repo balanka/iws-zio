@@ -658,6 +658,22 @@ object PeriodicAccountBalance {
     def combine(m1: => PeriodicAccountBalance, m2: => PeriodicAccountBalance) =
       m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
   }
+
+   def create(accountId: String, period: Int, currency: String, company: String): PeriodicAccountBalance  = {
+    val zeroAmount = BigDecimal(0)
+    PeriodicAccountBalance.apply(
+      PeriodicAccountBalance.createId(period, accountId),
+      accountId,
+      period,
+      zeroAmount,
+      zeroAmount,
+      zeroAmount,
+      zeroAmount,
+      company,
+      currency,
+      PeriodicAccountBalance.MODELID
+    )
+  }
 }
 
 sealed trait BusinessPartner        {
