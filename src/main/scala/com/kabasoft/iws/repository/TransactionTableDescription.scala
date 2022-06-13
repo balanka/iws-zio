@@ -10,7 +10,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     (long("id") ++ long("oid") ++ string("account") ++ string("costcenter") ++ instant("transdate") ++ instant(
       "enterdate"
     ) ++ instant("postingdate") ++ int("period") ++ boolean("posted") ++ int("modelid")
-      ++ string("company") ++ string("headertext") ++ int("typeJournal") ++ int("file_content")).table("master_compta")
+      ++ string("company") ++ string("headertext")  ++ int("file_content")).table("master_compta")
 
   val transactionDetails =
     (long("id") ++ long("transid") ++ string("account") ++ boolean("side") ++ string("oaccount") ++ bigDecimal(
@@ -42,7 +42,6 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     modelid_,
     company_,
     text_,
-    typeJournal_,
     file_content_
   ) = transaction.columns
   val (
@@ -91,7 +90,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     c.modelid,
     c.company,
     c.text,
-    c.typeJournal,
+    //c.typeJournal,
     c.file_content
   )
 

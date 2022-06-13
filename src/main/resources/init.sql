@@ -83,6 +83,65 @@ create table  account
     credit        numeric(12, 2) default 0,
     currency      varchar(5)     default ''::character varying
     );
+
+create table if not exists master_compta
+(
+    id           bigint                            not null
+    primary key,
+    oid          bigint                            not null,
+    costcenter   varchar(50)                       not null,
+    account      varchar(50)                       not null,
+    headertext   varchar(380) default ''::character varying,
+    transdate    timestamp    default CURRENT_DATE not null,
+    postingdate  timestamp    default CURRENT_DATE not null,
+    enterdate    timestamp    default CURRENT_DATE not null,
+    company      varchar(50)                       not null,
+    file_content integer      default '-1'::integer,
+    posted       boolean      default false,
+    modelid      integer                           not null,
+    period       integer,
+    type_journal integer      default 0
+    );
+create table if not exists details_compta
+(
+    id       bigint                                      not null
+    constraint detailcompta_pkey
+    primary key,
+    transid  bigint                                      not null,
+    account  varchar(50) default NULL::character varying not null,
+    side     boolean                                     not null,
+    oaccount varchar(50)                                 not null,
+    amount   numeric(12, 2)                              not null,
+    duedate  timestamp   default CURRENT_DATE            not null,
+    text     varchar(380),
+    currency varchar(10)                                 not null,
+    terms    varchar(250),
+    posted   boolean     default false,
+    company  varchar(50) default 1000
+    );
+create table if not exists financialstransaction
+(
+    id          bigint                            not null
+    primary key,
+    oid         bigint                            not null,
+    account     varchar(50)                       not null,
+    transdate   timestamp    default CURRENT_DATE not null,
+    enterdate   timestamp    default CURRENT_DATE not null,
+    postingdate timestamp    default CURRENT_DATE not null,
+    period      integer,
+    posted      boolean      default false,
+    modelid     integer                           not null,
+    company     varchar(50)                       not null,
+    headertext  varchar(380) default ''::character varying,
+    file        integer      default '-1'::integer,
+    lid         bigint                            not null,
+    side        boolean      default true,
+    oaccount    varchar(50)                       not null,
+    amount      numeric(12, 2),
+    currency    varchar(50)                       not null,
+    terms       varchar(380) default ''::character varying
+    );
+
 insert into customers
     (id, first_name, last_name, verified, dob)
 values

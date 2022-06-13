@@ -146,7 +146,7 @@ final class FinancialsServiceImpl(
     Journal(
       -1,
       model.tid,
-      // model.oid,
+      model.oid,
       account,
       oaccount,
       model.transdate,
@@ -159,7 +159,7 @@ final class FinancialsServiceImpl(
       pac.icredit,
       pac.credit,
       line.currency,
-      // line.side,
+      line.side,
       line.text,
       model.month.toInt,
       model.year,

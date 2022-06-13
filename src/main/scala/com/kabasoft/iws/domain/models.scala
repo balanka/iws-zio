@@ -780,6 +780,9 @@ final case class FinancialsTransaction(
   def year: Int     = common.getYear(transdate)
   def getPeriod     = common.getPeriod(transdate)
   def total         = lines.reduce((l1, l2) => l2.copy(amount = l2.amount + l1.amount))
+  def toDerive()= lines.map(l => DerivedTransaction(l.lid, oid, l.account, transdate, enterdate,postingdate,
+    period, posted, modelid, company, text, file_content, l.lid, l.side,  l.oaccount,l.amount,l.currency,l.text))
+
 
 }
 object FinancialsTransactionDetails {
@@ -799,7 +802,7 @@ object FinancialsTransactionDetails {
   def apply(tr: FinancialsTransactionDetails.FTX2): FinancialsTransactionDetails =
     new FinancialsTransactionDetails(tr._15, tr._1, tr._16, tr._17, tr._18, tr._19, tr._20, tr._21, tr._22)
 
-  def apply(x: DerivedTransaction): FinancialsTransactionDetails =
+ /* def apply(x: DerivedTransaction): FinancialsTransactionDetails =
     new FinancialsTransactionDetails(
       x.lid,
       x.id,
@@ -811,6 +814,8 @@ object FinancialsTransactionDetails {
       x.terms,
       x.currency
     )
+
+  */
 }
 object FinancialsTransaction        {
   type FinancialsTransaction_Type  =
@@ -906,7 +911,8 @@ object FinancialsTransaction        {
       x.file,
       0
     )
-      .copy(lines = List(FinancialsTransactionDetails.apply(x)))
+      .copy(lines = List(FinancialsTransactionDetails(
+        x.lid, x.id, x.account, x.side, x.oaccount, x.amount, x.transdate, x.terms, x.currency)))
 }
 final case class DerivedTransaction(
   id: Long,
@@ -931,7 +937,7 @@ final case class DerivedTransaction(
 final case class Journal(
   id: Long,
   transid: Long,
-  // oid: Long,
+   oid: Long,
   account: String,
   oaccount: String,
   transdate: Instant,
@@ -944,7 +950,7 @@ final case class Journal(
   icredit: BigDecimal,
   credit: BigDecimal,
   currency: String,
-  // side: Boolean,
+  side: Boolean,
   text: String = "",
   month: Int,
   year: Int,

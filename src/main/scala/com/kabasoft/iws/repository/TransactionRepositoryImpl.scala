@@ -19,7 +19,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool)
     tid_ ++ oid_ ++ account_ ++ transdate_ ++ enterdate_ ++ postingdate_ ++ period_ ++ posted_ ++ modelid_ ++ company_ ++ text_ ++ file_content_ ++ lid_ ++ side_ ++ oaccount_ ++ amount_ /*++duedate_*/ ++ currency_ ++ ltext_
 
   val XX2 =
-    tid_ ++ oid_ ++ account_ ++ costcenter ++ transdate_ ++ enterdate_ ++ postingdate_ ++ period_ ++ posted_ ++ modelid_ ++ company_ ++ text_ ++ typeJournal_ ++ file_content_
+    tid_ ++ oid_ ++ account_ ++ costcenter ++ transdate_ ++ enterdate_ ++ postingdate_ ++ period_ ++ posted_ ++ modelid_ ++ company_ ++ text_  ++ file_content_
 
   private def getQuery4Model(models: List[DerivedTransaction]): ZIO[Any, RepositoryError, Int] = {
 
@@ -34,10 +34,13 @@ final class TransactionRepositoryImpl(pool: ConnectionPool)
         s"Query to insert Transaction is ${renderInsert(query)}"
     )
 
-    execute(query).provideAndLog(driverLayer)
-    // .map(l => l.fold(0)((a, b) => a + b))
-    execute(queryLines).provideAndLog(driverLayer)
-    // .map(m => m.fold(0)((a, b) => a + b))
+ val result=(for {
+     r1 <- execute(query).provideAndLog(driverLayer)
+   // .map(l => l.fold(0)((a, b) => a + b))
+     r2 <- execute(queryLines).provideAndLog(driverLayer)
+   // .map(m => m.fold(0)((a, b) => a + b))
+  }yield {println("r1"+r1);r2})
+   result
   }
 
   override def create(model: DerivedTransaction): ZIO[Any, RepositoryError, Int] = getQuery4Model(List(model))

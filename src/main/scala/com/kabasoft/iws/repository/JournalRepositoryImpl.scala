@@ -10,17 +10,17 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
   import ColumnSet._
 
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
-  val journals         = (long("id") ++ long("transid") ++ string("account") ++ string("oaccount")
+  val journals         = (long("id") ++ long("transid") ++ long("oid") ++string("account") ++ string("oaccount")
     ++ instant("transdate") ++ instant("enterdate") ++ instant("postingdate") ++ int("period") ++ bigDecimal("amount")
     ++ bigDecimal("idebit") ++ bigDecimal("debit") ++ bigDecimal("icredit") ++ bigDecimal("credit") ++ string(
-      "currency"
-    )
-    ++ string("text") ++ int("month") ++ int("year") ++ string("company") ++ int("file_content") ++ int("modelid"))
+      "currency")++ boolean("side")++ string("text") ++ int("month") ++ int("year") 
+   ++ string("company") ++ int("file_content") ++ int("modelid"))
     .table("journal2")
 
   val (
     id,
     transid,
+    oid,
     account,
     oaccount,
     transdate,
@@ -33,6 +33,7 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
     icredit,
     credit,
     currency,
+    side,
     text,
     month,
     year,
@@ -43,11 +44,12 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
 
   // val XX = transid++oid++account++oaccount++transdate++enterdate++postingdate++period++amount++company++currency++text++month++year++modelid++file++idebit++debit++icredit++credit++side
   val X =
-    id ++ transid ++ account ++ oaccount ++ transdate ++ enterdate ++ postingdate ++ period ++ amount ++ idebit ++ debit ++ icredit ++ credit ++ currency ++ text ++ month ++ year ++ company ++ file ++ modelid
+    id ++ transid ++oid++ account ++ oaccount ++ transdate ++ enterdate ++ postingdate ++ period ++ amount ++ idebit ++ debit ++ icredit ++ credit ++ currency++ side  ++ text ++ month ++ year ++ company ++ file ++ modelid
 
   def tuple2(c: Journal)                                                               = (
     c.id,
     c.transid,
+    c.oid,
     c.account,
     c.oaccount,
     c.transdate,
@@ -60,6 +62,7 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
     c.icredit,
     c.credit,
     c.currency,
+    c.side,
     c.text,
     c.month,
     c.year,
