@@ -93,6 +93,7 @@ final case class Account(
   }
 }
 object Account {
+  val MODELID=9
   type Account_Type = (
     String,
     String,
