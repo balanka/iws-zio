@@ -141,24 +141,14 @@ final class FinancialsServiceImpl(
       case None      => (fx(line, period, accountId, company), true)
     }
   }
-
-  private[this] def createJournalEntries(
-    line: FTDetails,
-    model: FinancialsTransaction,
-    pacList: List[DPAC]
-  ): List[Journal] = {
-
-    val pacId      = PeriodicAccountBalance.createId(model.getPeriod, line.account)
-    val poacId     = PeriodicAccountBalance.createId(model.getPeriod, line.oaccount)
-    val dummyAcc   = PeriodicAccountBalance.dummy
-    val pac: DPAC  = pacList.find(pac_ => pac_.id == pacId).getOrElse(dummyAcc)
-    val poac: DPAC = pacList.find(poac_ => poac_.id == poacId).getOrElse(dummyAcc)
-    val jou1       = Journal(
+private def makeJournal( line: FTDetails, model: FinancialsTransaction, pac: DPAC
+                         ,account:String, oaccount:String)=
+    Journal(
       -1,
       model.tid,
       // model.oid,
-      line.account,
-      line.oaccount,
+      account,
+      oaccount,
       model.transdate,
       model.postingdate,
       model.enterdate,
@@ -178,31 +168,20 @@ final class FinancialsServiceImpl(
       model.file_content,
       model.modelid
     )
-    val jou2       = Journal(
-      -1,
-      model.tid,
-      // model.oid,
-      line.oaccount,
-      line.account,
-      model.transdate,
-      model.postingdate,
-      model.enterdate,
-      model.getPeriod,
-      line.amount,
-      poac.idebit,
-      poac.debit,
-      poac.icredit,
-      poac.credit,
-      line.currency,
-      // !line.side,
-      line.text,
-      model.month.toInt,
-      model.year,
-      model.company,
-      // model.typeJournal,
-      model.file_content,
-      model.modelid
-    )
+  
+  private[this] def createJournalEntries(
+    line: FTDetails,
+    model: FinancialsTransaction,
+    pacList: List[DPAC]
+  ): List[Journal] = {
+
+    val pacId      = PeriodicAccountBalance.createId(model.getPeriod, line.account)
+    val poacId     = PeriodicAccountBalance.createId(model.getPeriod, line.oaccount)
+    val dummyAcc   = PeriodicAccountBalance.dummy
+    val pac: DPAC  = pacList.find(pac_ => pac_.id == pacId).getOrElse(dummyAcc)
+    val poac: DPAC = pacList.find(poac_ => poac_.id == poacId).getOrElse(dummyAcc)
+    val jou1       = makeJournal(line, model, pac, line.account, line.oaccount)
+    val jou2       = makeJournal(line, model, poac, line.oaccount, line.account)
     List(jou1, jou2)
   }
   private[this] def newJournalEntries(model: FinancialsTransaction, pacList: List[DPAC]): List[Journal] =
