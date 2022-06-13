@@ -2,15 +2,15 @@ package com.kabasoft.iws.domain
 
 import com.kabasoft.iws.domain.common.reduce
 
-import java.util.{Locale, UUID}
-import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
+import java.util.{ Locale, UUID }
+import java.time.{ Instant, LocalDate, LocalDateTime, ZoneId }
 import zio.prelude._
 import zio.stm._
 import zio._
 
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
-import scala.collection.immutable.{::, Nil}
+import scala.collection.immutable.{ ::, Nil }
 
 object common {
 
@@ -21,7 +21,6 @@ object common {
       case Nil     => dummy
       case x :: xs => NonEmptyList.fromIterable(x, xs).reduce
     }
-
 
   def getMonthAsString(month: Int): String       =
     if (month <= 9) {
@@ -54,8 +53,7 @@ final case class Account(
   debit: BigDecimal = BigDecimal(0),
   credit: BigDecimal = BigDecimal(0),
   subAccounts: Set[Account] = Nil.toSet
-
-)  {
+) {
   def debiting(amount: BigDecimal) = copy(debit = debit.+(amount))
 
   def crediting(amount: BigDecimal) = copy(credit = credit.+(amount))
@@ -84,8 +82,8 @@ final case class Account(
     idebiting(acc.idebit).icrediting(acc.icredit).debiting(acc.debit).crediting(acc.credit)
 
   def childBalances: BigDecimal =
-    if (subAccounts.nonEmpty) { reduce(subAccounts,Account.dummy).balance
-    } else {
+    if (subAccounts.nonEmpty) { reduce(subAccounts, Account.dummy).balance }
+    else {
       BigDecimal.apply(0)
     }
 
@@ -156,8 +154,8 @@ object Account {
   def group(accounts: List[Account]): List[Account] =
     accounts
       .groupBy(_.id)
-      .map { case (k, v: List[Account]) =>reduce(v,Account.dummy).copy(id = k)}
-      .filterNot(_.id==Account.dummy.id)
+      .map { case (k, v: List[Account]) => reduce(v, Account.dummy).copy(id = k) }
+      .filterNot(_.id == Account.dummy.id)
       .toList
 
   def removeSubAccounts(account: Account): Account                                                        =
@@ -269,7 +267,7 @@ object Account {
 
   // implicit def reduce[A: Identity](as: NonEmptyList[A]): A = as.reduce
   type Balance_Type = (BigDecimal, BigDecimal, BigDecimal, BigDecimal)
-  val Balance_dummy                            = (BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0))
+  val Balance_dummy                         = (BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0))
   implicit val accMonoid: Identity[Account] = new Identity[Account] {
     def identity: Account                       = Account.dummy
     def combine(m1: => Account, m2: => Account) =
