@@ -89,29 +89,29 @@ final class FinancialsServiceImpl(
       .map(_.crediting(line.amount))
 
   val getAndDebitCreditOldPacs: PType = (pacList: List[DPAC], model: FinancialsTransaction) => {
-    val pacx1: List[DPAC]              = model.lines.flatMap(line => getOldPacs(pacList, model.period, line.account)).distinct
-    val poacx1: List[DPAC]             = model.lines.flatMap(line => getOldPacs(pacList, model.period, line.oaccount)).distinct
+    val pacx1: List[DPAC]  = model.lines.flatMap(line => getOldPacs(pacList, model.period, line.account)).distinct
+    val poacx1: List[DPAC] = model.lines.flatMap(line => getOldPacs(pacList, model.period, line.oaccount)).distinct
     builPacList(model, pacx1, poacx1)
   }
 
   private def builPacList(model: FinancialsTransaction, pacx1: List[DPAC], poacx1: List[DPAC]) = {
-    val groupedLines: List[FTDetails] =
+    val groupedLines: List[FTDetails]  =
       model.lines.groupBy(_.account).map { case (_, v) => reduce(v, FinancialsTransactionDetails.dummy) }.toList
     val groupedOLines: List[FTDetails] =
       model.lines.groupBy(_.oaccount).map { case (_, v) => reduce(v, FinancialsTransactionDetails.dummy) }.toList
-    val pacx: List[DPAC] = groupedLines.flatMap(line => debitIt(pacx1, model.period, line))
-    val poacx: List[DPAC] = groupedOLines.flatMap(line => creditIt(poacx1, model.period, line))
+    val pacx: List[DPAC]               = groupedLines.flatMap(line => debitIt(pacx1, model.period, line))
+    val poacx: List[DPAC]              = groupedOLines.flatMap(line => creditIt(poacx1, model.period, line))
 
     Set(pacx, poacx).flatten.toList
   }
 
-  val getAndDebitCreditNewPacs: PType = (pacList: List[DPAC], model: FinancialsTransaction) => {
+  val getAndDebitCreditNewPacs: PType                                                                                  = (pacList: List[DPAC], model: FinancialsTransaction) => {
     val pacx1                                 = model.lines.map(line => createIfNone(pacList, model.period, line, line.account, model.company))
     val pacx1x: List[DPAC]                    = pacx1.filter(_._2 == true).flatMap(m => m._1).distinct
     val poacx1: List[(Option[DPAC], Boolean)] = model.lines
       .map(line => createIfNone(pacList, model.period, line, line.oaccount, model.company))
     val poacx1x: List[DPAC]                   = poacx1.filter(_._2 == true).flatMap(m => m._1).distinct
-      builPacList(model, pacx1x, poacx1x)
+    builPacList(model, pacx1x, poacx1x)
 
   }
 
@@ -133,7 +133,8 @@ final class FinancialsServiceImpl(
       else None
     def fx(line: FTDetails, period: Int, accountId: String, company: String): Option[DPAC] =
       if (line.account == accountId) Some(PeriodicAccountBalance.create(line.account, period, line.currency, company))
-      else if (line.oaccount == accountId) Some(PeriodicAccountBalance.create(line.oaccount, period, line.currency, company))
+      else if (line.oaccount == accountId)
+        Some(PeriodicAccountBalance.create(line.oaccount, period, line.currency, company))
       else None
 
     foundPac match {
@@ -141,8 +142,7 @@ final class FinancialsServiceImpl(
       case None      => (fx(line, period, accountId, company), true)
     }
   }
-private def makeJournal( line: FTDetails, model: FinancialsTransaction, pac: DPAC
-                         ,account:String, oaccount:String)=
+  private def makeJournal(line: FTDetails, model: FinancialsTransaction, pac: DPAC, account: String, oaccount: String) =
     Journal(
       -1,
       model.tid,
@@ -168,7 +168,7 @@ private def makeJournal( line: FTDetails, model: FinancialsTransaction, pac: DPA
       model.file_content,
       model.modelid
     )
-  
+
   private[this] def createJournalEntries(
     line: FTDetails,
     model: FinancialsTransaction,
@@ -184,7 +184,7 @@ private def makeJournal( line: FTDetails, model: FinancialsTransaction, pac: DPA
     val jou2       = makeJournal(line, model, poac, line.oaccount, line.account)
     List(jou1, jou2)
   }
-  private[this] def newJournalEntries(model: FinancialsTransaction, pacList: List[DPAC]): List[Journal] =
+  private[this] def newJournalEntries(model: FinancialsTransaction, pacList: List[DPAC]): List[Journal]                =
     model.lines.flatMap(line => createJournalEntries(line, model, pacList))
 
 }
