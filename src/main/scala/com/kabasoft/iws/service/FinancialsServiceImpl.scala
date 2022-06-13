@@ -91,10 +91,10 @@ final class FinancialsServiceImpl(
   val getAndDebitCreditOldPacs: PType = (pacList: List[DPAC], model: FinancialsTransaction) => {
     val pacx1: List[DPAC]  = model.lines.flatMap(line => getOldPacs(pacList, model.period, line.account)).distinct
     val poacx1: List[DPAC] = model.lines.flatMap(line => getOldPacs(pacList, model.period, line.oaccount)).distinct
-    builPacList(model, pacx1, poacx1)
+    buildPacList(model, pacx1, poacx1)
   }
 
-  private def builPacList(model: FinancialsTransaction, pacx1: List[DPAC], poacx1: List[DPAC]) = {
+  private def buildPacList(model: FinancialsTransaction, pacx1: List[DPAC], poacx1: List[DPAC]) = {
     val groupedLines: List[FTDetails]  =
       model.lines.groupBy(_.account).map { case (_, v) => reduce(v, FinancialsTransactionDetails.dummy) }.toList
     val groupedOLines: List[FTDetails] =
@@ -111,7 +111,7 @@ final class FinancialsServiceImpl(
     val poacx1: List[(Option[DPAC], Boolean)] = model.lines
       .map(line => createIfNone(pacList, model.period, line, line.oaccount, model.company))
     val poacx1x: List[DPAC]                   = poacx1.filter(_._2 == true).flatMap(m => m._1).distinct
-    builPacList(model, pacx1x, poacx1x)
+    buildPacList(model, pacx1x, poacx1x)
 
   }
 
