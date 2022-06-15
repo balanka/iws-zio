@@ -120,7 +120,7 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
 
     ZIO.logInfo(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to((PeriodicAccountBalance.apply _).tupled))
-        .findFirst(driverLayer, Id)
+        .findFirst(driverLayer, Id, PeriodicAccountBalance.dummy)
   }
 
   /*

@@ -23,6 +23,12 @@ final class FinancialsServiceImpl(
   type FTDetails = FinancialsTransactionDetails
   type PType     = (List[DPAC], FinancialsTransaction) => List[DPAC]
 
+  override def create(item: DerivedTransaction): ZIO[Any, RepositoryError, Int]=
+    ftrRepo.create(item)
+
+  override def create(items: List[DerivedTransaction]): ZIO[Any, RepositoryError, Int]=
+    ftrRepo.create(items)
+
   override def postAll(ids: List[Long], company: String): ZIO[Any, RepositoryError, List[Int]] =
     for {
       queries <- ZIO.foreach(ids)(id => ftrRepo.getBy(id.toString, company))
@@ -47,6 +53,7 @@ final class FinancialsServiceImpl(
   private[this] def debitOrCreditPACAll(model: FinancialsTransaction, company: String): ZIO[Any, RepositoryError, Int] =
     for {
       pac           <- ZIO.foreach(getIds(model))(pacRepo.getBy(_, company))
+
       oldRecords     = getPeriodicAccount(pac, model, getAndDebitCreditOldPacs)
       newRecords     = getPeriodicAccount(pac, model, getAndDebitCreditNewPacs)
       journalEntries = newJournalEntries(model, oldRecords ::: newRecords)

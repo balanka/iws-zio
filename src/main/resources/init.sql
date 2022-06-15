@@ -83,6 +83,21 @@ create table  account
     credit        numeric(12, 2) default 0,
     currency      varchar(5)     default ''::character varying
     );
+create table if not exists periodic_account_balance
+(
+    account  varchar(50)                not null,
+    period   integer                    not null,
+    idebit   numeric(12, 2) default 0   not null,
+    icredit  numeric(12, 2) default 0   not null,
+    debit    numeric(12, 2) default 0   not null,
+    credit   numeric(12, 2) default 0   not null,
+    company  varchar(50)                not null,
+    currency varchar(50)                not null,
+    modelid  integer        default 106 not null,
+    id       varchar(50)                not null
+    constraint periodic_account_balance_pk
+    primary key
+    );
 
 create table if not exists master_compta
 (
@@ -141,6 +156,34 @@ create table if not exists financialstransaction
     currency    varchar(50)                       not null,
     terms       varchar(380) default ''::character varying
     );
+create sequence journal_id_seq;
+create table if not exists journal
+(
+    id           bigint  default nextval('journal_id_seq'::regclass) not null
+    primary key,
+    transid      bigint                                              not null,
+    oid          bigint,
+    account      varchar(50)                                         not null,
+    oaccount     varchar(50)                                         not null,
+    transdate    timestamp                                           not null,
+    enterdate    timestamp                                           not null,
+    postingdate  timestamp                                           not null,
+    period       integer                                             not null,
+    amount       numeric(12, 2),
+    company      varchar(50)                                         not null,
+    currency     varchar(50)                                         not null,
+    text         varchar(255)                                        not null,
+    month        integer,
+    year         integer                                             not null,
+    modelid      integer                                             not null,
+    file_content integer default 0,
+    journal_type integer default 0,
+    idebit       numeric(12, 2),
+    debit        numeric(12, 2),
+    icredit      numeric(12, 2),
+    credit       numeric(12, 2),
+    side         boolean
+    );
 
 insert into customers
     (id, first_name, last_name, verified, dob)
@@ -184,6 +227,10 @@ insert into account
  isdebit, balancesheet, idebit, icredit, debit, credit, currency) values
   ('4711','myFirstAccount','myFirstAccount',current_timestamp, current_timestamp, current_timestamp, '1000',11
   , '9999', true, true, 0.0, 0.0, 0.0, 0.0, 'EUR');
+
+insert into periodic_account_balance
+(id, account, period, idebit,debit,icredit,credit, company,currency,modelid)
+values('-1','-1', -1, 0, 0, 0, 0,'1000' , 'EUR', 106);
 
  insert into bankstatement
  (id,depositor, postingdate, valuedate, postingtext, purpose, beneficiary, accountno, bankCode,amount, currency, info, company, companyIban, posted, modelid)

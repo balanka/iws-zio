@@ -15,7 +15,13 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
     ++ bigDecimal("idebit") ++ bigDecimal("debit") ++ bigDecimal("icredit") ++ bigDecimal("credit") ++ string(
       "currency")++ boolean("side")++ string("text") ++ int("month") ++ int("year") 
    ++ string("company") ++ int("file_content") ++ int("modelid"))
-    .table("journal2")
+    .table("journal")
+  val journals1         = ( long("transid") ++ long("oid") ++string("account") ++ string("oaccount")
+    ++ instant("transdate") ++ instant("enterdate") ++ instant("postingdate") ++ int("period") ++ bigDecimal("amount")
+    ++ bigDecimal("idebit") ++ bigDecimal("debit") ++ bigDecimal("icredit") ++ bigDecimal("credit") ++ string(
+    "currency")++ boolean("side")++ string("text") ++ int("month") ++ int("year")
+    ++ string("company") ++ int("file_content") ++ int("modelid"))
+    .table("journal")
 
   val (
     id,
@@ -42,10 +48,59 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
     modelid
   ) = journals.columns
 
+  val (
+    transidx,
+    oidx,
+    accountx,
+    oaccountx,
+    transdatex,
+    enterdatex,
+    postingdatex,
+    periodx,
+    amountx,
+    idebitx,
+    debitx,
+    icreditx,
+    creditx,
+    currencyx,
+    sidex,
+    textx,
+    monthx,
+    yearx,
+    companyx,
+    filex,
+    modelidx
+    ) = journals1.columns
+
   // val XX = transid++oid++account++oaccount++transdate++enterdate++postingdate++period++amount++company++currency++text++month++year++modelid++file++idebit++debit++icredit++credit++side
   val X =
     id ++ transid ++oid++ account ++ oaccount ++ transdate ++ enterdate ++ postingdate ++ period ++ amount ++ idebit ++ debit ++ icredit ++ credit ++ currency++ side  ++ text ++ month ++ year ++ company ++ file ++ modelid
 
+  val XX =
+     transidx ++oidx++ accountx ++ oaccountx ++ transdatex ++ enterdatex ++ postingdatex ++ periodx ++ amountx ++ idebitx ++ debitx ++ icreditx ++ creditx ++ currencyx++ sidex  ++ textx ++ monthx ++ yearx ++ companyx ++ filex ++ modelidx
+  def tuple1(c: Journal)                                                               = (
+    c.transid,
+    c.oid,
+    c.account,
+    c.oaccount,
+    c.transdate,
+    c.enterdate,
+    c.postingdate,
+    c.period,
+    c.amount,
+    c.idebit,
+    c.debit,
+    c.icredit,
+    c.credit,
+    c.currency,
+    c.side,
+    c.text,
+    c.month,
+    c.year,
+    c.company,
+    c.file,
+    c.modelid
+  )
   def tuple2(c: Journal)                                                               = (
     c.id,
     c.transid,
@@ -71,7 +126,7 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
     c.modelid
   )
   override def create(c: Journal): ZIO[Any, RepositoryError, Unit]                     = {
-    val query = insertInto(journals)(X).values(tuple2(c))
+    val query = insertInto(journals1)(XX).values(tuple1(c))
 
     ZIO.logInfo(s"Query to insert Journal is ${renderInsert(query)}") *>
       execute(query)
@@ -79,8 +134,8 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
         .unit
   }
   override def create(models: List[Journal]): ZIO[Any, RepositoryError, Int]           = {
-    val data  = models.map(Journal.unapply(_).get)
-    val query = insertInto(journals)(X).values(data)
+    val data  = models.map(tuple1)
+    val query = insertInto(journals1)(XX).values(data)
 
     ZIO.logInfo(s"Query to insert Journal is ${renderInsert(query)}") *>
       execute(query)
