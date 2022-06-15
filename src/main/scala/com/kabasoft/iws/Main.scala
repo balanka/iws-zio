@@ -43,5 +43,6 @@ object Main extends ZIOAppDefault {
         DbConfig.layer,
         ConnectionPool.live,
         DbConfig.connectionPoolConfig
+        //ZLayer.Debug.tree
       )
 }
