@@ -17,7 +17,7 @@ final class BankRepositoryImpl(pool: ConnectionPool) extends BankRepository with
 
   val (id, name, description, enterdate, changedate, postingdate, modelid, company) = bank.columns
   val X                                                                             = id ++ name ++ description ++ enterdate ++ changedate ++ postingdate ++ modelid ++ company
-
+  val SELECT  = select(id, name, description, enterdate, changedate, postingdate, modelid, company).from(bank)
   override def create(c: Bank): ZIO[Any, RepositoryError, Unit]                        = {
     val query = insertInto(bank)(X).values(Bank.unapply(c).get)
 
@@ -51,7 +51,7 @@ final class BankRepositoryImpl(pool: ConnectionPool) extends BankRepository with
   }
 
   override def list(companyId: String): ZStream[Any, RepositoryError, Bank]                   = {
-    val selectAll = select(X).from(bank)
+    val selectAll = SELECT
 
     ZStream.fromZIO(
       ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")
@@ -60,14 +60,14 @@ final class BankRepositoryImpl(pool: ConnectionPool) extends BankRepository with
         .provideDriver(driverLayer)
   }
   override def getBy(Id: String, companyId: String): ZIO[Any, RepositoryError, Bank]          = {
-    val selectAll = select(X).from(bank).where((id === Id) && (company === companyId))
+    val selectAll = SELECT.where((id === Id) && (company === companyId))
 
     ZIO.logInfo(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to((Bank.apply _).tupled))
         .findFirst(driverLayer, Id)
   }
   override def getByModelId(modelId: Int, companyId: String): ZIO[Any, RepositoryError, Bank] = {
-    val selectAll = select(X).from(bank).where((modelid === modelId) && (company === companyId))
+    val selectAll = SELECT.where((modelid === modelId) && (company === companyId))
 
     ZIO.logInfo(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
       execute(selectAll.to((Bank.apply _).tupled))

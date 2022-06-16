@@ -1,6 +1,6 @@
 package com.kabasoft.iws.repository.common
 
-import com.kabasoft.iws.domain.{ FinancialsTransaction, FinancialsTransactionDetails, common}
+import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, PeriodicAccountBalance, common}
 import AccountBuilder.{accountId, oaccountId, oaccountId2}
 
 import java.time.Instant
@@ -24,6 +24,9 @@ object TransactionBuilder {
 
   val ftr1 = FinancialsTransaction(transactionId,-1,"311",accountId, Instant.now(), Instant.now(), Instant.now()
     , period, false, modelid, company, "comments", -1,-1, List(line1, line2))
+  val dtransactions = ftr1.toDerive()
+  val pacs = PeriodicAccountBalance.create(ftr1).distinct
+
 
 
 }

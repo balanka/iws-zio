@@ -62,7 +62,8 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
 
   val X =
     id ++ name ++ description ++ enterdate ++ changedate ++ postingdate ++ company ++ modelid ++ accountid ++ isDebit ++ balancesheet ++ currency ++ idebit ++ icredit ++ debit ++ credit
-
+  val SELECT = select(id, name, description, enterdate, changedate, postingdate, company, modelid, accountid, isDebit
+    , balancesheet, currency, idebit, icredit, debit, credit).from(account)
   override def create(c: Account): ZIO[Any, RepositoryError, Unit]                     = {
     val query = insertInto(account)(X).values(tuple2(c))
 
@@ -104,7 +105,8 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
   }
   override def modify(models: List[Account]): ZIO[Any, RepositoryError, Int] = {
     val update_ = models.map(build(_))
-    // ZIO.logInfo(s"Query Update Account is ${renderUpdate(update_)}") //*>
+    //ZStream.fromZIO(
+    //  ZIO.foreach(update_.map(renderUpdate))(sql=>ZIO.logInfo(s"Query Update Account is ${sql}")) *>
     executeBatchUpdate(update_)
       .provideLayer(driverLayer)
       .map(_.sum)
@@ -112,7 +114,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
   }
 
   override def list(companyId: String): ZStream[Any, RepositoryError, Account]                   = {
-    val selectAll = select(X).from(account)
+    val selectAll = SELECT
 
     ZStream.fromZIO(
       ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")
@@ -121,14 +123,14 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
         .provideDriver(driverLayer)
   }
   override def getBy(Id: String, companyId: String): ZIO[Any, RepositoryError, Account]          = {
-    val selectAll = select(X).from(account).where((id === Id) && (company === companyId))
+    val selectAll = SELECT.where((id === Id) && (company === companyId))
 
     ZIO.logInfo(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to(c => (Account.apply(c))))
         .findFirst(driverLayer, Id)
   }
   override def getByModelId(modelId: Int, companyId: String): ZIO[Any, RepositoryError, Account] = {
-    val selectAll = select(X).from(account).where((modelid === modelId) && (company === companyId))
+    val selectAll = SELECT.where((modelid === modelId) && (company === companyId))
 
     ZIO.logInfo(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
       execute(selectAll.to(c => (Account.apply(c))))

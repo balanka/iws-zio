@@ -1,10 +1,9 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.repository.common.AccountBuilder.company
-import com.kabasoft.iws.repository.common.TransactionBuilder.ftr1
+import com.kabasoft.iws.repository.common.TransactionBuilder.{dtransactions, ftr1, pacs}
 import com.kabasoft.iws.repository.postgresql.PostgresContainer
-import com.kabasoft.iws.repository.{JournalRepositoryImpl, PacRepositoryImpl,  TransactionRepositoryImpl}
-
+import com.kabasoft.iws.repository.{JournalRepositoryImpl, PacRepository, PacRepositoryImpl, TransactionRepositoryImpl}
 import zio.ZLayer
 import zio.sql.ConnectionPool
 import zio.test.Assertion._
@@ -13,7 +12,7 @@ import zio.test._
 
 object FinancialsServiceLiveSpec extends ZIOSpecDefault {
 
-  val testServiceLayer = ZLayer.make[FinancialsService](
+  val testServiceLayer = ZLayer.make[FinancialsService with PacRepository](
     PacRepositoryImpl.live,
     JournalRepositoryImpl.live,
     TransactionRepositoryImpl.live,
@@ -27,15 +26,18 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
     suite("Financials service  test with postgres test container")(
       test("create and post 2 transactions") {
         for {
-          oneRow <- FinancialsService.create(ftr1.toDerive())
-          postedRows <- FinancialsService.postAll(ftr1.toDerive().map(_.id), company).map(_.sum)
-        } yield assert(oneRow)(equalTo(2))&& assert(postedRows)(equalTo(8))
-      }/*,
-      test("get an transaction by its id") {
+          oneRow <- FinancialsService.create(ftr1)
+          postedRows <- FinancialsService.postAll(dtransactions.map(_.id).distinct, company).map(_.sum)
+          nrOfPacs       <-PacRepository.getByIds(pacs.map(_.id), company)
+        } yield assert(oneRow)(equalTo(3))&& assert(postedRows)(equalTo(9))/*&& assert(nrOfPacs.map(_.id))(equalTo(pacs.map(_.id)))*/ && assertTrue(nrOfPacs.isEmpty)
+      },
+      /*test("get an transaction by its id") {
         for {
           stmt <- TransactionRepository.getBy(lineTransactionId1.toString,company)
         } yield  assert(stmt.id)(equalTo(lineTransactionId1))
-      }*/
+      }
+
+       */
     ).provideCustomLayerShared(testServiceLayer.orDie) @@ sequential
 }
 

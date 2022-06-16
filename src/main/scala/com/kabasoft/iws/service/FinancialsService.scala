@@ -1,11 +1,12 @@
 package com.kabasoft.iws.service
 
-import com.kabasoft.iws.domain.DerivedTransaction
+import com.kabasoft.iws.domain.{DerivedTransaction, FinancialsTransaction}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import zio._
 
 trait FinancialsService {
   // def closePeriod(fromPeriod: Int, toPeriod: Int,  inStmtAccId:String, company: String):ZIO[Any, RepositoryError, Int]
+  def create(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int]
   def create(item: DerivedTransaction): ZIO[Any, RepositoryError, Int]
   def create(models: List[DerivedTransaction]): ZIO[Any, RepositoryError, Int]
 
@@ -19,6 +20,8 @@ trait FinancialsService {
 
 object FinancialsService {
 
+  def create(model: FinancialsTransaction): ZIO[FinancialsService, RepositoryError, Int]=
+    ZIO.serviceWithZIO[FinancialsService](_.create(model))
   def create(item: DerivedTransaction): ZIO[FinancialsService, RepositoryError, Int]                                =
     ZIO.serviceWithZIO[FinancialsService](_.create(item))
   def create(items: List[DerivedTransaction]): ZIO[FinancialsService, RepositoryError, Int]                         =

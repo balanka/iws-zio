@@ -22,7 +22,7 @@ object AccountBuilder {
     , "1000", Account.MODELID, paccountId, true, true, "EUR", BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0), Nil.toSet)
   val oaccount1 =  Account(oaccountId, "MyAccount2","MyAccount2", Instant.now(), Instant.now(), Instant.now()
     , "1000", Account.MODELID, paccountId, false, true, "EUR", BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0), Nil.toSet)
-  val oaccount2 =  Account(oaccountId, "MyAccount2","MyAccount2", Instant.now(), Instant.now(), Instant.now()
+  val oaccount2 =  Account(oaccountId2, "MyAccount2","MyAccount2", Instant.now(), Instant.now(), Instant.now()
     , "1000", Account.MODELID, paccountId, false, true, "EUR", BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0), Nil.toSet)
 
   val list =List(paccount, account, oaccount1, oaccount2)

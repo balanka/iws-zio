@@ -10,11 +10,13 @@ trait PacRepository {
   def create(item: PeriodicAccountBalance): IO[RepositoryError, Unit]
   def create(models: List[PeriodicAccountBalance]): IO[RepositoryError, Int]
   def delete(item: String, company: String): IO[RepositoryError, Int]
-  def delete(items: List[String], company: String): IO[RepositoryError, List[Int]] =
+  def delete(items: List[String], company: String): IO[RepositoryError, List[Int]]=
     ZIO.collectAll(items.map(delete(_, company)))
   def list(company: String): ZStream[Any, RepositoryError, PeriodicAccountBalance]
   def getBy(id: String, company: String): IO[RepositoryError, PeriodicAccountBalance]
-  // def getBy(ids:List[String], company: String): ZStream[Any, RepositoryError, PeriodicAccountBalance]
+  def getByIds(ids:List[String], company: String): IO[RepositoryError, List[PeriodicAccountBalance]]=
+    ZIO.foreach(ids)(getBy(_, company)).map(_.filterNot(x=>x.id==PeriodicAccountBalance.dummy.id))
+
   def getByModelId(modelid: Int, company: String): IO[RepositoryError, PeriodicAccountBalance]
   def findBalance4Period(
     fromPeriod: Int,
@@ -46,13 +48,14 @@ object PacRepository {
   def delete(item: String, company: String): ZIO[PacRepository, RepositoryError, Int]                          =
     ZIO.serviceWithZIO[PacRepository](_.delete(item, company))
   def delete(items: List[String], company: String): ZIO[PacRepository, RepositoryError, List[Int]]             =
-    ZIO.collectAll(items.map(delete(_, company)))
+    ZIO.foreach(items)(delete(_, company))
   def list(company: String): ZStream[PacRepository, RepositoryError, PeriodicAccountBalance]                   =
     ZStream.serviceWithStream[PacRepository](_.list(company))
   def getBy(id: String, company: String): ZIO[PacRepository, RepositoryError, PeriodicAccountBalance]          =
     ZIO.serviceWithZIO[PacRepository](_.getBy(id, company))
-  // def getBy(ids:List[String], company: String): ZStream[PacRepository, RepositoryError, PeriodicAccountBalance]=
-  //  ZStream.serviceWithStream[PacRepository](_.getBy(ids,company))
+   def getByIds(ids:List[String], company: String): ZIO[PacRepository, RepositoryError, List[PeriodicAccountBalance]]=
+    // ZIO.serviceWithZIO[PacRepository](_.getByIds(ids, company))
+     ZIO.foreach(ids)(getBy(_, company)).map(_.filterNot(x=>x.id==PeriodicAccountBalance.dummy.id))
   def getByModelId(modelid: Int, company: String): ZIO[PacRepository, RepositoryError, PeriodicAccountBalance] =
     ZIO.serviceWithZIO[PacRepository](_.getByModelId(modelid, company))
   def findBalance4Period(

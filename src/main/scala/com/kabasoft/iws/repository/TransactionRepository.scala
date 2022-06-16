@@ -7,6 +7,7 @@ import zio._
 
 trait TransactionRepository {
   type TYPE_ = DerivedTransaction
+  def create(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int]
   def create(item: TYPE_): ZIO[Any, RepositoryError, Int]
   def create(models: List[TYPE_]): ZIO[Any, RepositoryError, Int]
   def delete(item: String, company: String): ZIO[Any, RepositoryError, Int]
@@ -14,6 +15,7 @@ trait TransactionRepository {
     ZIO.collectAll(items.map(delete(_, company)))
   def list(company: String): ZStream[Any, RepositoryError, TYPE_]
   def getBy(id: String, company: String): ZIO[Any, RepositoryError, TYPE_]
+  def getByTransId(id: Long, companyId: String): ZIO[Any, RepositoryError, FinancialsTransaction]
   def getByModelId(modelid: Int, company: String): ZStream[Any, RepositoryError, TYPE_]
   def find4Period(fromPeriod: Int, toPeriod: Int, company: String): ZStream[Any, RepositoryError, DerivedTransaction]
   def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int]
@@ -25,6 +27,8 @@ trait TransactionRepository {
 object TransactionRepository {
 
   type TYPE_ = DerivedTransaction
+  def create(model: FinancialsTransaction): ZIO[TransactionRepository, RepositoryError, Int]=
+    ZIO.serviceWithZIO[TransactionRepository](_.create(model))
   def create(item: TYPE_): ZIO[TransactionRepository, RepositoryError, Int]                                =
     ZIO.serviceWithZIO[TransactionRepository](_.create(item))
   def create(items: List[TYPE_]): ZIO[TransactionRepository, RepositoryError, Int]                         =
@@ -37,6 +41,8 @@ object TransactionRepository {
     ZStream.serviceWithStream[TransactionRepository](_.list(company))
   def getBy(id: String, company: String): ZIO[TransactionRepository, RepositoryError, TYPE_]               =
     ZIO.serviceWithZIO[TransactionRepository](_.getBy(id, company))
+  def getByTransId(id: Long, company: String): ZIO[TransactionRepository, RepositoryError, FinancialsTransaction]=
+    ZIO.serviceWithZIO[TransactionRepository](_.getByTransId(id, company))
   def getByModelId(modelid: Int, company: String): ZStream[TransactionRepository, RepositoryError, TYPE_]  =
     ZStream.serviceWithStream[TransactionRepository](_.getByModelId(modelid, company))
   def find4Period(

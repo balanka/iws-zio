@@ -50,13 +50,13 @@ trait IWSTableDescriptionPostgres extends PostgresSqlModule with PostgresJdbcMod
     def findFirstInt(driver: ULayer[SqlDriver], id: Int): ZIO[Any, RepositoryError, T] =
       zstream.runHead.some.tapError {
         case None    => ZIO.unit
-        case Some(e) => ZIO.logError(e.getMessage)
+        case Some(e) => ZIO.logError(e.getMessage())
       }.mapError {
         case None    =>
           RepositoryError(
             new RuntimeException(s"Order with id $id does not exists")
           )
-        case Some(e) => RepositoryError(e.getCause)
+        case Some(e) => RepositoryError(e.getCause())
       }
         .provide(driver)
 
@@ -69,7 +69,7 @@ trait IWSTableDescriptionPostgres extends PostgresSqlModule with PostgresJdbcMod
           RepositoryError(
             new RuntimeException(s"Order with id $id does not exists")
           )
-        case Some(e) => RepositoryError(e.getCause)
+        case Some(e) => RepositoryError(e.getCause())
       }
         .provide(driver)
   }

@@ -1,7 +1,6 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.common._
 import com.kabasoft.iws.domain.{
   DerivedTransaction,
   FinancialsTransaction,
@@ -23,6 +22,9 @@ final class FinancialsServiceImpl(
   type FTDetails = FinancialsTransactionDetails
   type PType     = (List[DPAC], FinancialsTransaction) => List[DPAC]
 
+  override def create(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int]=
+    ftrRepo.create(model)
+
   override def create(item: DerivedTransaction): ZIO[Any, RepositoryError, Int]=
     ftrRepo.create(item)
 
@@ -31,9 +33,10 @@ final class FinancialsServiceImpl(
 
   override def postAll(ids: List[Long], company: String): ZIO[Any, RepositoryError, List[Int]] =
     for {
-      queries <- ZIO.foreach(ids)(id => ftrRepo.getBy(id.toString, company))
-      models   = queries.map(FinancialsTransaction.apply1).filter(_.posted == false)
-      all     <- ZIO.foreach(models)(debitOrCreditPACAll(_, company))
+      queries <- ZIO.foreach(ids)(id => ftrRepo.getByTransId(id, company))
+      //queries <- ftrRepo.getByTransId(ids, company).runCollect.map(_.toList)
+      models   = { println("queries::::"+queries);queries.filter(_.posted == false)}
+      all     <-  { println("models::::"+models);ZIO.foreach(models)(debitOrCreditPACAll(_, company))}
     } yield all
 
   override def postTransaction4Period(
@@ -43,46 +46,71 @@ final class FinancialsServiceImpl(
   ): ZIO[Any, RepositoryError, List[Int]] =
     for {
       queries                            <- ftrRepo.find4Period(fromPeriod, toPeriod, company).runCollect
-      models: List[FinancialsTransaction] = queries.toList.map(FinancialsTransaction.apply1)
+      models: List[FinancialsTransaction] = FinancialsTransaction.applyD(queries.toList.map(DerivedTransaction.unapply(_).get))
       all                                <- ZIO.foreach(models)(trans => debitOrCreditPACAll(trans, company))
     } yield all
 
   override def post(model: DerivedTransaction, company: String): ZIO[Any, RepositoryError, List[Int]] =
-    postAll(List(model.lid), company)
+    postAll(List(model.id), company)
 
   private[this] def debitOrCreditPACAll(model: FinancialsTransaction, company: String): ZIO[Any, RepositoryError, Int] =
     for {
-      pac           <- ZIO.foreach(getIds(model))(pacRepo.getBy(_, company))
-
-      oldRecords     = getPeriodicAccount(pac, model, getAndDebitCreditOldPacs)
-      newRecords     = getPeriodicAccount(pac, model, getAndDebitCreditNewPacs)
-      journalEntries = newJournalEntries(model, oldRecords ::: newRecords)
+      //pac           <- ZIO.foreach(getIds(model))(pacRepo.getBy(_, company))
+      pacs           <- {println(" model :========>>>>"+model);pacRepo.getByIds(getIds(model), company)}
+      //oldRecords     = getPeriodicAccount(pacs, model, getAndDebitCreditOldPacs)
+      newRecords     = {println(" pacs :========>>>>"+pacs);PeriodicAccountBalance.create(model).filterNot(pacs.toSet).distinct}//getPeriodicAccount(pacs, model, getAndDebitCreditNewPacs)
+      journalEntries = {println(" newRecords :========>>>>"+newRecords);newJournalEntries(model, pacs ::: newRecords)}
       pac_created   <- pacRepo.create(newRecords)
-      pac_updated   <- pacRepo.modify(oldRecords)
+      pac_updated   <- pacRepo.modify(pacs)
       model_         = model.copy(posted = true).copy(postingdate = Instant.now())
       trans_posted  <- ftrRepo.modify(model_)
       journal       <- journalRepo.create(journalEntries)
-    } yield pac_created + pac_updated + journal + trans_posted
+    } yield {
+      println(" pac_created :========>>>>"+pac_created)
+      println(" pac_updated :========>>>>"+pac_updated)
+      println(" journal :========>>>>"+journal)
+      println(" trans_posted :========>>>>"+trans_posted)
+      pac_created + pac_updated + journal + trans_posted
+    }
 
   private[this] def getIds(model: FinancialsTransaction): List[String] = {
     val ids: List[String]  = model.lines.map(line => PeriodicAccountBalance.createId(model.getPeriod, line.account))
     val oids: List[String] = model.lines.map(line => PeriodicAccountBalance.createId(model.getPeriod, line.oaccount))
-    println("newRecords: ids++oids" + ids ++ oids)
+    //ZIO.logInfo(s"ids ${ids}: oids> ${oids}")
+    println(" ids :========>>>>"+ids+ " : oids:=========>"+oids)
+    println(" (ids ++ oids).distinct :========>>>>"+(ids ++ oids).distinct)
     (ids ++ oids).distinct
   }
+  /*
+    private[this] def getPeriodicAccount(pacList: List[DPAC], model: FinancialsTransaction, getPac: PType): List[DPAC] = {
 
-  private[this] def getPeriodicAccount(pacList: List[DPAC], model: FinancialsTransaction, getPac: PType): List[DPAC] = {
+      val pacs: List[DPAC]   = getPac(pacList, model)
+      val result: List[DPAC] = pacs.groupBy(_.id)
+        .map { case (_, v) => reduce(v, PeriodicAccountBalance.dummy) }
+        .filterNot(_.id == PeriodicAccountBalance.dummy.id)
+        //.toSet
+        .toList.distinct
 
-    val pacs: List[DPAC]   = getPac(pacList, model)
-    val result: List[DPAC] = pacs
-      .groupBy(_.id)
-      .map { case (_, v) => reduce(v, PeriodicAccountBalance.dummy) }
-      .toSet
-      .toList
-      .filterNot(x => x.id == PeriodicAccountBalance.dummy.id)
-    println("result: " + result)
-    result
-  }
+      println("getPeriodicAccount pacList: " + pacList)
+      println("getPeriodicAccount result: " + result)
+      result
+    }
+
+    private[this] def makePeriodicAccount(pacList: List[DPAC], model: FinancialsTransaction, getPac: PType): List[DPAC] = {
+
+      val pacs: List[DPAC]   = getPac(pacList, model)
+      val result: List[DPAC] = pacs
+        .groupBy(_.id)
+        .map { case (_, v) => reduce(v, PeriodicAccountBalance.dummy) }
+        .toSet
+        .toList
+        .filterNot(x => x.id == PeriodicAccountBalance.dummy.id)
+      println("result: " + result)
+      result
+    }
+
+   */
+
 
   def getOldPacs(pacList: List[DPAC], period: Int, acc: String): Option[DPAC]    = {
     val pacId = PeriodicAccountBalance.createId(period, acc)
@@ -94,18 +122,22 @@ final class FinancialsServiceImpl(
     packList
       .find(pac_ => pac_.id == PeriodicAccountBalance.createId(period, line.oaccount))
       .map(_.crediting(line.amount))
-
+/*
   val getAndDebitCreditOldPacs: PType = (pacList: List[DPAC], model: FinancialsTransaction) => {
     val pacx1: List[DPAC]  = model.lines.flatMap(line => getOldPacs(pacList, model.period, line.account)).distinct
     val poacx1: List[DPAC] = model.lines.flatMap(line => getOldPacs(pacList, model.period, line.oaccount)).distinct
     buildPacList(model, pacx1, poacx1)
   }
 
+
+
   private def buildPacList(model: FinancialsTransaction, pacx1: List[DPAC], poacx1: List[DPAC]) = {
     val groupedLines: List[FTDetails]  =
-      model.lines.groupBy(_.account).map { case (_, v) => reduce(v, FinancialsTransactionDetails.dummy) }.toList
+      model.lines.groupBy(_.account).map { case (_, v) => reduce(v, FinancialsTransactionDetails.dummy) }
+        .filterNot(_.lid == FinancialsTransactionDetails.dummy.lid).toList
     val groupedOLines: List[FTDetails] =
-      model.lines.groupBy(_.oaccount).map { case (_, v) => reduce(v, FinancialsTransactionDetails.dummy) }.toList
+      model.lines.groupBy(_.oaccount).map { case (_, v) => reduce(v, FinancialsTransactionDetails.dummy) }
+        .filterNot(_.lid == FinancialsTransactionDetails.dummy.lid).toList
     val pacx: List[DPAC]               = groupedLines.flatMap(line => debitIt(pacx1, model.period, line))
     val poacx: List[DPAC]              = groupedOLines.flatMap(line => creditIt(poacx1, model.period, line))
 
@@ -149,6 +181,8 @@ final class FinancialsServiceImpl(
       case None      => (fx(line, period, accountId, company), true)
     }
   }
+
+ */
   private def makeJournal(line: FTDetails, model: FinancialsTransaction, pac: DPAC, account: String, oaccount: String) =
     Journal(
       -1,
