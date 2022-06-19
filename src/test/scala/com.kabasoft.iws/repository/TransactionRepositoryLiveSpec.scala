@@ -26,7 +26,7 @@ object TransactionRepositoryLiveSpec extends ZIOSpecDefault {
           count <- TransactionRepository.list(company).runCount
         } yield assert(oneRow)(equalTo(3)) && assert(count)(equalTo(2L))
       },
-      test("get an transaction by its id") {
+      test("get a transaction by its id") {
         for {
           stmt <- TransactionRepository.getByTransId(transactionId, company)
         } yield  assert(stmt.tid)(equalTo(transactionId))

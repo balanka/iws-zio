@@ -3,7 +3,7 @@ package com.kabasoft.iws.service
 import com.kabasoft.iws.repository.common.AccountBuilder.company
 import com.kabasoft.iws.repository.common.TransactionBuilder.{dtransactions, ftr1, pacs}
 import com.kabasoft.iws.repository.postgresql.PostgresContainer
-import com.kabasoft.iws.repository.{JournalRepositoryImpl, PacRepository, PacRepositoryImpl, TransactionRepositoryImpl}
+import com.kabasoft.iws.repository.{JournalRepositoryImpl, PacRepositoryImpl, TransactionRepositoryImpl}
 import zio.ZLayer
 import zio.sql.ConnectionPool
 import zio.test.Assertion._
@@ -12,7 +12,7 @@ import zio.test._
 
 object FinancialsServiceLiveSpec extends ZIOSpecDefault {
 
-  val testServiceLayer = ZLayer.make[FinancialsService with PacRepository](
+  val testServiceLayer = ZLayer.make[FinancialsService /*with PacRepository*/](
     PacRepositoryImpl.live,
     JournalRepositoryImpl.live,
     TransactionRepositoryImpl.live,
@@ -28,7 +28,7 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
         for {
           oneRow <- FinancialsService.create(ftr1)
           postedRows <- FinancialsService.postAll(dtransactions.map(_.id).distinct, company).map(_.sum)
-          nrOfPacs       <-PacRepository.getByIds(pacs.map(_.id), company)
+          nrOfPacs       <-FinancialsService.getByIds(pacs.map(_.id), company).map(_.toList)
         } yield assert(oneRow)(equalTo(3))&& assert(postedRows)(equalTo(9))/*&& assert(nrOfPacs.map(_.id))(equalTo(pacs.map(_.id)))*/ && assertTrue(nrOfPacs.isEmpty)
       },
       /*test("get an transaction by its id") {

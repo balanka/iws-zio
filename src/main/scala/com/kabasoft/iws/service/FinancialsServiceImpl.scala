@@ -39,6 +39,12 @@ final class FinancialsServiceImpl(
       all     <-  { println("models::::"+models);ZIO.foreach(models)(debitOrCreditPACAll(_, company))}
     } yield all
 
+  def getBy(id: String, company: String): ZIO[Any,RepositoryError, PeriodicAccountBalance]=
+    pacRepo.getBy(id,company)
+
+  def getByIds(ids:List[String], company: String): ZIO[Any,RepositoryError, List[PeriodicAccountBalance]]=
+    pacRepo.getByIds(ids,company)
+
   override def postTransaction4Period(
     fromPeriod: Int,
     toPeriod: Int,
