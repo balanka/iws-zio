@@ -29,7 +29,7 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
           oneRow <- FinancialsService.create(ftr1)
           postedRows <- FinancialsService.postAll(dtransactions.map(_.id).distinct, company).map(_.sum)
           nrOfPacs       <-FinancialsService.getByIds(pacs.map(_.id), company).map(_.toList)
-        } yield assert(oneRow)(equalTo(3))&& assert(postedRows)(equalTo(9))/*&& assert(nrOfPacs.map(_.id))(equalTo(pacs.map(_.id)))*/ && assertTrue(nrOfPacs.isEmpty)
+        } yield assert(oneRow)(equalTo(3))&& assert(postedRows)(equalTo(10))/*&& assert(nrOfPacs.map(_.id))(equalTo(pacs.map(_.id)))*/ && assertTrue(nrOfPacs.isEmpty)
       },
       /*test("get an transaction by its id") {
         for {
