@@ -62,7 +62,7 @@ final class FinancialsServiceImpl(
       // pac           <- ZIO.foreach(getIds(model))(pacRepo.getBy(_, company))
       pacs          <- pacRepo.getByIds(getIds(model), company)
       newRecords     = PeriodicAccountBalance.create(model).filterNot(pacs.toSet).distinct
-      journalEntries = model.lines.flatMap(line => createJournalEntries(line, model, pacs ::: newRecords))
+      journalEntries =  createJournalEntries(model, pacs ::: newRecords)
       pac_created   <- pacRepo.create(newRecords)
       pac_updated   <- pacRepo.modify(pacs)
       model_         = model.copy(posted = true).copy(postingdate = Instant.now())
@@ -104,11 +104,9 @@ final class FinancialsServiceImpl(
     )
 
   private[this] def createJournalEntries(
-    line: FTDetails,
     model: FinancialsTransaction,
     pacList: List[DPAC]
-  ): List[Journal] = {
-
+  ): List[Journal] = model.lines.flatMap(line => {
     val pacId      = PeriodicAccountBalance.createId(model.getPeriod, line.account)
     val poacId     = PeriodicAccountBalance.createId(model.getPeriod, line.oaccount)
     val dummyAcc   = PeriodicAccountBalance.dummy
@@ -117,7 +115,7 @@ final class FinancialsServiceImpl(
     val jou1       = makeJournal(line, model, pac, line.account, line.oaccount)
     val jou2       = makeJournal(line, model, poac, line.oaccount, line.account)
     List(jou1, jou2)
-  }
+  })
 
 }
 
