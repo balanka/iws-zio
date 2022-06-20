@@ -7,14 +7,17 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
   import ColumnSet._
 
   val transaction =
-    (long("id") ++ long("oid") ++ string("costcenter") ++ string("account")  ++ instant("transdate") ++ instant(
+    (long("id") ++ long("oid") ++ string("costcenter") ++ string("account") ++ instant("transdate") ++ instant(
       "enterdate"
     ) ++ instant("postingdate") ++ int("period") ++ boolean("posted") ++ int("modelid")
-      ++ string("company") ++ string("headertext")  ++ int("file_content")).table("master_compta")
+      ++ string("company") ++ string("headertext") ++ int("file_content")).table("master_compta")
 
   val transactionDetails =
     (long("id") ++ long("transid") ++ string("account") ++ boolean("side") ++ string("oaccount") ++ bigDecimal(
-      "amount") ++ instant("duedate") ++ string("text") ++ string("currency")) // ++string("terms")++boolean("posted")++string("company"))
+      "amount"
+    ) ++ instant("duedate") ++ string("text") ++ string(
+      "currency"
+    )) // ++string("terms")++boolean("posted")++string("company"))
       .table("details_compta")
 
   val financialstransaction =
@@ -88,13 +91,13 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     c.modelid,
     c.company,
     c.text,
-    //c.typeJournal,
+    // c.typeJournal,
     c.file_content
   )
 
   def toTuple(c: FinancialsTransactionDetails) = FinancialsTransactionDetails.unapply(c).get
 
-   def toTuple(c:DerivedTransaction)= DerivedTransaction.unapply(c).get
+  def toTuple(c: DerivedTransaction) = DerivedTransaction.unapply(c).get
   /*def toTuple(c: DerivedTransaction) = (
     c.id,
     c.oid,

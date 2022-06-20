@@ -19,14 +19,17 @@ final class TransactionRepositoryImpl(pool: ConnectionPool)
     tid_ ++ oid_ ++ account_ ++ transdate_ ++ enterdate_ ++ postingdate_ ++ period_ ++ posted_ ++ modelid_ ++ company_ ++ text_ ++ file_content_ ++ lid_ ++ side_ ++ oaccount_ ++ amount_ /*++duedate_*/ ++ currency_ ++ ltext_
 
   val XX2 =
-    tid_ ++ oid_ ++ account_ ++ costcenter ++ transdate_ ++ enterdate_ ++ postingdate_ ++ period_ ++ posted_ ++ modelid_ ++ company_ ++ text_  ++ file_content_
+    tid_ ++ oid_ ++ account_ ++ costcenter ++ transdate_ ++ enterdate_ ++ postingdate_ ++ period_ ++ posted_ ++ modelid_ ++ company_ ++ text_ ++ file_content_
 
-  val SELECT = select(XX).from(transaction.join(transactionDetails).on(transid === tid_))
-  val SELECT_LINE = select(LINES).from(transactionDetails)
+  val SELECT                                                                                   = select(XX).from(transaction.join(transactionDetails).on(transid === tid_))
+  val SELECT_LINE                                                                              = select(LINES).from(transactionDetails)
   private def getQuery4Model(models: List[DerivedTransaction]): ZIO[Any, RepositoryError, Int] = {
 
     val trans          = FinancialsTransaction.applyD(models.map(DerivedTransaction.unapply(_).get))
-    val linesTransData = {println("trans=====>>"+trans);trans.map(d => d.lines.map(l => FinancialsTransactionDetails.unapply(l).get)).flatten}
+    val linesTransData = {
+      println("trans=====>>" + trans);
+      trans.map(d => d.lines.map(l => FinancialsTransactionDetails.unapply(l).get)).flatten
+    }
     val tuples         = trans.map(t => toTupleF(t))
     val query          = insertInto(transaction)(XX2).values(tuples)
     val queryLines     = insertInto(transactionDetails)(LINES).values(linesTransData)
@@ -36,27 +39,27 @@ final class TransactionRepositoryImpl(pool: ConnectionPool)
         s"Query to insert Transaction is ${renderInsert(query)}"
     )
 
- val result=for {
-     r1 <- execute(query).provideAndLog(driverLayer)
-     r2 <- execute(queryLines).provideAndLog(driverLayer)
-  }yield {println("r1===>: "+r1+" r2===: "+r2+" r1+r2===>= : "+(r1+r2));(r1+r2)}
-    println("result===>: "+result)
-   result
+    val result = for {
+      r1 <- execute(query).provideAndLog(driverLayer)
+      r2 <- execute(queryLines).provideAndLog(driverLayer)
+    } yield { println("r1===>: " + r1 + " r2===: " + r2 + " r1+r2===>= : " + (r1 + r2)); (r1 + r2) }
+    println("result===>: " + result)
+    result
   }
   private def getQuery4Model2(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] = {
     val linesTransData = models.map(d => d.lines.map(l => FinancialsTransactionDetails.unapply(l).get)).flatten
     val tuples         = models.map(t => toTupleF(t))
     val query          = insertInto(transaction)(XX2).values(tuples)
     val queryLines     = insertInto(transactionDetails)(LINES).values(linesTransData)
-    val result=for {
+    val result         = for {
       r1 <- execute(query).provideAndLog(driverLayer)
       r2 <- execute(queryLines).provideAndLog(driverLayer)
-    }yield {println("r1===>: "+r1+" r2===: "+r2+" r1+r2===>= : "+(r1+r2));(r1+r2)}
-    println("resultX===>: "+result)
+    } yield { println("r1===>: " + r1 + " r2===: " + r2 + " r1+r2===>= : " + (r1 + r2)); (r1 + r2) }
+    println("resultX===>: " + result)
     result
   }
-  override def create(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = getQuery4Model2(List(model))
-  override def create(model: DerivedTransaction): ZIO[Any, RepositoryError, Int] = getQuery4Model(List(model))
+  override def create(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int]                = getQuery4Model2(List(model))
+  override def create(model: DerivedTransaction): ZIO[Any, RepositoryError, Int]                   = getQuery4Model(List(model))
 
   override def create(models: List[DerivedTransaction]): ZIO[Any, RepositoryError, Int] = getQuery4Model(models)
 
@@ -88,17 +91,20 @@ final class TransactionRepositoryImpl(pool: ConnectionPool)
       .set(file_content_, trans.file_content)
       .where((tid_ === trans.tid) && (company_ === trans.company))
 
-  override def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int]     = {
+  override def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = {
     val detailsUpdate = model.lines.map(d => updateDetails(d))
     val update_       = build(model)
 
-    val result:ZIO[Any, RepositoryError, Int]=for {
-     r2 <-   executeBatchUpdate(detailsUpdate).provideLayer(driverLayer).map(_.sum)
-       .mapError(e => RepositoryError(e.getCause))
-     r1 <- execute(update_).provideLayer(driverLayer)
-       .mapError(e => RepositoryError(e.getCause))
-  } yield r1+r2
-   result
+    val result: ZIO[Any, RepositoryError, Int] = for {
+      r2 <- executeBatchUpdate(detailsUpdate)
+              .provideLayer(driverLayer)
+              .map(_.sum)
+              .mapError(e => RepositoryError(e.getCause))
+      r1 <- execute(update_)
+              .provideLayer(driverLayer)
+              .mapError(e => RepositoryError(e.getCause))
+    } yield r1 + r2
+    result
   }
 
   override def modify(models: List[DerivedTransaction]): ZIO[Any, RepositoryError, Int] = {
@@ -106,24 +112,31 @@ final class TransactionRepositoryImpl(pool: ConnectionPool)
     val detailsUpdate = trans.flatMap(_.lines).map(updateDetails)
     val update_       = trans.map(build)
     for {
-        r2 <-   executeBatchUpdate(detailsUpdate).provideLayer(driverLayer).map(_.sum)
-          .mapError(e => RepositoryError(e.getCause))
-        r1 <- executeBatchUpdate(update_).provideLayer(driverLayer).map(_.sum)
-          .mapError(e => RepositoryError(e.getCause))
-      }yield r2+r1
+      r2 <- executeBatchUpdate(detailsUpdate)
+              .provideLayer(driverLayer)
+              .map(_.sum)
+              .mapError(e => RepositoryError(e.getCause))
+      r1 <- executeBatchUpdate(update_)
+              .provideLayer(driverLayer)
+              .map(_.sum)
+              .mapError(e => RepositoryError(e.getCause))
+    } yield r2 + r1
 
   }
 
-  override def modify(model: DerivedTransaction): ZIO[Any, RepositoryError, Int]          = {
+  override def modify(model: DerivedTransaction): ZIO[Any, RepositoryError, Int] = {
     val trans         = FinancialsTransaction.apply1(model)
     val detailsUpdate = trans.lines.map(updateDetails)
     val update_       = build(trans)
     for {
-        r2 <-   executeBatchUpdate(detailsUpdate).provideLayer(driverLayer).map(_.sum)
-                 .mapError(e => RepositoryError(e.getCause))
-        r1 <- execute(update_).provideLayer(driverLayer)
-          .mapError(e => RepositoryError(e.getCause))
-      }yield r1+r2
+      r2 <- executeBatchUpdate(detailsUpdate)
+              .provideLayer(driverLayer)
+              .map(_.sum)
+              .mapError(e => RepositoryError(e.getCause))
+      r1 <- execute(update_)
+              .provideLayer(driverLayer)
+              .mapError(e => RepositoryError(e.getCause))
+    } yield r1 + r2
   }
 
   override def list(companyId: String): ZStream[Any, RepositoryError, DerivedTransaction] = {
@@ -138,8 +151,9 @@ final class TransactionRepositoryImpl(pool: ConnectionPool)
     toPeriod: Int,
     companyId: String
   ): ZStream[Any, RepositoryError, DerivedTransaction] = {
-    val selectAll = SELECT.where((company_ === companyId) && (period_ >= fromPeriod) && (period_ <= toPeriod))
-                    .orderBy(account_.descending)
+    val selectAll = SELECT
+      .where((company_ === companyId) && (period_ >= fromPeriod) && (period_ <= toPeriod))
+      .orderBy(account_.descending)
 
     ZStream.fromZIO(
       ZIO.logInfo(s"Query to execute find4Period is ${renderRead(selectAll)}")
@@ -156,23 +170,23 @@ final class TransactionRepositoryImpl(pool: ConnectionPool)
         .findFirstLong(driverLayer, Id.toLong)
   }
 
-   private def getLineByTransId(id: Long): ZStream[Any, RepositoryError, FinancialsTransactionDetails] = {
+  private def getLineByTransId(id: Long): ZStream[Any, RepositoryError, FinancialsTransactionDetails] = {
     val selectAll = SELECT_LINE.where(transid === id)
-     ZStream.fromZIO(ZIO.logInfo(s"Query to execute getLineByTransId is ${renderRead(selectAll)}")) *>
-       execute(selectAll.to(x=>FinancialsTransactionDetails.apply(x)))
-         .provideDriver(driverLayer)
+    ZStream.fromZIO(ZIO.logInfo(s"Query to execute getLineByTransId is ${renderRead(selectAll)}")) *>
+      execute(selectAll.to(x => FinancialsTransactionDetails.apply(x)))
+        .provideDriver(driverLayer)
   }
 
-  override def getByTransId(id: Long, companyId: String): ZIO[Any, RepositoryError, FinancialsTransaction] = for{
-    trans <-getById(id,companyId)
-    lines_ <-getLineByTransId(id).runCollect.map(_.toList)
+  override def getByTransId(id: Long, companyId: String): ZIO[Any, RepositoryError, FinancialsTransaction] = for {
+    trans  <- getById(id, companyId)
+    lines_ <- getLineByTransId(id).runCollect.map(_.toList)
   } yield trans.copy(lines = lines_)
 
-  private def getById(id: Long, companyId: String): ZIO[Any, RepositoryError, FinancialsTransaction] ={
+  private def getById(id: Long, companyId: String): ZIO[Any, RepositoryError, FinancialsTransaction] = {
     val selectAll = SELECT.where((company_ === companyId) && (tid_ === id))
-      ZIO.logInfo(s"Query to execute getById ${id} is ${renderRead(selectAll)}") *>
-      execute(selectAll.to(x=>FinancialsTransaction.applyX(x)))
-    .findFirstLong(driverLayer, id)
+    ZIO.logInfo(s"Query to execute getById ${id} is ${renderRead(selectAll)}") *>
+      execute(selectAll.to(x => FinancialsTransaction.applyX(x)))
+        .findFirstLong(driverLayer, id)
   }
 
   override def getByModelId(modelId: Int, companyId: String): ZStream[Any, RepositoryError, DerivedTransaction] = {
