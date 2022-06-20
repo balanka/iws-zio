@@ -34,10 +34,10 @@ trait IWSTableDescriptionPostgres extends PostgresSqlModule with PostgresJdbcMod
       }
         .provide(driver)
 
-    def findFirst(driver: ULayer[SqlDriver], id: String, dummy:T): ZIO[Any, RepositoryError, T] =
+    def findFirst(driver: ULayer[SqlDriver], id: String, dummy: T): ZIO[Any, RepositoryError, T] =
       zstream.runHead.some.tapError {
         case None    => ZIO.unit
-        case Some(e) =>  ZIO.logError(e.getMessage())
+        case Some(e) => ZIO.logError(e.getMessage())
       }.mapError {
         case None    =>
           RepositoryError(
@@ -45,7 +45,8 @@ trait IWSTableDescriptionPostgres extends PostgresSqlModule with PostgresJdbcMod
           )
         case Some(e) => RepositoryError(e.getCause())
       }
-        .provide(driver).catchAll(_=>ZIO.succeed(dummy))
+        .provide(driver)
+        .catchAll(_ => ZIO.succeed(dummy))
 
     def findFirstInt(driver: ULayer[SqlDriver], id: Int): ZIO[Any, RepositoryError, T] =
       zstream.runHead.some.tapError {

@@ -123,8 +123,6 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
         .findFirst(driverLayer, Id, PeriodicAccountBalance.dummy)
   }
 
- // override def getByIds(ids:List[String], company: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]]=
-  //  ZIO.foreach(ids)(getBy(_, company)).map(_.filterNot(x=>x.id==PeriodicAccountBalance.dummy.id))
 
   override def getByModelId(modelId: Int, companyId: String): ZIO[Any, RepositoryError, PeriodicAccountBalance] = {
     val selectAll = select(X)

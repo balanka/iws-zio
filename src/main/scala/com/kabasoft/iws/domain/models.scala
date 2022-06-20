@@ -3,26 +3,26 @@ package com.kabasoft.iws.domain
 import com.kabasoft.iws.domain.FinancialsTransaction.DerivedTransaction_Type
 import com.kabasoft.iws.domain.common.reduce
 
-import java.util.{Locale, UUID}
-import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
+import java.util.{ Locale, UUID }
+import java.time.{ Instant, LocalDate, LocalDateTime, ZoneId }
 import zio.prelude._
 import zio.stm._
 import zio._
 
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
-import scala.collection.immutable.{::, Nil}
+import scala.collection.immutable.{ ::, Nil }
 
 object common {
 
   type Amount = scala.math.BigDecimal
 
   def reduce[A: Identity](all: Iterable[A], dummy: A): A = {
-    val RESULT= all.toList match {
+    val RESULT = all.toList match {
       case Nil     => dummy
       case x :: xs => NonEmptyList.fromIterable(x, xs).reduce
     }
-    println("RESULT: "+RESULT)
+    println("RESULT: " + RESULT)
     RESULT
   }
 
@@ -97,7 +97,7 @@ final case class Account(
   }
 }
 object Account {
-  val MODELID=9
+  val MODELID = 9
   type Account_Type = (
     String,
     String,
@@ -648,15 +648,15 @@ final case class PeriodicAccountBalance(
 object PeriodicAccountBalance {
   import zio.prelude._
 
-  val MODELID = 106
-  val zeroAmount = BigDecimal(0)
+  val MODELID                                   = 106
+  val zeroAmount                                = BigDecimal(0)
   def init(paccs: List[PeriodicAccountBalance]) =
     paccs.foreach(
       _.copy(idebit = zeroAmount, debit = zeroAmount, icredit = zeroAmount, credit = zeroAmount)
     )
 
-  def createId(period: Int, accountId: String)  = period.toString.concat(accountId)
-  val dummy                                     =
+  def createId(period: Int, accountId: String) = period.toString.concat(accountId)
+  val dummy                                    =
     PeriodicAccountBalance("", "", 0, zeroAmount, zeroAmount, zeroAmount, zeroAmount, "EUR", "1000")
 
   implicit val pacMonoid: Identity[PeriodicAccountBalance] = new Identity[PeriodicAccountBalance] {
@@ -665,7 +665,7 @@ object PeriodicAccountBalance {
       m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
   }
 
-  def create(accountId: String, period: Int, currency: String, company: String): PeriodicAccountBalance = {
+  def create(accountId: String, period: Int, currency: String, company: String): PeriodicAccountBalance =
     PeriodicAccountBalance.apply(
       PeriodicAccountBalance.createId(period, accountId),
       accountId,
@@ -678,36 +678,40 @@ object PeriodicAccountBalance {
       currency,
       PeriodicAccountBalance.MODELID
     )
-  }
-  def create(model: FinancialsTransaction)={
+  def create(model: FinancialsTransaction)                                                              = {
 
-    val X= model.lines.flatMap(line=> {println(" LINE:"+line)
-    List(PeriodicAccountBalance.apply(
-      PeriodicAccountBalance.createId(model.period, line.account),
-      line.account,
-      model.period,
-      zeroAmount,
-      zeroAmount,
-      line.amount,
-      zeroAmount,
-      model.company,
-      line.currency,
-      PeriodicAccountBalance.MODELID),
-         PeriodicAccountBalance.apply(
-        PeriodicAccountBalance.createId(model.period, line.oaccount),
-        line.oaccount,
-        model.period,
-        zeroAmount,
-        zeroAmount,
-        zeroAmount,
-        line.amount,
-        model.company,
-        line.currency,
-        PeriodicAccountBalance.MODELID))
-    }).groupBy((_.id))
-      .map { case (_, v) => reduce(v, PeriodicAccountBalance.dummy)
-      }.filterNot(_.id == PeriodicAccountBalance.dummy.id)
-    println("XXXXXXXXXXXXXXXXX++++++++"+X)
+    val X = model.lines.flatMap { line =>
+      println(" LINE:" + line)
+      List(
+        PeriodicAccountBalance.apply(
+          PeriodicAccountBalance.createId(model.period, line.account),
+          line.account,
+          model.period,
+          zeroAmount,
+          zeroAmount,
+          line.amount,
+          zeroAmount,
+          model.company,
+          line.currency,
+          PeriodicAccountBalance.MODELID
+        ),
+        PeriodicAccountBalance.apply(
+          PeriodicAccountBalance.createId(model.period, line.oaccount),
+          line.oaccount,
+          model.period,
+          zeroAmount,
+          zeroAmount,
+          zeroAmount,
+          line.amount,
+          model.company,
+          line.currency,
+          PeriodicAccountBalance.MODELID
+        )
+      )
+    }.groupBy((_.id))
+      .map { case (_, v) => reduce(v, PeriodicAccountBalance.dummy) }
+      .filterNot(_.id == PeriodicAccountBalance.dummy.id)
+    println("XXXXXXXXXXXXXXXXX++++++++" + X)
     X.toList
   }
 }
@@ -816,9 +820,28 @@ final case class FinancialsTransaction(
   def year: Int     = common.getYear(transdate)
   def getPeriod     = common.getPeriod(transdate)
   def total         = lines.reduce((l1, l2) => l2.copy(amount = l2.amount + l1.amount))
-  def toDerive()= lines.map(l => DerivedTransaction(tid, oid, l.account, transdate, enterdate,postingdate,
-    period, posted, modelid, company, text, file_content, l.lid, l.side,  l.oaccount,l.amount,l.currency,l.text))
-
+  def toDerive()    = lines.map(l =>
+    DerivedTransaction(
+      tid,
+      oid,
+      l.account,
+      transdate,
+      enterdate,
+      postingdate,
+      period,
+      posted,
+      modelid,
+      company,
+      text,
+      file_content,
+      l.lid,
+      l.side,
+      l.oaccount,
+      l.amount,
+      l.currency,
+      l.text
+    )
+  )
 
 }
 object FinancialsTransactionDetails {
@@ -838,12 +861,11 @@ object FinancialsTransactionDetails {
   def apply(tr: FinancialsTransactionDetails.FTX2): FinancialsTransactionDetails =
     new FinancialsTransactionDetails(tr._15, tr._1, tr._16, tr._17, tr._18, tr._19, tr._20, tr._21, tr._22)
 
-
   def apply(x: DerivedTransaction_Type): FinancialsTransactionDetails =
     new FinancialsTransactionDetails(x._13, x._1, x._3, x._14, x._15, x._16, x._4, x._18, x._17)
 
 }
-object FinancialsTransaction        {
+object FinancialsTransaction {
   type FinancialsTransaction_Type  =
     (Long, Long, String, String, Instant, Instant, Instant, Int, Boolean, Int, String, String, Int, Int)
   type FinancialsTransaction_Type2 = (
@@ -870,8 +892,26 @@ object FinancialsTransaction        {
     String,
     String
   )
-type DerivedTransaction_Type=(Long, Long, String, Instant, Instant, Instant,Int,Boolean, Int, String, String, Int, Long, Boolean, String, BigDecimal, String,String)
-
+  type DerivedTransaction_Type     = (
+    Long,
+    Long,
+    String,
+    Instant,
+    Instant,
+    Instant,
+    Int,
+    Boolean,
+    Int,
+    String,
+    String,
+    Int,
+    Long,
+    Boolean,
+    String,
+    BigDecimal,
+    String,
+    String
+  )
 
   def applyC(tr: FinancialsTransaction_Type): FinancialsTransaction =
     FinancialsTransaction(
@@ -920,28 +960,23 @@ type DerivedTransaction_Type=(Long, Long, String, Instant, Instant, Instant,Int,
 
   def applyD(transactions: List[DerivedTransaction_Type]): List[FinancialsTransaction] =
     transactions
-      .groupBy(rc =>
-        (rc._1, rc._2, rc._3,  rc._4, rc._5, rc._6, rc._7, rc._8, rc._9, rc._10, rc._11, rc._12)
-      )
+      .groupBy(rc => (rc._1, rc._2, rc._3, rc._4, rc._5, rc._6, rc._7, rc._8, rc._9, rc._10, rc._11, rc._12))
       .map { case (k, v) =>
         new FinancialsTransaction(k._1, k._2, k._3, k._3, k._4, k._5, k._6, k._7, k._8, k._9, k._10, k._11, k._12)
           .copy(lines = v.filter(p => p._13 != -1).map(FinancialsTransactionDetails.apply))
       }
       .toList
 
-
   def applyX(d: DerivedTransaction_Type): FinancialsTransaction =
     new FinancialsTransaction(d._1, d._2, d._3, d._3, d._4, d._5, d._6, d._7, d._8, d._9, d._10, d._11, d._12)
-      //.copy(lines = if (d._13 != -1) List(FinancialsTransactionDetails.apply(d)) else Nil)
-      .copy(lines =  List(FinancialsTransactionDetails.apply(d)))
-
+      // .copy(lines = if (d._13 != -1) List(FinancialsTransactionDetails.apply(d)) else Nil)
+      .copy(lines = List(FinancialsTransactionDetails.apply(d)))
 
   def apply(x: FinancialsTransactionDetails.FTX2) =
     new FinancialsTransaction(x._1, x._2, x._3, x._4, x._5, x._6, x._7, x._8, x._9, x._10, x._11, x._12, x._13, x._14)
       .copy(lines = List(FinancialsTransactionDetails.apply(x)))
 
-  def apply1(x: DerivedTransaction) = {
-
+  def apply1(x: DerivedTransaction) =
     new FinancialsTransaction(
       x.id,
       x.oid,
@@ -958,9 +993,21 @@ type DerivedTransaction_Type=(Long, Long, String, Instant, Instant, Instant,Int,
       x.file,
       0
     )
-      .copy(lines = List(FinancialsTransactionDetails(
-        x.lid, x.id, x.account, x.side, x.oaccount, x.amount, x.transdate, x.terms, x.currency)))
-  }
+      .copy(lines =
+        List(
+          FinancialsTransactionDetails(
+            x.lid,
+            x.id,
+            x.account,
+            x.side,
+            x.oaccount,
+            x.amount,
+            x.transdate,
+            x.terms,
+            x.currency
+          )
+        )
+      )
 }
 final case class DerivedTransaction(
   id: Long,
@@ -985,7 +1032,7 @@ final case class DerivedTransaction(
 final case class Journal(
   id: Long,
   transid: Long,
-   oid: Long,
+  oid: Long,
   account: String,
   oaccount: String,
   transdate: Instant,

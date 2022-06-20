@@ -60,10 +60,26 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
     credit
   ) = account.columns
 
-  val X =
+  val X                                                                                =
     id ++ name ++ description ++ enterdate ++ changedate ++ postingdate ++ company ++ modelid ++ accountid ++ isDebit ++ balancesheet ++ currency ++ idebit ++ icredit ++ debit ++ credit
-  val SELECT = select(id, name, description, enterdate, changedate, postingdate, company, modelid, accountid, isDebit
-    , balancesheet, currency, idebit, icredit, debit, credit).from(account)
+  val SELECT                                                                           = select(
+    id,
+    name,
+    description,
+    enterdate,
+    changedate,
+    postingdate,
+    company,
+    modelid,
+    accountid,
+    isDebit,
+    balancesheet,
+    currency,
+    idebit,
+    icredit,
+    debit,
+    credit
+  ).from(account)
   override def create(c: Account): ZIO[Any, RepositoryError, Unit]                     = {
     val query = insertInto(account)(X).values(tuple2(c))
 
@@ -105,7 +121,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
   }
   override def modify(models: List[Account]): ZIO[Any, RepositoryError, Int] = {
     val update_ = models.map(build(_))
-    //ZStream.fromZIO(
+    // ZStream.fromZIO(
     //  ZIO.foreach(update_.map(renderUpdate))(sql=>ZIO.logInfo(s"Query Update Account is ${sql}")) *>
     executeBatchUpdate(update_)
       .provideLayer(driverLayer)

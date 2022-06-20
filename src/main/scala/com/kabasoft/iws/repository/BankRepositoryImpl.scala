@@ -15,9 +15,9 @@ final class BankRepositoryImpl(pool: ConnectionPool) extends BankRepository with
     ++ instant("modified_date") ++ instant("posting_date") ++ int("modelid") ++ string("company"))
     .table("bank")
 
-  val (id, name, description, enterdate, changedate, postingdate, modelid, company) = bank.columns
-  val X                                                                             = id ++ name ++ description ++ enterdate ++ changedate ++ postingdate ++ modelid ++ company
-  val SELECT  = select(id, name, description, enterdate, changedate, postingdate, modelid, company).from(bank)
+  val (id, name, description, enterdate, changedate, postingdate, modelid, company)    = bank.columns
+  val X                                                                                = id ++ name ++ description ++ enterdate ++ changedate ++ postingdate ++ modelid ++ company
+  val SELECT                                                                           = select(id, name, description, enterdate, changedate, postingdate, modelid, company).from(bank)
   override def create(c: Bank): ZIO[Any, RepositoryError, Unit]                        = {
     val query = insertInto(bank)(X).values(Bank.unapply(c).get)
 

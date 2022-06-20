@@ -10,16 +10,18 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
   import ColumnSet._
 
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
-  val journals         = (long("id") ++ long("transid") ++ long("oid") ++string("account") ++ string("oaccount")
+  val journals         = (long("id") ++ long("transid") ++ long("oid") ++ string("account") ++ string("oaccount")
     ++ instant("transdate") ++ instant("enterdate") ++ instant("postingdate") ++ int("period") ++ bigDecimal("amount")
     ++ bigDecimal("idebit") ++ bigDecimal("debit") ++ bigDecimal("icredit") ++ bigDecimal("credit") ++ string(
-      "currency")++ boolean("side")++ string("text") ++ int("month") ++ int("year") 
-   ++ string("company") ++ int("file_content") ++ int("modelid"))
+      "currency"
+    ) ++ boolean("side") ++ string("text") ++ int("month") ++ int("year")
+    ++ string("company") ++ int("file_content") ++ int("modelid"))
     .table("journal")
-  val journals1         = ( long("transid") ++ long("oid") ++string("account") ++ string("oaccount")
+  val journals1        = (long("transid") ++ long("oid") ++ string("account") ++ string("oaccount")
     ++ instant("transdate") ++ instant("enterdate") ++ instant("postingdate") ++ int("period") ++ bigDecimal("amount")
     ++ bigDecimal("idebit") ++ bigDecimal("debit") ++ bigDecimal("icredit") ++ bigDecimal("credit") ++ string(
-    "currency")++ boolean("side")++ string("text") ++ int("month") ++ int("year")
+      "currency"
+    ) ++ boolean("side") ++ string("text") ++ int("month") ++ int("year")
     ++ string("company") ++ int("file_content") ++ int("modelid"))
     .table("journal")
 
@@ -70,14 +72,13 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
     companyx,
     filex,
     modelidx
-    ) = journals1.columns
+  ) = journals1.columns
 
-  // val XX = transid++oid++account++oaccount++transdate++enterdate++postingdate++period++amount++company++currency++text++month++year++modelid++file++idebit++debit++icredit++credit++side
   val X =
-    id ++ transid ++oid++ account ++ oaccount ++ transdate ++ enterdate ++ postingdate ++ period ++ amount ++ idebit ++ debit ++ icredit ++ credit ++ currency++ side  ++ text ++ month ++ year ++ company ++ file ++ modelid
+    id ++ transid ++ oid ++ account ++ oaccount ++ transdate ++ enterdate ++ postingdate ++ period ++ amount ++ idebit ++ debit ++ icredit ++ credit ++ currency ++ side ++ text ++ month ++ year ++ company ++ file ++ modelid
 
-  val XX =
-     transidx ++oidx++ accountx ++ oaccountx ++ transdatex ++ enterdatex ++ postingdatex ++ periodx ++ amountx ++ idebitx ++ debitx ++ icreditx ++ creditx ++ currencyx++ sidex  ++ textx ++ monthx ++ yearx ++ companyx ++ filex ++ modelidx
+  val XX                                                                               =
+    transidx ++ oidx ++ accountx ++ oaccountx ++ transdatex ++ enterdatex ++ postingdatex ++ periodx ++ amountx ++ idebitx ++ debitx ++ icreditx ++ creditx ++ currencyx ++ sidex ++ textx ++ monthx ++ yearx ++ companyx ++ filex ++ modelidx
   def tuple1(c: Journal)                                                               = (
     c.transid,
     c.oid,
@@ -192,7 +193,6 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
 }
 
 object JournalRepositoryImpl {
-
   val live: ZLayer[ConnectionPool, RepositoryError, JournalRepository] =
     ZLayer.fromFunction(new JournalRepositoryImpl(_))
 }
