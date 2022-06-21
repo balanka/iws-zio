@@ -713,7 +713,7 @@ object PeriodicAccountBalance {
       )
     }.groupBy((_.id))
       .map { case (_, v) => reduce(v, PeriodicAccountBalance.dummy) }
-      .filterNot(_.id == PeriodicAccountBalance.dummy.id)
+      .filterNot(_.id == PeriodicAccountBalance.dummy.id).toList
   }
 }
 

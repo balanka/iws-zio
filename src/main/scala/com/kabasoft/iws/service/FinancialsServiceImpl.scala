@@ -59,10 +59,9 @@ final class FinancialsServiceImpl(
 
   private[this] def debitOrCreditPACAll(model: FinancialsTransaction, company: String): ZIO[Any, RepositoryError, Int] =
     for {
-      // pac           <- ZIO.foreach(getIds(model))(pacRepo.getBy(_, company))
       pacs          <- pacRepo.getByIds(getIds(model), company)
-      newRecords     = {println("PACSSSSSSSSSSSSSSS+++>"+pacs);PeriodicAccountBalance.create(model).filterNot(pacs.contains).distinct}
-      journalEntries =  {println("PACSSSSSSSSSSSSSSSnewRecords+++>"+newRecords);createJournalEntries(model, pacs ::: newRecords)}
+      newRecords     = PeriodicAccountBalance.create(model).filterNot(pacs.contains).distinct
+      journalEntries =  createJournalEntries(model, pacs ::: newRecords)
       pac_created   <- pacRepo.create(newRecords)
       pac_updated   <- pacRepo.modify(pacs)
       model_         = model.copy(posted = true).copy(postingdate = Instant.now())
