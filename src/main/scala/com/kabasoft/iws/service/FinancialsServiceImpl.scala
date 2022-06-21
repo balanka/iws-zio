@@ -61,8 +61,8 @@ final class FinancialsServiceImpl(
     for {
       // pac           <- ZIO.foreach(getIds(model))(pacRepo.getBy(_, company))
       pacs          <- pacRepo.getByIds(getIds(model), company)
-      newRecords     = PeriodicAccountBalance.create(model).filterNot(pacs.toSet).distinct
-      journalEntries =  createJournalEntries(model, pacs ::: newRecords)
+      newRecords     = {println("PACSSSSSSSSSSSSSSS+++>"+pacs);PeriodicAccountBalance.create(model).filterNot(pacs.contains).distinct}
+      journalEntries =  {println("PACSSSSSSSSSSSSSSSnewRecords+++>"+newRecords);createJournalEntries(model, pacs ::: newRecords)}
       pac_created   <- pacRepo.create(newRecords)
       pac_updated   <- pacRepo.modify(pacs)
       model_         = model.copy(posted = true).copy(postingdate = Instant.now())
@@ -109,9 +109,9 @@ final class FinancialsServiceImpl(
   ): List[Journal] = model.lines.flatMap(line => {
     val pacId      = PeriodicAccountBalance.createId(model.getPeriod, line.account)
     val poacId     = PeriodicAccountBalance.createId(model.getPeriod, line.oaccount)
-    val dummyAcc   = PeriodicAccountBalance.dummy
-    val pac: DPAC  = pacList.find(pac_ => pac_.id == pacId).getOrElse(dummyAcc)
-    val poac: DPAC = pacList.find(poac_ => poac_.id == poacId).getOrElse(dummyAcc)
+    val dummyPac   = PeriodicAccountBalance.dummy
+    val pac: DPAC  = pacList.find(pac_ => pac_.id == pacId).getOrElse(dummyPac)
+    val poac: DPAC = pacList.find(poac_ => poac_.id == poacId).getOrElse(dummyPac)
     val jou1       = makeJournal(line, model, pac, line.account, line.oaccount)
     val jou2       = makeJournal(line, model, poac, line.oaccount, line.account)
     List(jou1, jou2)

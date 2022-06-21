@@ -642,6 +642,11 @@ final case class PeriodicAccountBalance(
   def fcredit                        = credit + icredit
   def dbalance                       = fdebit - fcredit
   def cbalance                       = fcredit - fdebit
+  override def equals(other: Any): Boolean = other match {
+    case pac: PeriodicAccountBalance =>
+      this.id == pac.id
+    case _ => false
+  }
 
 }
 

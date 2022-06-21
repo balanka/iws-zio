@@ -1,6 +1,6 @@
 package com.kabasoft.iws.repository
 
-//import com.kabasoft.iws.repository.common.AccountBuilder.company
+import com.kabasoft.iws.repository.common.AccountBuilder.company
 import com.kabasoft.iws.repository.common.TransactionBuilder.pacs
 import com.kabasoft.iws.repository.postgresql.PostgresContainer
 import zio.ZLayer
@@ -24,11 +24,13 @@ object PacRepositoryLiveSpec extends ZIOSpecDefault {
 
   override def spec =
     suite("Periodic account balance repository  test with postgres test container")(
-      test("create  and 3 getByIds pacs") {
+      test("create 2 pacs and find 1 pac getByIds") {
         for {
-          nrCreatedRow <- PacRepository.create(pacs)
-         // oneRow <- PacRepository.getByIds(pacs.map(_.id), company).map(_.size)
-        } yield assert(nrCreatedRow)(equalTo(3)) /*&& assert(oneRow)(equalTo(3))*/
+          row <- PacRepository.getByIds(pacs.map(_.id), company)
+          newPacs=pacs.filterNot(row.contains)
+          nrCreatedRow <- PacRepository.create(newPacs)
+
+        } yield assert(nrCreatedRow)(equalTo(2)) && assert(row.size)(equalTo(1))
       }
     ).provideCustomLayerShared(testLayer.orDie) @@ sequential
 
