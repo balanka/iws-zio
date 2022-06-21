@@ -18,6 +18,7 @@ object common {
   type Amount = scala.math.BigDecimal
 
   def reduce[A: Identity](all: Iterable[A], dummy: A): A = {
+    println("INPUT: " + all)
     val RESULT = all.toList match {
       case Nil     => dummy
       case x :: xs => NonEmptyList.fromIterable(x, xs).reduce

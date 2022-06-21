@@ -1,14 +1,9 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{
-  DerivedTransaction,
-  FinancialsTransaction,
-  FinancialsTransactionDetails,
-  Journal,
-  PeriodicAccountBalance
-}
-import com.kabasoft.iws.repository.{ JournalRepository, PacRepository, TransactionRepository }
+import com.kabasoft.iws.domain.common.reduce
+import com.kabasoft.iws.domain.{DerivedTransaction, FinancialsTransaction, FinancialsTransactionDetails, Journal, PeriodicAccountBalance}
+import com.kabasoft.iws.repository.{JournalRepository, PacRepository, TransactionRepository}
 
 import java.time.Instant
 import zio._
@@ -61,10 +56,11 @@ final class FinancialsServiceImpl(
     for {
       pacs          <- pacRepo.getByIds(getIds(model), company)
       newRecords     = PeriodicAccountBalance.create(model).filterNot(pacs.contains).distinct
-      journalEntries =  createJournalEntries(model, pacs ::: newRecords)
+      oldPacs     = updatePac(model, pacs)
+      journalEntries =  createJournalEntries(model, oldPacs ::: newRecords)
       pac_created   <- pacRepo.create(newRecords)
-      pac_updated   <- pacRepo.modify(pacs)
-      model_         = model.copy(posted = true).copy(postingdate = Instant.now())
+      pac_updated   <- pacRepo.modify(oldPacs)
+      model_         = {println("oldPacs>>>>>"+oldPacs);println("newRecords>>>>>"+newRecords); model.copy(posted = true,postingdate = Instant.now())}
       trans_posted  <- ftrRepo.modify(model_)
       journal       <- journalRepo.create(journalEntries)
     } yield pac_created + pac_updated + journal + trans_posted
@@ -73,6 +69,20 @@ final class FinancialsServiceImpl(
     val ids: List[String]  = model.lines.map(line => PeriodicAccountBalance.createId(model.getPeriod, line.account))
     val oids: List[String] = model.lines.map(line => PeriodicAccountBalance.createId(model.getPeriod, line.oaccount))
     (ids ++ oids).distinct
+  }
+
+  private def updatePac(model:FinancialsTransaction, pacList: List[DPAC])= {
+    val dummyPac = PeriodicAccountBalance.dummy
+    val X=model.lines.flatMap(line => {
+        val pacId = PeriodicAccountBalance.createId(model.getPeriod, line.account)
+        val poacId = PeriodicAccountBalance.createId(model.getPeriod, line.oaccount)
+        val pac = List(pacList.find(pac_ => pac_.id == pacId)).flatten.map(_.debiting(line.amount))
+        val poac = List(pacList.find(poac_ => poac_.id == poacId)).flatten.map(_.crediting(line.amount))
+        (pac++poac)
+      })
+    val Y=X.groupBy(_.id).map { case (_, v) => reduce(v, dummyPac) }
+      .filterNot(_.id == dummyPac.id).toList.distinct
+    Y
   }
 
   private def makeJournal(line: FTDetails, model: FinancialsTransaction, pac: DPAC, account: String, oaccount: String) =
