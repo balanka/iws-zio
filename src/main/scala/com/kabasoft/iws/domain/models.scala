@@ -684,9 +684,7 @@ object PeriodicAccountBalance {
       PeriodicAccountBalance.MODELID
     )
   def create(model: FinancialsTransaction)                                                              = {
-
-    val X = model.lines.flatMap { line =>
-      println(" LINE:" + line)
+    model.lines.flatMap { line =>
       List(
         PeriodicAccountBalance.apply(
           PeriodicAccountBalance.createId(model.period, line.account),
@@ -716,8 +714,6 @@ object PeriodicAccountBalance {
     }.groupBy((_.id))
       .map { case (_, v) => reduce(v, PeriodicAccountBalance.dummy) }
       .filterNot(_.id == PeriodicAccountBalance.dummy.id)
-    println("XXXXXXXXXXXXXXXXX++++++++" + X)
-    X.toList
   }
 }
 
