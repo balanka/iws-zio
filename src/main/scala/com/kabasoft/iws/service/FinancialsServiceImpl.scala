@@ -52,6 +52,9 @@ final class FinancialsServiceImpl(
   override def post(model: DerivedTransaction, company: String): ZIO[Any, RepositoryError, List[Int]] =
     postAll(List(model.id), company)
 
+  override def post(model: FinancialsTransaction, company: String): ZIO[Any, RepositoryError, Int] =
+    debitOrCreditPACAll(model, company)
+
   private[this] def debitOrCreditPACAll(model: FinancialsTransaction, company: String): ZIO[Any, RepositoryError, Int] =
     for {
       pacs          <- pacRepo.getByIds(getIds(model), company)
