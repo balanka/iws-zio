@@ -653,6 +653,8 @@ final case class PeriodicAccountBalance(
 
 object PeriodicAccountBalance {
   import zio.prelude._
+  type PAC_Type=(String,String,Int, BigDecimal,BigDecimal,BigDecimal,BigDecimal,String,String,Int)
+
 
   val MODELID                                   = 106
   val zeroAmount                                = BigDecimal(0)
@@ -716,6 +718,7 @@ object PeriodicAccountBalance {
       .map { case (_, v) => reduce(v, PeriodicAccountBalance.dummy) }
       .filterNot(_.id == PeriodicAccountBalance.dummy.id).toList
   }
+  def applyX(p:PAC_Type)=PeriodicAccountBalance(p._1,p._2,p._3,p._4,p._5,p._6,p._7,p._8,p._9,p._10)
 }
 
 sealed trait BusinessPartner        {
