@@ -230,8 +230,10 @@ insert into account
 
 insert into periodic_account_balance
 (id, account, period, idebit,debit,icredit,credit, company,currency,modelid)
-values(CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'4712'), '4712', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'), 0, 0, 0, 0
-,'1000' , 'EUR', 106);
+values(CONCAT(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'4712'), '4712', TO_NUMBER(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'99999999'), 0, 0, 1000, 0
+,'1000' , 'EUR', 106),
+(CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'4712'), '4712', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'), 0, 0, 0, 0
+      ,'1000' , 'EUR', 106);;
 
 
  insert into bankstatement

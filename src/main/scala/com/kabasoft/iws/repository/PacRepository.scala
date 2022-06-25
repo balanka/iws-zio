@@ -6,7 +6,7 @@ import com.kabasoft.iws.domain.AppError.RepositoryError
 import zio._
 
 trait PacRepository {
-  // type TYPE_ = PeriodicAccountBalance
+
   def create(item: PeriodicAccountBalance): IO[RepositoryError, Unit]
   def create(models: List[PeriodicAccountBalance]): IO[RepositoryError, Int]
   def delete(item: String, company: String): IO[RepositoryError, Int]
@@ -18,25 +18,12 @@ trait PacRepository {
     ZIO.foreach(ids)(getBy(_, company)).map(_.filterNot(x => x.id == PeriodicAccountBalance.dummy.id))
 
   def getByModelId(modelid: Int, company: String): IO[RepositoryError, PeriodicAccountBalance]
-  def findBalance4Period(
-    fromPeriod: Int,
-    toPeriod: Int,
-    company: String
-  ): ZStream[Any, RepositoryError, PeriodicAccountBalance]
-  def find4Period(
-    fromPeriod: Int,
-    toPeriod: Int,
-    company: String
-  ): ZStream[Any, RepositoryError, PeriodicAccountBalance]
-  def getBalances4Period(
-    fromPeriod: Int,
-    toPeriod: Int,
-    companyId: String
-  ): ZStream[Any, RepositoryError, PeriodicAccountBalance]
+  def findBalance4Period(fromPeriod: Int, toPeriod: Int, company: String): ZStream[Any, RepositoryError, PeriodicAccountBalance]
+  def find4Period(fromPeriod: Int, toPeriod: Int, company: String): ZStream[Any, RepositoryError, PeriodicAccountBalance]
+  def getBalances4Period(fromPeriod: Int, toPeriod: Int, companyId: String): ZStream[Any, RepositoryError, PeriodicAccountBalance]
   def modify(model: PeriodicAccountBalance): ZIO[Any, RepositoryError, Int]
   def modify(models: List[PeriodicAccountBalance]): ZIO[Any, RepositoryError, Int]
-  // def update(model:TYPE_, company: String): ZIO[Any, RepositoryError, Int]
-  // def findSome(company: String, param: Seq[String]): ZStream[Any, RepositoryError, TYPE_]
+
 }
 
 object PacRepository {
@@ -54,27 +41,14 @@ object PacRepository {
   def getBy(id: String, company: String): ZIO[PacRepository, RepositoryError, PeriodicAccountBalance]          =
     ZIO.serviceWithZIO[PacRepository](_.getBy(id, company))
   def getByIds(ids: List[String], company: String): ZIO[PacRepository, RepositoryError, List[PeriodicAccountBalance]] =
-    // ZIO.serviceWithZIO[PacRepository](_.getByIds(ids, company))
     ZIO.foreach(ids)(getBy(_, company)).map(_.filterNot(x => x.id == PeriodicAccountBalance.dummy.id))
   def getByModelId(modelid: Int, company: String): ZIO[PacRepository, RepositoryError, PeriodicAccountBalance] =
     ZIO.serviceWithZIO[PacRepository](_.getByModelId(modelid, company))
-  def findBalance4Period(
-    fromPeriod: Int,
-    toPeriod: Int,
-    company: String
-  ): ZStream[PacRepository, RepositoryError, PeriodicAccountBalance] =
+  def findBalance4Period(fromPeriod: Int, toPeriod: Int, company: String): ZStream[PacRepository, RepositoryError, PeriodicAccountBalance] =
     ZStream.serviceWithStream[PacRepository](_.findBalance4Period(fromPeriod, toPeriod, company))
-  def find4Period(
-    fromPeriod: Int,
-    toPeriod: Int,
-    company: String
-  ): ZStream[PacRepository, RepositoryError, PeriodicAccountBalance] =
+  def find4Period(fromPeriod: Int, toPeriod: Int, company: String): ZStream[PacRepository, RepositoryError, PeriodicAccountBalance] =
     ZStream.serviceWithStream[PacRepository](_.find4Period(fromPeriod, toPeriod, company))
-  def getBalances4Period(
-    fromPeriod: Int,
-    toPeriod: Int,
-    company: String
-  ): ZStream[PacRepository, RepositoryError, PeriodicAccountBalance] =
+  def getBalances4Period(fromPeriod: Int, toPeriod: Int, company: String): ZStream[PacRepository, RepositoryError, PeriodicAccountBalance] =
     ZStream.serviceWithStream[PacRepository](_.getBalances4Period(fromPeriod, toPeriod, company))
   def modify(model: PeriodicAccountBalance): ZIO[PacRepository, RepositoryError, Int]                          =
     ZIO.serviceWithZIO[PacRepository](_.modify(model))

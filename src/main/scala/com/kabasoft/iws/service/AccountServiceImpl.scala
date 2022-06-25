@@ -20,10 +20,8 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
       pacBalances <- pacRepo.getBalances4Period(fromPeriod, toPeriod, companyId).runCollect.map(_.toList)
       pacs        <- pacRepo.find4Period(period, period, companyId).runCollect.map(_.toList)
     } yield {
-      val list    = pacBalances
-        .map(pac =>
-          accounts
-            .find(acc => pac.account == acc.id)
+      val list    = pacBalances.map(pac =>
+          accounts.find(acc => pac.account == acc.id)
             .getOrElse(Account.dummy)
             .copy(idebit = pac.idebit, debit = pac.debit, icredit = pac.icredit, credit = pac.credit)
         )
@@ -39,7 +37,6 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
     company: String
   ): ZIO[Any, RepositoryError, Int] =
     for {
-
       pacs         <- pacRepo.findBalance4Period(fromPeriod, toPeriod, company).runCollect.map(_.toList)
       allAccounts  <- accRepo.list(company).runCollect.map(_.toList)
       currentYear   = fromPeriod.toString.slice(0, 4).toInt
@@ -58,9 +55,11 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
       pacList = filteredList
                   .filterNot(x => x.dbalance == 0 || x.cbalance == 0)
                   .map(pac => allAccounts.find(_.id == pac.account).fold(pac)(acc => net(acc, pac, nextPeriod)))
-
-      pac_created <- pacRepo.create(pacList)
-    } yield pac_created
+      oldPacs      <- pacRepo.getByIds(pacList.map(_.id), company)
+      newPacs =   pacList.filterNot(oldPacs.contains)
+      pac_created <- pacRepo.create(newPacs)
+      pac_updated <- pacRepo.modify(oldPacs)
+    } yield pac_created+pac_updated
 
   def net(acc: accRepo.TYPE_, pac: PeriodicAccountBalance, nextPeriod: Int) =
     if (acc.isDebit) {
