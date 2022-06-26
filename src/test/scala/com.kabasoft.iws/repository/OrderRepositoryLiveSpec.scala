@@ -2,7 +2,7 @@ package com.kabasoft.iws.repository
 
 import zio.ZLayer
 import zio.test._
-import zio.test.Assertion._
+
 import com.kabasoft.iws.domain.Order
 import zio.test.TestAspect._
 import java.util.UUID
@@ -26,13 +26,13 @@ object OrderRepositoryLiveSpec extends ZIOSpecDefault {
       test("count all orders") {
         for {
           count <- OrderRepository.countAll()
-        } yield assert(count)(equalTo(25))
+        } yield assertTrue(count==25)
       },
       test("insert new order") {
         for {
           _ <- OrderRepository.add(order)
           count <- OrderRepository.countAll()
-        } yield assert(count)(equalTo(26))
+        } yield assertTrue(count==26)
       }
     ).provideCustomLayerShared(testLayer.orDie) @@ sequential
 }
