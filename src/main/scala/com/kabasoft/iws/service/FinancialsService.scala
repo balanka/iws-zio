@@ -5,7 +5,7 @@ import com.kabasoft.iws.domain.AppError.RepositoryError
 import zio._
 
 trait FinancialsService {
-  // def closePeriod(fromPeriod: Int, toPeriod: Int,  inStmtAccId:String, company: String):ZIO[Any, RepositoryError, Int]
+
   def create(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int]
   def create(item: DerivedTransaction): ZIO[Any, RepositoryError, Int]
   def create(models: List[DerivedTransaction]): ZIO[Any, RepositoryError, Int]
@@ -16,10 +16,7 @@ trait FinancialsService {
   def postAll(ids: List[Long], company: String): ZIO[Any, RepositoryError, List[Int]]
 
   def getBy(id: String, company: String): ZIO[FinancialsService, RepositoryError, PeriodicAccountBalance]
-  def getByIds(
-    ids: List[String],
-    company: String
-  ): ZIO[FinancialsService, RepositoryError, List[PeriodicAccountBalance]]
+  def getByIds(ids: List[String], company: String): ZIO[FinancialsService, RepositoryError, List[PeriodicAccountBalance]]
 
   def postTransaction4Period(fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[Int]]
 
@@ -44,16 +41,11 @@ object FinancialsService {
 
   def getBy(id: String, company: String): ZIO[FinancialsService, RepositoryError, PeriodicAccountBalance] =
     ZIO.serviceWithZIO[FinancialsService](_.getBy(id, company))
-  def getByIds(
-    ids: List[String],
-    company: String
+  def getByIds(ids: List[String], company: String
   ): ZIO[FinancialsService, RepositoryError, List[PeriodicAccountBalance]] =
     ZIO.serviceWithZIO[FinancialsService](_.getByIds(ids, company))
 
-  def postTransaction4Period(
-    fromPeriod: Int,
-    toPeriod: Int,
-    company: String
+  def postTransaction4Period(fromPeriod: Int, toPeriod: Int, company: String
   ): ZIO[FinancialsService, RepositoryError, List[Int]] =
     ZIO.serviceWithZIO[FinancialsService](_.postTransaction4Period(fromPeriod, toPeriod, company))
 }
