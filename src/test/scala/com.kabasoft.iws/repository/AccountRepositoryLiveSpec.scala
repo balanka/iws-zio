@@ -1,6 +1,7 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.Account
+import com.kabasoft.iws.repository.common.AccountBuilder.{company, faccountId, fname}
 import com.kabasoft.iws.repository.postgresql.PostgresContainer
 import zio.ZLayer
 import zio.sql.ConnectionPool
@@ -11,15 +12,11 @@ import java.time.Instant
 
 object AccountRepositoryLiveSpec extends ZIOSpecDefault {
 
- val company ="1000"
-  val id = "4712"
-  val name = "MyAccount4712"
+
 
   val accounts = List(
-    //Account(id, name,"MyAccount4712", Instant.now(), Instant.now(), Instant.now()
-    //  , "1000", 9, "", false, false, "EUR", BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0), Nil.toSet),
     Account("4713", "MyAccount2","MyAccount2", Instant.now(), Instant.now(), Instant.now()
-      , "1000", 9, "", false, false, "EUR", BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0), Nil.toSet))
+      , company, 9, "", false, false, "EUR", BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0), Nil.toSet))
 
 
   val testLayer = ZLayer.make[AccountRepository](
@@ -34,18 +31,18 @@ object AccountRepositoryLiveSpec extends ZIOSpecDefault {
       test("count all accounts") {
         for {
           count <- AccountRepository.list(company).runCount
-        } yield assertTrue(count == 3)
+        } yield assertTrue(count == 6)
       },
       test("insert two new accounts") {
         for {
           oneRow <- AccountRepository.create(accounts)
           count <- AccountRepository.list(company).runCount
-        } yield assertTrue(oneRow == 1) && assertTrue(count == 4)
+        } yield assertTrue(oneRow == 1) && assertTrue(count == 7)
       },
       test("get an account by its id") {
         for {
-          stmt <- AccountRepository.getBy(id,company)
-        } yield assertTrue(stmt.name == name) && assertTrue(stmt.id == id)
+          stmt <- AccountRepository.getBy(faccountId,company)
+        } yield assertTrue(stmt.name == fname) && assertTrue(stmt.id == faccountId)
       }
     ).provideCustomLayerShared(testLayer.orDie) @@ sequential
 }

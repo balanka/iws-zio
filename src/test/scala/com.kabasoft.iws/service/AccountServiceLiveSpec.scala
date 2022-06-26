@@ -1,7 +1,7 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.common
-import com.kabasoft.iws.repository.common.AccountBuilder.{ company, paccountId}
+import com.kabasoft.iws.repository.common.AccountBuilder.{ company, paccountId0}
 import com.kabasoft.iws.repository.postgresql.PostgresContainer
 import com.kabasoft.iws.repository.{AccountRepositoryImpl, PacRepositoryImpl}
 import zio.ZLayer
@@ -30,7 +30,7 @@ object AccountServiceLiveSpec extends ZIOSpecDefault {
         val fromPeriod    = previousYear.toString.concat("01").toInt
         val toPeriod    =  previousYear.toString.concat("12").toInt
         for {
-          accounts       <-AccountService.getBalances(paccountId, fromPeriod, toPeriod,  company)
+          accounts       <-AccountService.getBalances(paccountId0, fromPeriod, toPeriod,  company)
         } yield  assertTrue(accounts.size == 1) &&assertTrue(accounts.head.balance == 1000)
       },
       test("Close an accounting  period") {
@@ -38,7 +38,7 @@ object AccountServiceLiveSpec extends ZIOSpecDefault {
         val fromPeriod    = previousYear.toString.concat("01").toInt
         val toPeriod    =  previousYear.toString.concat("12").toInt
         for {
-          nrOfAccounts       <-AccountService.closePeriod(fromPeriod, toPeriod, paccountId, company)
+          nrOfAccounts       <-AccountService.closePeriod(fromPeriod, toPeriod, paccountId0, company)
         } yield  assertTrue(nrOfAccounts == 1)
       }
     ).provideCustomLayerShared(testServiceLayer.orDie) @@ sequential
