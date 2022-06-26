@@ -5,7 +5,6 @@ import com.kabasoft.iws.repository.common.TransactionBuilder.{ftr1, transactionI
 import com.kabasoft.iws.repository.postgresql.PostgresContainer
 import zio.ZLayer
 import zio.sql.ConnectionPool
-import zio.test.Assertion._
 import zio.test.TestAspect._
 import zio.test._
 
@@ -24,12 +23,12 @@ object TransactionRepositoryLiveSpec extends ZIOSpecDefault {
         for {
           oneRow <- TransactionRepository.create(ftr1)
           count <- TransactionRepository.list(company).runCount
-        } yield assert(oneRow)(equalTo(3)) && assert(count)(equalTo(2L))
+        } yield assertTrue(oneRow==3) && assertTrue(count==2L)
       },
       test("get a transaction by its id") {
         for {
           stmt <- TransactionRepository.getByTransId(transactionId, company)
-        } yield  assert(stmt.tid)(equalTo(transactionId))
+        } yield  assertTrue(stmt.tid==transactionId)
       }
     ).provideCustomLayerShared(testLayer.orDie) @@ sequential
 }

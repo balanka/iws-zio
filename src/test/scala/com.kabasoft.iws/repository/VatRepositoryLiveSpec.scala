@@ -2,7 +2,6 @@ package com.kabasoft.iws.repository
 
 import zio.test._
 
-import zio.test.Assertion._
 import zio.test.TestAspect._
 import com.kabasoft.iws.domain.Vat
 import java.time.Instant
@@ -33,18 +32,18 @@ object VatRepositoryLiveSpec extends ZIOSpecDefault {
       test("count all vats") {
         for {
           count <- VatRepository.list(company).runCount
-        } yield assert(count)(equalTo(1L))
+        } yield assertTrue(count==1L)
       },
       test("insert two new vats") {
         for {
           oneRow <- VatRepository.create(vats)
           count <- VatRepository.list(company).runCount
-        } yield assert(oneRow)(equalTo(2)) && assert(count)(equalTo(3L))
+        } yield assertTrue(oneRow==2) && assertTrue(count==3L)
       },
       test("get a Vat by its id") {
         for {
           stmt <- VatRepository.getBy(id,company)
-        } yield assert(stmt.name)(equalTo(name)) && assert(stmt.id)(equalTo(id))
+        } yield assertTrue(stmt.name==name) && assertTrue(stmt.id==id)
       }
     ).provideCustomLayerShared(testLayer.orDie) @@ sequential
 }

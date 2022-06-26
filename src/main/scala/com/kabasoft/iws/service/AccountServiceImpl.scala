@@ -20,11 +20,12 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
       pacBalances <- pacRepo.getBalances4Period(fromPeriod, toPeriod, companyId).runCollect.map(_.toList)
       pacs        <- pacRepo.find4Period(period, period, companyId).runCollect.map(_.toList)
     } yield {
+      val acc = accounts.filter(_.id==accId)
       val list    = pacBalances.map(pac =>
           accounts.find(acc => pac.account == acc.id)
             .getOrElse(Account.dummy)
             .copy(idebit = pac.idebit, debit = pac.debit, icredit = pac.icredit, credit = pac.credit)
-        )
+        ):::acc
         .filterNot(_.id == Account.dummy.id)
       val account = Account.consolidate(accId, list, pacs)
       Account.unwrapDataTailRec(account) // .filterNot(acc => acc.id==accId)
@@ -52,8 +53,7 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
 
       filteredList = initpacList.filterNot(x => list.find(_.id == x.account).fold(false)(_ => true))
 
-      pacList = filteredList
-                  .filterNot(x => x.dbalance == 0 || x.cbalance == 0)
+      pacList = filteredList.filterNot(x => x.dbalance == 0 || x.cbalance == 0)
                   .map(pac => allAccounts.find(_.id == pac.account).fold(pac)(acc => net(acc, pac, nextPeriod)))
       oldPacs      <- pacRepo.getByIds(pacList.map(_.id), company)
       newPacs =   pacList.filterNot(oldPacs.contains)

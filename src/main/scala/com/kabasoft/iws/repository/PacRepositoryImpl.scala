@@ -151,9 +151,9 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
       .where((company === companyId) && (period >= fromPeriod) && (period <= toPeriod))
 
        */
-   // ZStream.fromZIO(
-   //   ZIO.logInfo(s"Query to execute findBalance4Period is ${renderRead(query)}")
-   // ) *>
+    ZStream.fromZIO(
+      ZIO.logInfo(s"Query to execute findBalance4Period is ${renderRead(selectAll)}")
+    ) *>
       execute(selectAll.to(x=>{ println("BBBBBBBBBBBBBB"+x);PeriodicAccountBalance.applyX(x)}))
         .provideDriver(driverLayer)
   }
@@ -178,7 +178,8 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
     ZStream.fromZIO(
       ZIO.logInfo(s"Query to execute find4Period is ${renderRead(selectAll)}")
     ) *>
-      execute(selectAll.to((PeriodicAccountBalance.apply _).tupled))
+      execute(selectAll.to(x=>{ println("BBBBBBBBBBBBBB"+x);PeriodicAccountBalance.applyX(x)}))
+     // execute(selectAll.to((PeriodicAccountBalance.apply _).tupled))
         .provideDriver(driverLayer)
   }
 

@@ -2,7 +2,6 @@ package com.kabasoft.iws.repository
 
 import zio.test._
 
-import zio.test.Assertion._
 import zio.test.TestAspect._
 import com.kabasoft.iws.domain.Customer
 import java.util.UUID
@@ -32,18 +31,18 @@ object CustomerRepositoryLiveSpec extends ZIOSpecDefault {
       test("count all customers") {
         for {
           count <- CustomerRepository.findAll().runCount
-        } yield assert(count)(equalTo(5L))
+        } yield assertTrue(count == 5L)
       },
       test("insert two new customers") {
         for {
           oneRow <- CustomerRepository.add(customers)
           count <- CustomerRepository.findAll().runCount
-        } yield assert(oneRow)(equalTo(2)) && assert(count)(equalTo(7L))
+        } yield assertTrue(oneRow==2) && assertTrue(count==7L)
       },
       test("get inserted customer") {
         for {
           customer <- CustomerRepository.findById(customerId1)
-        } yield assert(customer.fname)(equalTo("Peter"))
+        } yield assertTrue(customer.fname=="Peter")
       }
     ).provideCustomLayerShared(testLayer.orDie) @@ sequential
 }

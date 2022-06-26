@@ -2,7 +2,6 @@ package com.kabasoft.iws.repository
 
 import zio.test._
 
-import zio.test.Assertion._
 import zio.test.TestAspect._
 import com.kabasoft.iws.domain.BankStatement
 import java.time.Instant
@@ -34,18 +33,18 @@ val company ="1000"
       test("count all bankstatements") {
         for {
           count <- BankStatementRepository.list(company).runCount
-        } yield assert(count)(equalTo(1L))
+        } yield assertTrue(count == 1L)
       },
       test("insert two new bankstatements") {
         for {
           oneRow <- BankStatementRepository.create(customers)
           count <- BankStatementRepository.list(company).runCount
-        } yield assert(oneRow)(equalTo(2)) && assert(count)(equalTo(3L))
+        } yield assertTrue(oneRow == 2) && assertTrue(count == 3L)
       },
       test("get a BankStatement by its id") {
         for {
           stmt <- BankStatementRepository.getBy(id,company)
-        } yield assert(stmt.depositor)(equalTo("B Mady")) && assert(stmt.id)(equalTo(id.toLong))
+        } yield assertTrue(stmt.depositor == "B Mady") && assertTrue(stmt.id == id.toLong)
       }
     ).provideCustomLayerShared(testLayer.orDie) @@ sequential
 }

@@ -5,7 +5,6 @@ import com.kabasoft.iws.repository.common.TransactionBuilder.pacs
 import com.kabasoft.iws.repository.postgresql.PostgresContainer
 import zio.ZLayer
 import zio.sql.ConnectionPool
-import zio.test.Assertion._
 import zio.test.TestAspect._
 import zio.test._
 
@@ -30,7 +29,7 @@ object PacRepositoryLiveSpec extends ZIOSpecDefault {
           newPacs=pacs.filterNot(row.contains)
           nrCreatedRow <- PacRepository.create(newPacs)
 
-        } yield assert(nrCreatedRow)(equalTo(2)) && assert(row.size)(equalTo(1))
+        } yield assertTrue(nrCreatedRow==2) && assertTrue(row.size==1)
       }
     ).provideCustomLayerShared(testLayer.orDie) @@ sequential
 
