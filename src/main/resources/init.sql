@@ -226,12 +226,18 @@ insert into account
 (id, name, description, posting_date, modified_date, enter_date,  company, modelid,account,
  isdebit, balancesheet, idebit, icredit, debit, credit, currency) values
   ('4711','myFirstAccount','myFirstAccount',current_timestamp, current_timestamp, current_timestamp, '1000',11
-  , '9999', true, true, 0.0, 0.0, 0.0, 0.0, 'EUR');
+  , '9999', true, true, 0.0, 0.0, 0.0, 0.0, 'EUR'),
+    ('4712','MyAccount4712','mySecondAccount ',current_timestamp, current_timestamp, current_timestamp, '1000',11
+  , '9999', true, true, 0.0, 0.0, 0.0, 0.0, 'EUR'),
+  ('9999','ParentAccount','ParentAccount ',current_timestamp, current_timestamp, current_timestamp, '1000',11
+  , '', true, true, 0.0, 0.0, 0.0, 0.0, 'EUR') ;
 
 insert into periodic_account_balance
 (id, account, period, idebit,debit,icredit,credit, company,currency,modelid)
-values(CONCAT(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'4712'), '4712', TO_NUMBER(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'99999999'), 0, 0, 1000, 0
+values(CONCAT(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'4712'), '4712', TO_NUMBER(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'99999999'), 0, 1000, 0, 0
 ,'1000' , 'EUR', 106),
+(CONCAT(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYY'),'004712'), '4712', TO_NUMBER(CONCAT(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYY'),'00'),'99999999'), 0, 1000, 0, 0
+      ,'1000' , 'EUR', 106),
 (CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'4712'), '4712', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'), 0, 0, 0, 0
       ,'1000' , 'EUR', 106);;
 
