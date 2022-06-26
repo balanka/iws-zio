@@ -187,15 +187,17 @@ object Account {
     }
   def addSubAccounts(account: Account, accMap: Map[String, List[Account]]): Account                       =
     accMap.get(account.id) match {
-      case Some(accList) =>
-        account.copy(subAccounts = account.subAccounts ++ accList.map(x => addSubAccounts(x, accMap)))
+      case Some(accList) => addSubAcc(account, accMap, accList)
       case None          =>
-        if (account.subAccounts.nonEmpty)
-          account.copy(
-            subAccounts = account.subAccounts ++ account.subAccounts.toList.map(x => addSubAccounts(x, accMap))
-          )
-        else account
+        if (account.subAccounts.nonEmpty) {
+          addSubAcc(account, accMap, account.subAccounts.toList)
+        } else account
     }
+
+  private def addSubAcc(account: Account, accMap: Map[String, List[Account]], accList: List[Account]) = {
+    account.copy(subAccounts = account.subAccounts ++ accList.map(x => addSubAccounts(x, accMap)))
+  }
+
   def getInitialDebitCredit(accId: String, pacs: List[PeriodicAccountBalance], side: Boolean): BigDecimal =
     pacs.find(x => x.account == accId) match {
       case Some(acc) => if (side) acc.idebit else acc.icredit
