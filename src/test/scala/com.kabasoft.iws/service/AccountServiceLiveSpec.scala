@@ -33,14 +33,14 @@ object AccountServiceLiveSpec extends ZIOSpecDefault {
           accounts       <-AccountService.getBalances(paccountId, fromPeriod, toPeriod,  company)
         } yield  assertTrue(accounts.size == 1) &&assertTrue(accounts.head.balance == 1000)
       },
-     /* test("Close an accounting  period") {
+      test("Close an accounting  period") {
         val previousYear  =  common.getYear(LocalDateTime.now().minusYears(1).toInstant(ZoneOffset.UTC))
         val fromPeriod    = previousYear.toString.concat("01").toInt
         val toPeriod    =  previousYear.toString.concat("12").toInt
         for {
           nrOfAccounts       <-AccountService.closePeriod(fromPeriod, toPeriod, paccountId, company)
         } yield  assertTrue(nrOfAccounts == 1)
-      }*/
+      }
     ).provideCustomLayerShared(testServiceLayer.orDie) @@ sequential
 }
 
