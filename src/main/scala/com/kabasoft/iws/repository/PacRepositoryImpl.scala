@@ -97,7 +97,10 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
       .set(credit, model.credit)
       .where((id === model.id) && (company === model.company))
 
-  def modify(models: List[PeriodicAccountBalance]): ZIO[Any, RepositoryError, Int] = {
+  def modify(models: List[PeriodicAccountBalance]): ZIO[Any, RepositoryError, Int] =
+  if(models.isEmpty) {
+      ZIO.succeed(0)
+    }else {
     val update_ = models.map(build)
     executeBatchUpdate(update_)
       .provideLayer(driverLayer)
