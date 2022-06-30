@@ -12,7 +12,7 @@ trait AccountService {
 object AccountService {
   def getBalances(accId: String, fromPeriod: Int, toPeriod: Int, company: String
                  ): ZIO[AccountService, RepositoryError, List[Account]]=
-    ZIO.serviceWithZIO[AccountService](_.getBalances(accId, fromPeriod, toPeriod, company))
+    ZIO.service[AccountService].flatMap(_.getBalances(accId, fromPeriod, toPeriod, company))
 
   def closePeriod(
     fromPeriod: Int,
@@ -20,5 +20,5 @@ object AccountService {
     inStmtAccId: String,
     company: String
   ): ZIO[AccountService, RepositoryError, Int] =
-    ZIO.serviceWithZIO[AccountService](_.closePeriod(fromPeriod, toPeriod, inStmtAccId, company))
+    ZIO.service[AccountService].flatMap(_.closePeriod(fromPeriod, toPeriod, inStmtAccId, company))
 }

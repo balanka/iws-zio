@@ -3,15 +3,15 @@ package com.kabasoft.iws.domain
 import com.kabasoft.iws.domain.FinancialsTransaction.DerivedTransaction_Type
 import com.kabasoft.iws.domain.common.reduce
 
-import java.util.{ Locale, UUID }
-import java.time.{ Instant, LocalDate, LocalDateTime, ZoneId }
+import java.util.{Locale, UUID}
+import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 import zio.prelude._
 import zio.stm._
 import zio._
 
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
-import scala.collection.immutable.{ ::, Nil }
+import scala.collection.immutable.{::, Nil}
 
 object common {
 
@@ -173,18 +173,7 @@ object Account {
           account.copy(subAccounts = sub.map(removeSubAccounts))
         else account
     }
-  def addSubAccounts2(account: Account, accMap: Map[String, List[Account]]): Account                      =
-    accMap.get(account.id) match {
-      case Some(acc) =>
-        val x = account.subAccounts ++ acc.map(x => addSubAccounts(x, accMap))
-        account.copy(subAccounts = x)
-      case None      =>
-        if (account.subAccounts.nonEmpty)
-          account.copy(
-            subAccounts = account.subAccounts ++ account.subAccounts.toList.map(x => addSubAccounts(x, accMap))
-          )
-        else account
-    }
+
   def addSubAccounts(account: Account, accMap: Map[String, List[Account]]): Account                       =
     accMap.get(account.id) match {
       case Some(accList) => addSubAcc(account, accMap, accList)
@@ -222,7 +211,7 @@ object Account {
     }
 
   def unwrapDataTailRec(account: Account): List[Account] = {
-    // @tailrec
+     //@tailrec
     def unwrapData(res: List[Account]): List[Account] =
       res.flatMap(acc =>
         acc.subAccounts.toList match {
@@ -260,7 +249,7 @@ object Account {
 
   def withChildren(accId: String, accList: List[Account]): Account =
     accList.find(x => x.id == accId) match {
-      case Some(acc) => List(acc).foldMap(addSubAccounts2(_, accList.groupBy(_.account))).copy(id = accId)
+      case Some(acc) => List(acc).foldMap(addSubAccounts(_, accList.groupBy(_.account))).copy(id = accId)
       case None      => Account.dummy
     }
 

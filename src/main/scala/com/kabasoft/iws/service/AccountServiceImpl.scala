@@ -63,13 +63,11 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
 
   def net(acc: accRepo.TYPE_, pac: PeriodicAccountBalance, nextPeriod: Int) =
     if (acc.isDebit) {
-      pac
-        .copy(id = PeriodicAccountBalance.createId(nextPeriod, acc.id), period = nextPeriod)
+      pac.copy(id = PeriodicAccountBalance.createId(nextPeriod, acc.id), period = nextPeriod)
         .idebiting(pac.debit - pac.icredit - pac.credit)
         .copy(debit = 0, icredit = 0, credit = 0)
     } else {
-      pac
-        .copy(id = PeriodicAccountBalance.createId(nextPeriod, acc.id), period = nextPeriod)
+      pac.copy(id = PeriodicAccountBalance.createId(nextPeriod, acc.id), period = nextPeriod)
         .icrediting(pac.credit - pac.idebit - pac.debit)
         .copy(credit = 0, idebit = 0, debit = 0)
     }

@@ -22,26 +22,23 @@ trait JournalRepository {
 object JournalRepository {
 
   def create(item: Journal): ZIO[JournalRepository, RepositoryError, Unit]                             =
-    ZIO.serviceWithZIO[JournalRepository](_.create(item))
+    ZIO.service[JournalRepository]flatMap(_.create(item))
   def create(items: List[Journal]): ZIO[JournalRepository, RepositoryError, Int]                       =
-    ZIO.serviceWithZIO[JournalRepository](_.create(items))
+    ZIO.service[JournalRepository]flatMap(_.create(items))
   def delete(item: String, company: String): ZIO[JournalRepository, RepositoryError, Int]              =
-    ZIO.serviceWithZIO[JournalRepository](_.delete(item, company))
+    ZIO.service[JournalRepository]flatMap(_.delete(item, company))
   def delete(items: List[String], company: String): ZIO[JournalRepository, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
   def list(company: String): ZStream[JournalRepository, RepositoryError, Journal]                      =
-    ZStream.serviceWithStream[JournalRepository](_.list(company))
+    ZStream.service[JournalRepository]flatMap(_.list(company))
   def getBy(id: String, company: String): ZIO[JournalRepository, RepositoryError, Journal]             =
-    ZIO.serviceWithZIO[JournalRepository](_.getBy(id, company))
+    ZIO.service[JournalRepository]flatMap(_.getBy(id, company))
 
   def getByModelId(modelid: Int, company: String): ZIO[JournalRepository, RepositoryError, Journal] =
-    ZIO.serviceWithZIO[JournalRepository](_.getByModelId(modelid, company))
+    ZIO.service[JournalRepository]flatMap(_.getByModelId(modelid, company))
 
   def find4Period(
-    fromPeriod: Int,
-    toPeriod: Int,
-    company: String
-  ): ZStream[JournalRepository, RepositoryError, Journal] =
-    ZStream.serviceWithStream[JournalRepository](_.find4Period(fromPeriod, toPeriod, company))
+    fromPeriod: Int, toPeriod: Int, company: String): ZStream[JournalRepository, RepositoryError, Journal] =
+    ZStream.service[JournalRepository]flatMap(_.find4Period(fromPeriod, toPeriod, company))
 
 }

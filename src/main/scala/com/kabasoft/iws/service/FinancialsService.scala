@@ -25,19 +25,19 @@ trait FinancialsService {
 object FinancialsService {
 
   def create(model: FinancialsTransaction): ZIO[FinancialsService, RepositoryError, Int]                   =
-    ZIO.serviceWithZIO[FinancialsService](_.create(model))
+    ZIO.service[FinancialsService].flatMap(_.create(model))
   def create(item: DerivedTransaction): ZIO[FinancialsService, RepositoryError, Int]                       =
-    ZIO.serviceWithZIO[FinancialsService](_.create(item))
+    ZIO.service[FinancialsService]flatMap(_.create(item))
   def create(items: List[DerivedTransaction]): ZIO[FinancialsService, RepositoryError, Int]                =
-    ZIO.serviceWithZIO[FinancialsService](_.create(items))
+    ZIO.service[FinancialsService]flatMap(_.create(items))
   def post(model: FinancialsTransaction, company: String): ZIO[FinancialsService, RepositoryError, Int]=
-    ZIO.serviceWithZIO[FinancialsService](_.post(model, company))
+    ZIO.service[FinancialsService]flatMap(_.post(model, company))
 
   def post(model: DerivedTransaction, company: String): ZIO[FinancialsService, RepositoryError, List[Int]] =
-    ZIO.serviceWithZIO[FinancialsService](_.post(model, company))
+    ZIO.service[FinancialsService]flatMap(_.post(model, company))
 
   def postAll(ids: List[Long], company: String): ZIO[FinancialsService, RepositoryError, List[Int]] =
-    ZIO.serviceWithZIO[FinancialsService](_.postAll(ids, company))
+    ZIO.service[FinancialsService]flatMap(_.postAll(ids, company))
 
   def getBy(id: String, company: String): ZIO[FinancialsService, RepositoryError, PeriodicAccountBalance] =
     ZIO.serviceWithZIO[FinancialsService](_.getBy(id, company))
