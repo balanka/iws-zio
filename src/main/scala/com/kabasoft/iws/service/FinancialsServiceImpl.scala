@@ -29,7 +29,7 @@ final class FinancialsServiceImpl(
     for {
       queries <- ZIO.foreach(ids)(id => ftrRepo.getByTransId(id, company))
       models   = queries.filter(_.posted == false)
-      all     <- ZIO.foreach(models)(debitOrCreditPACAll(_, company))
+      all     <- ZIO.foreach(models)(postTransaction(_, company))
     } yield all
 
   def getBy(id: String, company: String): ZIO[Any, RepositoryError, PeriodicAccountBalance] =
@@ -46,16 +46,22 @@ final class FinancialsServiceImpl(
     for {
       queries <- ftrRepo.find4Period(fromPeriod, toPeriod, company).runCollect
       models   = FinancialsTransaction.applyD(queries.toList.map(DerivedTransaction.unapply(_).get))
-      all     <- ZIO.foreach(models)(trans => debitOrCreditPACAll(trans, company))
+      all     <- ZIO.foreach(models)(trans => postTransaction(trans, company))
     } yield all
 
-  override def post(model: DerivedTransaction, company: String): ZIO[Any, RepositoryError, List[Int]] =
-    postAll(List(model.id), company)
+  //override def post(model: DerivedTransaction, company: String): ZIO[Any, RepositoryError, List[Int]] =
+ //   postAll(List(model.id), company)
 
-  override def post(model: FinancialsTransaction, company: String): ZIO[Any, RepositoryError, Int] =
-    debitOrCreditPACAll(model, company)
+  //override def post(model: FinancialsTransaction, company: String): ZIO[Any, RepositoryError, Int] =
+ //   postTransaction(model, company)
 
-  private[this] def debitOrCreditPACAll(transaction: FinancialsTransaction, company: String): ZIO[Any, RepositoryError, Int] = {
+  override def post(id: Long, company: String): ZIO[Any, RepositoryError, Int] =
+    for {
+      trans <- ftrRepo.getByTransId(id, company)
+      nr     <- postTransaction(trans, company)
+    } yield nr
+
+  private[this] def postTransaction(transaction: FinancialsTransaction, company: String): ZIO[Any, RepositoryError, Int] = {
     val model = transaction.copy(period=common.getPeriod(transaction.transdate))
     for {
       pacs          <- pacRepo.getByIds(getIds(model), company)

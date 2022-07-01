@@ -29,7 +29,7 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
       test("create and post 1 transaction") {
         for {
           oneRow <- FinancialsService.create(ftr1)
-          postedRows <- FinancialsService.post(ftr1, company)
+          postedRows <- FinancialsService.post(ftr1.tid, company)
           nrOfPacs       <-PacRepository.getByIds(pacs.map(_.id), company).map(_.size)
         } yield assertTrue(oneRow == 3)&& assertTrue(postedRows == 10)&& assertTrue(nrOfPacs == 1)
       },
