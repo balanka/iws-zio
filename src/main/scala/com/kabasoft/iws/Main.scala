@@ -29,6 +29,7 @@ object Main extends ZIOAppDefault {
         ServerConfig.layer,
         ServerChannelFactory.auto,
         EventLoopGroup.auto(),
+        AccountServiceImpl.live,
         AccountRepositoryImpl.live,
         OrderRepositoryImpl.live,
         CustomerRepositoryImpl.live,

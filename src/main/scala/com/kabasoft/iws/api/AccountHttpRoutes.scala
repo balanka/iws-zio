@@ -2,6 +2,7 @@ package com.kabasoft.iws.api
 
 import com.kabasoft.iws.api.Protocol._
 import com.kabasoft.iws.domain._
+import com.kabasoft.iws.service.AccountService
 import com.kabasoft.iws.repository._
 import zhttp.http._
 import zio._
@@ -9,7 +10,7 @@ import zio.json._
 
 object AccountHttpRoutes {
 
-  val app: HttpApp[AccountRepository, Throwable] =
+  val app: HttpApp[AccountRepository with AccountService, Throwable] =
     Http.collectZIO {
 
       case Method.GET -> !! / "acc" =>
@@ -18,11 +19,22 @@ object AccountHttpRoutes {
           .runCollect
           .map(ch => Response.json(ch.toJson))
 
+      case Method.GET -> !! / "acc" / id/fromPeriod / toPeriod =>
+      AccountService.getBalances(id, fromPeriod.toInt, toPeriod.toInt, "1000").either.map {
+          case Right(o) => Response.json(o.toJson)
+          case Left(e)  => Response.text(e.getMessage() + "ID" + id+ " fromPeriod: "+fromPeriod+ " toPeriod:"+toPeriod)
+        }
+      case Method.POST -> !! / "acc" / inStmtAccId/ fromPeriod / toPeriod =>
+      AccountService.closePeriod(fromPeriod.toInt, toPeriod.toInt, inStmtAccId, "1000").either.map {
+        case Right(o) => Response.json(o.toJson)
+        case Left(e)  => Response.text(e.getMessage() + "inStmtAccId" + inStmtAccId+ " fromPeriod: "+fromPeriod+ " toPeriod:"+toPeriod)
+      }
       case Method.GET -> !! / "acc" / id   =>
         AccountRepository.getBy(id, "1000").either.map {
           case Right(o) => Response.json(o.toJson)
           case Left(e)  => Response.text(e.getMessage() + "ID" + id)
         }
+
       case req @ Method.POST -> !! / "acc" =>
         (for {
           body <- req.bodyAsString
