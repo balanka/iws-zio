@@ -31,11 +31,7 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
       Account.unwrapDataTailRec(account) // .filterNot(acc => acc.id==accId)
     })
 
-  def closePeriod(
-    fromPeriod: Int,
-    toPeriod: Int,
-    inStmtAccId: String,
-    company: String
+  def closePeriod(fromPeriod: Int, toPeriod: Int, inStmtAccId: String, company: String
   ): ZIO[Any, RepositoryError, Int] =
     for {
       pacs         <- pacRepo.findBalance4Period(fromPeriod, toPeriod, company).runCollect.map(_.toList)
