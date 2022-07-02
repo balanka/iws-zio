@@ -1,23 +1,27 @@
 package com.kabasoft.iws.service
-import zio.stream._
 import com.kabasoft.iws.domain._
-import java.nio.file.{ Files, Paths }
+import com.kabasoft.iws.domain.AppError.RepositoryError
+import zio.ZIO
 
-object BankStmtImportService {
+trait BankStmtService {
 
-  def importFromPath(path: String, HEADER: String, CHAR: String, extension: String, build: String => BankStatement) =
-    ZStream
-      .fromJavaStream(Files.walk(Paths.get(path)))
-      .filter(p => !Files.isDirectory(p) && p.toString.endsWith(extension))
-      .flatMap { files =>
-        ZStream
-          .fromPath(files)
-          .via(ZPipeline.utfDecode >>> ZPipeline.splitLines)
-          .filterNot(p => p.replaceAll(CHAR, "").startsWith(HEADER))
-          .map(p => build(p.replaceAll(CHAR, "")))
-      // .tap(bs=>ZIO.debug(s"  BS ${bs}"))
-      }
-      .runCollect
-      .map(_.toList)
-
+  def importBankStmt(
+    path: String,
+    header: String,
+    char: String,
+    extension: String,
+    company: String,
+    buildFn: String => BankStatement
+  ): ZIO[Any, RepositoryError, Int]
+}
+object BankStmtService {
+  def importBankStmt(
+    path: String,
+    header: String,
+    char: String,
+    extension: String,
+    company: String,
+    buildFn: String => BankStatement
+  ): ZIO[BankStmtService, RepositoryError, Int] =
+    ZIO.service[BankStmtService].flatMap(_.importBankStmt(path, header, char, extension, company, buildFn))
 }

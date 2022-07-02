@@ -6,9 +6,7 @@ import zio.sql.ConnectionPool
 import com.kabasoft.iws.domain.{ DerivedTransaction, FinancialsTransaction, FinancialsTransactionDetails }
 import com.kabasoft.iws.domain.AppError._
 
-final class TransactionRepositoryImpl(pool: ConnectionPool)
-    extends TransactionRepository
-    with TransactionTableDescription {
+final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionRepository with TransactionTableDescription {
 
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
 
