@@ -16,29 +16,27 @@ trait BankStatementRepository {
   def getBy(id: String, company: String): ZIO[Any, RepositoryError, BankStatement]
   def getByModelId(modelid: Int, company: String): ZIO[Any, RepositoryError, BankStatement]
   def modify(model: BS): ZIO[Any, RepositoryError, Int]
-  // def update(model:BS, company: String): ZIO[Any, RepositoryError, Int]
-  // def findSome(company: String, param: Seq[String]): ZStream[Any, RepositoryError, BS]
+
 }
 
 object BankStatementRepository {
   type BSRepository = BankStatementRepository
   type BS           = BankStatement
   def create(item: BS): ZIO[BSRepository, RepositoryError, Unit]                                     =
-    ZIO.service[BSRepository]flatMap(_.create(item))
+    ZIO.service[BSRepository] flatMap (_.create(item))
   def create(items: List[BS]): ZIO[BSRepository, RepositoryError, Int]                               =
-    ZIO.service[BSRepository]flatMap(_.create(items))
+    ZIO.service[BSRepository] flatMap (_.create(items))
   def delete(item: String, company: String): ZIO[BSRepository, RepositoryError, Int]                 =
-    ZIO.service[BSRepository]flatMap(_.delete(item, company))
+    ZIO.service[BSRepository] flatMap (_.delete(item, company))
   def delete(items: List[String], company: String): ZIO[BSRepository, RepositoryError, List[Int]]    =
     ZIO.collectAll(items.map(delete(_, company)))
   def list(company: String): ZStream[BSRepository, RepositoryError, BankStatement]                   =
-    ZStream.service[BSRepository]flatMap(_.list(company))
+    ZStream.service[BSRepository] flatMap (_.list(company))
   def getBy(id: String, company: String): ZIO[BSRepository, RepositoryError, BankStatement]          =
-    ZIO.service[BSRepository]flatMap(_.getBy(id, company))
+    ZIO.service[BSRepository] flatMap (_.getBy(id, company))
   def getByModelId(modelid: Int, company: String): ZIO[BSRepository, RepositoryError, BankStatement] =
-    ZIO.service[BSRepository]flatMap(_.getByModelId(modelid, company))
+    ZIO.service[BSRepository] flatMap (_.getByModelId(modelid, company))
   def modify(model: BS): ZIO[BSRepository, RepositoryError, Int]                                     =
-    ZIO.service[BSRepository]flatMap(_.modify(model))
-
+    ZIO.service[BSRepository] flatMap (_.modify(model))
 
 }

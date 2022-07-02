@@ -2,8 +2,8 @@ package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.common.reduce
-import com.kabasoft.iws.domain.{DerivedTransaction, FinancialsTransaction, FinancialsTransactionDetails, Journal, PeriodicAccountBalance, common}
-import com.kabasoft.iws.repository.{JournalRepository, PacRepository, TransactionRepository}
+import com.kabasoft.iws.domain.{ common, DerivedTransaction, FinancialsTransaction, FinancialsTransactionDetails, Journal, PeriodicAccountBalance }
+import com.kabasoft.iws.repository.{ JournalRepository, PacRepository, TransactionRepository }
 
 import java.time.Instant
 import zio._
@@ -49,20 +49,20 @@ final class FinancialsServiceImpl(
       all     <- ZIO.foreach(models)(trans => postTransaction(trans, company))
     } yield all
 
-  //override def post(model: DerivedTransaction, company: String): ZIO[Any, RepositoryError, List[Int]] =
- //   postAll(List(model.id), company)
+  // override def post(model: DerivedTransaction, company: String): ZIO[Any, RepositoryError, List[Int]] =
+  //   postAll(List(model.id), company)
 
-  //override def post(model: FinancialsTransaction, company: String): ZIO[Any, RepositoryError, Int] =
- //   postTransaction(model, company)
+  // override def post(model: FinancialsTransaction, company: String): ZIO[Any, RepositoryError, Int] =
+  //   postTransaction(model, company)
 
   override def post(id: Long, company: String): ZIO[Any, RepositoryError, Int] =
     for {
       trans <- ftrRepo.getByTransId(id, company)
-      nr     <- postTransaction(trans, company)
+      nr    <- postTransaction(trans, company)
     } yield nr
 
   private[this] def postTransaction(transaction: FinancialsTransaction, company: String): ZIO[Any, RepositoryError, Int] = {
-    val model = transaction.copy(period=common.getPeriod(transaction.transdate))
+    val model = transaction.copy(period = common.getPeriod(transaction.transdate))
     for {
       pacs          <- pacRepo.getByIds(getIds(model), company)
       newRecords     = PeriodicAccountBalance.create(model).filterNot(pacs.contains).distinct
@@ -70,7 +70,7 @@ final class FinancialsServiceImpl(
       journalEntries = createJournalEntries(model, oldPacs ::: newRecords)
       pac_created   <- pacRepo.create(newRecords)
       pac_updated   <- pacRepo.modify(oldPacs)
-      model_         = model.copy(posted = true,postingdate = Instant.now())
+      model_         = model.copy(posted = true, postingdate = Instant.now())
       trans_posted  <- ftrRepo.modify(model_)
       journal       <- journalRepo.create(journalEntries)
     } yield pac_created + pac_updated + journal + trans_posted
@@ -82,17 +82,20 @@ final class FinancialsServiceImpl(
     (ids ++ oids).distinct
   }
 
-  private def updatePac(model:FinancialsTransaction, pacList: List[DPAC])= {
+  private def updatePac(model: FinancialsTransaction, pacList: List[DPAC]) = {
     val dummyPac = PeriodicAccountBalance.dummy
-    model.lines.flatMap(line => {
-        val pacId = PeriodicAccountBalance.createId(model.getPeriod, line.account)
-        val poacId = PeriodicAccountBalance.createId(model.getPeriod, line.oaccount)
-        val pac = List(pacList.find(pac_ => pac_.id == pacId)).flatten.map(_.debiting(line.amount))
-        val poac = List(pacList.find(poac_ => poac_.id == poacId)).flatten.map(_.crediting(line.amount))
-        (pac++poac)
-      }).groupBy(_.id).map { case (_, v) => reduce(v, dummyPac) }
-      .filterNot(_.id == dummyPac.id).toList.distinct
-  
+    model.lines.flatMap { line =>
+      val pacId  = PeriodicAccountBalance.createId(model.getPeriod, line.account)
+      val poacId = PeriodicAccountBalance.createId(model.getPeriod, line.oaccount)
+      val pac    = List(pacList.find(pac_ => pac_.id == pacId)).flatten.map(_.debiting(line.amount))
+      val poac   = List(pacList.find(poac_ => poac_.id == poacId)).flatten.map(_.crediting(line.amount))
+      (pac ++ poac)
+    }.groupBy(_.id)
+      .map { case (_, v) => reduce(v, dummyPac) }
+      .filterNot(_.id == dummyPac.id)
+      .toList
+      .distinct
+
   }
 
   private def makeJournal(line: FTDetails, model: FinancialsTransaction, pac: DPAC, account: String, oaccount: String) =
@@ -125,7 +128,7 @@ final class FinancialsServiceImpl(
   private[this] def createJournalEntries(
     model: FinancialsTransaction,
     pacList: List[DPAC]
-  ): List[Journal] = model.lines.flatMap(line => {
+  ): List[Journal] = model.lines.flatMap { line =>
     val pacId      = PeriodicAccountBalance.createId(model.getPeriod, line.account)
     val poacId     = PeriodicAccountBalance.createId(model.getPeriod, line.oaccount)
     val dummyPac   = PeriodicAccountBalance.dummy
@@ -134,12 +137,11 @@ final class FinancialsServiceImpl(
     val jou1       = makeJournal(line, model, pac, line.account, line.oaccount)
     val jou2       = makeJournal(line, model, poac, line.oaccount, line.account)
     List(jou1, jou2)
-  })
+  }
 
 }
 
 object FinancialsServiceImpl {
-  val live
-    : ZLayer[PacRepository with TransactionRepository with JournalRepository, RepositoryError, FinancialsService] =
+  val live: ZLayer[PacRepository with TransactionRepository with JournalRepository, RepositoryError, FinancialsService] =
     ZLayer.fromFunction(new FinancialsServiceImpl(_, _, _))
 }

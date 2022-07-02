@@ -19,17 +19,17 @@ object AccountHttpRoutes {
           .runCollect
           .map(ch => Response.json(ch.toJson))
 
-      case Method.GET -> !! / "acc" / id/fromPeriod / toPeriod =>
-      AccountService.getBalances(id, fromPeriod.toInt, toPeriod.toInt, "1000").either.map {
+      case Method.GET -> !! / "acc" / id / fromPeriod / toPeriod           =>
+        AccountService.getBalances(id, fromPeriod.toInt, toPeriod.toInt, "1000").either.map {
           case Right(o) => Response.json(o.toJson)
-          case Left(e)  => Response.text(e.getMessage() + "ID" + id+ " fromPeriod: "+fromPeriod+ " toPeriod:"+toPeriod)
+          case Left(e)  => Response.text(e.getMessage() + "ID" + id + " fromPeriod: " + fromPeriod + " toPeriod:" + toPeriod)
         }
-      case Method.POST -> !! / "acc" / inStmtAccId/ fromPeriod / toPeriod =>
-      AccountService.closePeriod(fromPeriod.toInt, toPeriod.toInt, inStmtAccId, "1000").either.map {
-        case Right(o) => Response.json(o.toJson)
-        case Left(e)  => Response.text(e.getMessage() + "inStmtAccId" + inStmtAccId+ " fromPeriod: "+fromPeriod+ " toPeriod:"+toPeriod)
-      }
-      case Method.GET -> !! / "acc" / id   =>
+      case Method.POST -> !! / "acc" / inStmtAccId / fromPeriod / toPeriod =>
+        AccountService.closePeriod(fromPeriod.toInt, toPeriod.toInt, inStmtAccId, "1000").either.map {
+          case Right(o) => Response.json(o.toJson)
+          case Left(e)  => Response.text(e.getMessage() + "inStmtAccId" + inStmtAccId + " fromPeriod: " + fromPeriod + " toPeriod:" + toPeriod)
+        }
+      case Method.GET -> !! / "acc" / id                                   =>
         AccountRepository.getBy(id, "1000").either.map {
           case Right(o) => Response.json(o.toJson)
           case Left(e)  => Response.text(e.getMessage() + "ID" + id)

@@ -170,7 +170,7 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
   override def getByModelId(modelId: Int, companyId: String): ZIO[Any, RepositoryError, Journal] = {
     val selectAll = select(X)
       .from(journals)
-      .where( /*(modelid === modelId) &&*/ (company === companyId))
+      .where((modelid === modelId) && (company === companyId))
 
     ZIO.logInfo(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
       execute(selectAll.to((Journal.apply _).tupled))

@@ -23,29 +23,29 @@ object AccountRepository {
   type TYPE_ = Account
 
   def create(item: TYPE_): ZIO[AccountRepository, RepositoryError, Unit] =
-    ZIO.service[AccountRepository]flatMap(_.create(item))
+    ZIO.service[AccountRepository] flatMap (_.create(item))
 
   def create(items: List[TYPE_]): ZIO[AccountRepository, RepositoryError, Int] =
-    ZIO.service[AccountRepository]flatMap(_.create(items))
+    ZIO.service[AccountRepository] flatMap (_.create(items))
 
   def delete(item: String, company: String): ZIO[AccountRepository, RepositoryError, Int] =
-    ZIO.service[AccountRepository]flatMap(_.delete(item, company))
+    ZIO.service[AccountRepository] flatMap (_.delete(item, company))
 
   def delete(items: List[String], company: String): ZIO[AccountRepository, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
 
   def list(company: String): ZStream[AccountRepository, RepositoryError, TYPE_] =
-    ZStream.service[AccountRepository]flatMap(_.list(company))
+    ZStream.service[AccountRepository] flatMap (_.list(company))
 
   def getBy(id: String, company: String): ZIO[AccountRepository, RepositoryError, TYPE_] =
-    ZIO.service[AccountRepository]flatMap(_.getBy(id, company))
+    ZIO.service[AccountRepository] flatMap (_.getBy(id, company))
 
   def getByModelId(modelid: Int, company: String): ZIO[AccountRepository, RepositoryError, TYPE_] =
-    ZIO.service[AccountRepository]flatMap(_.getByModelId(modelid, company))
+    ZIO.service[AccountRepository] flatMap (_.getByModelId(modelid, company))
 
   def modify(model: TYPE_): ZIO[AccountRepository, RepositoryError, Int] =
-    ZIO.service[AccountRepository]flatMap(_.modify(model))
+    ZIO.service[AccountRepository] flatMap (_.modify(model))
 
   def modify(models: List[TYPE_]): ZIO[AccountRepository, RepositoryError, Int] =
-    ZIO.service[AccountRepository]flatMap(_.modify(models))
+    ZIO.service[AccountRepository] flatMap (_.modify(models))
 }

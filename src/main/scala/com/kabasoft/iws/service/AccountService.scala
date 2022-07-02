@@ -10,8 +10,7 @@ trait AccountService {
 }
 
 object AccountService {
-  def getBalances(accId: String, fromPeriod: Int, toPeriod: Int, company: String
-                 ): ZIO[AccountService, RepositoryError, List[Account]]=
+  def getBalances(accId: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[AccountService, RepositoryError, List[Account]] =
     ZIO.service[AccountService].flatMap(_.getBalances(accId, fromPeriod, toPeriod, company))
 
   def closePeriod(

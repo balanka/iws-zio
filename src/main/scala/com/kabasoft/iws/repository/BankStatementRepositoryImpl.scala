@@ -6,9 +6,7 @@ import zio.sql.ConnectionPool
 import com.kabasoft.iws.domain._
 import com.kabasoft.iws.domain.AppError._
 
-final class BankStatementRepositoryImpl(pool: ConnectionPool)
-    extends BankStatementRepository
-    with BankStatementTableDescription {
+final class BankStatementRepositoryImpl(pool: ConnectionPool) extends BankStatementRepository with BankStatementTableDescription {
 
   lazy val driverLayer = ZLayer
     .make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))

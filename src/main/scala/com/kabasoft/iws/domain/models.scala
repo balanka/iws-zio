@@ -3,15 +3,15 @@ package com.kabasoft.iws.domain
 import com.kabasoft.iws.domain.FinancialsTransaction.DerivedTransaction_Type
 import com.kabasoft.iws.domain.common.reduce
 
-import java.util.{Locale, UUID}
-import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
+import java.util.{ Locale, UUID }
+import java.time.{ Instant, LocalDate, LocalDateTime, ZoneId }
 import zio.prelude._
 import zio.stm._
 import zio._
 
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
-import scala.collection.immutable.{::, Nil}
+import scala.collection.immutable.{ ::, Nil }
 
 object common {
 
@@ -164,7 +164,7 @@ object Account {
       .filterNot(_.id == Account.dummy.id)
       .toList
 
-  def removeSubAccounts(account: Account): Account                                                        =
+  def removeSubAccounts(account: Account): Account =
     account.subAccounts.toList match {
       case Nil      => account
       case rest @ _ =>
@@ -174,7 +174,7 @@ object Account {
         else account
     }
 
-  def addSubAccounts(account: Account, accMap: Map[String, List[Account]]): Account                       =
+  def addSubAccounts(account: Account, accMap: Map[String, List[Account]]): Account =
     accMap.get(account.id) match {
       case Some(accList) => addSubAcc(account, accMap, accList)
       case None          =>
@@ -183,9 +183,8 @@ object Account {
         } else account
     }
 
-  private def addSubAcc(account: Account, accMap: Map[String, List[Account]], accList: List[Account]) = {
+  private def addSubAcc(account: Account, accMap: Map[String, List[Account]], accList: List[Account]) =
     account.copy(subAccounts = account.subAccounts ++ accList.map(x => addSubAccounts(x, accMap)))
-  }
 
   def getInitialDebitCredit(accId: String, pacs: List[PeriodicAccountBalance], side: Boolean): BigDecimal =
     pacs.find(x => x.account == accId) match {
@@ -211,7 +210,7 @@ object Account {
     }
 
   def unwrapDataTailRec(account: Account): List[Account] = {
-     //@tailrec
+    // @tailrec
     def unwrapData(res: List[Account]): List[Account] =
       res.flatMap(acc =>
         acc.subAccounts.toList match {
@@ -626,26 +625,25 @@ final case class PeriodicAccountBalance(
   company: String,
   modelid: Int = PeriodicAccountBalance.MODELID
 ) {
-  def debiting(amount: BigDecimal)   = copy(debit = debit.+(amount))
-  def crediting(amount: BigDecimal)  = copy(credit = credit.+(amount))
-  def idebiting(amount: BigDecimal)  = copy(idebit = idebit.+(amount))
-  def icrediting(amount: BigDecimal) = copy(icredit = icredit.+(amount))
-  def fdebit                         = debit + idebit
-  def fcredit                        = credit + icredit
-  def dbalance                       = fdebit - fcredit
-  def cbalance                       = fcredit - fdebit
+  def debiting(amount: BigDecimal)         = copy(debit = debit.+(amount))
+  def crediting(amount: BigDecimal)        = copy(credit = credit.+(amount))
+  def idebiting(amount: BigDecimal)        = copy(idebit = idebit.+(amount))
+  def icrediting(amount: BigDecimal)       = copy(icredit = icredit.+(amount))
+  def fdebit                               = debit + idebit
+  def fcredit                              = credit + icredit
+  def dbalance                             = fdebit - fcredit
+  def cbalance                             = fcredit - fdebit
   override def equals(other: Any): Boolean = other match {
     case pac: PeriodicAccountBalance =>
       this.id == pac.id
-    case _ => false
+    case _                           => false
   }
 
 }
 
 object PeriodicAccountBalance {
   import zio.prelude._
-  type PAC_Type=(String,String,Int, BigDecimal,BigDecimal,BigDecimal,BigDecimal,String,String,Int)
-
+  type PAC_Type = (String, String, Int, BigDecimal, BigDecimal, BigDecimal, BigDecimal, String, String, Int)
 
   val MODELID                                   = 106
   val zeroAmount                                = BigDecimal(0)
@@ -677,7 +675,7 @@ object PeriodicAccountBalance {
       currency,
       PeriodicAccountBalance.MODELID
     )
-  def create(model: FinancialsTransaction)                                                              = {
+  def create(model: FinancialsTransaction)                                                              =
     model.lines.flatMap { line =>
       List(
         PeriodicAccountBalance.apply(
@@ -707,9 +705,9 @@ object PeriodicAccountBalance {
       )
     }.groupBy((_.id))
       .map { case (_, v) => reduce(v, PeriodicAccountBalance.dummy) }
-      .filterNot(_.id == PeriodicAccountBalance.dummy.id).toList
-  }
-  def applyX(p:PAC_Type)=PeriodicAccountBalance(p._1,p._2,p._3,p._4,p._5,p._6,p._7,p._8,p._9,p._10)
+      .filterNot(_.id == PeriodicAccountBalance.dummy.id)
+      .toList
+  def applyX(p: PAC_Type)                                                                               = PeriodicAccountBalance(p._1, p._2, p._3, p._4, p._5, p._6, p._7, p._8, p._9, p._10)
 }
 
 sealed trait BusinessPartner        {
@@ -930,9 +928,7 @@ object FinancialsTransaction {
 
   def applyL(transactions: List[FinancialsTransactionDetails.FTX2]): List[FinancialsTransaction] =
     transactions
-      .groupBy(rc =>
-        (rc._1, rc._2, rc._3, rc._4, rc._5, rc._6, rc._7, rc._8, rc._9, rc._10, rc._11, rc._12, rc._13, rc._14)
-      )
+      .groupBy(rc => (rc._1, rc._2, rc._3, rc._4, rc._5, rc._6, rc._7, rc._8, rc._9, rc._10, rc._11, rc._12, rc._13, rc._14))
       .map { case (k, v) =>
         new FinancialsTransaction(
           k._1,
