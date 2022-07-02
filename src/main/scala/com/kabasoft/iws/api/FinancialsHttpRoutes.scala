@@ -29,7 +29,7 @@ object FinancialsHttpRoutes {
           case Right(o) => Response.json(o.toJson)
           case Left(e)  => Response.text(e.getMessage() + "fromPeriod:" + fromPeriod + "toPeriod:" + toPeriod)
         }
-      case Method.POST -> !! / "ftr" / id                   =>
+      case Method.POST -> !! / "ftr" /"post"/ id                   =>
         FinancialsService.post(id.toLong, "1000").either.map {
           case Right(o) => Response.json(o.toJson)
           case Left(e)  => Response.text(e.getMessage() + "id:" + id)
