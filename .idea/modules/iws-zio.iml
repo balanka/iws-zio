@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module external.linked.project.id="root [file:/Users/iwsmac/Downloads/tools/scala/samples/zio/iws-zio/]" external.linked.project.path="$MODULE_DIR$/../.." external.root.project.path="$MODULE_DIR$/../.." external.system.id="SBT" type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_19">
+    <output url="file://$MODULE_DIR$/../../target/scala-2.13/classes" />
+    <output-test url="file://$MODULE_DIR$/../../target/scala-2.13/test-classes" />
+    <exclude-output />
+    <content url="file://$MODULE_DIR$/../..">
+      <sourceFolder url="file://$MODULE_DIR$/../../src/main/resources" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/../../src/main/scala" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../../src/test/scala" isTestSource="true" />
+      <excludeFolder url="file://$MODULE_DIR$/../../target/global-logging" />
+      <excludeFolder url="file://$MODULE_DIR$/../../target/streams" />
+      <excludeFolder url="file://$MODULE_DIR$/../../target/task-temp-directory" />
+      <excludeFolder url="file://$MODULE_DIR$/../../target/test-reports" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" scope="TEST" name="sbt: com.dimafeng:testcontainers-scala-core_2.13:0.39.12:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: com.dimafeng:testcontainers-scala-jdbc_2.13:0.39.12:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: com.dimafeng:testcontainers-scala-postgresql_2.13:0.39.12:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: com.fasterxml.jackson.core:jackson-annotations:2.10.3:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: com.github.docker-java:docker-java-api:3.2.12:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: com.github.docker-java:docker-java-transport-zerodep:3.2.12:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: com.github.docker-java:docker-java-transport:3.2.12:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.propensive:magnolia_2.13:0.17.0:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.propensive:mercator_2.13:0.2.1:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.typesafe:config:1.4.2:jar" level="project" />
+    <orderEntry type="library" name="sbt: dev.zio:izumi-reflect-thirdparty-boopickle-shaded_2.13:2.1.3:jar" level="project" />
+    <orderEntry type="library" name="sbt: dev.zio:izumi-reflect_2.13:2.1.3:jar" level="project" />
+    <orderEntry type="library" name="sbt: dev.zio:zio-config-derivation_2.13:3.0.1:jar" level="project" />
+    <orderEntry type="library" name="sbt: dev.zio:zio-config-magnolia_2.13:3.0.1:jar" level="project" />
+    <orderEntry type="library" name="sbt: dev.zio:zio-config-typesafe_2.13:3.0.1:jar" level="project" />
+    <orderEntry type="library" name="sbt: dev.zio:zio-config_2.13:3.0.1:jar" level="project" />
+    <orderEntry type="library" name="sbt: dev.zio:zio-internal-macros_2.13:2.0.2:jar" level="project" />
+    <orderEntry type="library" name="sbt: dev.zio:zio-json_2.13:0.3.0:jar" level="project" />
+    <orderEntry type="library" name="sbt: dev.zio:zio-prelude-macros_2.13:1.0.0-RC15:jar" level="project" />
+    <orderEntry type="library" name="sbt: dev.zio:zio-prelude_2.13:1.0.0-RC15:jar" level="project" />
+    <orderEntry type="library" name="sbt: dev.zio:zio-schema-derivation_2.13:0.2.1:jar" level="project" />
+    <orderEntry type="library" name="sbt: dev.zio:zio-schema-macros_2.13:0.2.1:jar" level="project" />
+    <orderEntry type="library" name="sbt: dev.zio:zio-schema_2.13:0.2.1:jar" level="project" />
+    <orderEntry type="library" name="sbt: dev.zio:zio-sql-driver_2.13:0.0.3+0-2ff7deed+20221013-1513-SNAPSHOT:jar" level="project" />
+    <orderEntry type="library" name="sbt: dev.zio:zio-sql-jdbc_2.13:0.0.3+0-2ff7deed+20221013-1513-SNAPSHOT:jar" level="project" />
+    <orderEntry type="library" name="sbt: dev.zio:zio-sql-postgres_2.13:0.0.3+0-2ff7deed+20221013-1513-SNAPSHOT:jar" level="project" />
+    <orderEntry type="library" name="sbt: dev.zio:zio-sql_2.13:0.0.3+0-2ff7deed+20221013-1513-SNAPSHOT:jar" level="project" />
+    <orderEntry type="library" name="sbt: dev.zio:zio-stacktracer_2.13:2.0.2:jar" level="project" />
+    <orderEntry type="library" name="sbt: dev.zio:zio-streams_2.13:2.0.2:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: dev.zio:zio-test-junit_2.13:2.0.2:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: dev.zio:zio-test-sbt_2.13:2.0.2:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: dev.zio:zio-test_2.13:2.0.2:jar" level="project" />
+    <orderEntry type="library" name="sbt: dev.zio:zio_2.13:2.0.2:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.d11:zhttp-logging_2.13:2.0.0-RC11:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: io.d11:zhttp-test_2.13:2.0.0-RC9:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.d11:zhttp_2.13:2.0.0-RC11:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty.incubator:netty-incubator-transport-classes-io_uring:0.0.14.Final:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty.incubator:netty-incubator-transport-native-io_uring:0.0.14.Final:linux-x86_64:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-buffer:4.1.80.Final:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-codec-http:4.1.80.Final:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-codec-socks:4.1.80.Final:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-codec:4.1.80.Final:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-common:4.1.80.Final:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-handler-proxy:4.1.80.Final:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-handler:4.1.80.Final:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-resolver:4.1.80.Final:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-transport-classes-epoll:4.1.80.Final:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-transport-classes-kqueue:4.1.80.Final:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-transport-native-epoll:4.1.80.Final:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-transport-native-epoll:4.1.80.Final:linux-aarch_64:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-transport-native-epoll:4.1.80.Final:linux-x86_64:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-transport-native-kqueue:4.1.80.Final:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-transport-native-kqueue:4.1.80.Final:osx-aarch_64:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-transport-native-kqueue:4.1.80.Final:osx-x86_64:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-transport-native-unix-common:4.1.80.Final:jar" level="project" />
+    <orderEntry type="library" name="sbt: io.netty:netty-transport:4.1.80.Final:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: junit:junit:4.13.2:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: net.java.dev.jna:jna:5.8.0:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: org.apache.commons:commons-compress:1.21:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.checkerframework:checker-qual:3.5.0:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: org.hamcrest:hamcrest-core:1.3:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: org.jetbrains:annotations:17.0.0:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: org.portable-scala:portable-scala-reflect_2.13:1.1.2:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.postgresql:postgresql:42.5.0:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: org.rnorth.duct-tape:duct-tape:1.0.8:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.scala-lang.modules:scala-collection-compat_2.13:2.8.1:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.scala-lang:scala-library:2.13.9:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.scala-lang:scala-reflect:2.13.9:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: org.scala-sbt:test-interface:1.0:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: org.slf4j:slf4j-api:1.7.32:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: org.testcontainers:database-commons:1.16.2:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: org.testcontainers:jdbc:1.16.2:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: org.testcontainers:postgresql:1.16.2:jar" level="project" />
+    <orderEntry type="library" scope="TEST" name="sbt: org.testcontainers:testcontainers:1.16.2:jar" level="project" />
+    <orderEntry type="module-library">
+      <library name="sbt: unmanaged-sources-and-docs">
+        <CLASSES />
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$USER_HOME$/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/netty/incubator/netty-incubator-transport-native-io_uring/0.0.14.Final/netty-incubator-transport-native-io_uring-0.0.14.Final-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+  </component>
+</module>
