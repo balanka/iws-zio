@@ -1,7 +1,7 @@
 package com.kabasoft.iws.repository
 
-import com.kabasoft.iws.repository.common.AccountBuilder.company
-import com.kabasoft.iws.repository.common.TransactionBuilder.pacs
+import com.kabasoft.iws.domain.AccountBuilder.company
+import com.kabasoft.iws.domain.TransactionBuilder.pacs
 import com.kabasoft.iws.repository.postgresql.PostgresContainer
 import zio.ZLayer
 import zio.sql.ConnectionPool
@@ -31,6 +31,6 @@ object PacRepositoryLiveSpec extends ZIOSpecDefault {
 
         } yield assertTrue(nrCreatedRow==2) && assertTrue(row.size==1)
       }
-    ).provideCustomLayerShared(testLayer.orDie) @@ sequential
+    ).provideLayerShared(testLayer.orDie) @@ sequential
 
 }

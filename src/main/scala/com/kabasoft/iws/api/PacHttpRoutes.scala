@@ -25,7 +25,7 @@ object PacHttpRoutes {
         }
       case req @ Method.POST -> !! / "pac" =>
         (for {
-          body <- req.bodyAsString
+          body <- req.body.asString
                     .flatMap(request =>
                       ZIO
                         .fromEither(request.fromJson[PeriodicAccountBalance])

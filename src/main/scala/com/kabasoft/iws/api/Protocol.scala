@@ -9,31 +9,44 @@ object Protocol {
 
   final case class Customers(customers: Chunk[Customer])
 
+  final case class BankAccounts(bankAccounts: List[BankAccount])
+
   final case class CustomerWrapper(customers: List[CustomerWithOrderDate])
 
   final case class BankStatements(bankStatements: Chunk[BankStatement])
-  final case class Datas(data: Chunk[Daten])
-  final case class BaseDatas(baseData: Chunk[BaseData])
+  final case class Banks(banks: List[Bank])
+  final case class Datas(data: List[Daten])
+  final case class BaseDatas(baseData: List[BaseData])
 
-  final case class Accounts(accounts: Chunk[Account])
+  final case class Accounts(accounts: Set[Account])
+
   final case class Journals(journals: Chunk[Journal])
-  final case class CustomerCountWrapper(
-    customers: List[CustomerWithOrderNumber]
-  )
-  implicit val accountEncoder: JsonEncoder[Account] = DeriveJsonEncoder.gen[Account]
-  implicit val accountDecoder: JsonDecoder[Account] = DeriveJsonDecoder.gen[Account]
+  final case class CustomerCountWrapper(customers: List[CustomerWithOrderNumber])
 
-  implicit val baseDataEncoder: JsonEncoder[BaseData] = DeriveJsonEncoder.gen[BaseData]
-  implicit val baseDataDecoder: JsonDecoder[BaseData] = DeriveJsonDecoder.gen[BaseData]
+  implicit val moduleDecoder: JsonDecoder[Module] = DeriveJsonDecoder.gen[Module]
+  implicit val moduleEncoder: JsonEncoder[Module] = DeriveJsonEncoder.gen[Module]
 
-  implicit val datenEncoder: JsonEncoder[Daten] = DeriveJsonEncoder.gen[Daten]
-  implicit val datenDecoder: JsonDecoder[Daten] = DeriveJsonDecoder.gen[Daten]
+  implicit val bankAccountEncoder: JsonEncoder[BankAccount]   = DeriveJsonEncoder.gen[BankAccount]
+  implicit val bankAccountDecoder: JsonDecoder[BankAccount]   = DeriveJsonDecoder.gen[BankAccount]
+  implicit val bankAccountsEncoder: JsonEncoder[BankAccounts] = DeriveJsonEncoder.gen[BankAccounts]
+  implicit val bankAccountsDecoder: JsonDecoder[BankAccounts] = DeriveJsonDecoder.gen[BankAccounts]
+  implicit val supplierEncoder: JsonEncoder[Supplier]         = DeriveJsonEncoder.gen[Supplier]
+  implicit val supplierDecoder: JsonDecoder[Supplier]         = DeriveJsonDecoder.gen[Supplier]
+
+  implicit lazy val accountEncoder: JsonEncoder[Account] = DeriveJsonEncoder.gen[Account]
+  implicit lazy val accountDecoder: JsonDecoder[Account] = DeriveJsonDecoder.gen[Account]
+  implicit lazy val accountsEncoder: JsonEncoder[Accounts] = DeriveJsonEncoder.gen[Accounts]
+  implicit lazy val accountsDecoder: JsonDecoder[Accounts] = DeriveJsonDecoder.gen[Accounts]
+
 
   implicit val vatEncoder: JsonEncoder[Vat] = DeriveJsonEncoder.gen[Vat]
   implicit val vatDecoder: JsonDecoder[Vat] = DeriveJsonDecoder.gen[Vat]
 
   implicit val bankEncoder: JsonEncoder[Bank] = DeriveJsonEncoder.gen[Bank]
   implicit val bankDecoder: JsonDecoder[Bank] = DeriveJsonDecoder.gen[Bank]
+
+  implicit val banksEncoder: JsonEncoder[Banks] = DeriveJsonEncoder.gen[Banks]
+  implicit val banksDecoder: JsonDecoder[Banks] = DeriveJsonDecoder.gen[Banks]
 
   implicit val bankStatementEncoder: JsonEncoder[BankStatement] = DeriveJsonEncoder.gen[BankStatement]
   implicit val bankStatementDecoder: JsonDecoder[BankStatement] = DeriveJsonDecoder.gen[BankStatement]
@@ -43,6 +56,8 @@ object Protocol {
 
   implicit val customerEncoder: JsonEncoder[Customer] = DeriveJsonEncoder.gen[Customer]
   implicit val customerDecoder: JsonDecoder[Customer] = DeriveJsonDecoder.gen[Customer]
+  implicit val oldcustomerEncoder: JsonEncoder[Customer_OLD] = DeriveJsonEncoder.gen[Customer_OLD]
+  implicit val oldcustomerDecoder: JsonDecoder[Customer_OLD] = DeriveJsonDecoder.gen[Customer_OLD]
 
   implicit val financialsEncoder: JsonEncoder[DerivedTransaction] = DeriveJsonEncoder.gen[DerivedTransaction]
   implicit val financialsDecoder: JsonDecoder[DerivedTransaction] = DeriveJsonDecoder.gen[DerivedTransaction]
@@ -53,17 +68,13 @@ object Protocol {
   implicit val orderEncoder: JsonEncoder[Order] = DeriveJsonEncoder.gen[Order]
   implicit val orderDecoder: JsonDecoder[Order] = DeriveJsonDecoder.gen[Order]
 
-  implicit val ordersEncoder: JsonEncoder[Orders] =
-    DeriveJsonEncoder.gen[Orders]
+  implicit val ordersEncoder: JsonEncoder[Orders] = DeriveJsonEncoder.gen[Orders]
 
-  implicit val bankStatementsEncoder: JsonEncoder[BankStatements] =
-    DeriveJsonEncoder.gen[BankStatements]
+  implicit val bankStatementsEncoder: JsonEncoder[BankStatements] = DeriveJsonEncoder.gen[BankStatements]
 
-  implicit val orderDetailEncoder: JsonEncoder[OrderDetail] =
-    DeriveJsonEncoder.gen[OrderDetail]
+  implicit val orderDetailEncoder: JsonEncoder[OrderDetail] = DeriveJsonEncoder.gen[OrderDetail]
 
-  implicit val customerWithOrderDateEncoder: JsonEncoder[CustomerWithOrderDate] =
-    DeriveJsonEncoder.gen[CustomerWithOrderDate]
+  implicit val customerWithOrderDateEncoder: JsonEncoder[CustomerWithOrderDate] = DeriveJsonEncoder.gen[CustomerWithOrderDate]
 
   implicit val customerWrapperEncoder: JsonEncoder[CustomerWrapper] =
     DeriveJsonEncoder.gen[CustomerWrapper]
@@ -74,6 +85,4 @@ object Protocol {
   implicit val customerCountWrapperEncoder: JsonEncoder[CustomerCountWrapper] =
     DeriveJsonEncoder.gen[CustomerCountWrapper]
 
-  implicit val customersEncoder: JsonEncoder[Customers] =
-    DeriveJsonEncoder.gen[Customers]
 }

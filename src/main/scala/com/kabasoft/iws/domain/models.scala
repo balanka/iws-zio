@@ -1,8 +1,8 @@
 package com.kabasoft.iws.domain
 
 import com.kabasoft.iws.domain.FinancialsTransaction.DerivedTransaction_Type
-import com.kabasoft.iws.domain.common.reduce
-
+import com.kabasoft.iws.domain.common._
+//import com.kabasoft.iws.domain.common.{ reduce, Balance_Type }
 import java.util.{ Locale, UUID }
 import java.time.{ Instant, LocalDate, LocalDateTime, ZoneId }
 import zio.prelude._
@@ -15,14 +15,36 @@ import scala.collection.immutable.{ ::, Nil }
 
 object common {
 
-  type Amount = scala.math.BigDecimal
+  // type Amount = scala.math.BigDecimal
+
+  // def groupingFn [A] = reduce[A]
 
   def reduce[A: Identity](all: Iterable[A], dummy: A): A =
     all.toList match {
       case Nil     => dummy
       case x :: xs => NonEmptyList.fromIterable(x, xs).reduce
     }
+  //type Balance_Type = (BigDecimal, BigDecimal, BigDecimal, BigDecimal)
+  //val Balance_dummy                                      = (BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0))
+  implicit val accMonoid: Identity[Account]              = new Identity[Account] {
+    def identity: Account                       = Account.dummy
+    def combine(m1: => Account, m2: => Account) =
+      m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
+  }
 
+ /* implicit val balanceMonoid: Identity[Balance_Type] = new Identity[Balance_Type] {
+    def identity: Balance_Type                            = Balance_dummy
+    def combine(m1: => Balance_Type, m2: => Balance_Type) =
+      new Balance_Type(m1._1 + m2._1, m1._2 + m2._2, m1._3 + m2._3, m1._4 + m2._4)
+  }
+
+  */
+
+  implicit val pacMonoid: Identity[PeriodicAccountBalance] = new Identity[PeriodicAccountBalance] {
+    def identity: PeriodicAccountBalance                                      = PeriodicAccountBalance.dummy
+    def combine(m1: => PeriodicAccountBalance, m2: => PeriodicAccountBalance) =
+      m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
+  }
 
   def getMonthAsString(month: Int): String       =
     if (month <= 9) {
@@ -36,6 +58,26 @@ object common {
     year.toString.concat(getMonthAsString(instant)).toInt
   }
 }
+
+final case class Account1(
+                          id: String,
+                          name: String,
+                          description: String,
+                          enterdate: Instant = Instant.now(),
+                          changedate: Instant = Instant.now(),
+                          postingdate: Instant = Instant.now(),
+                          company: String,
+                          modelid: Int = 9,
+                          account: String = "",
+                          isDebit: Boolean,
+                          balancesheet: Boolean,
+                          currency: String = "EUR ",
+                          idebit: BigDecimal = BigDecimal(0),
+                          icredit: BigDecimal = BigDecimal(0),
+                          debit: BigDecimal = BigDecimal(0),
+                          credit: BigDecimal = BigDecimal(0),
+                          subAccounts: Set[Account1] = Set.empty[Account1]
+                        )
 
 final case class Account(
   id: String,
@@ -83,18 +125,23 @@ final case class Account(
   def updateBalance(acc: Account): Account =
     idebiting(acc.idebit).icrediting(acc.icredit).debiting(acc.debit).crediting(acc.credit)
 
+ // def updateBalance(acc: Balance_Type): Account =
+ //   idebiting(acc._1).icrediting(acc._2).debiting(acc._3).crediting(acc._4)
+
+  //import common._
   def childBalances: BigDecimal =
     if (subAccounts.nonEmpty) { reduce(subAccounts, Account.dummy).balance }
     else {
       BigDecimal.apply(0)
     }
 
-  def getChildren(): Set[Account] = subAccounts.toList match {
+  def getChildren: Set[Account] = subAccounts.toList match {
     case Nil     => Set(copy(id = id))
-    case x :: xs => Set(x) ++ xs.flatMap(_.getChildren())
+    case x :: xs => Set(x) ++ xs.flatMap(_.getChildren)
   }
 }
 object Account {
+  import common._
   val MODELID = 9
   type Account_Type = (
     String,
@@ -218,6 +265,12 @@ object Account {
     unwrapData(account.subAccounts.toList)
   }
 
+  def withChildren(accId: String, accList: List[Account]): Account =
+    accList.find(x => x.id == accId) match {
+      case Some(acc) => List(acc).foldMap(addSubAccounts(_, accList.groupBy(_.account))).copy(id = accId)
+      case None      => Account.dummy
+    }
+  /*
   def wrapAsData(account: Account): Daten =
     account.subAccounts.toList match {
       case Nil      => Daten(BaseData(account))
@@ -231,24 +284,8 @@ object Account {
       case account :: _ => account
     }
 
-  def consolidate(accId: String, accList: List[Account], pacs: List[PeriodicAccountBalance]): Account = {
-    val accMap = accList.groupBy(_.account)
-    accList.find(x => x.id == accId) match {
-      case Some(acc) =>
-        val x: Account = addSubAccounts(acc, accMap) // List(acc)
-        val y          = getAllSubBalances(x, pacs)
-        val z          = removeSubAccounts(y.copy(id = acc.id))
-        z
-      case None      => Account.dummy
-    }
-  }
 
-  def withChildren(accId: String, accList: List[Account]): Account =
-    accList.find(x => x.id == accId) match {
-      case Some(acc) => List(acc).foldMap(addSubAccounts(_, accList.groupBy(_.account))).copy(id = accId)
-      case None      => Account.dummy
-    }
-
+*/
   def flattenTailRec(ls: Set[Account]): Set[Account] = {
     // @tailrec
     def flattenR(res: List[Account], rem: List[Account]): List[Account] = rem match {
@@ -259,25 +296,6 @@ object Account {
   }
 
   // implicit def reduce[A: Identity](as: NonEmptyList[A]): A = as.reduce
-  type Balance_Type = (BigDecimal, BigDecimal, BigDecimal, BigDecimal)
-  val Balance_dummy                         = (BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0))
-  implicit val accMonoid: Identity[Account] = new Identity[Account] {
-    def identity: Account                       = Account.dummy
-    def combine(m1: => Account, m2: => Account) =
-      m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
-  }
-
-  implicit val balanceMonoid: Identity[Balance_Type] = new Identity[Balance_Type] {
-    def identity: Balance_Type                            = Balance_dummy
-    def combine(m1: => Balance_Type, m2: => Balance_Type) =
-      new Balance_Type(m1._1 + m2._1, m1._2 + m2._2, m1._3 + m2._3, m1._4 + m2._4)
-  }
-
-  implicit val pacMonoid: Identity[PeriodicAccountBalance] = new Identity[PeriodicAccountBalance] {
-    def identity: PeriodicAccountBalance                                      = PeriodicAccountBalance.dummy
-    def combine(m1: => PeriodicAccountBalance, m2: => PeriodicAccountBalance) =
-      m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
-  }
 
 }
 final case class BaseData(
@@ -329,7 +347,7 @@ final case class Order(
   date: LocalDate
 )
 
-final case class Customer(
+final case class Customer_OLD(
   id: UUID,
   fname: String,
   lname: String,
@@ -349,6 +367,8 @@ final case class ProductPrice(
   effective: LocalDate,
   price: Double
 )
+
+final case class Person(name: String, age: Int)
 
 final case class OrderDetail(
   orderId: UUID,
@@ -390,6 +410,10 @@ final case class Bank(
   company: String
 )
 final case class BankAccount(id: String, bic: String, owner: String, company: String, modelid: Int = 12)
+object BankAccount   {
+  import scala.math.Ordering
+  implicit def ordering[A <: BankAccount]: Ordering[A] = Ordering.by(e => (e.id, e.bic, e.owner, e.company))
+}
 final case class BankStatement(
   id: Long,
   depositor: String,
@@ -541,7 +565,17 @@ object BankStatement {
   }
 
 }
-
+final case class Module(
+                       id: String,
+                       name: String = "",
+                       description: String = "",
+                       path: String = "",
+                       enterdate: Instant = Instant.now(),
+                       changedate: Instant = Instant.now(),
+                       postingdate: Instant = Instant.now(),
+                       modelid: Int = 300,
+                       company: String
+                     )
 final case class Vat(
   id: String,
   name: String = "",
@@ -707,7 +741,7 @@ object PeriodicAccountBalance {
   def applyX(p: PAC_Type)                                                                               = PeriodicAccountBalance(p._1, p._2, p._3, p._4, p._5, p._6, p._7, p._8, p._9, p._10)
 }
 
-sealed trait BusinessPartner        {
+sealed trait BusinessPartner {
   def id: String
   def name: String
   def description: String
@@ -734,9 +768,9 @@ final case class Supplier(
   name: String,
   description: String,
   street: String,
+  zip: String,
   city: String,
   state: String,
-  zip: String,
   country: String,
   phone: String,
   email: String,
@@ -749,16 +783,62 @@ final case class Supplier(
   enterdate: Instant = Instant.now(),
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now(),
-  bankaccounts: List[BankAccount] = Nil
+  bankaccounts: List[BankAccount] = List.empty[BankAccount]
 ) extends BusinessPartner
-final case class customerX(
+object Supplier                     {
+  type TYPE = (
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    Int,
+    Instant,
+    Instant,
+    Instant
+  )
+  def apply(c: TYPE): Supplier =
+    Supplier(
+      c._1,
+      c._2,
+      c._3,
+      c._4,
+      c._5,
+      c._6,
+      c._7,
+      c._8,
+      c._9,
+      c._10,
+      c._11,
+      c._12,
+      c._13,
+      c._14,
+      c._15,
+      c._16,
+      c._17,
+      c._18,
+      c._19,
+      List.empty[BankAccount]
+    )
+}
+final case class Customer(
   id: String,
   name: String,
   description: String,
   street: String,
+  zip: String,
   city: String,
   state: String,
-  zip: String,
   country: String,
   phone: String,
   email: String,
@@ -771,8 +851,55 @@ final case class customerX(
   enterdate: Instant = Instant.now(),
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now(),
-  bankaccounts: List[BankAccount] = Nil
+  bankaccounts: List[BankAccount] = List.empty[BankAccount]
 ) extends BusinessPartner
+object Customer                     {
+  type TYPE = (
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    Int,
+    Instant,
+    Instant,
+    Instant
+  )
+
+  def apply(c: TYPE): Customer =
+    Customer(
+      c._1,
+      c._2,
+      c._3,
+      c._4,
+      c._5,
+      c._6,
+      c._7,
+      c._8,
+      c._9,
+      c._10,
+      c._11,
+      c._12,
+      c._13,
+      c._14,
+      c._15,
+      c._16,
+      c._17,
+      c._18,
+      c._19,
+      List.empty[BankAccount]
+    )
+}
 
 final case class FinancialsTransactionDetails(
   lid: Long,
@@ -859,6 +986,7 @@ object FinancialsTransactionDetails {
 object FinancialsTransaction {
   type FinancialsTransaction_Type  =
     (Long, Long, String, String, Instant, Instant, Instant, Int, Boolean, Int, String, String, Int, Int)
+
   type FinancialsTransaction_Type2 = (
     Long,
     Long,
@@ -1043,3 +1171,89 @@ final case class Journal(
   file: Int = 0,
   modelid: Int
 )
+
+final case class Company(
+  id: String,
+  name: String,
+  street: String,
+  zip: String,
+  city: String,
+  state: String,
+ // country: String,
+  phone: String,
+  fax: String,
+  email: String,
+  partner: String,
+  locale: String,
+  bankAcc: String,
+  taxCode: String,
+  vatCode: String,
+  currency: String,
+  enterdate: Instant = Instant.now(),
+  balanceSheetAcc: String,
+  incomeStmtAcc: String,
+  modelid: Int = 10
+  /*
+  postingdate: Instant = Instant.now(),
+  changedate: Instant = Instant.now(),
+                          purchasingClearingAcc: String,
+                           salesClearingAcc: String,
+                           paymentClearingAcc: String,
+                           settlementClearingAcc: String,
+                           balanceSheetAcc: String,
+                           incomeStmtAcc: String,
+                           cashAcc: String,
+                          pageHeaderText: String,
+                          pageFooterText: String,
+                          headerText: String,
+                          footerText: String,
+                          logoContent: String,
+                          logoName: String,
+                          contentType: String,
+                          //bankaccounts: List[BankAccount] = Nil
+   */
+)
+object Company               {
+  type TYPE = (
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    Instant,
+    String,
+    String,
+    Int
+  )
+  def apply(c: TYPE): Company = Company(
+    c._1,
+    c._2,
+    c._3,
+    c._4,
+    c._5,
+    c._6,
+    c._7,
+    c._8,
+    c._9,
+    c._10,
+    c._11,
+    c._12,
+    c._13,
+    c._14,
+    c._15,
+    c._16,
+    c._17,
+    c._18,
+    c._19
+  )
+}

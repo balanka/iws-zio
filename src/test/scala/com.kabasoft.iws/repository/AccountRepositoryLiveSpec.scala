@@ -1,7 +1,7 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.Account
-import com.kabasoft.iws.repository.common.AccountBuilder.{company, faccountId, fname}
+import com.kabasoft.iws.domain.AccountBuilder.{company, faccountId, fname}
 import com.kabasoft.iws.repository.postgresql.PostgresContainer
 import zio.ZLayer
 import zio.sql.ConnectionPool
@@ -44,5 +44,5 @@ object AccountRepositoryLiveSpec extends ZIOSpecDefault {
           stmt <- AccountRepository.getBy(faccountId,company)
         } yield assertTrue(stmt.name == fname) && assertTrue(stmt.id == faccountId)
       }
-    ).provideCustomLayerShared(testLayer.orDie) @@ sequential
+    ).provideLayerShared(testLayer.orDie) @@ sequential
 }

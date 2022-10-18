@@ -32,6 +32,11 @@ final class FinancialsServiceImpl(
       all     <- ZIO.foreach(models)(postTransaction(_, company))
     } yield all
 
+  override def journal(accountId: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[Journal]] =
+    for {
+      queries <- journalRepo.find4Period(accountId, fromPeriod, toPeriod, company).runCollect.map(_.toList)
+    } yield queries
+
   def getBy(id: String, company: String): ZIO[Any, RepositoryError, PeriodicAccountBalance] =
     pacRepo.getBy(id, company)
 
@@ -44,16 +49,9 @@ final class FinancialsServiceImpl(
     company: String
   ): ZIO[Any, RepositoryError, List[Int]] =
     for {
-      queries <- ftrRepo.find4Period(fromPeriod, toPeriod, company).runCollect
-      models   = FinancialsTransaction.applyD(queries.toList.map(DerivedTransaction.unapply(_).get))
-      all     <- ZIO.foreach(models)(trans => postTransaction(trans, company))
-    } yield all
-
-  // override def post(model: DerivedTransaction, company: String): ZIO[Any, RepositoryError, List[Int]] =
-  //   postAll(List(model.id), company)
-
-  // override def post(model: FinancialsTransaction, company: String): ZIO[Any, RepositoryError, Int] =
-  //   postTransaction(model, company)
+      models <- ftrRepo.find4Period(fromPeriod, toPeriod, company).runCollect
+      nr     <- ZIO.foreach(models)(trans => postTransaction(trans, company)).map(_.toList)
+    } yield nr
 
   override def post(id: Long, company: String): ZIO[Any, RepositoryError, Int] =
     for {

@@ -36,7 +36,7 @@ object FinancialsHttpRoutes {
         }
       case req @ Method.POST -> !! / "ftr"                  =>
         (for {
-          body <- req.bodyAsString
+          body <- req.body.asString
                     .flatMap(request =>
                       ZIO
                         .fromEither(request.fromJson[DerivedTransaction])

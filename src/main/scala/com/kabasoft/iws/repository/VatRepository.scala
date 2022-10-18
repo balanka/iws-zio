@@ -23,22 +23,22 @@ object VatRepository {
 
   type TYPE_ = Vat
   def create(item: TYPE_): ZIO[VatRepository, RepositoryError, Unit]                               =
-    ZIO.serviceWithZIO[VatRepository](_.create(item))
+    ZIO.service[VatRepository]flatMap(_.create(item))
   def create(items: List[TYPE_]): ZIO[VatRepository, RepositoryError, Int]                         =
-    ZIO.serviceWithZIO[VatRepository](_.create(items))
+    ZIO.service[VatRepository]flatMap(_.create(items))
   def delete(item: String, company: String): ZIO[VatRepository, RepositoryError, Int]              =
-    ZIO.serviceWithZIO[VatRepository](_.delete(item, company))
+    ZIO.service[VatRepository]flatMap(_.delete(item, company))
   def delete(items: List[String], company: String): ZIO[VatRepository, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
   def list(company: String): ZStream[VatRepository, RepositoryError, TYPE_]                        =
-    ZStream.serviceWithStream[VatRepository](_.list(company))
+    ZStream.service[VatRepository]flatMap(_.list(company))
   def getBy(id: String, company: String): ZIO[VatRepository, RepositoryError, TYPE_]               =
-    ZIO.serviceWithZIO[VatRepository](_.getBy(id, company))
+    ZIO.service[VatRepository]flatMap(_.getBy(id, company))
   def getByModelId(modelid: Int, company: String): ZIO[VatRepository, RepositoryError, TYPE_]      =
-    ZIO.serviceWithZIO[VatRepository](_.getByModelId(modelid, company))
+    ZIO.service[VatRepository]flatMap(_.getByModelId(modelid, company))
   def modify(model: TYPE_): ZIO[VatRepository, RepositoryError, Int]                               =
-    ZIO.serviceWithZIO[VatRepository](_.modify(model))
+    ZIO.service[VatRepository]flatMap(_.modify(model))
   def modify(models: List[TYPE_]): ZIO[VatRepository, RepositoryError, Int]                        =
-    ZIO.serviceWithZIO[VatRepository](_.modify(models))
+    ZIO.service[VatRepository]flatMap(_.modify(models))
 
 }

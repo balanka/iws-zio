@@ -1,6 +1,6 @@
 package com.kabasoft.iws.service
 
-import com.kabasoft.iws.domain.{ DerivedTransaction, FinancialsTransaction, PeriodicAccountBalance }
+import com.kabasoft.iws.domain.{DerivedTransaction, FinancialsTransaction, Journal, PeriodicAccountBalance}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import zio._
 
@@ -16,6 +16,8 @@ trait FinancialsService {
   def postAll(ids: List[Long], company: String): ZIO[Any, RepositoryError, List[Int]]
 
   def getBy(id: String, company: String): ZIO[FinancialsService, RepositoryError, PeriodicAccountBalance]
+  def journal(accountId:String, fromPeriod: Int, toPeriod: Int, company: String):
+  ZIO[Any, RepositoryError, List[Journal]]
   def getByIds(ids: List[String], company: String): ZIO[FinancialsService, RepositoryError, List[PeriodicAccountBalance]]
 
   def postTransaction4Period(fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[Int]]
@@ -39,6 +41,10 @@ object FinancialsService {
 
   def postAll(ids: List[Long], company: String): ZIO[FinancialsService, RepositoryError, List[Int]] =
     ZIO.service[FinancialsService] flatMap (_.postAll(ids, company))
+  def journal(accountId:String, fromPeriod: Int, toPeriod: Int, company: String):
+  ZIO[FinancialsService, RepositoryError, List[Journal]]=
+    ZIO.service[FinancialsService] flatMap (_.journal(accountId, fromPeriod, toPeriod, company))
+
 
   def getBy(id: String, company: String): ZIO[FinancialsService, RepositoryError, PeriodicAccountBalance]                 =
     ZIO.serviceWithZIO[FinancialsService](_.getBy(id, company))

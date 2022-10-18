@@ -45,5 +45,5 @@ object VatRepositoryLiveSpec extends ZIOSpecDefault {
           stmt <- VatRepository.getBy(id,company)
         } yield assertTrue(stmt.name==name) && assertTrue(stmt.id==id)
       }
-    ).provideCustomLayerShared(testLayer.orDie) @@ sequential
+    ).provideLayerShared(testLayer.orDie) @@ sequential
 }

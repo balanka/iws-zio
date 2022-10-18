@@ -11,7 +11,7 @@ import Protocol._
 object HttpRoutes {
 
   val app: HttpApp[
-    OrderRepository with CustomerRepository with BankStatementRepository with QueryService,
+    OrderRepository with CustomerOLDRepository with BankStatementRepository with QueryService,
     Throwable
   ] =
     Http.collectZIO {
@@ -59,7 +59,7 @@ object HttpRoutes {
           }
 
       case Method.GET -> !! / "customers" =>
-        CustomerRepository
+        CustomerOLDRepository
           .findAll()
           .runCollect
           .map(ch => Response.json(ch.toJson))
@@ -72,22 +72,22 @@ object HttpRoutes {
 
       case req @ Method.POST -> !! / "customers" =>
         (for {
-          body <- req.bodyAsString
+          body <- req.body.asString
                     .flatMap(request =>
                       ZIO
-                        .fromEither(request.fromJson[Customer])
+                        .fromEither(request.fromJson[Customer_OLD])
                         .mapError(e => new Throwable(e))
                     )
                     .mapError(e => AppError.DecodingError(e.getMessage()))
                     .tapError(e => ZIO.logInfo(s"Unparseable body ${e}"))
-          _    <- CustomerRepository.add(body)
+          _    <- CustomerOLDRepository.add(body)
         } yield ()).either.map {
           case Right(_) => Response.status(Status.Created)
           case Left(_)  => Response.status(Status.BadRequest)
         }
 
       case Method.GET -> !! / "customers" / zhttp.http.uuid(id) =>
-        CustomerRepository
+        CustomerOLDRepository
           .findById(id)
           .either
           .map {
@@ -97,7 +97,7 @@ object HttpRoutes {
 
       case req @ Method.POST -> !! / "orders" =>
         (for {
-          body <- req.bodyAsString
+          body <- req.body.asString
                     .flatMap(request =>
                       ZIO
                         .fromEither(request.fromJson[Order])
@@ -121,7 +121,7 @@ object HttpRoutes {
           }
       case req @ Method.POST -> !! / "orders"                =>
         (for {
-          body <- req.bodyAsString
+          body <- req.body.asString
                     .flatMap(request =>
                       ZIO
                         .fromEither(request.fromJson[Order])
@@ -148,7 +148,7 @@ object HttpRoutes {
         }
       case req @ Method.POST -> !! / "bankStatement" =>
         (for {
-          body <- req.bodyAsString
+          body <- req.body.asString
                     .flatMap(request =>
                       ZIO
                         .fromEither(request.fromJson[BankStatement])

@@ -6,6 +6,64 @@ create table customers
     verified boolean not null,
     dob date not null
 );
+create table if not exists customer
+(
+    id              varchar(50)                      not null
+    primary key,
+    name            varchar(255)                     not null,
+    description     varchar(255)                     not null,
+    street          varchar(255),
+    city            varchar(255),
+    state           varchar(255),
+    zip             varchar(255),
+    phone           varchar(50),
+    email           varchar(50),
+    account         varchar(50),
+    iban            varchar(50),
+    vatcode         varchar(50),
+    revenue_account varchar(50),
+    posting_date    timestamp   default CURRENT_DATE not null,
+    modified_date   timestamp   default CURRENT_DATE not null,
+    enter_date      timestamp   default CURRENT_DATE not null,
+    company         varchar(50)                      not null,
+    modelid         integer     default 3            not null,
+    country         varchar(50) default ''::character varying
+    );
+
+create table if not exists supplier(
+    id             varchar(50)                                not null
+    primary key,
+    name           varchar(255)                               not null,
+    description    varchar(255)                               not null,
+    street         varchar(255),
+    city           varchar(255),
+    state          varchar(255),
+    zip            varchar(255),
+    phone          varchar(50),
+    email          varchar(50),
+    account        varchar(50),
+    iban           varchar(50),
+    vatcode        varchar(50),
+    charge_account varchar(50),
+    posting_date   date        default CURRENT_DATE           not null,
+    modified_date  date        default CURRENT_DATE           not null,
+    enter_date     date        default CURRENT_DATE           not null,
+    company        varchar(50)                                not null,
+    modelid        integer     default 5                      not null,
+    country        varchar(50) default 'X'::character varying not null
+    );
+
+create table if not exists bankaccount
+(
+    iban    varchar(50)  not null,
+    owner   varchar(255) not null,
+    bic     varchar(50)  not null,
+    company varchar(50)  not null,
+    modelid integer      not null,
+    constraint bankaccount_unique
+    unique (owner, iban)
+    );
+create unique index bankaccount_idx on bankaccount (iban, owner);
 
 create table orders
 (
@@ -98,10 +156,17 @@ create table if not exists periodic_account_balance
     constraint periodic_account_balance_pk
     primary key
     );
+DROP SEQUENCE IF EXISTS master_compta_id_seq ;
+CREATE SEQUENCE master_compta_id_seq
+    INCREMENT 1
+   MINVALUE 1
+   MAXVALUE 9223372036854775807
+   START 1
+   CACHE 1;
 
 create table if not exists master_compta
 (
-    id           bigint                            not null
+    id           bigint  default nextval('master_compta_id_seq'::regclass) not null
     primary key,
     oid          bigint                            not null,
     costcenter   varchar(50)                       not null,
@@ -117,9 +182,18 @@ create table if not exists master_compta
     period       integer,
     type_journal integer      default 0
     );
+
+DROP SEQUENCE IF EXISTS details_compta_id_seq ;
+CREATE SEQUENCE details_compta_id_seq
+    INCREMENT 1
+   MINVALUE 1
+   MAXVALUE 9223372036854775807
+   START 1
+   CACHE 1;
+--alter sequence details_compta_id_seq owner to postgres;
 create table if not exists details_compta
 (
-    id       bigint                                      not null
+    id       bigint  default nextval('details_compta_id_seq'::regclass) not null
     constraint detailcompta_pkey
     primary key,
     transid  bigint                                      not null,
@@ -184,6 +258,52 @@ create table if not exists journal
     credit       numeric(12, 2),
     side         boolean
     );
+create table if not exists company
+(
+    id                    varchar                        not null
+    primary key,
+    name                  varchar                        not null,
+    street                varchar,
+    city                  varchar,
+    state                 varchar,
+    zip                   varchar,
+    bankacc               varchar                        not null,
+    taxcode               varchar                        not null,
+    vatcode               varchar                        not null,
+    currency              varchar                        not null,
+    balancesheetacc       varchar                        not null,
+    incomestmtacc         varchar                        not null,
+    modelid               integer                        not null,
+   /*
+    purchasingclearingacc varchar                        not null,
+    salesclearingacc      varchar                        not null,
+    paymentclearingacc    varchar                        not null,
+    settlementclearingacc varchar                        not null,
+    cashacc               varchar                        not null,
+    postingdate           timestamp default CURRENT_DATE not null,
+    changedate            timestamp default CURRENT_DATE not null,
+    pageheadertext        varchar(350),
+    pagefootertext        varchar(350),
+    headertext            varchar(350),
+    footertext            varchar(350),
+    logocontent           varchar,
+    logoname              varchar,
+    contenttype           varchar,
+    description           varchar,
+    */
+    partner               varchar,
+    phone                 varchar,
+    fax                   varchar,
+    email                 varchar,
+    locale                varchar,
+    enterdate             timestamp default CURRENT_DATE
+    );
+
+
+insert into company (id, name, street, city, state, zip, phone,  fax, email, partner, locale,
+                    bankacc, taxCode , vatCode , currency , enterdate , balanceSheetAcc , incomeStmtAcc, modelid)
+values ('1000', 'ABC GmbH', 'Word stree1 0','FF', 'DE', '49110', '+001-00000','+001-00000', 'info@mail.com','John', 'de_DE'
+    ,'1810','XXXX/XXXX/XXXX','v5','EUR', current_timestamp,  '9900', '9800', 10);
 
 insert into customers
     (id, first_name, last_name, verified, dob)
@@ -225,7 +345,7 @@ values
 insert into account
 (id, name, description, posting_date, modified_date, enter_date,  company, modelid,account,
  isdebit, balancesheet, idebit, icredit, debit, credit, currency) values
- ('9900','Bilanz','Bilanz ',current_timestamp, current_timestamp, current_timestamp, '1000',11
+ ('9900','Bilanz','Bilanz',current_timestamp, current_timestamp, current_timestamp, '1000',11
      , '', true, true, 0.0, 0.0, 0.0, 0.0, 'EUR'),
  ('9901','Bilanz Aktiva','Bilanz Aktiva',current_timestamp, current_timestamp, current_timestamp, '1000',11
      , '9900', true, true, 0.0, 0.0, 0.0, 0.0, 'EUR'),
@@ -235,7 +355,7 @@ insert into account
   , '9900', true, true, 0.0, 0.0, 0.0, 0.0, 'EUR'),
   ('1800','Bank','Bank',current_timestamp, current_timestamp, current_timestamp, '1000',11
   , '1800', true, true, 0.0, 0.0, 0.0, 0.0, 'EUR'),
-    ('1810','Giro SPK Bielefeld','Giro SPK Bielefeld ',current_timestamp, current_timestamp, current_timestamp, '1000',11
+    ('1810','Giro SPK Bielefeld','Giro SPK Bielefeld',current_timestamp, current_timestamp, current_timestamp, '1000',11
   , '1800', true, true, 0.0, 0.0, 0.0, 0.0, 'EUR');
 
 insert into periodic_account_balance
@@ -244,14 +364,45 @@ values(CONCAT(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'1200'), '1200
 ,'1000' , 'EUR', 106),
 (CONCAT(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYY'),'001200'), '1200', TO_NUMBER(CONCAT(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYY'),'00'),'99999999'), 0, 1000, 0, 0
       ,'1000' , 'EUR', 106),
-(CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'1200'), '1200', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'), 0, 0, 0, 0
-      ,'1000' , 'EUR', 106);;
+(CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'1200'), '1200', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'), 0, 100, 0, 0
+      ,'1000' , 'EUR', 106);
 
+insert into customer (id, name, description, street, city, state, zip, phone, email, account, iban, vatcode,
+                      revenue_account, posting_date, modified_date, enter_date, company, modelid, country)
+values ('5014','Kunde ( Sonstige Erloes)','Kunde ( Sonstige Erloes)','sonstige Str 1', 'Nirvana', 'WORLD','47111'
+    , '+000000000', 'myMail@mail.com','1217','DE27662900000001470014X','v0','1217',current_timestamp, current_timestamp
+    , current_timestamp,'1000',3,'DE'),
+    ('5004','KKM AG', 'KKM AG','Laatzer str 0', 'Hannover', 'Niedersachsen','5009'
+    , '+000000001', 'yourMail@mail.com','1445','DE27662900000001470004X','v0','4487',current_timestamp, current_timestamp
+    , current_timestamp,'1000',3,'DE');
 
- insert into bankstatement
+insert into supplier (id, name, description, street, city, state, zip, phone, email, account, iban, vatcode, charge_account, posting_date, modified_date, enter_date, company, modelid, country)
+values ('70034','Sonstige GWG Lieferenten','Sonstige GWG Lieferenten','sonstige Str 1', 'Nirvana', 'WORLD','47111'
+       , '+000000000', 'myMail@mail.com','331031','DE81300500000001182211Y','v5','4855', current_timestamp, current_timestamp
+       , current_timestamp,'1000',1,'DE'),
+       ('70060', 'Sonstige ITK Lieferanten', 'Sonstige ITK Lieferanten','sonstige Str 1', 'Nirvana', 'WORLD','47111'
+       , '+000000000', 'myMail@mail.com','331036', 'DE08370501980020902219', 'v5', '6810', current_timestamp, current_timestamp
+       , current_timestamp,'1000',1,'DE'),
+       ('70063', 'Sonstige Benzin Lieferant', 'Sonstige Benzin Lieferant','sonstige Str 1', 'Nirvana', 'WORLD','47111'
+       , '+000000000', 'myMail@mail.com','331030'
+       ,'DE16300500000001609114', 'v5','6530', current_timestamp, current_timestamp, current_timestamp,'1000',1,'DE'),
+       ('70064','Sonstige KFZ Lieferant', 'Sonstige KFZ Lieferant','sonstige Str 1', 'Nirvana', 'WORLD','47111'
+       , '+000000000', 'myMail@mail.com','331030', 'DE6248040035053249000Y', 'v5', '6530',current_timestamp, current_timestamp
+       , current_timestamp,'1000',1,'DE');
+
+insert into bankaccount (iban, owner, bic, company, modelid)
+values ('DE27662900000001470014X','5014','SPBIDE3BXXX','1000',12),
+       ('DE27662900000001470004X', '70034','SPBIDE3BXXX','1000',12),
+       ('DE81300500000001182211Y','70034','SPBIDE3BXXX','1000',12),
+       ('DE08370501980020902219Y','70060','SPBIDE3BXXX','1000',12),
+       ('DE16300500000001609163Y','70063','SPBIDE3BXXX','1000',12),
+       ('DE6248040035053249000Y','70064','SPBIDE3BXXX','1000',12);
+
+insert into bankstatement
  (id,depositor, postingdate, valuedate, postingtext, purpose, beneficiary, accountno, bankCode,amount, currency, info, company, companyIban, posted, modelid)
 values
-(4711, 'B Mady',current_timestamp, current_timestamp,'TEST POSTING','TEST PURPOSE','B Mady','430000000ACTNO','43007711BIC', 1000, 'EUR','INFO TXT','1000','47114300IBAN',false,18 );
+(471100000, 'B Mady',current_timestamp, current_timestamp,'TEST POSTING','TEST PURPOSE','B Mady','DE27662900000001470014X','43007711BIC', 1000, 'EUR','INFO TXT','1000','47114300IBAN',false,18 ),
+(471200000, 'KABA Soft GmbH',current_timestamp, current_timestamp,'TEST POSTING','TEST PURPOSE','KABA Soft GmbH','DE27662900000001470004X','470434300IBAN', -1000, 'EUR','INFO TXT','1000','47114300IBAN',false,18 );
 
 insert into bank
 (id, name, description, posting_date, modified_date, enter_date,  company, modelid)
@@ -260,4 +411,4 @@ values('4711','myFirstBank','myFirstBank',current_timestamp, current_timestamp, 
 insert into vat
 (id, name, description, percent, inputvataccount, outputvataccount, posting_date, modified_date, enter_date,  company, modelid)
 values
-    ('4711','myFirstVat','myFirstVat',1, '1406', '3806', current_timestamp, current_timestamp, current_timestamp, '1000',6)
+    ('4711','myFirstVat','myFirstVat',1, '1406', '3806', current_timestamp, current_timestamp, current_timestamp, '1000',6);

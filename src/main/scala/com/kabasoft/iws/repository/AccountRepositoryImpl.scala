@@ -135,7 +135,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
     ZStream.fromZIO(
       ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")
     ) *>
-      execute(selectAll.to(c => (Account.apply(c))))
+      execute(selectAll.to(c => Account.apply(c)))
         .provideDriver(driverLayer)
   }
   override def getBy(Id: String, companyId: String): ZIO[Any, RepositoryError, Account]          = {

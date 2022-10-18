@@ -6,11 +6,19 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
 
   import ColumnSet._
 
+  val master_compta_sequence  = (long("last_value")).table("master_compta_id_seq")
+
   val transaction =
     (long("id") ++ long("oid") ++ string("costcenter") ++ string("account") ++ instant("transdate") ++ instant(
       "enterdate"
     ) ++ instant("postingdate") ++ int("period") ++ boolean("posted") ++ int("modelid")
-      ++ string("company") ++ string("headertext") ++ int("file_content")).table("master_compta")
+      ++ string("company") ++ string("headertext") ++ int("type_journal") ++ int("file_content")).table("master_compta")
+  val transaction2 =
+    ( long("oid") ++ string("costcenter") ++ string("account") ++ instant("transdate") ++ instant(
+      "enterdate"
+    ) ++ instant("postingdate") ++ int("period") ++ boolean("posted") ++ int("modelid")
+      ++ string("company") ++ string("headertext") ++ int("type_journal") ++ int("file_content"))
+      .table("master_compta")
 
   val transactionDetails =
     (long("id") ++ long("transid") ++ string("account") ++ boolean("side") ++ string("oaccount") ++ bigDecimal(
@@ -19,6 +27,12 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
       "currency"
     )) // ++string("terms")++boolean("posted")++string("company"))
       .table("details_compta")
+
+  val transactionDetailsx =
+    ( long("transid") ++ string("account") ++ boolean("side") ++ string("oaccount") ++ bigDecimal(
+      "amount") ++ instant("duedate") ++ string("text") ++ string(
+      "currency")
+      ).table("details_compta")
 
   val financialstransaction =
     (long("id") ++ long("oid") ++ string("account") ++ instant("transdate") ++ instant("enterdate") ++ instant(
@@ -29,6 +43,23 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
       ) ++ long("lid") ++ boolean("side")
       ++ string("oaccount") ++ bigDecimal("amount") ++ string("currency") ++ string("terms"))
       .table("financialstransaction")
+
+ val (lastTransid) = master_compta_sequence.columns
+  val (
+    oidx,
+    costcenterx,
+    accountx,
+    transdatex,
+    enterdatex,
+    postingdatex,
+    periodx,
+    postedx,
+    modelidx,
+    companyx,
+    textx,
+    type_journalx,
+    file_contentx
+  ) = transaction2.columns
 
   val (
     tid_,
@@ -43,8 +74,9 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     modelid_,
     company_,
     text_,
+    type_journal,
     file_content_
-  ) = transaction.columns
+    ) = transaction.columns
   val (
     lid_,
     transid,
@@ -56,6 +88,17 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     ltext_,
     currency_ /*, terms_, postedx, comapnyx*/
   ) = transactionDetails.columns
+
+  val (
+    transidx,
+    laccountx,
+    sidex,
+    oaccountx,
+    amountx,
+    duedatex,
+    ltextx,
+    currencyx /*, terms_, postedx, comapnyx*/
+  ) = transactionDetailsx.columns
 
   val (
     id,
@@ -79,7 +122,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
   ) = financialstransaction.columns
 
   def toTupleF(c: FinancialsTransaction) = (
-    c.tid,
+     c.tid,
     c.oid,
     c.costcenter,
     c.account,
@@ -91,32 +134,38 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     c.modelid,
     c.company,
     c.text,
-    // c.typeJournal,
+    c.typeJournal,
+    c.file_content
+  )
+
+  def toTupleC(c: FinancialsTransaction) = (
+    c.oid,
+    c.costcenter,
+    c.account,
+    c.transdate,
+    c.enterdate,
+    c.postingdate,
+    c.period,
+    c.posted,
+    c.modelid,
+    c.company,
+    c.text,
+    c.typeJournal,
     c.file_content
   )
 
   def toTuple(c: FinancialsTransactionDetails) = FinancialsTransactionDetails.unapply(c).get
 
   def toTuple(c: DerivedTransaction) = DerivedTransaction.unapply(c).get
-  /*def toTuple(c: DerivedTransaction) = (
-    c.id,
-    c.oid,
-    c.account,
-    c.transdate,
-    c.enterdate,
-    c.postingdate,
-    c.period,
-    c.modelid,
-    c.posted,
-    c.company,
-    c.text,
-    c.file,
-    c.lid,
-    c.side,
-    c.oaccount,
-    c.amount,
-    c.currency,
-    c.terms
-  )*/
 
+  def toTupleC(c: FinancialsTransactionDetails) = (
+     c.transid,
+     c.account,
+     c.side,
+     c.oaccount,
+     c.amount,
+     c.duedate,
+     c.text,
+     c.currency /*, terms_, postedx, comapnyx*/
+    )
 }

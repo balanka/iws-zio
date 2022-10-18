@@ -39,6 +39,7 @@ final class BankStatementRepositoryImpl(pool: ConnectionPool) extends BankStatem
       .set(valuedate, model.valuedate)
       .set(accountno, model.accountno)
       .set(bankCode, model.bankCode)
+      .set(posted, model.posted)
       .set(info, model.info)
       .where((id === model.id) && (company === model.company))
     ZIO.logInfo(s"Query Update bankStatement is ${renderUpdate(update_)}") *>
@@ -69,48 +70,24 @@ final class BankStatementRepositoryImpl(pool: ConnectionPool) extends BankStatem
     ZIO.logInfo(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
       execute(selectAll.to(BankStatement.apply _)).findFirstInt(driverLayer, modelId)
   }
-  /*
-  override def findById(id: String): ZIO[Any, RepositoryError, BankStatement] = {
-    val selectAll = select(bid++depositor++postingdate++valuedate++postingtext++purpose++beneficiary++accountno++
-      bankCode++amount++currency++info++company++companyIban++modelid)
-      .from(bankStatements)
-      .where(bid === id)
 
-    ZIO.logInfo(s"Query to execute findById is ${renderRead(selectAll)}") *>
-      execute(selectAll.to((BankStatement.apply _).tupled))
-        .findFirstLong(driverLayer, id.toLong)
-  }
+  /*override def listByIds(ids: List[Long], modelId: Int, companyId: String): ZStream[Any, RepositoryError, BankStatement] = {
+    def buildSelect(Id: Long) =
+      select(X)
+        .from(bankStatements)
+        .where((id === Id) && (modelid === modelId) && (company === companyId))
 
+    val selectAll = ids.map(id => buildSelect(id))
+    execute(selectAll.to(BankStatement.apply _)).provideDriver(driverLayer)
 
-  override def update(model: BankStatement, companyId: String): ZIO[Any, RepositoryError, Int]={
-    val update=
-        update(bankStatementsTable)
-      .set(amount, model.amount)
-      .set(bankCode, model.bankCode)
-      .where(bid === model.bid)//, company ==model.company)
-
-     ZStream.fromZIO(
-      ZIO.logInfo(s"Query to execute update is ${renderRead(update)}")
-    ) *>
-      execute(update)
-        .provideDriver(driverLayer)
-  }
-
-  override def findSome(companyId: String, param: String*): ZStream[Any, RepositoryError, BankStatement]={
-    val selectAll =
-      select( bid++depositor++postingdate++valuedate++postingtext++purpose++beneficiary++accountno++
-                 bankCode++amount++currency++info++company++companyIban)
-                 .from(bankStatements)
-                  .where(company === companyId)
-
-    ZStream.fromZIO(
-      ZIO.logInfo(s"Query to execute findSome is ${renderRead(selectAll)}")
-    ) *>
-      execute(selectAll.to((BankStatement.apply _).tupled))
-        .provideDriver(driverLayer)
-
-  }
    */
+
+  // ZIO.foreach(ids)(getBy(_, companyId))
+  // ZStream.fromZIO(
+  //   ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")
+  // ) *> execute(selectAll.to(BankStatement.apply _)).provideDriver(driverLayer)
+  // }
+
 }
 
 object BankStatementRepositoryImpl {

@@ -177,10 +177,10 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
         .findFirstInt(driverLayer, modelId)
   }
 
-  def find4Period(fromPeriod: Int, toPeriod: Int, companyId: String): ZStream[Any, RepositoryError, Journal] = {
+  override def find4Period(accountId:String, fromPeriod: Int, toPeriod: Int, companyId: String): ZStream[Any, RepositoryError, Journal] = {
     val selectAll = select(X)
       .from(journals)
-      .where((company === companyId) && (period >= fromPeriod) && (period <= toPeriod))
+      .where((account === accountId)&&(company === companyId) && (period >= fromPeriod) && (period <= toPeriod))
       .orderBy(account.descending)
 
     ZStream.fromZIO(

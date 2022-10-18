@@ -3,8 +3,8 @@ package com.kabasoft.iws
 import zio._
 import com.kabasoft.iws.config.DbConfig
 import com.kabasoft.iws.domain.BankStatement
-import com.kabasoft.iws.repository.BankStatementRepositoryImpl
-import com.kabasoft.iws.service.{ BankStmtService, BankStmtServiceImpl }
+import com.kabasoft.iws.repository.{BankStatementRepositoryImpl, CompanyRepositoryImpl, CustomerRepositoryImpl, SupplierRepositoryImpl, TransactionRepositoryImpl}
+import com.kabasoft.iws.service.{ BankStatementService, BankStatementServiceImpl}
 import zio.sql.ConnectionPool
 
 object BankStmtImportApp extends ZIOAppDefault {
@@ -16,8 +16,11 @@ object BankStmtImportApp extends ZIOAppDefault {
   val COMPANY   = "1000"
 
   def run = (for {
-    bs <- BankStmtService.importBankStmt(PATH, HEADER, CHAR, EXTENSION, COMPANY, BankStatement.from)
+    bs <- BankStatementService.importBankStmt(PATH, HEADER, CHAR, EXTENSION, COMPANY, BankStatement.from)
     _  <- ZIO.debug(s"  BS ${bs}")
   } yield ())
-    .provide(DbConfig.layer, ConnectionPool.live, DbConfig.connectionPoolConfig, BankStatementRepositoryImpl.live, BankStmtServiceImpl.live)
+    .provide(DbConfig.layer, ConnectionPool.live, DbConfig.connectionPoolConfig,
+      BankStatementRepositoryImpl.live, BankStatementServiceImpl.live,
+      TransactionRepositoryImpl.live, CustomerRepositoryImpl.live,
+      SupplierRepositoryImpl.live, CompanyRepositoryImpl.live)
 }

@@ -15,7 +15,7 @@ object BankRepositoryLiveSpec extends ZIOSpecDefault {
   val id = "4712"
   val name = "MyBank"
 
-  val customers = List(
+  val banks = List(
     Bank(id, name,"MyBank", Instant.now(), Instant.now(), Instant.now(),11,"1000"),
     Bank("4713", "MyBank2","MyBank2", Instant.now(), Instant.now(), Instant.now(),11,"1000")
   )
@@ -29,14 +29,9 @@ object BankRepositoryLiveSpec extends ZIOSpecDefault {
 
   override def spec =
     suite("Bank repository test with postgres test container")(
-      test("count all banks") {
-        for {
-          count <- BankRepository.list(company).runCount
-        } yield assertTrue(count == 1L)
-      },
       test("insert two new banks") {
         for {
-          oneRow <- BankRepository.create(customers)
+          oneRow <- BankRepository.create(banks)
           count <- BankRepository.list(company).runCount
         } yield assertTrue(oneRow == 2) && assertTrue(count == 3L)
       },
@@ -45,5 +40,5 @@ object BankRepositoryLiveSpec extends ZIOSpecDefault {
           stmt <- BankRepository.getBy(id,company)
         } yield assertTrue(stmt.name == name) && assertTrue(stmt.id==id)
       }
-    ).provideCustomLayerShared(testLayer.orDie) @@ sequential
+    ).provideLayerShared(testLayer.orDie) @@ sequential
 }

@@ -5,15 +5,20 @@ import com.kabasoft.iws.domain._
 import com.kabasoft.iws.domain.common._
 import com.kabasoft.iws.repository.{ AccountRepository, PacRepository }
 import zio._
+import zhttp.logging.Logger
+
+import scala.annotation.tailrec
 
 final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepository) extends AccountService {
+  val logger = Logger.make.withLevel(zhttp.logging.LogLevel.Error)
 
-  def getBalances(
-    accId: String,
-    fromPeriod: Int,
-    toPeriod: Int,
-    companyId: String
-  ): ZIO[Any, RepositoryError, List[Account]] =
+  /*
+  def getBalances2(
+                   accId: String,
+                   fromPeriod: Int,
+                   toPeriod: Int,
+                   companyId: String
+                 ): ZIO[Any, RepositoryError, List[Account]] =
     (for {
       accounts    <- accRepo.list(companyId).runCollect.map(_.toList)
       period       = fromPeriod.toString.slice(0, 4).concat("00").toInt
@@ -29,8 +34,73 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
       ) ::: acc
         .filterNot(_.id == Account.dummy.id)
       val account = Account.consolidate(accId, list, pacs)
-      Account.unwrapDataTailRec(account) // .filterNot(acc => acc.id==accId)
+      println(" ACCOUNTS::::::"+account)
+      List(account)
+      //Account.unwrapDataTailRec(account) // .filterNot(acc => acc.id==accId)
     })
+
+
+     private def consolidate(accId: String, accList: List[Account], pacs: List[PeriodicAccountBalance]): Account = {
+      val accMap = accList.groupBy(_.account)
+      accList.find(x => x.id == accId) match {
+        case Some(acc) =>
+          val x: Account = addSubAccounts(acc, accMap) // List(acc)
+          val y          = getAllSubBalances(x, pacs)
+          val z          = removeSubAccounts(y.copy(id = acc.id))
+          z
+        case None      => Account.dummy
+      }
+    }
+
+   */
+
+  def getBalances(
+    accId: String,
+    fromPeriod: Int,
+    toPeriod: Int,
+    companyId: String
+  ): ZIO[Any, RepositoryError, List[Account]] =
+    (for {
+      accounts    <- accRepo.list(companyId).runCollect.map(_.toList)
+      period       = fromPeriod.toString.slice(0, 4).concat("00").toInt
+      pacBalances <- pacRepo.getBalances4Period(fromPeriod, toPeriod, companyId).runCollect.map(_.toList)
+      pacs        <- pacRepo.find4Period(period, period, companyId).runCollect.map(_.toList)
+    } yield {
+      val all = (pacBalances ::: pacs)
+        .groupBy(_.account)
+        .map { case (_, v) => reduce(v, PeriodicAccountBalance.dummy) }
+        .filterNot(_.id == PeriodicAccountBalance.dummy.id)
+        .toList
+
+      val acc     = accounts.filter(_.id == accId)
+      val list    = all
+        .flatMap(pac =>
+          accounts
+            .find(acc => pac.account == acc.id)
+            .map(_.copy(idebit = pac.idebit, debit = pac.debit, icredit = pac.icredit, credit = pac.credit))
+            //.toList
+        ) ::: acc
+      val account = group(accId, list, accounts)
+      logger.info(" ACCOUNTS::::::" + account)
+      List(account)
+    })
+
+
+  @tailrec
+  def group(accid: String, accounts0: List[Account], all: List[Account]): Account =
+    if (accounts0.size == 1) accounts0.head
+    else {
+      val accounts1 = accounts0
+        .groupBy(_.account)
+        .map { case (_, v) => reduce(v, Account.dummy).copy(subAccounts = v.toSet) }
+        .filterNot(_.id == Account.dummy.id)
+        .flatMap(pac =>
+        all
+          .find(acc => acc.id == pac.account)
+          .map(_.copy(idebit = pac.idebit, debit = pac.debit, icredit = pac.icredit, credit = pac.credit))
+          ).toList
+      group(accid, accounts1, all)
+    }
 
   def closePeriod(fromPeriod: Int, toPeriod: Int, inStmtAccId: String, company: String): ZIO[Any, RepositoryError, Int] =
     for {
@@ -58,7 +128,7 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
       pac_updated <- if (oldPacs.isEmpty) ZIO.succeed(0) else pacRepo.modify(oldPacs)
     } yield pac_created + pac_updated
 
-  def net(acc: accRepo.TYPE_, pac: PeriodicAccountBalance, nextPeriod: Int) =
+  def net(acc: Account, pac: PeriodicAccountBalance, nextPeriod: Int) =
     if (acc.isDebit) {
       pac
         .copy(id = PeriodicAccountBalance.createId(nextPeriod, acc.id), period = nextPeriod)

@@ -25,7 +25,7 @@ object VatHttpRoutes {
         }
       case req @ Method.POST -> !! / "vat" =>
         (for {
-          body <- req.bodyAsString
+          body <- req.body.asString
                     .flatMap(request =>
                       ZIO
                         .fromEither(request.fromJson[Vat])

@@ -3,24 +3,24 @@ package com.kabasoft.iws.repository
 import zio.test._
 
 import zio.test.TestAspect._
-import com.kabasoft.iws.domain.Customer
+import com.kabasoft.iws.domain.Customer_OLD
 import java.util.UUID
 import java.time.LocalDate
 import zio.ZLayer
 import com.kabasoft.iws.repository.postgresql.PostgresContainer
 import zio.sql.ConnectionPool
 
-object CustomerRepositoryLiveSpec extends ZIOSpecDefault {
+object CustomerOLDRepositoryLiveSpec extends ZIOSpecDefault {
 
   val customerId1 = UUID.randomUUID()
 
   val customers = List(
-    Customer(customerId1, "Peter", "Schwarz", false, LocalDate.now()),
-    Customer(UUID.randomUUID(), "Laszlo", "Wider", true, LocalDate.now())
+    Customer_OLD(customerId1, "Peter", "Schwarz", false, LocalDate.now()),
+    Customer_OLD(UUID.randomUUID(), "Laszlo", "Wider", true, LocalDate.now())
   )
 
-  val testLayer = ZLayer.make[CustomerRepository](
-    CustomerRepositoryImpl.live,
+  val testLayer = ZLayer.make[CustomerOLDRepository](
+    CustomerOLDRepositoryImpl.live,
     PostgresContainer.connectionPoolConfigLayer,
     ConnectionPool.live,
     PostgresContainer.createContainer
@@ -30,19 +30,19 @@ object CustomerRepositoryLiveSpec extends ZIOSpecDefault {
     suite("customer repository test with postgres test container")(
       test("count all customers") {
         for {
-          count <- CustomerRepository.findAll().runCount
+          count <- CustomerOLDRepository.findAll().runCount
         } yield assertTrue(count == 5L)
       },
       test("insert two new customers") {
         for {
-          oneRow <- CustomerRepository.add(customers)
-          count <- CustomerRepository.findAll().runCount
+          oneRow <- CustomerOLDRepository.add(customers)
+          count <- CustomerOLDRepository.findAll().runCount
         } yield assertTrue(oneRow==2) && assertTrue(count==7L)
       },
       test("get inserted customer") {
         for {
-          customer <- CustomerRepository.findById(customerId1)
+          customer <- CustomerOLDRepository.findById(customerId1)
         } yield assertTrue(customer.fname=="Peter")
       }
-    ).provideCustomLayerShared(testLayer.orDie) @@ sequential
+    ).provideLayerShared(testLayer.orDie) @@ sequential
 }

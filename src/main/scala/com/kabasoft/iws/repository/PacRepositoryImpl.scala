@@ -168,6 +168,17 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
     ) *> execute(selectAll.to((PeriodicAccountBalance.apply _).tupled))
       .provideDriver(driverLayer)
   }
+  def find4Period(accountId:String, fromPeriod: Int, toPeriod: Int, companyId: String): ZStream[Any, RepositoryError, PeriodicAccountBalance] = {
+    val selectAll = select(X)
+      .from(pac)
+      .where((account === accountId) &&(company === companyId) && (period >= fromPeriod) && (period <= toPeriod))
+      .orderBy(account.descending)
+
+    ZStream.fromZIO(
+      ZIO.logError(s"Query to execute find4Period is ${renderRead(selectAll)}")
+    ) *> execute(selectAll.to((PeriodicAccountBalance.apply _).tupled))
+      .provideDriver(driverLayer)
+  }
 
 }
 

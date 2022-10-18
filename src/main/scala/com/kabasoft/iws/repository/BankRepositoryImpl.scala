@@ -50,8 +50,11 @@ final class BankRepositoryImpl(pool: ConnectionPool) extends BankRepository with
         .mapError(e => RepositoryError(e.getCause()))
   }
 
+  override def all(companyId: String): ZIO[Any, RepositoryError, List[Bank]]                  =
+    list(companyId).runCollect.map(_.toList)
+
   override def list(companyId: String): ZStream[Any, RepositoryError, Bank]                   = {
-    val selectAll = SELECT
+    val selectAll = SELECT.where(company === companyId)
 
     ZStream.fromZIO(
       ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")

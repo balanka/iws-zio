@@ -12,6 +12,7 @@ trait BankRepository {
   def delete(item: String, company: String): ZIO[Any, RepositoryError, Int]
   def delete(items: List[String], company: String): ZIO[Any, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
+  def all(companyId: String): ZIO[Any, RepositoryError, List[Bank]]
   def list(company: String): ZStream[Any, RepositoryError, TYPE_]
   def getBy(id: String, company: String): ZIO[Any, RepositoryError, TYPE_]
   def getByModelId(modelid: Int, company: String): ZIO[Any, RepositoryError, TYPE_]
@@ -30,6 +31,8 @@ object BankRepository {
     ZIO.service[BankRepository] flatMap (_.delete(item, company))
   def delete(items: List[String], company: String): ZIO[BankRepository, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
+  def all(companyId: String): ZIO[BankRepository, RepositoryError, List[Bank]]  =
+    ZIO.service[BankRepository] flatMap (_.all(companyId))
   def list(company: String): ZStream[BankRepository, RepositoryError, TYPE_]                        =
     ZStream.service[BankRepository] flatMap (_.list(company))
   def getBy(id: String, company: String): ZIO[BankRepository, RepositoryError, TYPE_]               =

@@ -19,7 +19,7 @@ object AccountHttpRoutes {
           .runCollect
           .map(ch => Response.json(ch.toJson))
 
-      case Method.GET -> !! / "balances" / id / fromPeriod / toPeriod           =>
+      case Method.GET -> !! / "balances" / id / fromPeriod / toPeriod        =>
         AccountService.getBalances(id, fromPeriod.toInt, toPeriod.toInt, "1000").either.map {
           case Right(o) => Response.json(o.toJson)
           case Left(e)  => Response.text(e.getMessage + "ID" + id + " fromPeriod: " + fromPeriod + " toPeriod:" + toPeriod)
@@ -29,7 +29,7 @@ object AccountHttpRoutes {
           case Right(o) => Response.json(o.toJson)
           case Left(e)  => Response.text(e.getMessage + "inStmtAccId" + inStmtAccId + " fromPeriod: " + fromPeriod + " toPeriod:" + toPeriod)
         }
-      case Method.GET -> !! / "acc" / id                                   =>
+      case Method.GET -> !! / "acc" / id                                     =>
         AccountRepository.getBy(id, "1000").either.map {
           case Right(o) => Response.json(o.toJson)
           case Left(e)  => Response.text(e.getMessage + "ID" + id)
@@ -37,7 +37,7 @@ object AccountHttpRoutes {
 
       case req @ Method.POST -> !! / "acc" =>
         (for {
-          body <- req.bodyAsString
+          body <- req.body.asString
                     .flatMap(request =>
                       ZIO
                         .fromEither(request.fromJson[Account])

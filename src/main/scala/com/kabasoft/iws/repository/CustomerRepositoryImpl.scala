@@ -6,89 +6,127 @@ import zio.sql.ConnectionPool
 import com.kabasoft.iws.domain._
 import com.kabasoft.iws.domain.AppError._
 
-import java.util.UUID
+final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerRepository with IWSTableDescriptionPostgres {
+  import ColumnSet._
 
-final class CustomerRepositoryImpl(
-  pool: ConnectionPool
-) extends CustomerRepository
-    with PostgresTableDescription {
+  lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
 
-  lazy val driverLayer = ZLayer
-    .make[SqlDriver](
-      SqlDriver.live,
-      ZLayer.succeed(pool)
-    )
+  val bankAccount =(string("iban")++string("owner")).table("bankaccount")
+  val customer =
+    (string("id") ++ string("name") ++ string("description") ++ string("street") ++ string("zip") ++ string("city") ++ string("state") ++ string(
+      "country"
+    ) ++ string("phone") ++ string("email") ++ string("account") ++ string("revenue_account") ++ string("iban") ++ string("vatcode") ++ string(
+      "company"
+    ) ++ int("modelid") ++ instant("enter_date") ++ instant("modified_date") ++ instant("posting_date")).table("customer")
+  val (iban_, owner) = bankAccount.columns
+  val (
+    id,
+    name,
+    description,
+    street,
+    zip,
+    city,
+    state,
+    country,
+    phone,
+    email,
+    account,
+    oaccount,
+    iban,
+    vatcode,
+    company,
+    modelid,
+    enterdate,
+    changedate,
+    postingdate
+  ) = customer.columns
+  val X        =
+    id ++ name ++ description ++ street ++ zip ++ city ++ state ++ country ++ phone ++ email ++ account ++ oaccount ++ iban ++ vatcode ++ company ++ modelid ++ enterdate ++ changedate ++ postingdate
+  val X2 =
+    id ++ name ++ description ++ street ++ zip ++ city ++ state ++ country ++ phone ++ email ++ account ++ oaccount ++ iban_ ++ vatcode ++ company ++ modelid ++ enterdate ++ changedate ++ postingdate
+  val SELECT   = select(X).from(customer)
+  val SELECT2   = select(X2).from(customer.join(bankAccount).on(id === owner))
 
-  override def findAll(): ZStream[Any, RepositoryError, Customer] = {
-    val selectAll =
-      select(customerId ++ fName ++ lName ++ verified ++ dob).from(customers)
+  def toTuple(c: Customer)                                                             = (
+    c.id,
+    c.name,
+    c.description,
+    c.street,
+    c.zip,
+    c.city,
+    c.state,
+    c.country,
+    c.phone,
+    c.email,
+    c.account,
+    c.oaccount,
+    c.iban,
+    c.vatcode,
+    c.company,
+    c.modelid,
+    c.enterdate,
+    c.changedate,
+    c.postingdate
+  )
+  override def create(c: Customer): ZIO[Any, RepositoryError, Unit]                    = {
+    val query = insertInto(customer)(X).values(toTuple(c))
 
-    ZStream.fromZIO(
-      ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")
-    ) *>
-      execute(selectAll.to((Customer.apply _).tupled))
-        .provideDriver(driverLayer)
-  }
-
-  override def findById(id: UUID): ZIO[Any, RepositoryError, Customer] = {
-    val selectAll = select(customerId ++ fName ++ lName ++ verified ++ dob)
-      .from(customers)
-      .where(customerId === id)
-
-    ZIO.logInfo(s"Query to execute findById is ${renderRead(selectAll)}") *>
-      execute(selectAll.to((Customer.apply _).tupled))
-        .findFirst(driverLayer, id)
-  }
-
-  override def add(customer: Customer): ZIO[Any, RepositoryError, Unit] = {
-    val query =
-      insertInto(customers)(customerId ++ dob ++ fName ++ lName ++ verified)
-        .values(
-          (
-            customer.id,
-            customer.dateOfBirth,
-            customer.fname,
-            customer.lname,
-            customer.verified
-          )
-        )
-
-    ZIO.logInfo(s"Query to insert customer is ${renderInsert(query)}") *>
+    ZIO.logInfo(s"Query to insert Customer is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
         .unit
   }
+  override def create(models: List[Customer]): ZIO[Any, RepositoryError, Int]          = {
+    val data  = models.map(toTuple(_)) // Customer.unapply(_).get)
+    val query = insertInto(customer)(X).values(data)
 
-  override def add(customer: List[Customer]): ZIO[Any, RepositoryError, Int] = {
-    val data =
-      customer.map(c => (c.id, c.dateOfBirth, c.fname, c.lname, c.verified))
-
-    val query =
-      insertInto(customers)(customerId ++ dob ++ fName ++ lName ++ verified)
-        .values(data)
-
-    ZIO.logInfo(s"Query to insert customers is ${renderInsert(query)}") *>
+    ZIO.logInfo(s"Query to insert Customer is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
   }
-
-  override def removeAll(): ZIO[Any, RepositoryError, Int] =
-    execute(deleteFrom(customers))
+  override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] =
+    execute(deleteFrom(customer).where((id === item.toLong) && (company === companyId)))
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getCause()))
 
   override def modify(model: Customer): ZIO[Any, RepositoryError, Int] = {
-    val update_ = update(customers)
-      .set(fName, model.fname)
-      .set(lName, model.lname)
-      .where((customerId === model.id))
+    val update_ = update(customer)
+      .set(name, model.name)
+      .set(description, model.description)
+      .where((id === model.id) && (company === model.company))
     ZIO.logInfo(s"Query Update Customer is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
         .mapError(e => RepositoryError(e.getCause()))
   }
-}
 
+  override def list(companyId: String): ZStream[Any, RepositoryError, Customer]              = {
+    val selectAll = SELECT.where(company === companyId)
+    execute(selectAll.to(c => Customer.apply(c)))
+    .provideDriver(driverLayer)
+  }
+  override def getBy(Id: String, companyId: String): ZStream[Any, RepositoryError, Customer] = {
+    val selectAll = SELECT.where((id === Id) && (company === companyId))
+      execute(selectAll.to[Customer](c => Customer.apply(c)))
+        .provideDriver(driverLayer)
+    // .findFirst(driverLayer, Id)
+  }
+
+  override def getByIban(Iban: String, companyId: String): ZIO[Any, RepositoryError, Customer]        = {
+    val selectAll = SELECT2.where((iban_ === Iban) && (company === companyId))
+
+    ZIO.logInfo(s"Query to execute getByIban is ${renderRead(selectAll)}") *>
+      execute(selectAll.to[Customer](c => Customer.apply(c)))
+        .findFirst(driverLayer, Iban)
+  }
+  override def getByModelId(modelId: Int, companyId: String): ZStream[Any, RepositoryError, Customer] = {
+     val selectAll = SELECT.where((modelid === modelId) && (company === companyId))
+    execute(selectAll.to[Customer](c => Customer.apply(c)))
+      .provideDriver(driverLayer)
+    // .findFirstInt(driverLayer, modelId)
+  }
+
+}
 object CustomerRepositoryImpl {
   val live: ZLayer[ConnectionPool, Throwable, CustomerRepository] =
     ZLayer.fromFunction(new CustomerRepositoryImpl(_))

@@ -15,7 +15,7 @@ trait JournalRepository {
   def list(company: String): ZStream[Any, RepositoryError, Journal]
   def getBy(id: String, company: String): IO[RepositoryError, Journal]
   def getByModelId(modelid: Int, company: String): IO[RepositoryError, Journal]
-  def find4Period(fromPeriod: Int, toPeriod: Int, company: String): ZStream[Any, RepositoryError, Journal]
+  def find4Period(accountId:String, fromPeriod: Int, toPeriod: Int, companyId: String): ZStream[Any, RepositoryError, Journal]
 
 }
 
@@ -37,7 +37,7 @@ object JournalRepository {
   def getByModelId(modelid: Int, company: String): ZIO[JournalRepository, RepositoryError, Journal] =
     ZIO.service[JournalRepository] flatMap (_.getByModelId(modelid, company))
 
-  def find4Period(fromPeriod: Int, toPeriod: Int, company: String): ZStream[JournalRepository, RepositoryError, Journal] =
-    ZStream.service[JournalRepository] flatMap (_.find4Period(fromPeriod, toPeriod, company))
+  def find4Period(accountId:String, fromPeriod: Int, toPeriod: Int, company: String): ZStream[JournalRepository, RepositoryError, Journal] =
+    ZStream.service[JournalRepository] flatMap (_.find4Period(accountId, fromPeriod, toPeriod, company))
 
 }

@@ -3,7 +3,7 @@ import com.kabasoft.iws.domain._
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import zio.ZIO
 
-trait BankStmtService {
+trait BankStatementService {
 
   def importBankStmt(
     path: String,
@@ -13,8 +13,14 @@ trait BankStmtService {
     company: String,
     buildFn: String => BankStatement
   ): ZIO[Any, RepositoryError, Int]
+  def postAll(ids: List[Long], companyId: String) : ZIO[Any, RepositoryError, Int]
+
 }
-object BankStmtService {
+object BankStatementService {
+
+  def postAll(ids: List[Long], companyId: String) : ZIO[BankStatementService, RepositoryError, Int] =
+    ZIO.service[BankStatementService].flatMap(_.postAll(ids, companyId))
+
   def importBankStmt(
     path: String,
     header: String,
@@ -22,6 +28,6 @@ object BankStmtService {
     extension: String,
     company: String,
     buildFn: String => BankStatement
-  ): ZIO[BankStmtService, RepositoryError, Int] =
-    ZIO.service[BankStmtService].flatMap(_.importBankStmt(path, header, char, extension, company, buildFn))
+  ): ZIO[BankStatementService, RepositoryError, Int] =
+    ZIO.service[BankStatementService].flatMap(_.importBankStmt(path, header, char, extension, company, buildFn))
 }

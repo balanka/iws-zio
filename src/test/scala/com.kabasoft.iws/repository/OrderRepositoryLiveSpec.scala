@@ -34,5 +34,5 @@ object OrderRepositoryLiveSpec extends ZIOSpecDefault {
           count <- OrderRepository.countAll()
         } yield assertTrue(count==26)
       }
-    ).provideCustomLayerShared(testLayer.orDie) @@ sequential
+    ).provideLayerShared(testLayer.orDie) @@ sequential
 }
