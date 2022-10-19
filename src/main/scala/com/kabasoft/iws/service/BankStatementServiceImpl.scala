@@ -43,7 +43,7 @@ final class BankStatementServiceImpl(
   private[this] def createFT(bs: BankStatement, company: Company): ZIO[Any, RepositoryError, FinancialsTransaction] =
     for {
       supplier <- supplierRepo.getByIban(bs.accountno, bs.company)
-    } yield {println("suppliersuppliersupplier"+supplier); getFtr4Supplier(bs, supplier, company)}
+    } yield  getFtr4Supplier(bs, supplier, company)
 
   private[this] def createFTX(bs: BankStatement, company: Company): ZIO[Any, RepositoryError, FinancialsTransaction] =
     for {

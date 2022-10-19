@@ -360,12 +360,13 @@ insert into account
 
 insert into periodic_account_balance
 (id, account, period, idebit,debit,icredit,credit, company,currency,modelid)
-values(CONCAT(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'1200'), '1200', TO_NUMBER(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'99999999'), 0, 1000, 0, 0
-,'1000' , 'EUR', 106),
-(CONCAT(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYY'),'001200'), '1200', TO_NUMBER(CONCAT(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYY'),'00'),'99999999'), 0, 1000, 0, 0
-      ,'1000' , 'EUR', 106),
-(CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'1200'), '1200', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'), 0, 100, 0, 0
-      ,'1000' , 'EUR', 106);
+values
+       (CONCAT(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'1200'), '1200', TO_NUMBER(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'99999999'),
+       0, 1000, 0, 0,'1000' , 'EUR', 106),
+(CONCAT(to_char( CURRENT_DATE, 'YYYY'),'001200'), '1200', TO_NUMBER(CONCAT(to_char( CURRENT_DATE, 'YYYY'),'00'),'99999999'),
+      0, 1000, 0, 0,'1000' , 'EUR', 106),
+(CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'1200'), '1200', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'),
+      0, 100, 0, 0,'1000' , 'EUR', 106);
 
 insert into customer (id, name, description, street, city, state, zip, phone, email, account, iban, vatcode,
                       revenue_account, posting_date, modified_date, enter_date, company, modelid, country)

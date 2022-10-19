@@ -15,7 +15,9 @@ object AccountRepositoryLiveSpec extends ZIOSpecDefault {
 
 
   val accounts = List(
-    Account("4713", "MyAccount2","MyAccount2", Instant.now(), Instant.now(), Instant.now()
+    Account("4713", "MyAccount2", "MyAccount2", Instant.now(), Instant.now(), Instant.now()
+      , company, 9, "", false, false, "EUR", BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0), Nil.toSet),
+    Account("4714", "MyAccount4","MyAccount4", Instant.now(), Instant.now(), Instant.now()
       , company, 9, "", false, false, "EUR", BigDecimal(0), BigDecimal(0), BigDecimal(0), BigDecimal(0), Nil.toSet))
 
 
@@ -36,8 +38,9 @@ object AccountRepositoryLiveSpec extends ZIOSpecDefault {
       test("insert two new accounts") {
         for {
           oneRow <- AccountRepository.create(accounts)
+          list <- AccountRepository.list(company).runCollect.map(_.toList)
           count <- AccountRepository.list(company).runCount
-        } yield assertTrue(oneRow == 1) && assertTrue(count == 7)
+        } yield assertTrue(oneRow == 2) && assertTrue(count ==8)&& assertTrue(list.size == 8)
       },
       test("get an account by its id") {
         for {

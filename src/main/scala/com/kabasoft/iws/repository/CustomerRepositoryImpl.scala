@@ -80,7 +80,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     val data  = models.map(toTuple(_)) // Customer.unapply(_).get)
     val query = insertInto(customer)(X).values(data)
 
-    ZIO.logInfo(s"Query to insert Customer is ${renderInsert(query)}") *>
+    ZIO.logInfo(s"Query to insert CustomerXX is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
   }
@@ -105,12 +105,14 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     execute(selectAll.to(c => Customer.apply(c)))
     .provideDriver(driverLayer)
   }
-  override def getBy(Id: String, companyId: String): ZStream[Any, RepositoryError, Customer] = {
+
+  override def getBy(Id: String, companyId: String): ZIO[Any, RepositoryError, Customer] = {
     val selectAll = SELECT.where((id === Id) && (company === companyId))
+    ZIO.logInfo(s"Query to execute getBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to[Customer](c => Customer.apply(c)))
-        .provideDriver(driverLayer)
-    // .findFirst(driverLayer, Id)
+        .findFirst(driverLayer, Id)
   }
+
 
   override def getByIban(Iban: String, companyId: String): ZIO[Any, RepositoryError, Customer]        = {
     val selectAll = SELECT2.where((iban_ === Iban) && (company === companyId))

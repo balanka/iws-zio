@@ -59,26 +59,6 @@ object common {
   }
 }
 
-final case class Account1(
-                          id: String,
-                          name: String,
-                          description: String,
-                          enterdate: Instant = Instant.now(),
-                          changedate: Instant = Instant.now(),
-                          postingdate: Instant = Instant.now(),
-                          company: String,
-                          modelid: Int = 9,
-                          account: String = "",
-                          isDebit: Boolean,
-                          balancesheet: Boolean,
-                          currency: String = "EUR ",
-                          idebit: BigDecimal = BigDecimal(0),
-                          icredit: BigDecimal = BigDecimal(0),
-                          debit: BigDecimal = BigDecimal(0),
-                          credit: BigDecimal = BigDecimal(0),
-                          subAccounts: Set[Account1] = Set.empty[Account1]
-                        )
-
 final case class Account(
   id: String,
   name: String,
@@ -367,8 +347,6 @@ final case class ProductPrice(
   effective: LocalDate,
   price: Double
 )
-
-final case class Person(name: String, age: Int)
 
 final case class OrderDetail(
   orderId: UUID,

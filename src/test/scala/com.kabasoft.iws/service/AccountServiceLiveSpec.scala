@@ -26,15 +26,17 @@ object AccountServiceLiveSpec extends ZIOSpecDefault {
   override def spec =
     suite("Account service  test with postgres test container")(
       test("Get the balance 4 an accounting at the end of a period") {
-        val previousYear  =  common.getYear(LocalDateTime.now().minusYears(1).toInstant(ZoneOffset.UTC))
-        val fromPeriod    = previousYear.toString.concat("01").toInt
-        val toPeriod    =  previousYear.toString.concat("12").toInt
+        //val previousYear  =  common.getYear(LocalDateTime.now().minusYears(1).toInstant(ZoneOffset.UTC))
+        val currentYear  =  common.getYear(LocalDateTime.now().toInstant(ZoneOffset.UTC))
+        val fromPeriod    = currentYear.toString.concat("01").toInt
+        val toPeriod    =  currentYear.toString.concat("12").toInt
         for {
           accounts       <-AccountService.getBalances(paccountId0, fromPeriod, toPeriod,  company)
-        } yield  assertTrue(accounts.size == 1) &&assertTrue(accounts.head.balance == 2000)
+        } yield  assertTrue(accounts.size == 1) &&assertTrue(accounts.head.balance == 1100)
       },
       test("Close an accounting  period") {
         val previousYear  =  common.getYear(LocalDateTime.now().minusYears(1).toInstant(ZoneOffset.UTC))
+        //val currentYear  =  common.getYear(LocalDateTime.now().toInstant(ZoneOffset.UTC))
         val fromPeriod    = previousYear.toString.concat("01").toInt
         val toPeriod    =  previousYear.toString.concat("12").toInt
         for {

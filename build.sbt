@@ -7,8 +7,9 @@ val zioConfigVersion           = "3.0.1"
 val zioSqlVersion              = "0.0.3+0-2ff7deed+20221013-1513-SNAPSHOT"
 //val zioSqlVersion            = "0.0.2"
 val logbackVersion             = "1.2.7"
-val testcontainersVersion      = "1.16.2"
-val testcontainersScalaVersion = "0.39.12"
+val testcontainersVersion      = "1.17.5"
+//val testcontainersScalaVersion = "0.39.12"
+val testcontainersScalaVersion = "0.40.11"
 val postgresql                 = "42.5.0"
 
 
