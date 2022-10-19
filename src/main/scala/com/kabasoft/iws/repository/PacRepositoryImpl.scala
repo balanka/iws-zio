@@ -87,16 +87,21 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
       .mapError(e => RepositoryError(e.getCause()))
   }
 
-  private def build(model: PeriodicAccountBalance) =
+  private def build(model: PeriodicAccountBalance) = {
+   val query =
     update(pac)
       .set(idebit, model.idebit)
       .set(debit, model.debit)
       .set(icredit, model.icredit)
       .set(credit, model.credit)
       .where((id === model.id) && (company === model.company))
+    ZIO.logError(s"Query to update PeriodicAccountBalance is <<<<<<<<<<<<<${renderUpdate(query)}")
+    query
+  }
 
   def modify(models: List[PeriodicAccountBalance]): ZIO[Any, RepositoryError, Int] =
     if (models.isEmpty) {
+      ZIO.logError(s"Trying to update an empty List  update PeriodicAccountBalance is <<<<<<<<<<<<<}")*>
       ZIO.succeed(0)
     } else {
       val update_ = models.map(build)
