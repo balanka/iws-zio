@@ -9,9 +9,9 @@ object BankStatementBuilder {
 
   val bs = List(
     BankStatement(4711, "B Mady",Instant.now(), Instant.now(),"TEST POSTING","TEST PURPOSE","B Mady"
-      ,"430071244ACTNO","43007711BIC", 1000, "EUR","INFO TXT","1000","4711430IBAN",false,18 ),
+      ,"DE27662900000001470034X","43007711BIC", -2000, "EUR","INFO TXT","1000","4711430IBAN" ),
     BankStatement(4712, "KABA Soft GmbH",Instant.now(), Instant.now(),"TEST POSTING","TEST PURPOSE","KABA Soft GmbH"
-      ,"430000000ACTNO","43007711BIC", 1000, "EUR","INFO TXT","1000","470434300IBAN",false,18 )
+      ,"DE27662900000001470004X","43007711BIC", 3000, "EUR","INFO TXT","1000","470434300IBAN" )
   )
 
 }

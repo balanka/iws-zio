@@ -392,8 +392,9 @@ values ('70034','Sonstige GWG Lieferenten','Sonstige GWG Lieferenten','sonstige 
        , current_timestamp,'1000',1,'DE');
 
 insert into bankaccount (iban, owner, bic, company, modelid)
-values ('DE27662900000001470014X','5014','SPBIDE3BXXX','1000',12),
-       ('DE27662900000001470004X', '70034','SPBIDE3BXXX','1000',12),
+values ('DE27662900000001470004X','5004','SPBIDE3BXXX','1000',12),
+       ('DE27662900000001470014X','5014','SPBIDE3BXXX','1000',12),
+       ('DE27662900000001470034X', '70034','SPBIDE3BXXX','1000',12),
        ('DE81300500000001182211Y','70034','SPBIDE3BXXX','1000',12),
        ('DE08370501980020902219Y','70060','SPBIDE3BXXX','1000',12),
        ('DE16300500000001609163Y','70063','SPBIDE3BXXX','1000',12),
@@ -402,8 +403,8 @@ values ('DE27662900000001470014X','5014','SPBIDE3BXXX','1000',12),
 insert into bankstatement
  (id,depositor, postingdate, valuedate, postingtext, purpose, beneficiary, accountno, bankCode,amount, currency, info, company, companyIban, posted, modelid)
 values
-(471100000, 'B Mady',current_timestamp, current_timestamp,'TEST POSTING','TEST PURPOSE','B Mady','DE27662900000001470014X','43007711BIC', 1000, 'EUR','INFO TXT','1000','47114300IBAN',false,18 ),
-(471200000, 'KABA Soft GmbH',current_timestamp, current_timestamp,'TEST POSTING','TEST PURPOSE','KABA Soft GmbH','DE27662900000001470004X','470434300IBAN', -1000, 'EUR','INFO TXT','1000','47114300IBAN',false,18 );
+(471100000, 'B Mady',current_timestamp, current_timestamp,'TEST POSTING','TEST PURPOSE','B Mady','DE27662900000001470034X','43007711BIC', -1000, 'EUR','INFO TXT','1000','47114300IBAN',false,18 ),
+(471200000, 'KABA Soft GmbH',current_timestamp, current_timestamp,'TEST POSTING','TEST PURPOSE','KABA Soft GmbH','DE27662900000001470004X','470434300IBAN', 1000, 'EUR','INFO TXT','1000','47114300IBAN',false,18 );
 
 insert into bank
 (id, name, description, posting_date, modified_date, enter_date,  company, modelid)
