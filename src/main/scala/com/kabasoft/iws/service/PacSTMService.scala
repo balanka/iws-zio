@@ -19,13 +19,13 @@ object PacSTMService {
 
   def showBalance(from: TPeriodicAccountBalance, to: TPeriodicAccountBalance): UIO[Unit] =
     for {
-      x  <- getDebit(from)
-      x1 <- getCredit(from)
-      y  <- getCredit(to)
-      y1 <- getDebit(to)
+      fromCredit  <- getDebit(from)
+      fromDebit <- getCredit(from)
+      toCredit  <- getCredit(to)
+      toDebit <- getDebit(to)
 
-      _ <- printLine(s" FROM balance:  debit ${x} credit  ${x1} ")
-      _ <- printLine(s"TO balance: debit  ${y1}  credit  ${y} ")
+      _ <- printLine(s" FROM balance:  debit ${fromCredit} credit  ${fromDebit} ")
+      _ <- printLine(s"TO balance: debit  ${toDebit}  credit  ${toCredit} ")
 
     } yield ()
 

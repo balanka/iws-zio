@@ -26,29 +26,25 @@ final class BankStatementServiceImpl(
     for {
       company    <- ZIO.logInfo(s"Query parameters ids ${ids}  with companyId ${companyId}") *>
                      companyRepo.getBy(companyId)
-      nr         <- bankStmtRepo.listByIds(ids, companyId)
+      nrTransaction         <- bankStmtRepo.listByIds(ids, companyId)
                       .map(bs => bs.copy(posted = true))
                        .tapSink(sink)
                        .groupByKey(_.amount.compareTo(ZERO) >= 0) { case (cond, stream) =>
-                        if (cond) stream.mapZIO(createFTX(_, company))
-                        else stream.mapZIO(createFT(_, company))
+                        if (cond) stream.mapZIO(createSettlement(_, company))
+                        else stream.mapZIO(createPayment(_, company))
                       }
                       .mapZIO(ftrRepo.create)
                       .mapError(e => RepositoryError(e))
                       .runCollect
                       .map(_.toList.sum)
 
-    } yield nr
+    } yield nrTransaction
 
-  private[this] def createFT(bs: BankStatement, company: Company): ZIO[Any, RepositoryError, FinancialsTransaction] =
-    for {
-      supplier <- supplierRepo.getByIban(bs.accountno, bs.company)
-    } yield  getFtr4Supplier(bs, supplier, company)
+  private[this] def createPayment(bs: BankStatement, company: Company): ZIO[Any, RepositoryError, FinancialsTransaction] =
+    supplierRepo.getByIban(bs.accountno, bs.company).map(getFtr4Supplier(bs, _, company))
 
-  private[this] def createFTX(bs: BankStatement, company: Company): ZIO[Any, RepositoryError, FinancialsTransaction] =
-    for {
-      customer <- customerRepo.getByIban(bs.accountno, bs.company)
-    } yield getFtr4Customer(bs, customer, company)
+  private[this] def createSettlement(bs: BankStatement, company: Company): ZIO[Any, RepositoryError, FinancialsTransaction] =
+    customerRepo.getByIban(bs.accountno, bs.company).map(getFtr4Customer(bs, _, company))
 
   private [this]   def getFtr4Supplier(bs: BankStatement, supplier: Supplier, company: Company): FinancialsTransaction = {
     val date   = Instant.now()

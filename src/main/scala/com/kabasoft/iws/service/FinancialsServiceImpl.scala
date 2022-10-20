@@ -43,10 +43,7 @@ final class FinancialsServiceImpl(
   def getByIds(ids: List[String], company: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]] =
     pacRepo.getByIds(ids, company)
 
-  override def postTransaction4Period(
-    fromPeriod: Int,
-    toPeriod: Int,
-    company: String
+  override def postTransaction4Period(fromPeriod: Int, toPeriod: Int, company: String
   ): ZIO[Any, RepositoryError, List[Int]] =
     for {
       models <- ftrRepo.find4Period(fromPeriod, toPeriod, company).runCollect
@@ -62,7 +59,7 @@ final class FinancialsServiceImpl(
   private[this] def postTransaction(transaction: FinancialsTransaction, company: String): ZIO[Any, RepositoryError, Int] = {
     val model = transaction.copy(period = common.getPeriod(transaction.transdate))
     for {
-      pacs          <- pacRepo.getByIds(getIds(model), company)
+      pacs          <- pacRepo.getByIds(buildPacIds(model), company)
       newRecords     = PeriodicAccountBalance.create(model).filterNot(pacs.contains).distinct
       oldPacs        = updatePac(model, pacs)
       journalEntries = createJournalEntries(model, oldPacs ::: newRecords)
@@ -74,7 +71,7 @@ final class FinancialsServiceImpl(
     } yield pac_created + pac_updated + journal + trans_posted
   }
 
-  private[this] def getIds(model: FinancialsTransaction): List[String] = {
+  private[this] def buildPacIds(model: FinancialsTransaction): List[String] = {
     val ids: List[String]  = model.lines.map(line => PeriodicAccountBalance.createId(model.getPeriod, line.account))
     val oids: List[String] = model.lines.map(line => PeriodicAccountBalance.createId(model.getPeriod, line.oaccount))
     (ids ++ oids).distinct
