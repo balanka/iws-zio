@@ -24,11 +24,11 @@ object TransactionRepositoryLiveSpec extends ZIOSpecDefault {
         for {
           oneRow <- TransactionRepository.create(ftr1)
           ftr <- TransactionRepository.getByTransId(ftr1.tid, company)
-          count <- TransactionRepository.list(company).runCount
+          count <- TransactionRepository.all(company).runCount
           nrUpdated <- TransactionRepository.modify(ftr.copy(text=terms))
           ftr2 <- TransactionRepository.getByTransId(ftr1.tid, company)
-        } yield assertTrue(oneRow==3) && assertTrue(ftr.tid==ftr1.tid) && assertTrue(count==2) &&
-         assertTrue(ftr2.text==terms)
+        } yield assertTrue(oneRow == 3) && assertTrue(ftr.tid == ftr1.tid) && assertTrue(count == 1) &&
+          assertTrue(nrUpdated == 3) &&assertTrue(ftr2.text == terms)
       }
     ).provideLayerShared(testLayer.orDie) @@ sequential
 }
