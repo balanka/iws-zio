@@ -757,13 +757,14 @@ final case class Supplier(
   iban: String,
   vatcode: String,
   company: String,
-  modelid: Int = 1,
+  modelid: Int = Supplier.MODELID,
   enterdate: Instant = Instant.now(),
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now(),
   bankaccounts: List[BankAccount] = List.empty[BankAccount]
 ) extends BusinessPartner
-object Supplier                     {
+object Supplier  {
+  val MODELID = 1
   type TYPE = (
     String,
     String,
@@ -825,13 +826,14 @@ final case class Customer(
   iban: String,
   vatcode: String,
   company: String,
-  modelid: Int = 3,
+  modelid: Int = Customer.MODELID,
   enterdate: Instant = Instant.now(),
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now(),
   bankaccounts: List[BankAccount] = List.empty[BankAccount]
 ) extends BusinessPartner
 object Customer                     {
+  val MODELID = 3
   type TYPE = (
     String,
     String,
