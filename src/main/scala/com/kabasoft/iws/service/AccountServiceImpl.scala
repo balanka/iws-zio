@@ -6,61 +6,14 @@ import com.kabasoft.iws.domain.common._
 import com.kabasoft.iws.repository.{ AccountRepository, PacRepository }
 import zio._
 import zhttp.logging.Logger
-
 import scala.annotation.tailrec
 
 final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepository) extends AccountService {
   val logger = Logger.make.withLevel(zhttp.logging.LogLevel.Error)
 
-  /*
-  def getBalances2(
-                   accId: String,
-                   fromPeriod: Int,
-                   toPeriod: Int,
-                   companyId: String
-                 ): ZIO[Any, RepositoryError, List[Account]] =
-    (for {
-      accounts    <- accRepo.list(companyId).runCollect.map(_.toList)
-      period       = fromPeriod.toString.slice(0, 4).concat("00").toInt
-      pacBalances <- pacRepo.getBalances4Period(fromPeriod, toPeriod, companyId).runCollect.map(_.toList)
-      pacs        <- pacRepo.find4Period(period, period, companyId).runCollect.map(_.toList)
-    } yield {
-      val acc     = accounts.filter(_.id == accId)
-      val list    = pacBalances.map(pac =>
-        accounts
-          .find(acc => pac.account == acc.id)
-          .getOrElse(Account.dummy)
-          .copy(idebit = pac.idebit, debit = pac.debit, icredit = pac.icredit, credit = pac.credit)
-      ) ::: acc
-        .filterNot(_.id == Account.dummy.id)
-      val account = Account.consolidate(accId, list, pacs)
-      println(" ACCOUNTS::::::"+account)
-      List(account)
-      //Account.unwrapDataTailRec(account) // .filterNot(acc => acc.id==accId)
-    })
-
-
-     private def consolidate(accId: String, accList: List[Account], pacs: List[PeriodicAccountBalance]): Account = {
-      val accMap = accList.groupBy(_.account)
-      accList.find(x => x.id == accId) match {
-        case Some(acc) =>
-          val x: Account = addSubAccounts(acc, accMap) // List(acc)
-          val y          = getAllSubBalances(x, pacs)
-          val z          = removeSubAccounts(y.copy(id = acc.id))
-          z
-        case None      => Account.dummy
-      }
-    }
-
-   */
-
-  def getBalances(
-    accId: String,
-    fromPeriod: Int,
-    toPeriod: Int,
-    companyId: String
-  ): ZIO[Any, RepositoryError, List[Account]] =
-    (for {
+  def getBalance(accId: String, fromPeriod: Int, toPeriod: Int, companyId: String
+  ): ZIO[Any, RepositoryError, Account] =
+    for {
       accounts    <- accRepo.list(companyId).runCollect.map(_.toList)
       period       = fromPeriod.toString.slice(0, 4).concat("00").toInt
       pacBalances <- pacRepo.getBalances4Period(fromPeriod, toPeriod, companyId).runCollect.map(_.toList)
@@ -78,12 +31,11 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
           accounts
             .find(acc => pac.account == acc.id)
             .map(_.copy(idebit = pac.idebit, debit = pac.debit, icredit = pac.icredit, credit = pac.credit))
-            //.toList
         ) ::: acc
       val account = group(accId, list, accounts)
       logger.info(" ACCOUNTS::::::" + account)
-      List(account)
-    })
+      account
+    }
 
 
   @tailrec

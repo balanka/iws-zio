@@ -20,7 +20,7 @@ object AccountHttpRoutes {
           .map(ch => Response.json(ch.toJson))
 
       case Method.GET -> !! / "balances" / id / fromPeriod / toPeriod        =>
-        AccountService.getBalances(id, fromPeriod.toInt, toPeriod.toInt, "1000").either.map {
+        AccountService.getBalance(id, fromPeriod.toInt, toPeriod.toInt, "1000").either.map {
           case Right(o) => Response.json(o.toJson)
           case Left(e)  => Response.text(e.getMessage + "ID" + id + " fromPeriod: " + fromPeriod + " toPeriod:" + toPeriod)
         }

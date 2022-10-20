@@ -5,13 +5,13 @@ import com.kabasoft.iws.domain.AppError.RepositoryError
 import zio._
 
 trait AccountService {
-  def getBalances(accId: String, fromPeriod: Int, toPeriod: Int, companyId: String): ZIO[Any, RepositoryError, List[Account]]
+  def getBalance(accId: String, fromPeriod: Int, toPeriod: Int, companyId: String): ZIO[Any, RepositoryError, Account]
   def closePeriod(fromPeriod: Int, toPeriod: Int, inStmtAccId: String, company: String): ZIO[Any, RepositoryError, Int]
 }
 
 object AccountService {
-  def getBalances(accId: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[AccountService, RepositoryError, List[Account]] =
-    ZIO.service[AccountService].flatMap(_.getBalances(accId, fromPeriod, toPeriod, company))
+  def getBalance(accId: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[AccountService, RepositoryError, Account] =
+    ZIO.service[AccountService].flatMap(_.getBalance(accId, fromPeriod, toPeriod, company))
 
   def closePeriod(
     fromPeriod: Int,
