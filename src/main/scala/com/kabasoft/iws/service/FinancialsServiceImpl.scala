@@ -52,10 +52,8 @@ final class FinancialsServiceImpl(
     } yield nr
 
   override def post(id: Long, company: String): ZIO[Any, RepositoryError, Int] =
-    for {
-      trans <- ftrRepo.getByTransId(id, company)
-      nr    <- postTransaction(trans, company)
-    } yield nr
+    ftrRepo.getByTransId(id, company)
+      .flatMap(trans =>postTransaction(trans, company))
 
   private[this] def postTransaction(transaction: FinancialsTransaction, company: String): ZIO[Any, RepositoryError, Int] = {
     val model = transaction.copy(period = common.getPeriod(transaction.transdate))
@@ -72,19 +70,19 @@ final class FinancialsServiceImpl(
     } yield pac_created + pac_updated + journal + trans_posted
   }
 
+  private[this] def buildPacId(model: FinancialsTransaction, accountId:String):String =
+    PeriodicAccountBalance.createId(model.getPeriod, accountId)
   private[this] def buildPacIds(model: FinancialsTransaction): List[String] = {
-    val ids: List[String]  = model.lines.map(line => PeriodicAccountBalance.createId(model.getPeriod, line.account))
-    val oids: List[String] = model.lines.map(line => PeriodicAccountBalance.createId(model.getPeriod, line.oaccount))
-    (ids ++ oids).distinct
+    val pacIds: List[String]  = model.lines.map(line => buildPacId(model, line.account))
+    val pacOids: List[String] = model.lines.map(line => buildPacId(model, line.oaccount))
+    (pacIds ++ pacOids).distinct
   }
 
   private def updatePac(model: FinancialsTransaction, pacList: List[DPAC]) = {
     val dummyPac = PeriodicAccountBalance.dummy
     model.lines.flatMap { line =>
-      val pacId  = PeriodicAccountBalance.createId(model.getPeriod, line.account)
-      val poacId = PeriodicAccountBalance.createId(model.getPeriod, line.oaccount)
-      val pac    = List(pacList.find(pac_ => pac_.id == pacId)).flatten.map(_.debiting(line.amount))
-      val poac   = List(pacList.find(poac_ => poac_.id == poacId)).flatten.map(_.crediting(line.amount))
+      val pac    = pacList.find(pac_ => pac_.id == buildPacId(model, line.account)).map(_.debiting(line.amount))
+      val poac   = pacList.find(poac_ => poac_.id == buildPacId(model, line.oaccount)).map(_.crediting(line.amount))
       (pac ++ poac)
     }.groupBy(_.id)
       .map { case (_, v) => reduce(v, dummyPac) }
@@ -96,10 +94,8 @@ final class FinancialsServiceImpl(
 
   private def makeJournal(model: FinancialsTransaction,  pacList: List[DPAC]):List[Journal]=
     model.lines.flatMap { line =>
-      val pacId = PeriodicAccountBalance.createId(model.getPeriod, line.account)
-      val poacId = PeriodicAccountBalance.createId(model.getPeriod, line.oaccount)
-      val pac: Option[DPAC] = pacList.find(pac_ => pac_.id == pacId)
-      val poac: Option[DPAC] = pacList.find(poac_ => poac_.id == poacId)
+      val pac: Option[DPAC] = pacList.find(pac_ => pac_.id == buildPacId(model, line.account))
+      val poac: Option[DPAC] = pacList.find(poac_ => poac_.id == buildPacId(model, line.oaccount))
       val jou1: Option[Journal]  = pac.map(buildJournalEntries(model, line, _, line.account, line.oaccount))
       val jou2: Option[Journal]  = poac.map(buildJournalEntries(model, line, _, line.oaccount, line.account))
       List(jou1, jou2)
