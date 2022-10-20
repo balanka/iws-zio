@@ -2,11 +2,12 @@ package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.common.reduce
-import com.kabasoft.iws.domain.{ common, DerivedTransaction, FinancialsTransaction, FinancialsTransactionDetails, Journal, PeriodicAccountBalance }
-import com.kabasoft.iws.repository.{ JournalRepository, PacRepository, TransactionRepository }
+import com.kabasoft.iws.domain.{DerivedTransaction, FinancialsTransaction, FinancialsTransactionDetails, Journal, PeriodicAccountBalance, common}
+import com.kabasoft.iws.repository.{JournalRepository, PacRepository, TransactionRepository}
 
 import java.time.Instant
 import zio._
+import scala.List
 
 final class FinancialsServiceImpl(
   pacRepo: PacRepository,
@@ -62,7 +63,7 @@ final class FinancialsServiceImpl(
       pacs          <- pacRepo.getByIds(buildPacIds(model), company)
       newRecords     = PeriodicAccountBalance.create(model).filterNot(pacs.contains).distinct
       oldPacs        = updatePac(model, pacs)
-      journalEntries = createJournalEntries(model, oldPacs ::: newRecords)
+      journalEntries = makeJournal(model, oldPacs ::: newRecords)
       pac_created   <- pacRepo.create(newRecords)
       pac_updated   <- pacRepo.modify(oldPacs)
       model_         = model.copy(posted = true, postingdate = Instant.now())
@@ -93,7 +94,17 @@ final class FinancialsServiceImpl(
 
   }
 
-  private def makeJournal(line: FTDetails, model: FinancialsTransaction, pac: DPAC, account: String, oaccount: String) =
+  private def makeJournal(model: FinancialsTransaction,  pacList: List[DPAC]):List[Journal]=
+    model.lines.flatMap { line =>
+      val pacId = PeriodicAccountBalance.createId(model.getPeriod, line.account)
+      val poacId = PeriodicAccountBalance.createId(model.getPeriod, line.oaccount)
+      val pac: Option[DPAC] = pacList.find(pac_ => pac_.id == pacId)
+      val poac: Option[DPAC] = pacList.find(poac_ => poac_.id == poacId)
+      val jou1: Option[Journal]  = pac.map(buildJournalEntries(model, line, _, line.account, line.oaccount))
+      val jou2: Option[Journal]  = poac.map(buildJournalEntries(model, line, _, line.oaccount, line.account))
+      List(jou1, jou2)
+    }.flatten
+    def buildJournalEntries(model: FinancialsTransaction, line: FTDetails, pac: DPAC, account:String, oaccount:String)=
     Journal(
       -1,
       model.tid,
@@ -119,20 +130,6 @@ final class FinancialsServiceImpl(
       model.file_content,
       model.modelid
     )
-
-  private[this] def createJournalEntries(
-    model: FinancialsTransaction,
-    pacList: List[DPAC]
-  ): List[Journal] = model.lines.flatMap { line =>
-    val pacId      = PeriodicAccountBalance.createId(model.getPeriod, line.account)
-    val poacId     = PeriodicAccountBalance.createId(model.getPeriod, line.oaccount)
-    val dummyPac   = PeriodicAccountBalance.dummy
-    val pac: DPAC  = pacList.find(pac_ => pac_.id == pacId).getOrElse(dummyPac)
-    val poac: DPAC = pacList.find(poac_ => poac_.id == poacId).getOrElse(dummyPac)
-    val jou1       = makeJournal(line, model, pac, line.account, line.oaccount)
-    val jou2       = makeJournal(line, model, poac, line.oaccount, line.account)
-    List(jou1, jou2)
-  }
 
 }
 

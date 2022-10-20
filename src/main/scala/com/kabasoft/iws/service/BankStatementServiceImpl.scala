@@ -31,25 +31,21 @@ final class BankStatementServiceImpl(
       nrTransaction         <- bankStmtRepo.listByIds(ids, companyId)
                       .map(bs => bs.copy(posted = true))
                        .tapSink(sink)
-                       .mapZIO(createPaymentOrSettlement(_, company))
-                       .mapZIO(ftrRepo.create)
+                       .mapZIO(buildTransactions(_, company)
+                         .flatMap(ftrRepo.create))
                       .mapError(e => RepositoryError(e))
                       .runCollect
                       .map(_.toList.sum)
 
     } yield nrTransaction
 
-  private[this] def createPaymentOrSettlement(bs: BankStatement, company: Company): ZIO[Any, RepositoryError, FinancialsTransaction] =
+  private[this] def buildTransactions(bs: BankStatement, company: Company): ZIO[Any, RepositoryError, FinancialsTransaction] =
     if(bs.amount >= 0){
       customerRepo.getByIban(bs.accountno, bs.company).map(buildTransactionFromBankStmt(bs, _, company))
     } else{
       supplierRepo.getByIban(bs.accountno, bs.company).map(buildTransactionFromBankStmt(bs, _, company))
     }
 
-
-  //val buildFnc:(BankStatement, Company)=> ZIO[Any, RepositoryError, FinancialsTransaction] = createPaymentOrSettlement
-  //val persistTrxFnc:FinancialsTransaction=>ZIO[Any, RepositoryError, Int]= ftrRepo.create
-  //val buildAndPersistTrxFnc:(BankStatement, Company)=>ZIO[Any, RepositoryError, Int] = buildFnc.andThen(persistTrxFnc)
   private [this]   def getAccountOrOaccout(supplier: BusinessPartner) =
     if(supplier.modelid==Supplier.MODELID ) {
       supplier.oaccount
