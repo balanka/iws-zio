@@ -47,7 +47,9 @@ final class FinancialsServiceImpl(
   override def postTransaction4Period(fromPeriod: Int, toPeriod: Int, company: String
   ): ZIO[Any, RepositoryError, List[Int]] =
     for {
-      models <- ftrRepo.find4Period(fromPeriod, toPeriod, company).runCollect
+      models <- ftrRepo.find4Period(fromPeriod, toPeriod, company)
+        .filter(_.posted == false)
+        .runCollect
       nr     <- ZIO.foreach(models)(trans => postTransaction(trans, company)).map(_.toList)
     } yield nr
 
