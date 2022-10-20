@@ -26,7 +26,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
      oidx ++ costcenterx ++ accountx ++transdatex ++ enterdatex ++ postingdatex ++ periodx ++ postedx ++ modelidx ++ companyx ++ textx ++ type_journalx ++ file_contentx
 
   val SELECT2                                                                                   = select(XX2).from(transaction)
-  val SELECT                                                                                   = select(XX).from(transaction.join(transactionDetails).on(transid === tid_))
+  val SELECT                                                                                   = select(XX).from(transaction.leftOuter(transactionDetails).on(transid === tid_))
   val SELECTD = select(XXD).from(transaction.join(transactionDetails).on(transid === tid_))
   val SELECT_LINE                                                                              = select(LINES).from(transactionDetails)
 
@@ -119,10 +119,13 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
   private def build(trans: FinancialsTransaction) =
     update(transaction)
       .set(oid_, trans.oid)
+      .set(costcenter, trans.costcenter)
       .set(account_, trans.account)
       .set(transdate_, trans.transdate)
       .set(modelid_, trans.modelid)
       .set(company_, trans.company)
+      .set(text_, trans.text)
+      .set(type_journal,trans.typeJournal)
       .set(file_content_, trans.file_content)
       .where((tid_ === trans.tid) && (company_ === trans.company))
 
@@ -235,7 +238,6 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 
   override def getBy(Id: String, companyId: String): ZIO[Any, RepositoryError, DerivedTransaction] = {
     val selectAll = SELECTD.where((company_ === companyId) && (tid_ === Id.toLong))
-
     ZIO.logInfo(s"Query to execute findBy ${Id} is ${renderRead(selectAll)}") *>
       execute(selectAll.to((DerivedTransaction.apply _).tupled))
         .findFirstLong(driverLayer, 1L)
@@ -258,15 +260,13 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
   } yield trans
 
   override def getByTransId(id: Long, companyId: String): ZIO[Any, RepositoryError, FinancialsTransaction] = for {
-    trans  <-  ZIO.logInfo(s"Query to execute getByTransId ${id} ") *>
-                getById(id, companyId)
+    trans  <- getById(id, companyId)
     lines_ <- getLineByTransId(id).runCollect.map(_.toList)
   } yield trans.copy(lines = lines_)
 
   private def getById(id: Long, companyId: String): ZIO[Any, RepositoryError, FinancialsTransaction] = {
     val selectAll = SELECT.where((company_ === companyId) && (tid_ === id))
     ZIO.logInfo(s"Query to execute getById ${id} is ${renderRead(selectAll)}") *>
-      //execute(selectAll.to(x => FinancialsTransaction.applyX(x)))
     execute(selectAll.to(x => FinancialsTransaction.apply(x)))
         .findFirstLong(driverLayer, id)
   }

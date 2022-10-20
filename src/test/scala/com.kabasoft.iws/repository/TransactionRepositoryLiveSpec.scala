@@ -19,31 +19,16 @@ object TransactionRepositoryLiveSpec extends ZIOSpecDefault {
 
   override def spec =
     suite("Transaction repository test with postgres test container")(
-      test("insert two new transactions") {
+      test("insert a new transactions, modify, gets aTransaction by transId and count the Nr all transactions ") {
+        val terms ="changed text"
         for {
           oneRow <- TransactionRepository.create(ftr1)
+          ftr <- TransactionRepository.getByTransId(ftr1.tid, company)
           count <- TransactionRepository.list(company).runCount
-        } yield assertTrue(oneRow==3) && assertTrue(count==2)
+          nrUpdated <- TransactionRepository.modify(ftr.copy(text=terms))
+          ftr2 <- TransactionRepository.getByTransId(ftr1.tid, company)
+        } yield assertTrue(oneRow==3) && assertTrue(ftr.tid==ftr1.tid) && assertTrue(count==2) &&
+         assertTrue(ftr2.text==terms)
       }
-      /*, test("get a transaction by its id") {
-        for {
-          stmt <- TransactionRepository.getByTransId(transactionId, company)
-        } yield  assertTrue(stmt.tid==transactionId)
-      },
-
-
-      test("Update a transaction") {
-        //val terms ="changed text"
-        for {
-          oneRow <- TransactionRepository.create(ftr1)
-          tr <- TransactionRepository.getByTransId(ftr1.tid, company)
-         // nrUpdated <- TransactionRepository.modify(tr.copy(text=terms))
-         // tr2 <- TransactionRepository.getByTransId(ftr1.tid, company)
-        } yield   assertTrue(tr.tid==transactionId)&& assertTrue(oneRow==3)
-        // && assertTrue(tr.tid==transactionId)&& assertTrue(nrUpdated==3)
-
-      }
-     */
-
     ).provideLayerShared(testLayer.orDie) @@ sequential
 }

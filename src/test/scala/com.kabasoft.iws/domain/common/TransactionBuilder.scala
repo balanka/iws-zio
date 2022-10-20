@@ -7,7 +7,7 @@ import java.time.Instant
 
 object TransactionBuilder {
   val company ="1000"
-  val transactionId = 4711L
+  val transactionId =1// 4711L
   val lineTransactionId1 = 1L
   val lineTransactionId2 = 2L
   val modelid = 112
