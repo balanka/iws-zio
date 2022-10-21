@@ -352,21 +352,23 @@ insert into account
   ('9902','Bilanz Passiva','Bilanz Passiva',current_timestamp, current_timestamp, current_timestamp, '1000',11
      , '9900', false, true, 0.0, 0.0, 0.0, 0.0, 'EUR'),
  ('1200','Forderungen aus Lieferungen und Leistungen','Forderung a. L & L',current_timestamp, current_timestamp, current_timestamp, '1000',11
-  , '9900', true, true, 0.0, 0.0, 0.0, 0.0, 'EUR'),
+  , '9901', true, true, 0.0, 0.0, 0.0, 0.0, 'EUR'),
   ('1800','Bank','Bank',current_timestamp, current_timestamp, current_timestamp, '1000',11
-  , '1800', true, true, 0.0, 0.0, 0.0, 0.0, 'EUR'),
+  , '9901', true, true, 0.0, 0.0, 0.0, 0.0, 'EUR'),
     ('1810','Giro SPK Bielefeld','Giro SPK Bielefeld',current_timestamp, current_timestamp, current_timestamp, '1000',11
   , '1800', true, true, 0.0, 0.0, 0.0, 0.0, 'EUR');
 
 insert into periodic_account_balance
 (id, account, period, idebit,debit,icredit,credit, company,currency,modelid)
 values
-       (CONCAT(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'1200'), '1200', TO_NUMBER(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'99999999'),
+(CONCAT(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'1200'), '1200', TO_NUMBER(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'99999999'),
        0, 1000, 0, 0,'1000' , 'EUR', 106),
 (CONCAT(to_char( CURRENT_DATE, 'YYYY'),'001200'), '1200', TO_NUMBER(CONCAT(to_char( CURRENT_DATE, 'YYYY'),'00'),'99999999'),
       0, 1000, 0, 0,'1000' , 'EUR', 106),
 (CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'1200'), '1200', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'),
-      0, 100, 0, 0,'1000' , 'EUR', 106);
+      10, 100, 0, 0,'1000' , 'EUR', 106),
+(CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'1810'), '1810', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'),
+ 0, 0, 0, 0,'1000' , 'EUR', 106);
 
 insert into customer (id, name, description, street, city, state, zip, phone, email, account, iban, vatcode,
                       revenue_account, posting_date, modified_date, enter_date, company, modelid, country)
