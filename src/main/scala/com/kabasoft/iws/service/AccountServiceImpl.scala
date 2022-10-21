@@ -21,7 +21,7 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
     } yield {
       val all = (pacBalances ::: pacs)
         .groupBy(_.account)
-        .map { case (_, v) => reduce(v, PeriodicAccountBalance.dummy) }
+        .map { case (k, v) => reduce(v, PeriodicAccountBalance.dummy) }
         .filterNot(_.id == PeriodicAccountBalance.dummy.id)
         .toList
 
@@ -31,7 +31,8 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
           accounts
             .find(acc => pac.account == acc.id)
             .map(_.copy(idebit = pac.idebit, debit = pac.debit, icredit = pac.icredit, credit = pac.credit))
-        ) ::: acc
+        ) //::: acc
+      println(" list::::::" + list)
       val account = group(accId, list, accounts)
       logger.info(" ACCOUNTS::::::" + account)
       account
@@ -40,7 +41,7 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
 
   @tailrec
   def group(accid: String, accounts0: List[Account], all: List[Account]): Account =
-    if (accounts0.size == 1) accounts0.head
+    if (accounts0.size == 2 && accounts0.head.account.equals(accid) ) accounts0.head
     else {
       val accounts1 = accounts0
         .groupBy(_.account)
@@ -51,6 +52,7 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
           .find(acc => acc.id == pac.account)
           .map(_.copy(idebit = pac.idebit, debit = pac.debit, icredit = pac.icredit, credit = pac.credit))
           ).toList
+      println(" lisaccounts1::::::" + accounts1)
       group(accid, accounts1, all)
     }
 

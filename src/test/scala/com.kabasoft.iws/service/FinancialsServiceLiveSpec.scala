@@ -1,20 +1,22 @@
 package com.kabasoft.iws.service
 
-import com.kabasoft.iws.domain.common
-import com.kabasoft.iws.domain.AccountBuilder.{company}
-import com.kabasoft.iws.domain.TransactionBuilder.{ftr1, line1, line2}
+import com.kabasoft.iws.domain.{PeriodicAccountBalance, common}
+import com.kabasoft.iws.domain.AccountBuilder.{company, paccountId0}
+import com.kabasoft.iws.domain.TransactionBuilder.{ftr1, ftr2, line1, line2,line3}
 import com.kabasoft.iws.repository.postgresql.PostgresContainer
-import com.kabasoft.iws.repository.{JournalRepositoryImpl, PacRepository, PacRepositoryImpl, TransactionRepository, TransactionRepositoryImpl}
+import com.kabasoft.iws.repository.{AccountRepository, AccountRepositoryImpl, JournalRepositoryImpl, PacRepository, PacRepositoryImpl, TransactionRepository, TransactionRepositoryImpl}
 import zio.ZLayer
 import zio.sql.ConnectionPool
 import zio.test.TestAspect._
 import zio.test._
 
-import java.time.Instant
+import java.time.{Instant, LocalDateTime, ZoneOffset}
 
 object FinancialsServiceLiveSpec extends ZIOSpecDefault {
 
-  val testServiceLayer = ZLayer.make[FinancialsService with TransactionRepository with PacRepository](
+  val testServiceLayer = ZLayer.make[AccountService  with FinancialsService with TransactionRepository with AccountRepository with PacRepository](
+    AccountRepositoryImpl.live,
+    AccountServiceImpl.live,
     PacRepositoryImpl.live,
     JournalRepositoryImpl.live,
     TransactionRepositoryImpl.live,
@@ -27,18 +29,34 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
   override def spec =
     suite("Financials service  test with postgres test container")(
       test("create and post 1 transaction") {
+
+        val previousYear = common.getYear(LocalDateTime.now().minusYears(1).toInstant(ZoneOffset.UTC))
         val period    =  common.getPeriod(Instant.now())
+        val currentYear = common.getYear(Instant.now())
+        val fromPeriod = currentYear.toString.concat("01").toInt
+        val toPeriod = currentYear.toString.concat("12").toInt
+        val fromPPeriod = previousYear.toString.concat("01").toInt
+        val toPPeriod = previousYear.toString.concat("12").toInt
         for {
-          oneRow     <- FinancialsService.create(ftr1)
+          oneRow     <- TransactionRepository.create2(List(ftr1, ftr2))
           ftr        <-   TransactionRepository.all(company).runCollect.map(_.toList)
           postedRows <- FinancialsService.postAll(ftr.map(_.tid), company).map(_.sum)
           oaccountEntry <- FinancialsService.journal(line1.oaccount, period, period, company).map(_.size)
-          journalEntries <- FinancialsService.journal(line1.account, period, period, company).map(_.size)
+          accountEntry <- FinancialsService.journal(line1.account, period, period, company).map(_.size)
           vatEntry       <- FinancialsService.journal(line2.oaccount, period, period, company).map(_.size)
+          nrOfAccounts       <-AccountService.closePeriod(fromPPeriod, toPPeriod, paccountId0, company)
           nrOfPacs       <-PacRepository.find4Period(line1.account,period, period, company).runCollect.map(_.size)
-          balances       <-PacRepository.getBalances4Period(period, period, company).runCollect.map(_.toList)
-        } yield {println("balances>>>"+balances);(assertTrue(oneRow == 3)&& assertTrue(postedRows == 10) && assertTrue(nrOfPacs == 1)
-        && assertTrue(journalEntries == 2)&& assertTrue(oaccountEntry == 1)&& assertTrue(vatEntry == 1))}
+          balances4P     <-PacRepository.getBalances4Period(period, period, company).runCollect.map(_.toList)
+
+          balance       <-AccountService.getBalance(paccountId0, fromPeriod, toPeriod, company)
+        } yield {println("balances>>>"+balance);println("balances4P>>>"+balances4P);println("nrOfAccounts>>>"+nrOfAccounts);
+          (assertTrue(oneRow == 5)&&
+          assertTrue(postedRows == 17) &&
+            assertTrue(nrOfPacs == 1) && assertTrue(accountEntry == 3) &&
+          assertTrue(oaccountEntry == 1)&& assertTrue(vatEntry == 1) && assertTrue(balances4P.size == 2) &&
+          assertTrue(balances4P.headOption.getOrElse(PeriodicAccountBalance.dummy).debit == 119) &&
+          assertTrue(balance.debit == 1119) && assertTrue(balance.credit == 119))
+        }
       }
     ).provideLayerShared(testServiceLayer.orDie) @@ sequential
 }

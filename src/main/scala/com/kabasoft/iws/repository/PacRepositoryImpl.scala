@@ -59,7 +59,7 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
     val query = insertInto(pac)(X)
       .values(PeriodicAccountBalance.unapply(c).get)
 
-    ZIO.logError(s"Query to insert PeriodicAccountBalance is ${renderInsert(query)}") *>
+    ZIO.logInfo(s"Query to insert PeriodicAccountBalance is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
         .unit
@@ -71,7 +71,7 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
       val data_ = models_.map(PeriodicAccountBalance.unapply(_).get)
       val query = insertInto(pac)(X).values(data_)
 
-      ZIO.logError(s"Query to insert PeriodicAccountBalance is ${renderInsert(query)}") *>
+      ZIO.logInfo(s"Query to insert PeriodicAccountBalance is ${renderInsert(query)}") *>
         execute(query).provideAndLog(driverLayer)
     }
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int]        =
@@ -95,13 +95,13 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
       .set(icredit, model.icredit)
       .set(credit, model.credit)
       .where((id === model.id) && (company === model.company))
-    ZIO.logError(s"Query to update PeriodicAccountBalance is <<<<<<<<<<<<<${renderUpdate(query)}")
+    ZIO.logInfo(s"Query to update PeriodicAccountBalance is <<<<<<<<<<<<<${renderUpdate(query)}")
     query
   }
 
   def modify(models: List[PeriodicAccountBalance]): ZIO[Any, RepositoryError, Int] =
     if (models.isEmpty) {
-      ZIO.logError(s"Trying to update an empty List  update PeriodicAccountBalance is <<<<<<<<<<<<<}")*>
+      ZIO.logInfo(s"Trying to update an empty List  update PeriodicAccountBalance is <<<<<<<<<<<<<}")*>
       ZIO.succeed(0)
     } else {
       val update_ = models.map(build)
@@ -115,7 +115,7 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
     val selectAll = select(X).from(pac)
 
     ZStream.fromZIO(
-      ZIO.logError(s"Query to execute findAll is ${renderRead(selectAll)}")
+      ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")
     ) *>
       execute(selectAll.to((PeriodicAccountBalance.apply _).tupled))
         .provideDriver(driverLayer)
@@ -125,7 +125,7 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
       .from(pac)
       .where((id === Id) && (company === companyId))
 
-    ZIO.logError(s"Query to execute findBy is ${renderRead(selectAll)}") *>
+    ZIO.logInfo(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to((PeriodicAccountBalance.apply _).tupled))
         .findFirst(driverLayer, Id, PeriodicAccountBalance.dummy)
   }
@@ -135,7 +135,7 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
       .from(pac)
       .where((modelid === modelId) && (company === companyId))
 
-    ZIO.logError(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
+    ZIO.logInfo(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
       execute(selectAll.to((PeriodicAccountBalance.apply _).tupled))
         .findFirstInt(driverLayer, modelId)
   }

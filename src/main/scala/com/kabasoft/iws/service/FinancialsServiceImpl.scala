@@ -1,7 +1,7 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.common.reduce
+import com.kabasoft.iws.domain.common._
 import com.kabasoft.iws.domain.{DerivedTransaction, FinancialsTransaction, FinancialsTransactionDetails, Journal, PeriodicAccountBalance, common}
 import com.kabasoft.iws.repository.{JournalRepository, PacRepository, TransactionRepository}
 
@@ -86,10 +86,11 @@ final class FinancialsServiceImpl(
       val pac    = pacList.find(pac_ => pac_.id == buildPacId(model, line.account)).map(_.debiting(line.amount))
       val poac   = pacList.find(poac_ => poac_.id == buildPacId(model, line.oaccount)).map(_.crediting(line.amount))
       (pac ++ poac)
-    }.groupBy(_.id)
+    }/*.groupBy(_.id)
       .map { case (_, v) => reduce(v, dummyPac) }
       .filterNot(_.id == dummyPac.id)
       .toList
+      */
       .distinct
 
   }

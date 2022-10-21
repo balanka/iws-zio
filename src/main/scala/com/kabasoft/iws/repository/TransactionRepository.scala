@@ -10,7 +10,8 @@ trait TransactionRepository {
   def create(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int]
   def create(item: TYPE_): ZIO[Any, RepositoryError, Int]
   def create(models: List[TYPE_]): ZIO[Any, RepositoryError, Int]
-  def create2(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int]
+  def create2(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int]=
+    ZIO.collectAll(models.map(create(_))).map(_.sum)
   def delete(item: String, company: String): ZIO[Any, RepositoryError, Int]
   def delete(items: List[String], company: String): ZIO[Any, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
@@ -36,7 +37,8 @@ object TransactionRepository {
   def create(items: List[TYPE_]): ZIO[TransactionRepository, RepositoryError, Int]                                         =
     ZIO.service[TransactionRepository] flatMap (_.create(items))
   def create2(models: List[FinancialsTransaction]): ZIO[TransactionRepository, RepositoryError, Int]=
-    ZIO.service[TransactionRepository] flatMap (_.create2(models))
+    ZIO.collectAll(models.map(create(_))).map(_.sum)
+    //ZIO.service[TransactionRepository] flatMap (_.create2(models))
   def delete(item: String, company: String): ZIO[TransactionRepository, RepositoryError, Int]                              =
     ZIO.service[TransactionRepository] flatMap (_.delete(item, company))
   def delete(items: List[String], company: String): ZIO[TransactionRepository, RepositoryError, List[Int]]                 =

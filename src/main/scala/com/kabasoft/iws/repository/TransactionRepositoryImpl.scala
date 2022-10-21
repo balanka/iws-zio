@@ -56,25 +56,25 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
   }
 
   private def getQuery4Model2(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] = {
+    val tuples = models.map(t => toTupleC(t))
+   val  query = insertInto(transaction2)(XX3).values(tuples)
     val result         = for {
-      transId       <- getLastTransid
-      linesTransData = models.map(d => d.lines.map(l => toTupleC(l.copy( transid = transId)))).flatten
-      tuples         =  models.map(t => toTupleC(t))
-      query          = insertInto(transaction2)(XX3).values(tuples)
-      queryLines     = insertInto(transactionDetailsx)(LINESX).values(linesTransData)
       _ <-  ZIO.logInfo(
-        s"Query to insert TransactionDetails is ${renderInsert(queryLines)}" +
+        //s"Query to insert TransactionDetails is ${renderInsert(queryLines)}" +
           s"Query to insert Transaction is ${renderInsert(query)}"
       )
 
       r1 <- execute(query).provideAndLog(driverLayer)
+      transId <- getLastTransid
+      linesTransData = models.map(d => d.lines.map(l => toTupleC(l.copy(transid = transId)))).flatten
+      queryLines     = insertInto(transactionDetailsx)(LINESX).values(linesTransData)
       r2 <- execute(queryLines).provideAndLog(driverLayer)
     } yield (r1 + r2)
     result
   }
 
 
-  override def create2(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int]        = getQuery4Model2(models)
+  //override def create2(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int]        = models.map(create).map(_.)
   override def create(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int]                = getQuery4Model2(List(model))
   override def create(model: DerivedTransaction): ZIO[Any, RepositoryError, Int]                   = getQuery4Model(List(model))
 

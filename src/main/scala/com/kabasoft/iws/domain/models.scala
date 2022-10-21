@@ -665,11 +665,7 @@ object PeriodicAccountBalance {
   val dummy                                    =
     PeriodicAccountBalance("", "", 0, zeroAmount, zeroAmount, zeroAmount, zeroAmount, "EUR", "1000")
 
-  implicit val pacMonoid: Identity[PeriodicAccountBalance] = new Identity[PeriodicAccountBalance] {
-    def identity: PeriodicAccountBalance                                      = PeriodicAccountBalance.dummy
-    def combine(m1: => PeriodicAccountBalance, m2: => PeriodicAccountBalance) =
-      m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
-  }
+
 
   def create(accountId: String, period: Int, currency: String, company: String): PeriodicAccountBalance =
     PeriodicAccountBalance.apply(
@@ -693,7 +689,8 @@ object PeriodicAccountBalance {
           model.period,
           zeroAmount,
           zeroAmount,
-          line.amount,
+          zeroAmount,
+          //line.amount,
           zeroAmount,
           model.company,
           line.currency,
@@ -706,16 +703,18 @@ object PeriodicAccountBalance {
           zeroAmount,
           zeroAmount,
           zeroAmount,
-          line.amount,
+          zeroAmount,
+          //line.amount,
           model.company,
           line.currency,
           PeriodicAccountBalance.MODELID
         )
       )
-    }.groupBy((_.id))
+    }/*.groupBy((_.id))
       .map { case (_, v) => reduce(v, PeriodicAccountBalance.dummy) }
       .filterNot(_.id == PeriodicAccountBalance.dummy.id)
       .toList
+      */
   def applyX(p: PAC_Type)                                                                               = PeriodicAccountBalance(p._1, p._2, p._3, p._4, p._5, p._6, p._7, p._8, p._9, p._10)
 }
 
