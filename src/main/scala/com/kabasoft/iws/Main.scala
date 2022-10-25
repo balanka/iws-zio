@@ -21,8 +21,8 @@ object Main extends ZIOAppDefault {
         Server.port(config.port) ++
           Server.app((
             AccountHttpRoutes.app ++ FinancialsHttpRoutes.app
-              ++ HttpRoutes.app
-              ++ MasterfilesHttpRoutes.app
+              ++ HttpRoutes.app ++ CustomerRoutes.app
+              ++ SupplierRoutes.app++ MasterfilesHttpRoutes.app
               ++ PacHttpRoutes.app ++ VatHttpRoutes.app ++ Healthcheck.expose
           )@@ middlewares)
       )
@@ -34,7 +34,10 @@ object Main extends ZIOAppDefault {
         AccountServiceImpl.live,
         AccountRepositoryImpl.live,
         OrderRepositoryImpl.live,
+        CompanyRepositoryImpl.live,
         CustomerOLDRepositoryImpl.live,
+        CustomerRepositoryImpl.live,
+        SupplierRepositoryImpl.live,
         BankRepositoryImpl.live,
         ModuleRepositoryImpl.live,
         BankStatementRepositoryImpl.live,
