@@ -32,7 +32,7 @@ object AccountServiceLiveSpec extends ZIOSpecDefault {
         val toPeriod    =  currentYear.toString.concat("12").toInt
         for {
           account      <-AccountService.getBalance(paccountId0, fromPeriod, toPeriod,  company)
-        } yield  assertTrue(account.id == paccountId0) &&assertTrue(account.balance == 1100)
+        } yield  assertTrue(account.id == paccountId0) &&assertTrue(account.balance == 100)
       },
       test("Close an accounting  period") {
         val previousYear  =  common.getYear(LocalDateTime.now().minusYears(1).toInstant(ZoneOffset.UTC))

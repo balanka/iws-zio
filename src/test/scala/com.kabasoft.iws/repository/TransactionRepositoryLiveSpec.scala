@@ -23,11 +23,12 @@ object TransactionRepositoryLiveSpec extends ZIOSpecDefault {
         val terms ="changed text"
         for {
           oneRow <- TransactionRepository.create(ftr1)
-          ftr <- TransactionRepository.getByTransId(ftr1.tid, company)
+          all <- TransactionRepository.all(company).runCollect.map(_.toList)
+          ftr <- TransactionRepository.getByTransId(all(0).tid, company)
           count <- TransactionRepository.all(company).runCount
           nrUpdated <- TransactionRepository.modify(ftr.copy(text=terms))
-          ftr2 <- TransactionRepository.getByTransId(ftr1.tid, company)
-        } yield assertTrue(oneRow == 3) && assertTrue(ftr.tid == ftr1.tid) && assertTrue(count == 1) &&
+          ftr2 <- TransactionRepository.getByTransId(ftr.tid, company)
+        } yield assertTrue(oneRow == 3)  && assertTrue(count == 1) &&
           assertTrue(nrUpdated == 3) &&assertTrue(ftr2.text == terms)
       }
     ).provideLayerShared(testLayer.orDie) @@ sequential

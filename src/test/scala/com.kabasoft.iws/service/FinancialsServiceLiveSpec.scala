@@ -55,7 +55,7 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
             assertTrue(nrOfPacs == 1) && assertTrue(accountEntry == 3) &&
           assertTrue(oaccountEntry == 1)&& assertTrue(vatEntry == 1) && assertTrue(balances4P.size == 2) &&
           assertTrue(balances4P.headOption.getOrElse(PeriodicAccountBalance.dummy).debit == 119) &&
-          assertTrue(balance.debit == 1119) && assertTrue(balance.credit == 119))
+          assertTrue(balance.debit == 238) && assertTrue(balance.credit == 119))
         }
       }
     ).provideLayerShared(testServiceLayer.orDie) @@ sequential

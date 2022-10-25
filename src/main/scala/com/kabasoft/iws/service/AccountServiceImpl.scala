@@ -6,55 +6,42 @@ import com.kabasoft.iws.domain.common._
 import com.kabasoft.iws.repository.{ AccountRepository, PacRepository }
 import zio._
 import zhttp.logging.Logger
-import scala.annotation.tailrec
+
 
 final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepository) extends AccountService {
   val logger = Logger.make.withLevel(zhttp.logging.LogLevel.Error)
 
-  def getBalance(accId: String, fromPeriod: Int, toPeriod: Int, companyId: String
-  ): ZIO[Any, RepositoryError, Account] =
-    for {
-      accounts    <- accRepo.list(companyId).runCollect.map(_.toList)
-      period       = fromPeriod.toString.slice(0, 4).concat("00").toInt
+  def getBalance(
+                    accId: String,
+                    fromPeriod: Int,
+                    toPeriod: Int,
+                    companyId: String
+                  ): ZIO[Any, RepositoryError, Account] =
+    (for {
+      accounts <- accRepo.list(companyId).runCollect.map(_.toList)
+      period = fromPeriod.toString.slice(0, 4).concat("00").toInt
       pacBalances <- pacRepo.getBalances4Period(fromPeriod, toPeriod, companyId).runCollect.map(_.toList)
-      pacs        <- pacRepo.find4Period(period, period, companyId).runCollect.map(_.toList)
+      pacs <- pacRepo.find4Period(period, period, companyId).runCollect.map(_.toList)
     } yield {
-      val all = (pacBalances ::: pacs)
-        .groupBy(_.account)
-        .map { case (k, v) => reduce(v, PeriodicAccountBalance.dummy) }
-        .filterNot(_.id == PeriodicAccountBalance.dummy.id)
-        .toList
-
-      val acc     = accounts.filter(_.id == accId)
-      val list    = all
-        .flatMap(pac =>
-          accounts
-            .find(acc => pac.account == acc.id)
-            .map(_.copy(idebit = pac.idebit, debit = pac.debit, icredit = pac.icredit, credit = pac.credit))
-        ) //::: acc
-      println(" list::::::" + list)
-      val account = group(accId, list, accounts)
-      logger.info(" ACCOUNTS::::::" + account)
-      account
-    }
-
-
-  @tailrec
-  def group(accid: String, accounts0: List[Account], all: List[Account]): Account =
-    if (accounts0.size == 2 && accounts0.head.account.equals(accid) ) accounts0.head
-    else {
-      val accounts1 = accounts0
-        .groupBy(_.account)
-        .map { case (_, v) => reduce(v, Account.dummy).copy(subAccounts = v.toSet) }
+      val acc = accounts.filter(_.id == accId)
+      val list = pacBalances.map(pac =>
+        accounts
+          .find(acc => pac.account == acc.id)
+          .getOrElse(Account.dummy)
+          .copy(idebit = pac.idebit, debit = pac.debit, icredit = pac.icredit, credit = pac.credit)
+      ) ::: acc
         .filterNot(_.id == Account.dummy.id)
-        .flatMap(pac =>
-        all
-          .find(acc => acc.id == pac.account)
-          .map(_.copy(idebit = pac.idebit, debit = pac.debit, icredit = pac.icredit, credit = pac.credit))
-          ).toList
-      println(" lisaccounts1::::::" + accounts1)
-      group(accid, accounts1, all)
-    }
+      //println(" ACCOUNTS Beforee::::::" + list)
+      val accountsWithBalances = pacBalances.map(pac =>
+        accounts.find(acc => pac.account == acc.id)
+          map (_.copy(idebit = pac.idebit, debit = pac.debit, icredit = pac.icredit, credit = pac.credit)
+          )).flatten
+      val accountsWithoutBalances = accounts.filterNot(acc =>accountsWithBalances.map(_.id).contains(acc.id))
+      val XX = accountsWithBalances:::accountsWithoutBalances
+      val account = Account.consolidate(accId, XX, pacs)
+      //println(" ACCOUNTS::::::" + account)
+      account
+    })
 
   def closePeriod(fromPeriod: Int, toPeriod: Int, inStmtAccId: String, company: String): ZIO[Any, RepositoryError, Int] =
     for {

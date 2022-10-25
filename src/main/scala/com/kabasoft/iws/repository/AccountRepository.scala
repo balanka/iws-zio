@@ -12,6 +12,7 @@ trait AccountRepository  {
   def delete(items: List[String], company: String): ZIO[Any, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
   def list(company: String): ZStream[Any, RepositoryError, Account]
+  def all(companyId: String): ZStream[Any, RepositoryError, Account]
   def getBy(id: String, company: String): ZIO[Any, RepositoryError, Account]
   def getByModelId(modelid: Int, company: String): ZIO[Any, RepositoryError, Account]
   def modify(model: Account): ZIO[Any, RepositoryError, Int]
@@ -33,6 +34,9 @@ object AccountRepository {
 
   def list(company: String): ZStream[AccountRepository, RepositoryError, Account] =
     ZStream.service[AccountRepository] flatMap (_.list(company))
+
+  def all(companyId: String): ZStream[AccountRepository, RepositoryError, Account]=
+    ZStream.service[AccountRepository] flatMap (_.all(companyId))
 
   def getBy(id: String, company: String): ZIO[AccountRepository, RepositoryError, Account] =
     ZIO.service[AccountRepository] flatMap (_.getBy(id, company))

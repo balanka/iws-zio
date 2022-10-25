@@ -12,6 +12,7 @@ import zio._
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
 import scala.collection.immutable.{ ::, Nil }
+import scala.annotation.tailrec
 
 object common {
 
@@ -102,13 +103,37 @@ final case class Account(
   def addAll(accSet: Set[Account]) =
     copy(subAccounts = subAccounts ++ accSet)
 
-  def updateBalance(acc: Account): Account =
-    idebiting(acc.idebit).icrediting(acc.icredit).debiting(acc.debit).crediting(acc.credit)
+  def updateBalance(acc: Account): Account = {
+    if(acc.account.isEmpty) this
+    else {
+      val xx =idebiting(acc.idebit).icrediting(acc.icredit).debiting(acc.debit).crediting(acc.credit)
+      println("xxxx>>>>>"+xx)
+      xx
+      //idebiting(acc.idebit).icrediting(acc.icredit).debiting(acc.debit).crediting(acc.credit)
+    }
 
- // def updateBalance(acc: Balance_Type): Account =
+  }
+
+  // def updateBalance(acc: Balance_Type): Account =
  //   idebiting(acc._1).icrediting(acc._2).debiting(acc._3).crediting(acc._4)
 
   //import common._
+
+@tailrec
+  def updateBalanceParent(all:List[Account]): List[Account] = {
+    all.find(acc=>acc.id == account) match {
+      case Some(parent)=>{
+        val y:Account = parent.updateBalance(this)
+          val z:List[Account]= all.filterNot(acc=>acc.id == parent.id):+y
+          y.updateBalanceParent(z)
+      }
+      case None=> all
+    }
+
+  }
+
+
+
   def childBalances: BigDecimal =
     if (subAccounts.nonEmpty) { reduce(subAccounts, Account.dummy).balance }
     else {
@@ -233,39 +258,25 @@ object Account {
           .copy(subAccounts = sub)
     }
 
-  def unwrapDataTailRec(account: Account): List[Account] = {
-    // @tailrec
-    def unwrapData(res: List[Account]): List[Account] =
-      res.flatMap(acc =>
-        acc.subAccounts.toList match {
-          case Nil                     => if (acc.balance == 0.0 && acc.subAccounts.isEmpty) List.empty[Account] else List(acc)
-          case (head: Account) :: tail => List(acc, head) ++ unwrapData(tail)
-        }
-      )
-    unwrapData(account.subAccounts.toList)
-  }
 
   def withChildren(accId: String, accList: List[Account]): Account =
     accList.find(x => x.id == accId) match {
       case Some(acc) => List(acc).foldMap(addSubAccounts(_, accList.groupBy(_.account))).copy(id = accId)
       case None      => Account.dummy
     }
-  /*
-  def wrapAsData(account: Account): Daten =
-    account.subAccounts.toList match {
-      case Nil      => Daten(BaseData(account))
-      case rest @ _ =>
-        Daten(BaseData(account)).copy(children = account.subAccounts.toList.map(wrapAsData))
+
+
+  def consolidate(accId: String, accList: List[Account], pacs: List[PeriodicAccountBalance]): Account = {
+    val accMap = accList.groupBy(_.account)
+    accList.find(x => x.id == accId) match {
+      case Some(acc) =>
+        val x: Account = addSubAccounts(acc, accMap) // List(acc)
+        val y = getAllSubBalances(x, pacs)
+        val z = removeSubAccounts(y.copy(id = acc.id))
+        z
+      case None => Account.dummy
     }
-
-  def consolidateData(acc: Account): Daten =
-    List(acc).map(wrapAsData) match {
-      case Nil          => Daten(BaseData(Account.dummy))
-      case account :: _ => account
-    }
-
-
-*/
+  }
   def flattenTailRec(ls: Set[Account]): Set[Account] = {
     // @tailrec
     def flattenR(res: List[Account], rem: List[Account]): List[Account] = rem match {

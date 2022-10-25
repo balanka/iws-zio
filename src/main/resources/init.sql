@@ -351,6 +351,16 @@ insert into account
      , '9900', true, true, 0.0, 0.0, 0.0, 0.0, 'EUR'),
   ('9902','Bilanz Passiva','Bilanz Passiva',current_timestamp, current_timestamp, current_timestamp, '1000',11
      , '9900', false, true, 0.0, 0.0, 0.0, 0.0, 'EUR'),
+ ('9800','GuV Aktiva','GuV Aktiva',current_timestamp, current_timestamp, current_timestamp, '1000',11
+ , '9902', true, true, 0.0, 0.0, 0.0, 0.0, 'EUR'),
+ ('9801','GuV Aktiva','GuV Aktiva',current_timestamp, current_timestamp, current_timestamp, '1000',11
+ , '9800', true, true, 0.0, 0.0, 0.0, 0.0, 'EUR'),
+ ('9802','GuV Passiva','GuV Passiva',current_timestamp, current_timestamp, current_timestamp, '1000',11
+ , '9800', false, true, 0.0, 0.0, 0.0, 0.0, 'EUR'),
+ ('4000','Umsatzerloese','Umsatzerloese',current_timestamp, current_timestamp, current_timestamp, '1000',11
+ , '9802', false, true, 0.0, 0.0, 0.0, 0.0, 'EUR'),
+ ('4400','Umsatzerloese 19%','Umsatzerloese 19%',current_timestamp, current_timestamp, current_timestamp, '1000',11
+ , '4000', false, true, 0.0, 0.0, 0.0, 0.0, 'EUR'),
  ('1200','Forderungen aus Lieferungen und Leistungen','Forderung a. L & L',current_timestamp, current_timestamp, current_timestamp, '1000',11
   , '9901', true, true, 0.0, 0.0, 0.0, 0.0, 'EUR'),
   ('1800','Bank','Bank',current_timestamp, current_timestamp, current_timestamp, '1000',11
