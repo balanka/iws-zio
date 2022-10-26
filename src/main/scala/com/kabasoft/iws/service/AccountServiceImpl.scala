@@ -24,7 +24,7 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
       pacs <- pacRepo.find4Period(period, period, companyId).runCollect.map(_.toList)
     } yield {
       val acc = accounts.filter(_.id == accId)
-      val list = pacBalances.map(pac =>
+      val list1 = pacBalances.map(pac =>
         accounts
           .find(acc => pac.account == acc.id)
           .getOrElse(Account.dummy)
