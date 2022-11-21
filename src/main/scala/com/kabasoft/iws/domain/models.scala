@@ -2,7 +2,7 @@ package com.kabasoft.iws.domain
 
 import com.kabasoft.iws.domain.FinancialsTransaction.DerivedTransaction_Type
 import com.kabasoft.iws.domain.common._
-//import com.kabasoft.iws.domain.common.{ reduce, Balance_Type }
+import zio.schema.{DeriveSchema, Schema, StandardType}
 import java.util.{ Locale, UUID }
 import java.time.{ Instant, LocalDate, LocalDateTime, ZoneId }
 import zio.prelude._
@@ -33,19 +33,15 @@ object common {
       m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
   }
 
- /* implicit val balanceMonoid: Identity[Balance_Type] = new Identity[Balance_Type] {
-    def identity: Balance_Type                            = Balance_dummy
-    def combine(m1: => Balance_Type, m2: => Balance_Type) =
-      new Balance_Type(m1._1 + m2._1, m1._2 + m2._2, m1._3 + m2._3, m1._4 + m2._4)
-  }
-
-  */
 
   implicit val pacMonoid: Identity[PeriodicAccountBalance] = new Identity[PeriodicAccountBalance] {
     def identity: PeriodicAccountBalance                                      = PeriodicAccountBalance.dummy
     def combine(m1: => PeriodicAccountBalance, m2: => PeriodicAccountBalance) =
       m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
   }
+
+  implicit val instantSchema: Schema[Instant] =
+    Schema.primitive(StandardType.InstantType(DateTimeFormatter.ISO_INSTANT))
 
   def getMonthAsString(month: Int): String       =
     if (month <= 9) {
@@ -147,6 +143,7 @@ final case class Account(
 }
 object Account {
   import common._
+  implicit val schema: Schema[Account] = DeriveSchema.gen[Account]
   val MODELID = 9
   type Account_Type = (
     String,
@@ -388,6 +385,17 @@ object AppError      {
 sealed trait IWS     {
   def id: String
 }
+final case class Costcenter(
+                       id: String,
+                       name: String = "",
+                       description: String = "",
+                       account: String = "",
+                       enterdate: Instant = Instant.now(),
+                       changedate: Instant = Instant.now(),
+                       postingdate: Instant = Instant.now(),
+                       modelid: Int = 11,
+                       company: String
+                     )extends  IWS
 final case class Bank(
   id: String,
   name: String = "",
@@ -397,7 +405,11 @@ final case class Bank(
   postingdate: Instant = Instant.now(),
   modelid: Int = 11,
   company: String
-)
+)extends  IWS
+
+object Bank {
+  implicit val schema: Schema[Bank] = DeriveSchema.gen[Bank]
+}
 final case class BankAccount(id: String, bic: String, owner: String, company: String, modelid: Int = 12)
 object BankAccount   {
   import scala.math.Ordering
@@ -1247,3 +1259,37 @@ object Company               {
     c._19
   )
 }
+
+final case class Role(roleRepr: String)
+
+object Role extends  Enumeration {//SimpleAuthEnum[Role, String] {
+  val Admin: Role = Role("Admin")
+  val DevOps: Role = Role("DevOps")
+  val Dev: Role = Role("Developer")
+  val Customer: Role = Role("Customer")
+  val Supplier: Role = Role("Supplier")
+  val Logistics: Role = Role("Logistics")
+  val Accountant: Role = Role("Accountant")
+  val Tester: Role = Role("Tester")
+
+  //override val values: AuthGroup[Role] = AuthGroup(Admin, Customer, Accountant, Tester)
+
+   def getRepr(t: Role): String = t.roleRepr
+
+  //implicit val eqRole: Eq[Role] = Eq.fromUniversalEquals[Role]
+}
+
+final case class User(id: Int,
+                      userName: String,
+                      firstName: String,
+                      lastName: String,
+                      hash: String,
+                      phone: String,
+                      email: String,
+                      department: String, //Role,
+                      menu: String = "",
+                      company: String = "1000",
+                      modelid: Int = 111,
+
+               )
+final case class LoginRequest(userName: String, password: String)

@@ -20,6 +20,7 @@ trait TransactionRepository {
   def getBy(id: String, company: String): ZIO[Any, RepositoryError, TYPE_]
   def getByTransId(id: Long, companyId: String): ZIO[Any, RepositoryError, FinancialsTransaction]
   def getByModelId(modelid: Int, company: String): ZStream[Any, RepositoryError, TYPE_]
+  def getByModelIdX(modelId: Int, companyId: String): ZStream[Any, RepositoryError, FinancialsTransaction]
   def find4Period(fromPeriod: Int, toPeriod: Int, company: String): ZStream[Any, RepositoryError, FinancialsTransaction]
   def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int]
   def modify(model: DerivedTransaction): ZIO[Any, RepositoryError, Int]
@@ -53,6 +54,9 @@ object TransactionRepository {
     ZIO.service[TransactionRepository] flatMap (_.getByTransId(id, company))
   def getByModelId(modelid: Int, company: String): ZStream[TransactionRepository, RepositoryError, TYPE_]                  =
     ZStream.service[TransactionRepository] flatMap (_.getByModelId(modelid, company))
+
+   def getByModelIdX(modelId: Int, companyId: String): ZStream[TransactionRepository, RepositoryError, FinancialsTransaction]=
+     ZStream.service[TransactionRepository] flatMap (_.getByModelIdX(modelId, companyId))
   def find4Period(fromPeriod: Int, toPeriod: Int, company: String): ZStream[TransactionRepository, RepositoryError, FinancialsTransaction] =
     ZStream.service[TransactionRepository] flatMap (_.find4Period(fromPeriod, toPeriod, company))
   def modify(model: FinancialsTransaction): ZIO[TransactionRepository, RepositoryError, Int]                               =

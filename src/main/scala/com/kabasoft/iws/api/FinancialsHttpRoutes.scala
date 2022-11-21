@@ -1,21 +1,28 @@
 package com.kabasoft.iws.api
 
-import zhttp.http._
+import zio.http._
 import zio._
 import zio.json._
 import com.kabasoft.iws.domain._
 import com.kabasoft.iws.repository._
+import com.kabasoft.iws.api.Protocol._
 import com.kabasoft.iws.service.FinancialsService
 import Protocol._
+import zio.http.model.{Method, Status}
 
 object FinancialsHttpRoutes {
 
-  val app: HttpApp[TransactionRepository with FinancialsService, Throwable] =
-    Http.collectZIO {
+  val appFtr = Http.collectZIO[Request] {
 
       case Method.GET -> !! / "ftr" =>
         TransactionRepository
           .list("1000")
+          .runCollect
+          .map(ch => Response.json(ch.toJson))
+
+      case Method.GET -> !! / "ftr"/"ftrmd"/ modelid =>
+        TransactionRepository
+          .getByModelIdX(modelid.toInt, "1000")
           .runCollect
           .map(ch => Response.json(ch.toJson))
 
@@ -34,6 +41,8 @@ object FinancialsHttpRoutes {
           case Right(o) => Response.json(o.toJson)
           case Left(e)  => Response.text(e.getMessage() + "id:" + id)
         }
+
+        ///ftr/ftrmd/114 getByModelId
       case req @ Method.POST -> !! / "ftr"                  =>
         (for {
           body <- req.body.asString
