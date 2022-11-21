@@ -1,45 +1,25 @@
 package com.kabasoft.iws.service
-
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain._
 import com.kabasoft.iws.domain.common._
 import com.kabasoft.iws.repository.{ AccountRepository, PacRepository }
 import zio._
-import zhttp.logging.Logger
-
-
 final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepository) extends AccountService {
-  val logger = Logger.make.withLevel(zhttp.logging.LogLevel.Error)
-
-  def getBalance(
-                    accId: String,
-                    fromPeriod: Int,
-                    toPeriod: Int,
-                    companyId: String
-                  ): ZIO[Any, RepositoryError, Account] =
+  def getBalance(accId: String, fromPeriod: Int, toPeriod: Int, companyId: String): ZIO[Any, RepositoryError, Account] =
     (for {
-      accounts <- accRepo.list(companyId).runCollect.map(_.toList)
+      accounts <- accRepo.all(companyId)
       period = fromPeriod.toString.slice(0, 4).concat("00").toInt
       pacBalances <- pacRepo.getBalances4Period(fromPeriod, toPeriod, companyId).runCollect.map(_.toList)
       pacs <- pacRepo.find4Period(period, period, companyId).runCollect.map(_.toList)
     } yield {
-      val acc = accounts.filter(_.id == accId)
-      val list1 = pacBalances.map(pac =>
-        accounts
-          .find(acc => pac.account == acc.id)
-          .getOrElse(Account.dummy)
-          .copy(idebit = pac.idebit, debit = pac.debit, icredit = pac.icredit, credit = pac.credit)
-      ) ::: acc
-        .filterNot(_.id == Account.dummy.id)
-      //println(" ACCOUNTS Beforee::::::" + list)
       val accountsWithBalances = pacBalances.map(pac =>
         accounts.find(acc => pac.account == acc.id)
           map (_.copy(idebit = pac.idebit, debit = pac.debit, icredit = pac.icredit, credit = pac.credit)
           )).flatten
       val accountsWithoutBalances = accounts.filterNot(acc =>accountsWithBalances.map(_.id).contains(acc.id))
-      val XX = accountsWithBalances:::accountsWithoutBalances
-      val account = Account.consolidate(accId, XX, pacs)
-      //println(" ACCOUNTS::::::" + account)
+      val all = accountsWithBalances:::accountsWithoutBalances
+      val account = Account.consolidate(accId, all, pacs)
+      ZIO.logInfo(s"Balance 4 account is ${account}")
       account
     })
 

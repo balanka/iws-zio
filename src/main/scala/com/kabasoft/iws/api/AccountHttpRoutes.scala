@@ -4,25 +4,24 @@ import com.kabasoft.iws.api.Protocol._
 import com.kabasoft.iws.domain._
 import com.kabasoft.iws.service.AccountService
 import com.kabasoft.iws.repository._
-import zhttp.http._
 import zio._
+import zio.http._
 import zio.json._
+import zio.http.model.{Method, Status}
 
 object AccountHttpRoutes {
 
-  val app: HttpApp[AccountRepository with AccountService, Throwable] =
-    Http.collectZIO {
+  val appAcc = Http.collectZIO[Request] {
 
       case Method.GET -> !! / "acc" =>
         AccountRepository
-          .list("1000")
-          .runCollect
+          .all("1000")
           .map(ch => Response.json(ch.toJson))
 
-      case Method.GET -> !! / "balances" / id / fromPeriod / toPeriod        =>
-        AccountService.getBalance(id, fromPeriod.toInt, toPeriod.toInt, "1000").either.map {
-          case Right(o) => Response.json(o.toJson)
-          case Left(e)  => Response.text(e.getMessage + "ID" + id + " fromPeriod: " + fromPeriod + " toPeriod:" + toPeriod)
+      case Method.GET -> !! /"balance" / accountid / fromPeriod / toPeriod        =>
+        AccountService.getBalance(accountid, fromPeriod.toInt, toPeriod.toInt, "1000").either.map {
+          case Right(o) => Response.json((List(o)++o.subAccounts.toList).toJson)
+          case Left(e)  => Response.text(e.getMessage + "accountid" + accountid + " fromPeriod: " + fromPeriod + " toPeriod:" + toPeriod)
         }
       case Method.POST -> !! / "close" / inStmtAccId / fromPeriod / toPeriod =>
         AccountService.closePeriod(fromPeriod.toInt, toPeriod.toInt, inStmtAccId, "1000").either.map {

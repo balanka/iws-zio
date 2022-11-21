@@ -426,3 +426,22 @@ insert into vat
 (id, name, description, percent, inputvataccount, outputvataccount, posting_date, modified_date, enter_date,  company, modelid)
 values
     ('4711','myFirstVat','myFirstVat',1, '1406', '3806', current_timestamp, current_timestamp, current_timestamp, '1000',6);
+
+create table if not exists users
+(
+    id         integer generated always as identity
+    primary key,
+    user_name  varchar                                           not null
+    unique,
+    first_name varchar                                           not null,
+    last_name  varchar                                           not null,
+    email      varchar                                           not null,
+    hash       varchar                                           not null,
+    phone      varchar                                           not null,
+    department       varchar     default 'Customer'::character varying not null,
+    menu      varchar                                           not null,
+    company    varchar(20) default '1000'::character varying     not null,
+    modelid    integer     default 111
+    );
+insert into users(user_name, first_name, last_name,  hash, email, phone, department, menu, company, modelid)
+values('myUserName','myUserFirstName','myUserLastName', 'hash1', 'myEmail@email.com', '+49-1111-11100','Accountant', '1,10', '1000',111);

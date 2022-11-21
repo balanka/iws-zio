@@ -1,55 +1,74 @@
 package com.kabasoft.iws
 
-import zhttp.service.server.ServerChannelFactory
-import zhttp.service.{ EventLoopGroup, Server }
 import zio._
-import zio.config._
+import zio.http._
+import zio.http.Server
 import zio.sql.ConnectionPool
 import com.kabasoft.iws.api._
-import com.kabasoft.iws.api.MasterfilesHttpRoutes._
-import com.kabasoft.iws.repository._
 import com.kabasoft.iws.service._
-import com.kabasoft.iws.healthcheck.Healthcheck
-import com.kabasoft.iws.config.{ DbConfig, ServerConfig }
+import com.kabasoft.iws.repository._
+import com.kabasoft.iws.healthcheck.Healthcheck.expose
+import com.kabasoft.iws.api.AccountHttpRoutes.appAcc
+import com.kabasoft.iws.api.CustomerRoutes.{appComp, appCust}
+import com.kabasoft.iws.api.SupplierRoutes.appSup
+import com.kabasoft.iws.api.FinancialsHttpRoutes.appFtr
+import com.kabasoft.iws.api.JournalRoutes.appJournal
+import com.kabasoft.iws.api.LoginRoutes.{appLogin, jwtDecode}
+import com.kabasoft.iws.api.MasterfilesHttpRoutes.{appBank, appBankStmt, appCostcenter, appModule, appUser}
+import com.kabasoft.iws.api.PacHttpRoutes.appPac
+import com.kabasoft.iws.api.VatHttpRoutes.appVat
+import com.kabasoft.iws.config.DbConfig
+import com.kabasoft.iws.config.DbConfig.connectionPoolConfig
+import com.kabasoft.iws.domain.AppError
+import zio.http.Middleware.bearerAuth
+import zio.http.api.Middleware.cors
+import zio.http.middleware.Cors.CorsConfig
+import zio.http.model.Method
 
 object Main extends ZIOAppDefault {
 
-  val middlewares = errorMiddleware
-  override def run =
-    getConfig[ServerConfig]
-      .map(config =>
-        Server.port(config.port) ++
-          Server.app((
-            AccountHttpRoutes.app ++ FinancialsHttpRoutes.app
-              ++ HttpRoutes.app ++ CustomerRoutes.app
-              ++ SupplierRoutes.app++ MasterfilesHttpRoutes.app
-              ++ PacHttpRoutes.app ++ VatHttpRoutes.app ++ Healthcheck.expose
-          )@@ middlewares)
-      )
-      .flatMap(_.start)
-      .provide(
-        ServerConfig.layer,
-        ServerChannelFactory.auto,
-        EventLoopGroup.auto(),
-        AccountServiceImpl.live,
-        AccountRepositoryImpl.live,
-        OrderRepositoryImpl.live,
-        CompanyRepositoryImpl.live,
-        CustomerOLDRepositoryImpl.live,
-        CustomerRepositoryImpl.live,
-        SupplierRepositoryImpl.live,
-        BankRepositoryImpl.live,
-        ModuleRepositoryImpl.live,
-        BankStatementRepositoryImpl.live,
-        TransactionRepositoryImpl.live,
-        PacRepositoryImpl.live,
-        VatRepositoryImpl.live,
-        QueryServiceImpl.live,
-        JournalRepositoryImpl.live,
-        FinancialsServiceImpl.live,
-        DbConfig.layer,
-        ConnectionPool.live,
-        DbConfig.connectionPoolConfig
-        // ZLayer.Debug.tree
-      )
+
+  val defaultX: ZLayer[Any, Throwable, Server] = {
+    implicit val trace = Trace.empty
+    ZLayer.succeed(ServerConfig().binding("localhost", 8080)) >>> Server.live
+  }
+
+  val config: CorsConfig =
+    CorsConfig(
+      anyOrigin = true,
+      anyMethod = false,
+      allowedOrigins = s => s.equals("localhost")||s.equals("127.0.0.1"),
+      allowedMethods = Some(Set(Method.GET, Method.POST))
+    )
+def wrap[R](app: Http[R, AppError.RepositoryError, Request, Response] ) =  app@@ bearerAuth(jwtDecode(_).isDefined)
+  val corsMID = Http.ok.withMiddleware(cors(CorsConfig(allowedMethods = Some(Set(Method.GET, Method.POST)))))
+
+  val masterfilesApp =   wrap(appAcc)++ wrap(appBank) ++ wrap(appModule) ++ wrap(appCust) ++ wrap(appSup) ++
+                       wrap(appComp) ++ wrap(appBankStmt)++ wrap(appVat)++wrap(appUser)
+  val httpApp = wrap(appFtr)++ HttpRoutes.app  ++ masterfilesApp ++ wrap(appPac) ++ wrap(appJournal) ++
+    wrap(appCostcenter) ++ wrap(appBankStmt)++  expose
+  override val run = Server.serve((appLogin++ httpApp )@@  Middleware.cors(config))
+    .provide(
+    defaultX,
+    connectionPoolConfig,
+    DbConfig.layer,
+    ConnectionPool.live,
+    AccountServiceImpl.live,
+    AccountRepositoryImpl.live,
+    OrderRepositoryImpl.live,
+    CompanyRepositoryImpl.live,
+    CostcenterRepositoryImpl.live,
+    CustomerOLDRepositoryImpl.live,
+    CustomerRepositoryImpl.live,
+    SupplierRepositoryImpl.live,
+    BankRepositoryImpl.live,
+    ModuleRepositoryImpl.live,
+    BankStatementRepositoryImpl.live,
+    TransactionRepositoryImpl.live,
+    PacRepositoryImpl.live,
+    UserRepositoryImpl.live,
+    VatRepositoryImpl.live,
+    QueryServiceImpl.live,
+    JournalRepositoryImpl.live,
+    FinancialsServiceImpl.live)
 }

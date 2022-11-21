@@ -258,6 +258,17 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       execute(selectAll.to((DerivedTransaction.apply _).tupled))
         .provideDriver(driverLayer)
   }
+
+  override def getByModelIdX(modelId: Int, companyId: String): ZStream[Any, RepositoryError, FinancialsTransaction] = {
+    val selectAll = SELECT2.where((modelid_ === modelId) && (company_ === companyId))
+    //ZStream.fromZIO(ZIO.logInfo(s"Query to execute getByModelIdX is ${renderRead(selectAll)}")) *>
+      //execute(selectAll.to((DerivedTransaction.apply _).tupled))
+    execute(selectAll.to[FinancialsTransaction](c => FinancialsTransaction.applyC(c)))
+      .provideDriver(driverLayer)
+      .mapZIO( tr =>getTransWithLines(tr.tid, companyId))
+
+  }
+
 }
 
 object TransactionRepositoryImpl {

@@ -10,6 +10,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
   import ColumnSet._
 
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
+  val map:List[Account] = List.empty[Account]
 
   val account =
     (string("id") ++ string("name") ++ string("description") ++ instant("posting_date") ++ instant(
@@ -121,39 +122,23 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
   }
   override def modify(models: List[Account]): ZIO[Any, RepositoryError, Int] = {
     val update_ = models.map(build(_))
-    ZIO.foreach(update_.map(renderUpdate))(sql=>ZIO.logInfo(s"Query Update Account is ${sql}")) *>
+   ZIO.foreach(update_.map(renderUpdate))(sql=>ZIO.logInfo(s"Query Update Account is ${sql}")) *>
     executeBatchUpdate(update_)
       .provideLayer(driverLayer)
       .map(_.sum)
       .mapError(e => RepositoryError(e.getCause()))
   }
 
-  override def all(companyId: String): ZStream[Any, RepositoryError, Account] = for {
-    account <- list(companyId).mapZIO(acc => getAccountWithLines(acc.id, companyId))
-  } yield  account
+  override def all(companyId: String): ZIO[Any, RepositoryError, List[Account]] = for {
+    account <- list(companyId).runCollect.map(_.toList)
+  } yield account.map(acc =>acc.copy(subAccounts = account.filter(_.account==acc.id).toSet))
 
-  private[this] def getAccountWithLines(id: String, companyId: String): ZIO[Any, RepositoryError, Account] = for {
-    account <- getBy(id, companyId)
-    lines_ <- getByParentIdX(id, companyId)
-  } yield  account.copy(subAccounts = lines_.toSet)
 
   override def list(companyId: String): ZStream[Any, RepositoryError, Account] =
       ZStream.fromZIO(
       ZIO.logInfo(s"Query to execute findAll is ${renderRead(SELECT)}")) *>
-        execute(SELECT.to(c =>  Account.apply(c)))
+      execute(SELECT.to(c => {val x = Account.apply(c); map :+ (x); x}))
         .provideDriver(driverLayer)
-
- private def getByParentIdX(Id: String, companyId: String)= for{
-   accounts<-getByParentId_(Id, companyId).runCollect.map(_.toSet)
- }yield accounts
-
-  private def getByParentId_(Id: String, companyId: String): ZStream[Any, RepositoryError,Account] = {
-    val selectAll = SELECT.where((accountid === Id) && (company === companyId))
-    ZStream.fromZIO(
-    ZIO.logInfo(s"Query to execute findBy is ${renderRead(selectAll)}")) *>
-      execute(selectAll.to(c => (Account.apply(c))))
-        .provideDriver(driverLayer)
-  }
 
   override def getBy(Id: String, companyId: String): ZIO[Any, RepositoryError, Account]          = {
     val selectAll = SELECT.where((id === Id) && (company === companyId))
