@@ -129,7 +129,7 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
   override def create(c: Journal): ZIO[Any, RepositoryError, Unit]                     = {
     val query = insertInto(journals1)(XX).values(tuple1(c))
 
-    ZIO.logInfo(s"Query to insert Journal is ${renderInsert(query)}") *>
+    ZIO.logDebug(s"Query to insert Journal is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
         .unit
@@ -138,7 +138,7 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
     val data  = models.map(tuple1)
     val query = insertInto(journals1)(XX).values(data)
 
-    ZIO.logInfo(s"Query to insert Journal is ${renderInsert(query)}") *>
+    ZIO.logDebug(s"Query to insert Journal is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
   }
@@ -152,7 +152,7 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
       .from(journals)
 
     ZStream.fromZIO(
-      ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")
+      ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")
     ) *>
       execute(selectAll.to((Journal.apply _).tupled))
         .provideDriver(driverLayer)
@@ -162,7 +162,7 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
       .from(journals)
       .where((id === Id) && (company === companyId))
 
-    ZIO.logInfo(s"Query to execute findBy is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to((Journal.apply _).tupled))
         .findFirst(driverLayer, Id)
   }
@@ -172,7 +172,7 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
       .from(journals)
       .where((modelid === modelId) && (company === companyId))
 
-    ZIO.logInfo(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
       execute(selectAll.to((Journal.apply _).tupled))
         .findFirstInt(driverLayer, modelId)
   }
@@ -184,7 +184,7 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
       .orderBy(account.descending)
 
     ZStream.fromZIO(
-      ZIO.logInfo(s"Query to execute find4Period is ${renderRead(selectAll)}")
+      ZIO.logDebug(s"Query to execute find4Period is ${renderRead(selectAll)}")
     ) *>
       execute(selectAll.to((Journal.apply _).tupled))
         .provideDriver(driverLayer)

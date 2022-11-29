@@ -14,6 +14,7 @@ trait UserRepository {
     ZIO.collectAll(items.map(delete(_, company)))
   def list(company: String): ZStream[Any, RepositoryError, TYPE_]
   def getByUserName(userName: String, company: String): ZIO[Any, RepositoryError, TYPE_]
+  def getById(userId: Int, companyId: String): ZIO[Any, RepositoryError, User]
   def getByModelId(modelid: Int, company: String): ZIO[Any, RepositoryError, TYPE_]
   def modify(model: TYPE_): ZIO[Any, RepositoryError, Int]
   def modify(models: List[TYPE_]): ZIO[Any, RepositoryError, Int]
@@ -34,6 +35,9 @@ object UserRepository {
     ZStream.service[UserRepository]flatMap(_.list(company))
   def getByUserName(userName: String, company: String): ZIO[UserRepository, RepositoryError, TYPE_]               =
     ZIO.service[UserRepository]flatMap(_.getByUserName(userName, company))
+
+  def getById(userId: Int, companyId: String): ZIO[UserRepository, RepositoryError, User] =
+    ZIO.service[UserRepository]flatMap(_.getById(userId, companyId))
   def getByModelId(modelid: Int, company: String): ZIO[UserRepository, RepositoryError, TYPE_]      =
     ZIO.service[UserRepository]flatMap(_.getByModelId(modelid, company))
   def modify(model: TYPE_): ZIO[UserRepository, RepositoryError, Int]                               =

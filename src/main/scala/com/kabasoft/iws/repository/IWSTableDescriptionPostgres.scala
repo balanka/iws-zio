@@ -28,7 +28,7 @@ trait IWSTableDescriptionPostgres extends PostgresSqlModule with PostgresJdbcMod
       }.mapError {
         case None    =>
           RepositoryError(
-            new RuntimeException(s"Order with id $id does not exists")
+            new RuntimeException(s"Object with id/name $id does not exists")
           )
         case Some(e) => RepositoryError(e.getCause())
       }

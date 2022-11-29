@@ -43,7 +43,7 @@ object BankIntegrationSpec extends ZIOSpecDefault {
           exec   <- executor
           result   <- exec(allBankAPI())
 
-        } yield { println("result: "+result ); assertTrue(true)}
+        } yield  assertTrue(true)
       },
     ).provideSome[Scope](
       Server.live,

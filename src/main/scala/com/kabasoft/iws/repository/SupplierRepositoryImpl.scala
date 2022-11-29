@@ -91,7 +91,7 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
   override def create(c: Supplier): ZIO[Any, RepositoryError, Unit]                    = {
     val query = insertInto(supplier)(X).values(toTuple(c))
 
-    ZIO.logInfo(s"Query to insert Supplier is ${renderInsert(query)}") *>
+    ZIO.logDebug(s"Query to insert Supplier is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
         .unit
@@ -100,7 +100,7 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     val data  = models.map(toTuple(_))
     val query = insertInto(supplier)(X).values(data)
 
-    ZIO.logInfo(s"Query to insert Supplier is ${renderInsert(query)}") *>
+    ZIO.logDebug(s"Query to insert Supplier is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
   }
@@ -114,7 +114,7 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
       .set(name, model.name)
       .set(description, model.description)
       .where((id === model.id) && (company === model.company))
-    ZIO.logInfo(s"Query Update supplier is ${renderUpdate(update_)}") *>
+    ZIO.logDebug(s"Query Update supplier is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
         .mapError(e => RepositoryError(e.getCause()))
@@ -128,7 +128,7 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
   override def getBy(Id: String, companyId: String): ZIO[Any, RepositoryError, Supplier] = {
     val selectAll = SELECT.where((id === Id) && (company === companyId))
 
-    ZIO.logInfo(s"Query to execute findBy is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to[Supplier](c => Supplier.apply(c)))
         .findFirst(driverLayer, Id)
   }
@@ -136,14 +136,14 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
   override def getByIban(Iban: String, companyId: String): ZIO[Any, RepositoryError, Supplier]    = {
     val selectAll = SELECT2.where((iban_ === Iban) && (company === companyId))
 
-    ZIO.logInfo(s"Query to execute getByIban is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute getByIban is ${renderRead(selectAll)}") *>
       execute(selectAll.to[Supplier](c => Supplier.apply(c)))
         .findFirst(driverLayer, Iban)
   }
   override def getByModelId(modelId: Int, companyId: String): ZIO[Any, RepositoryError, Supplier] = {
     val selectAll = SELECT.where((modelid === modelId) && (company === companyId))
 
-    ZIO.logInfo(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
       execute(selectAll.to[Supplier](c => Supplier.apply(c)))
         .findFirstInt(driverLayer, modelId)
   }

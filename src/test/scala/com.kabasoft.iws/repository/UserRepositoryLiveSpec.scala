@@ -20,7 +20,7 @@ object UserRepositoryLiveSpec extends ZIOSpecDefault {
 
   val users = List(
     User(id1, name,"User1", "User1", "hash1", "nophone", "user1@user.com",  "admin", "menuUser1",  company, 111),
-    User(id2, name2,"User2", "User2", "hash2", "nophone", "user2@user.com",  "admin", "menuUser1",  company, 111)
+    User(id2, name2,"User2", "User2", "hash2", "nophone", "user2@user.com",  "admin", "menuUser2",  company, 111)
   )
 
   val testLayer = ZLayer.make[UserRepository](

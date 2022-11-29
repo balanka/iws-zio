@@ -26,7 +26,7 @@ final class BankStatementServiceImpl(
   override def postAll(ids: List[Long], companyId: String) : ZIO[Any, RepositoryError, Int] =
 
     for {
-      company    <- ZIO.logInfo(s"Query parameters ids ${ids}  with companyId ${companyId}") *>
+      company    <- ZIO.logDebug(s"Query parameters ids ${ids}  with companyId ${companyId}") *>
                      companyRepo.getBy(companyId)
       nrTransaction         <- bankStmtRepo.listByIds(ids, companyId)
                       .map(bs => bs.copy(posted = true))

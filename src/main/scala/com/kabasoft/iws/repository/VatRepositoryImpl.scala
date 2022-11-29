@@ -38,13 +38,13 @@ final class VatRepositoryImpl(pool: ConnectionPool) extends VatRepository with I
   override def create(c: Vat): ZIO[Any, RepositoryError, Unit]                         = {
     val query = insertInto(vat)(X).values(Vat.unapply(c).get)
 
-    ZIO.logInfo(s"Query to insert Vat is ${renderInsert(query)}") *>
+    ZIO.logDebug(s"Query to insert Vat is ${renderInsert(query)}") *>
       execute(query).provideAndLog(driverLayer).unit
   }
   override def create(models: List[Vat]): ZIO[Any, RepositoryError, Int]               = {
     val data  = models.map(Vat.unapply(_).get)
     val query = insertInto(vat)(X).values(data)
-    ZIO.logInfo(s"Query to insert Vat is ${renderInsert(query)}") *>
+    ZIO.logDebug(s"Query to insert Vat is ${renderInsert(query)}") *>
       execute(query).provideAndLog(driverLayer)
   }
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] =
@@ -54,14 +54,14 @@ final class VatRepositoryImpl(pool: ConnectionPool) extends VatRepository with I
 
   override def modify(model: Vat): ZIO[Any, RepositoryError, Int]        = {
     val update_ = build(model)
-    ZIO.logInfo(s"Query Update vat is ${renderUpdate(update_)}") *>
+    ZIO.logDebug(s"Query Update vat is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
         .mapError(e => RepositoryError(e.getCause()))
   }
   override def modify(models: List[Vat]): ZIO[Any, RepositoryError, Int] = {
     val update_ = models.map(build(_))
-    // ZIO.logInfo(s"Query Update vat is ${renderUpdate(update_)}") *>
+    // ZIO.logDebug(s"Query Update vat is ${renderUpdate(update_)}") *>
     executeBatchUpdate(update_)
       .provideLayer(driverLayer)
       .map(_.sum)
@@ -80,21 +80,21 @@ final class VatRepositoryImpl(pool: ConnectionPool) extends VatRepository with I
     val selectAll = select(X).from(vat)
 
     ZStream.fromZIO(
-      ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")
+      ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")
     ) *>
       execute(selectAll.to((Vat.apply _).tupled)).provideDriver(driverLayer)
   }
   override def getBy(Id: String, companyId: String): ZIO[Any, RepositoryError, Vat]          = {
     val selectAll = select(X).from(vat).where((id === Id) && (company === companyId))
 
-    ZIO.logInfo(s"Query to execute findBy is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to((Vat.apply _).tupled))
         .findFirst(driverLayer, Id)
   }
   override def getByModelId(modelId: Int, companyId: String): ZIO[Any, RepositoryError, Vat] = {
     val selectAll = select(X).from(vat).where((modelid === modelId) && (company === companyId))
 
-    ZIO.logInfo(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
       execute(selectAll.to((Vat.apply _).tupled))
         .findFirstInt(driverLayer, modelId)
   }

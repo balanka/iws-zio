@@ -22,7 +22,7 @@ final class CostcenterRepositoryImpl(pool: ConnectionPool) extends CostcenterRep
   override def create(c: Costcenter): ZIO[Any, RepositoryError, Unit]                        = {
     val query = insertInto(module)(X).values(Costcenter.unapply(c).get)
 
-    ZIO.logInfo(s"Query to insert Costcenter is ${renderInsert(query)}") *>
+    ZIO.logDebug(s"Query to insert Costcenter is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
         .unit
@@ -31,7 +31,7 @@ final class CostcenterRepositoryImpl(pool: ConnectionPool) extends CostcenterRep
     val data  = models.map(Costcenter.unapply(_).get)
     val query = insertInto(module)(X).values(data)
 
-    ZIO.logInfo(s"Query to insert Costcenter is ${renderInsert(query)}") *>
+    ZIO.logDebug(s"Query to insert Costcenter is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
   }
@@ -46,7 +46,7 @@ final class CostcenterRepositoryImpl(pool: ConnectionPool) extends CostcenterRep
       .set(description, model.description)
       .set(account, model.account)
       .where((id === model.id) && (company === model.company))
-    ZIO.logInfo(s"Query Update Costcenter is ${renderUpdate(update_)}") *>
+    ZIO.logDebug(s"Query Update Costcenter is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
         .mapError(e => RepositoryError(e.getCause()))
@@ -56,7 +56,7 @@ final class CostcenterRepositoryImpl(pool: ConnectionPool) extends CostcenterRep
     val selectAll = SELECT.where(company === companyId)
 
     ZStream.fromZIO(
-      ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")
+      ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")
     ) *>
       execute(selectAll.to((Costcenter.apply _).tupled))
         .provideDriver(driverLayer)
@@ -64,14 +64,14 @@ final class CostcenterRepositoryImpl(pool: ConnectionPool) extends CostcenterRep
   override def getBy(Id: String, companyId: String): ZIO[Any, RepositoryError, Costcenter]          = {
     val selectAll = SELECT.where((id === Id) && (company === companyId))
 
-    ZIO.logInfo(s"Query to execute findBy is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to((Costcenter.apply _).tupled))
         .findFirst(driverLayer, Id)
   }
   override def getByModelId(modelId: Int, companyId: String): ZIO[Any, RepositoryError, Costcenter] = {
     val selectAll = SELECT.where((modelid === modelId) && (company === companyId))
 
-    ZIO.logInfo(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
       execute(selectAll.to((Costcenter.apply _).tupled))
         .findFirstInt(driverLayer, modelId)
   }

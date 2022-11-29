@@ -13,6 +13,7 @@ import zio.json._
 import zio.sql.ConnectionPool
 import zio.test._
 
+import java.nio.charset.Charset
 import java.time.Instant
 import scala.language.postfixOps
 
@@ -55,8 +56,9 @@ object ApiSpec extends ZIOSpecDefault {
                 .implement { case () => BankRepository.all("1000").map(_.size)
                 }
           )  _
-          testRoutes("/bank/"+bankId, bank.toJson) && testRoutes("/bank", 56+"") &&
-           testRoutes("/acc", 321+"")
+         // testRoutes("/bank/"+bankId, bank.toJson) &&
+          testRoutes("/bank", 56+"") &&
+           testRoutes("/acc", 325+"")
           //testRoutes("/acc/"+accId, acc.toJson)&& testRoutes("/acc", 321+"")
         }.provide( ConnectionPool.live, connectionPoolConfig, DbConfig.layer,
           BankRepositoryImpl.live, AccountRepositoryImpl.live),

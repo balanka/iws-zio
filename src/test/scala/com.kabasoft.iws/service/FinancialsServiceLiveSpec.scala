@@ -48,8 +48,8 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
           nrOfPacs       <-PacRepository.find4Period(line1.account,period, period, company).runCollect.map(_.size)
           balances4P     <-PacRepository.getBalances4Period(period, period, company).runCollect.map(_.toList)
 
-          balance       <-AccountService.getBalance(paccountId0, fromPeriod, toPeriod, company)
-        } yield {println("balances>>>"+balance);println("balances4P>>>"+balances4P);println("nrOfAccounts>>>"+nrOfAccounts);
+          balance       <-AccountService.getBalance(paccountId0, fromPeriod, toPeriod, company).map(_.toList.head)
+        } yield {;
           (assertTrue(oneRow == 5)&&
           assertTrue(postedRows == 17) &&
             assertTrue(nrOfPacs == 1) && assertTrue(accountEntry == 3) &&

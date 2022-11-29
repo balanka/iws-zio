@@ -7,7 +7,6 @@ import com.kabasoft.iws.repository.{JournalRepository, PacRepository, Transactio
 
 import java.time.Instant
 import zio._
-import scala.List
 
 final class FinancialsServiceImpl(
   pacRepo: PacRepository,
@@ -80,20 +79,13 @@ final class FinancialsServiceImpl(
     (pacIds ++ pacOids).distinct
   }
 
-  private def updatePac(model: FinancialsTransaction, pacList: List[DPAC]) = {
-    val dummyPac = PeriodicAccountBalance.dummy
+  private def updatePac(model: FinancialsTransaction, pacList: List[DPAC]) =
     model.lines.flatMap { line =>
       val pac    = pacList.find(pac_ => pac_.id == buildPacId(model, line.account)).map(_.debiting(line.amount))
       val poac   = pacList.find(poac_ => poac_.id == buildPacId(model, line.oaccount)).map(_.crediting(line.amount))
       (pac ++ poac)
-    }/*.groupBy(_.id)
-      .map { case (_, v) => reduce(v, dummyPac) }
-      .filterNot(_.id == dummyPac.id)
-      .toList
-      */
-      .distinct
+    }.distinct
 
-  }
 
   private def makeJournal(model: FinancialsTransaction,  pacList: List[DPAC]):List[Journal]=
     model.lines.flatMap { line =>
@@ -103,6 +95,7 @@ final class FinancialsServiceImpl(
       val jou2: Option[Journal]  = poac.map(buildJournalEntries(model, line, _, line.oaccount, line.account))
       List(jou1, jou2)
     }.flatten
+
     def buildJournalEntries(model: FinancialsTransaction, line: FTDetails, pac: DPAC, account:String, oaccount:String)=
     Journal(
       -1,

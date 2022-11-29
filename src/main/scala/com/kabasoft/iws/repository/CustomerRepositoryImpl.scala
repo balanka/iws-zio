@@ -71,7 +71,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
   override def create(c: Customer): ZIO[Any, RepositoryError, Unit]                    = {
     val query = insertInto(customer)(X).values(toTuple(c))
 
-    ZIO.logInfo(s"Query to insert Customer is ${renderInsert(query)}") *>
+    ZIO.logDebug(s"Query to insert Customer is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
         .unit
@@ -80,7 +80,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     val data  = models.map(toTuple(_)) // Customer.unapply(_).get)
     val query = insertInto(customer)(X).values(data)
 
-    ZIO.logInfo(s"Query to insert CustomerXX is ${renderInsert(query)}") *>
+    ZIO.logDebug(s"Query to insert CustomerXX is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
   }
@@ -94,7 +94,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
       .set(name, model.name)
       .set(description, model.description)
       .where((id === model.id) && (company === model.company))
-    ZIO.logInfo(s"Query Update Customer is ${renderUpdate(update_)}") *>
+    ZIO.logDebug(s"Query Update Customer is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
         .mapError(e => RepositoryError(e.getCause()))
@@ -108,7 +108,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
 
   override def getBy(Id: String, companyId: String): ZIO[Any, RepositoryError, Customer] = {
     val selectAll = SELECT.where((id === Id) && (company === companyId))
-    ZIO.logInfo(s"Query to execute getBy is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute getBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to[Customer](c => Customer.apply(c)))
         .findFirst(driverLayer, Id)
   }
@@ -117,7 +117,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
   override def getByIban(Iban: String, companyId: String): ZIO[Any, RepositoryError, Customer]        = {
     val selectAll = SELECT2.where((iban_ === Iban) && (company === companyId))
 
-    ZIO.logInfo(s"Query to execute getByIban is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute getByIban is ${renderRead(selectAll)}") *>
       execute(selectAll.to[Customer](c => Customer.apply(c)))
         .findFirst(driverLayer, Iban)
   }
@@ -125,7 +125,6 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
      val selectAll = SELECT.where((modelid === modelId) && (company === companyId))
     execute(selectAll.to[Customer](c => Customer.apply(c)))
       .provideDriver(driverLayer)
-    // .findFirstInt(driverLayer, modelId)
   }
 
 }

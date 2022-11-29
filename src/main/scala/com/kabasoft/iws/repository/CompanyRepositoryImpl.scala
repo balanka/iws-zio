@@ -73,7 +73,7 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
   override def create(c: Company): ZIO[Any, RepositoryError, Unit]           = {
     val query = insertInto(company)(X).values(toTuple(c))
 
-    ZIO.logInfo(s"Query to insert Company is ${renderInsert(query)}") *>
+    ZIO.logDebug(s"Query to insert Company is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
         .unit
@@ -82,7 +82,7 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
     val data  = models.map(toTuple(_))
     val query = insertInto(company)(X).values(data)
 
-    ZIO.logInfo(s"Query to insert Company is ${renderInsert(query)}") *>
+    ZIO.logDebug(s"Query to insert Company is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
   }
@@ -95,7 +95,7 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
     val update_ = update(company)
       .set(name, model.name)
       .where((id === model.id))
-    ZIO.logInfo(s"Query Update Company is ${renderUpdate(update_)}") *>
+    ZIO.logDebug(s"Query Update Company is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
         .mapError(e => RepositoryError(e.getCause()))
@@ -115,7 +115,7 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
   override def getBy(Id: String): ZIO[Any, RepositoryError, Company]           = {
     val selectAll = SELECT.where(id === Id)
 
-    ZIO.logInfo(s"Query to execute findBy is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to[Company](c => Company(c)))
         .findFirst(driverLayer, Id)
   }

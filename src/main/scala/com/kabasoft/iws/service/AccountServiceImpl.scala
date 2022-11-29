@@ -5,7 +5,7 @@ import com.kabasoft.iws.domain.common._
 import com.kabasoft.iws.repository.{ AccountRepository, PacRepository }
 import zio._
 final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepository) extends AccountService {
-  def getBalance(accId: String, fromPeriod: Int, toPeriod: Int, companyId: String): ZIO[Any, RepositoryError, Account] =
+  def getBalance(accId: String, fromPeriod: Int, toPeriod: Int, companyId: String): ZIO[Any, RepositoryError, List[Account]] =
     (for {
       accounts <- accRepo.all(companyId)
       period = fromPeriod.toString.slice(0, 4).concat("00").toInt
@@ -18,8 +18,12 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
           )).flatten
       val accountsWithoutBalances = accounts.filterNot(acc =>accountsWithBalances.map(_.id).contains(acc.id))
       val all = accountsWithBalances:::accountsWithoutBalances
-      val account = Account.consolidate(accId, all, pacs)
-      ZIO.logInfo(s"Balance 4 account is ${account}")
+      val account1 = Account.consolidate2(accId, all, pacs)
+      val account = Account.unwrapData(account1)
+      //val result1 = accountsWithBalances.toSet
+      //val result = result1.+(account)
+        ZIO.logInfo(s"Balance 4 account is ${account}")
+
       account
     })
 

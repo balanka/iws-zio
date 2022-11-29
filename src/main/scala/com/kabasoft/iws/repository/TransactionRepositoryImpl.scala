@@ -32,7 +32,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 
   private def getLastTransid: ZIO[Any, RepositoryError, Long] = {
     val selectAll = select(lastTransid).from (master_compta_sequence)
-    ZIO.logInfo(s"Query to execute getLastTransid  is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute getLastTransid  is ${renderRead(selectAll)}") *>
       execute(selectAll.to(x=>x)).findFirstLong(driverLayer, 0)
   }
 
@@ -43,7 +43,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
     val query          = insertInto(transaction)(XX2).values(tuples)
     val queryLines     = insertInto(transactionDetails)(LINES).values(linesTransData)
 
-    ZIO.logInfo(
+    ZIO.logDebug(
       s"Query to insert TransactionDetails is ${renderInsert(queryLines)}  " +
         s"Transaction is ${renderInsert(query)}")
 
@@ -59,8 +59,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
     val tuples = models.map(t => toTupleC(t))
    val  query = insertInto(transaction2)(XX3).values(tuples)
     val result         = for {
-      _ <-  ZIO.logInfo(
-        //s"Query to insert TransactionDetails is ${renderInsert(queryLines)}" +
+      _ <-  ZIO.logDebug(
           s"Query to insert Transaction is ${renderInsert(query)}"
       )
 
@@ -161,14 +160,14 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
   override def list(companyId: String): ZStream[Any, RepositoryError, DerivedTransaction] = {
     val selectAll = SELECTD.where(company_ === companyId)
 
-    ZStream.fromZIO(ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")) *>
+    ZStream.fromZIO(ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")) *>
       execute(selectAll.to((DerivedTransaction.apply _).tupled))
         .provideDriver(driverLayer)
   }
   private[this] def list1(companyId: String): ZStream[Any, RepositoryError, FinancialsTransaction] = {
     val selectAll = SELECT2.where(company_ === companyId)
 
-    ZStream.fromZIO(ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")) *>
+    ZStream.fromZIO(ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")) *>
       execute(selectAll.to[FinancialsTransaction](c => FinancialsTransaction.applyC(c)))
         .provideDriver(driverLayer)
   }
@@ -187,7 +186,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       .orderBy(account_.descending)
 
     ZStream.fromZIO(
-      ZIO.logInfo(s"Query to execute find4Period is ${renderRead(selectAll)}")
+      ZIO.logDebug(s"Query to execute find4Period is ${renderRead(selectAll)}")
     ) *>
       execute(selectAll.to((DerivedTransaction.apply _).tupled))
         .provideDriver(driverLayer)
@@ -203,7 +202,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       .orderBy(account_.descending)
 
     ZStream.fromZIO(
-      ZIO.logInfo(s"Query to execute find4Period1 is ${renderRead(selectAll)}")
+      ZIO.logDebug(s"Query to execute find4Period1 is ${renderRead(selectAll)}")
     ) *>
       execute(selectAll.to[FinancialsTransaction](c => FinancialsTransaction.applyC(c)))
         .provideDriver(driverLayer)
@@ -219,14 +218,14 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 
   override def getBy(Id: String, companyId: String): ZIO[Any, RepositoryError, DerivedTransaction] = {
     val selectAll = SELECTD.where((company_ === companyId) && (tid_ === Id.toLong))
-    ZIO.logInfo(s"Query to execute findBy ${Id} is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute findBy ${Id} is ${renderRead(selectAll)}") *>
       execute(selectAll.to((DerivedTransaction.apply _).tupled))
         .findFirstLong(driverLayer, 1L)
   }
 
   private[this] def getLineByTransId(id: Long): ZStream[Any, RepositoryError, FinancialsTransactionDetails] = {
     val selectAll = SELECT_LINE.where(transid === id)
-    ZStream.fromZIO(ZIO.logInfo(s"Query to execute getLineByTransId is ${renderRead(selectAll)}")) *>
+    ZStream.fromZIO(ZIO.logDebug(s"Query to execute getLineByTransId is ${renderRead(selectAll)}")) *>
       execute(selectAll.to(x => FinancialsTransactionDetails.apply(x)))
         .provideDriver(driverLayer)
   }
@@ -247,22 +246,20 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 
   private def getById(id: Long, companyId: String): ZIO[Any, RepositoryError, FinancialsTransaction] = {
     val selectAll = SELECT.where((company_ === companyId) && (tid_ === id))
-    ZIO.logInfo(s"Query to execute getById ${id} is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute getById ${id} is ${renderRead(selectAll)}") *>
       execute(selectAll.to(x => FinancialsTransaction.apply(x)))
         .findFirstLong(driverLayer, id)
   }
 
   override def getByModelId(modelId: Int, companyId: String): ZStream[Any, RepositoryError, DerivedTransaction] = {
     val selectAll = SELECTD.where((modelid_ === modelId) && (company_ === companyId))
-    ZStream.fromZIO(ZIO.logInfo(s"Query to execute getByModelId is ${renderRead(selectAll)}")) *>
+    ZStream.fromZIO(ZIO.logDebug(s"Query to execute getByModelId is ${renderRead(selectAll)}")) *>
       execute(selectAll.to((DerivedTransaction.apply _).tupled))
         .provideDriver(driverLayer)
   }
 
   override def getByModelIdX(modelId: Int, companyId: String): ZStream[Any, RepositoryError, FinancialsTransaction] = {
     val selectAll = SELECT2.where((modelid_ === modelId) && (company_ === companyId))
-    //ZStream.fromZIO(ZIO.logInfo(s"Query to execute getByModelIdX is ${renderRead(selectAll)}")) *>
-      //execute(selectAll.to((DerivedTransaction.apply _).tupled))
     execute(selectAll.to[FinancialsTransaction](c => FinancialsTransaction.applyC(c)))
       .provideDriver(driverLayer)
       .mapZIO( tr =>getTransWithLines(tr.tid, companyId))

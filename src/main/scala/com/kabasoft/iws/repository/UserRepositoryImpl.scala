@@ -27,13 +27,13 @@ final class UserRepositoryImpl(pool: ConnectionPool) extends UserRepository with
   override def create(c: User): ZIO[Any, RepositoryError, Unit]                         = {
     val query = insertInto(usersx)(XX).values(toTuple(c))
 
-    ZIO.logInfo(s"Query to insert User is ${renderInsert(query)}") *>
+    ZIO.logDebug(s"Query to insert User is ${renderInsert(query)}") *>
       execute(query).provideAndLog(driverLayer).unit
   }
   override def create(models: List[User]): ZIO[Any, RepositoryError, Int]               = {
     val data  = models.map(u=>toTuple(u))
     val query = insertInto(usersx)(XX).values(data)
-    ZIO.logInfo(s"Query to insert Vat is ${renderInsert(query)}") *>
+    ZIO.logDebug(s"Query to insert Vat is ${renderInsert(query)}") *>
       execute(query).provideAndLog(driverLayer)
   }
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] =
@@ -43,7 +43,7 @@ final class UserRepositoryImpl(pool: ConnectionPool) extends UserRepository with
 
   override def modify(model: User): ZIO[Any, RepositoryError, Int]        = {
     val update_ = build(model)
-    ZIO.logInfo(s"Query Update vat is ${renderUpdate(update_)}") *>
+    ZIO.logDebug(s"Query Update vat is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
         .mapError(e => RepositoryError(e.getCause()))
@@ -72,21 +72,29 @@ final class UserRepositoryImpl(pool: ConnectionPool) extends UserRepository with
     val selectAll = select(X).from(users)
 
     ZStream.fromZIO(
-      ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")
+      ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")
     ) *>
       execute(selectAll.to((User.apply _).tupled)).provideDriver(driverLayer)
   }
   override def getByUserName(name:String, companyId: String): ZIO[Any, RepositoryError, User]          = {
     val selectAll = select(X).from(users).where((userName === name) && (company === companyId))
 
-    ZIO.logInfo(s"Query to execute findBy is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to((User.apply _).tupled))
         .findFirst(driverLayer, name)
+  }
+
+  override def getById(userId: Int, companyId: String): ZIO[Any, RepositoryError, User] = {
+    val selectAll = select(X).from(users).where((id === userId) && (company === companyId))
+
+    ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
+      execute(selectAll.to((User.apply _).tupled))
+        .findFirstInt(driverLayer, userId)
   }
   override def getByModelId(modelId: Int, companyId: String): ZIO[Any, RepositoryError, User] = {
     val selectAll = select(X).from(users).where((modelid === modelId) && (company === companyId))
 
-    ZIO.logInfo(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
       execute(selectAll.to((User.apply _).tupled))
         .findFirstInt(driverLayer, modelId)
   }
