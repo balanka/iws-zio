@@ -18,7 +18,8 @@ object AuthenticationClient extends ZIOAppDefault {
    * a protected route. Run AuthenticationServer before running this example.
    */
   val url = "http://localhost:8080"
-  val data = s"""{"userName":"mady" ,"password":"wuduwali2x"}"""
+  //val data = s"""{"userName":"mady" ,"password":"wuduwali2x"}"""
+  val data = s"""{"userName":"bate2" ,"password":"wuduwali2x"}"""
   val defaultUser = User(-1,"NoUser", "","","","","","")
 
 
@@ -27,6 +28,7 @@ object AuthenticationClient extends ZIOAppDefault {
     // Making a login request to obtain the jwt token. In this example the password should be the reverse string of username.
     //token    <- Client.request(s"${url}/login/username/emanresu").flatMap(_.body.asString)
     token    <- Client.request(s"${url}/users/login", method= Method.POST, content=Body.fromString(data)).flatMap(_.body.asString)
+    _        <- ZIO.logInfo(s"token>> ${token}<<")
      // .flatMap(body =>
     r<-       ZIO.fromEither(token.fromJson[User])
           .mapError(e => new Throwable(e))

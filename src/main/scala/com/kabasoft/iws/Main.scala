@@ -1,36 +1,34 @@
 package com.kabasoft.iws
 
-import zio._
-import zio.http._
-import zio.http.Server
-import zio.sql.ConnectionPool
-import com.kabasoft.iws.api._
-import com.kabasoft.iws.service._
-import com.kabasoft.iws.repository._
-import com.kabasoft.iws.healthcheck.Healthcheck.expose
 import com.kabasoft.iws.api.AccountHttpRoutes.appAcc
 import com.kabasoft.iws.api.CustomerRoutes.{appComp, appCust}
-import com.kabasoft.iws.api.SupplierRoutes.appSup
 import com.kabasoft.iws.api.FinancialsHttpRoutes.appFtr
 import com.kabasoft.iws.api.JournalRoutes.appJournal
 import com.kabasoft.iws.api.LoginRoutes.{appLogin, jwtDecode}
-import com.kabasoft.iws.api.MasterfilesHttpRoutes.{appBank, appBankStmt, appCostcenter, appModule, appUser}
+import com.kabasoft.iws.api.MasterfilesHttpRoutes._
 import com.kabasoft.iws.api.PacHttpRoutes.appPac
+import com.kabasoft.iws.api.SupplierRoutes.appSup
 import com.kabasoft.iws.api.VatHttpRoutes.appVat
 import com.kabasoft.iws.config.DbConfig
 import com.kabasoft.iws.config.DbConfig.connectionPoolConfig
 import com.kabasoft.iws.domain.AppError
+import com.kabasoft.iws.healthcheck.Healthcheck.expose
+import com.kabasoft.iws.repository._
+import com.kabasoft.iws.service._
+import zio._
 import zio.http.Middleware.bearerAuth
+import zio.http._
 import zio.http.api.Middleware.cors
 import zio.http.middleware.Cors.CorsConfig
 import zio.http.model.Method
+import zio.sql.ConnectionPool
 
 object Main extends ZIOAppDefault {
 
 
   val defaultX: ZLayer[Any, Throwable, Server] = {
     implicit val trace = Trace.empty
-    ZLayer.succeed(ServerConfig().binding("localhost", 8080)) >>> Server.live
+    ZLayer.succeed(ServerConfig().binding("localhost", 8080).port(8080)) >>> Server.live
   }
 
   val config: CorsConfig =
@@ -45,7 +43,7 @@ def wrap[R](app: Http[R, AppError.RepositoryError, Request, Response] ) =  app@@
 
   val masterfilesApp =   wrap(appAcc)++ wrap(appBank) ++ wrap(appModule) ++ wrap(appCust) ++ wrap(appSup) ++
                        wrap(appComp) ++ wrap(appBankStmt)++ wrap(appVat)++wrap(appUser)
-  val httpApp = wrap(appFtr)++ HttpRoutes.app  ++ masterfilesApp ++ wrap(appPac) ++ wrap(appJournal) ++
+  val httpApp = wrap(appFtr) ++ masterfilesApp ++ wrap(appPac) ++ wrap(appJournal) ++
     wrap(appCostcenter) ++ wrap(appBankStmt)++  expose
   override val run = Server.serve((appLogin++ httpApp )@@  Middleware.cors(config))
     .provide(
@@ -55,10 +53,8 @@ def wrap[R](app: Http[R, AppError.RepositoryError, Request, Response] ) =  app@@
     ConnectionPool.live,
     AccountServiceImpl.live,
     AccountRepositoryImpl.live,
-    OrderRepositoryImpl.live,
     CompanyRepositoryImpl.live,
     CostcenterRepositoryImpl.live,
-    CustomerOLDRepositoryImpl.live,
     CustomerRepositoryImpl.live,
     SupplierRepositoryImpl.live,
     BankRepositoryImpl.live,
@@ -68,7 +64,6 @@ def wrap[R](app: Http[R, AppError.RepositoryError, Request, Response] ) =  app@@
     PacRepositoryImpl.live,
     UserRepositoryImpl.live,
     VatRepositoryImpl.live,
-    QueryServiceImpl.live,
     JournalRepositoryImpl.live,
     FinancialsServiceImpl.live)
 }

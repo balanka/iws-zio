@@ -20,6 +20,8 @@ object common {
 
   // def groupingFn [A] = reduce[A]
 
+  val DummyUser = User(-1, "dummy","dummy", "dummy", "dummyhash2", "dummyphone", "dummy@user.com",  "dummy", "dummymenu", "0000", 111)
+
   def reduce[A: Identity](all: Iterable[A], dummy: A): A =
     all.toList match {
       case Nil     => dummy
@@ -255,6 +257,19 @@ object Account {
           .copy(subAccounts = sub)
     }
 
+  def unwrapData(account: Account): List[Account] = {
+    //@tailrec
+    def unwrapData_(res: Set[Account]): Set[Account] =
+      res.flatMap(
+        acc =>
+          acc.subAccounts.toList match {
+            case Nil => if (acc.balance == 0.0 && acc.subAccounts.isEmpty) Set.empty[Account] else Set(acc)
+            case (head: Account) :: tail => Set(acc, head).filterNot(_.balance == 0.0) ++ unwrapData_(tail.toSet)
+          }
+      )
+
+    unwrapData_(account.subAccounts).toList
+  }
 
   def withChildren(accId: String, accList: List[Account]): Account =
     accList.find(x => x.id == accId) match {
@@ -262,7 +277,24 @@ object Account {
       case None      => Account.dummy
     }
 
+  def consolidate2(accId: String, accList: List[Account], pacs: List[PeriodicAccountBalance]): Account = {
+    val accMap = accList.groupBy(_.account)
+    accList.find(x => x.id == accId) match {
+      case Some(acc) => updateSubAccountBalance(pacs, accMap, acc)
+      case None => Account.dummy
+    }
+  }
 
+  private def updateSubAccountBalance(
+                                       pacs: List[PeriodicAccountBalance],
+                                       accMap: Map[String, List[Account]],
+                                       acc: Account
+                                     ) = {
+    val x: Account = addSubAccounts(acc, accMap) //List(acc)
+    val y = getAllSubBalances(x, pacs)
+    val z = removeSubAccounts(y.copy(id = acc.id))
+    z
+  }
   def consolidate(accId: String, accList: List[Account], pacs: List[PeriodicAccountBalance]): Account = {
     val accMap = accList.groupBy(_.account)
     accList.find(x => x.id == accId) match {
@@ -328,7 +360,7 @@ object BaseData {
       acc.company
     )
 }
-final case class Daten(data: BaseData, children: List[Daten] = Nil) extends Serializable
+final case class Data(data: BaseData, children: List[Data] = Nil) extends Serializable
 final case class Order(
   id: UUID,
   customerId: UUID,
@@ -640,12 +672,22 @@ final case class TPeriodicAccountBalance(
     fcreditx <- self.fcredit
   } yield (fcreditx - fdebitx)
 
+
   def transfer(to: TPeriodicAccountBalance, amount: BigDecimal): UIO[Unit] =
     STM.atomically {
       to.debit.update(_ + amount).*>(self.credit.update(_ + amount))
     }
 }
-final case class PeriodicAccountBalance(
+object TPeriodicAccountBalance {
+  def apply(pac:PeriodicAccountBalance):UIO[TPeriodicAccountBalance] = for {
+    idebit <-TRef.makeCommit(pac.idebit)
+    icredit <-TRef.makeCommit(pac.icredit)
+    debit <-TRef.makeCommit(pac.debit)
+    credit <-TRef.makeCommit(pac.credit)
+  } yield TPeriodicAccountBalance(pac.id, pac.account, pac.period, idebit, icredit, debit, credit, pac.currency, pac.company, pac.modelid)
+
+}
+final case class PeriodicAccountBalance (
   id: String,
   account: String,
   period: Int,
@@ -739,6 +781,7 @@ object PeriodicAccountBalance {
       .toList
       */
   def applyX(p: PAC_Type)                                                                               = PeriodicAccountBalance(p._1, p._2, p._3, p._4, p._5, p._6, p._7, p._8, p._9, p._10)
+
 }
 
 sealed trait BusinessPartner {
@@ -1289,7 +1332,6 @@ final case class User(id: Int,
                       department: String, //Role,
                       menu: String = "",
                       company: String = "1000",
-                      modelid: Int = 111,
+                      modelid: Int = 111)
 
-               )
 final case class LoginRequest(userName: String, password: String)

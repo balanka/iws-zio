@@ -20,12 +20,12 @@ object AccountHttpRoutes {
 
       case Method.GET -> !! /"balance" / accountid / fromPeriod / toPeriod        =>
         AccountService.getBalance(accountid, fromPeriod.toInt, toPeriod.toInt, "1000").either.map {
-          case Right(o) => Response.json((List(o)++o.subAccounts.toList).toJson)
+          case Right(o) => Response.json(o.toJson)
           case Left(e)  => Response.text(e.getMessage + "accountid" + accountid + " fromPeriod: " + fromPeriod + " toPeriod:" + toPeriod)
         }
-      case Method.POST -> !! / "close" / inStmtAccId / fromPeriod / toPeriod =>
+      case Method.GET -> !! / "close" / inStmtAccId / fromPeriod / toPeriod =>
         AccountService.closePeriod(fromPeriod.toInt, toPeriod.toInt, inStmtAccId, "1000").either.map {
-          case Right(o) => Response.json(o.toJson)
+          case Right(o) => Response.json({println("close>>>>>>>>>>"+o); o.toJson})
           case Left(e)  => Response.text(e.getMessage + "inStmtAccId" + inStmtAccId + " fromPeriod: " + fromPeriod + " toPeriod:" + toPeriod)
         }
       case Method.GET -> !! / "acc" / id                                     =>

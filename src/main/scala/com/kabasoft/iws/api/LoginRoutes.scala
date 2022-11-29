@@ -1,7 +1,9 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain._
+import com.kabasoft.iws.domain.common.DummyUser
 import com.kabasoft.iws.repository._
 import pdi.jwt.{Jwt, JwtAlgorithm, JwtClaim}
 import zio.ZIO
@@ -43,7 +45,7 @@ object LoginRoutes {
   val invalidRequest = LoginRequest("InvalidUsername","InvalidPassword")
 
   def appLogin = Http.collectZIO[Request] {
-    case req@Method.POST -> !! /"users"/"login" =>
+    case req@Method.POST -> !! / "users" / "login" =>
       for {
         body <- req.body.asString
           .flatMap(request =>
@@ -53,18 +55,21 @@ object LoginRoutes {
               .tapError(e => ZIO.logInfo(s"Unparseable body ${e}"))
           ).either.flatMap(loginRequest => {
           val loginRequest_ = loginRequest.getOrElse(invalidRequest)
-          val jwtEncode_ = jwtEncode(loginRequest_.password, 86400*365*20)
-          UserRepository.getByUserName(loginRequest_.userName, "1000").either.map {
-            case Right(user) =>checkLogin(loginRequest_,user)
-            case Left(e) => Response.text(e.getMessage() + loginRequest_.userName + "/"
-                                                         + loginRequest_.password).setStatus(Status.Unauthorized)
-          }
+          val jwtEncode_ = jwtEncode(loginRequest_.password, 86400 * 365 * 20)
+          // val r = UserRepository.getByUserName(loginRequest_.userName, "1000")
+          // val r = UserRepository.list("1000").runCollect.map(_.toList)
+          //.filter(_.userName.equals(loginRequest_.userName))
+          checkLogin(loginRequest_)
         })
       } yield body
-
   }
-  private def  checkLogin(loginRequest:LoginRequest,user:User):Response ={
-    val content = jwtDecode(user.hash).toList.head.content;
+  private def  checkLogin(loginRequest:LoginRequest):ZIO[UserRepository, RepositoryError,Response] = for {
+    r <- UserRepository.list("1000").runCollect.map(_.toList)
+  }yield {
+    val user = r.find(_.userName.equals(loginRequest.userName)).getOrElse(DummyUser)
+    println(s"user >>>>>> ${user}")
+    val content = jwtDecode(user.hash).toList.head.content
+    println(s"content >>>>>> ${content}")
     val pwd = content.substring(1, content.length - 1).replaceAll("\"", "")
     val pwdR = loginRequest.password
     val usernameR = loginRequest.userName
@@ -73,9 +78,12 @@ object LoginRoutes {
     if (check) {
       //val json = s"""{"${pwd}"}"""
       val encoded = user.hash //Jwt.encode(buildClaim(json, 1000000), SECRET_KEY, JwtAlgorithm.HS512)
-      Response.text(user.copy(hash=encoded).toJson).addHeader(Header("authorization",encoded))
+      println(s"encodedencodedencodedencodedencoded  ${user}")
+      println(s"encodedencodedencodedencodedencoded  ${encoded}")
+      Response.json(user.toJson).addHeader(Header("authorization",encoded))
     } else {
       //ZIO.logInfo(s"Invalid  user name or password  ${username}")*>
+      println(s"encodedencodedencodedencodedencoded  ${content} ----${pwd}")
       Response.text("Invalid  user name or password " + loginRequest.userName + "/" + loginRequest.password).setStatus(Status.Unauthorized)
     }
   }

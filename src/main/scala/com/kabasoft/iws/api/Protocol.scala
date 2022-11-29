@@ -15,7 +15,7 @@ object Protocol {
 
   final case class BankStatements(bankStatements: Chunk[BankStatement])
   final case class Banks(banks: List[Bank])
-  final case class Datas(data: List[Daten])
+  final case class Datas(data: List[Data])
   final case class BaseDatas(baseData: List[BaseData])
 
   final case class Accounts(accounts: Set[Account])
