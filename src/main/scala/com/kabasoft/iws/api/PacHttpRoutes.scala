@@ -37,7 +37,7 @@ object PacHttpRoutes {
                     )
                     .mapError(e => AppError.DecodingError(e.getMessage()))
                     .tapError(e => ZIO.logInfo(s"Unparseable body ${e}"))
-          _    <- PacRepository.create(body)
+          _    <- PacRepository.create(List(body))
         } yield ()).either.map {
           case Right(_) => Response.status(Status.Created)
           case Left(_)  => Response.status(Status.BadRequest)

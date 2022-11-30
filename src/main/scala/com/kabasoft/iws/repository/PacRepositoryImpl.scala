@@ -55,7 +55,7 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
       .where((company === companyId) && (period >= fromPeriod) && (period <= toPeriod))
       .orderBy(account.descending)
 
-  override def create(c: PeriodicAccountBalance): ZIO[Any, RepositoryError, Unit]             = {
+   def createX(c: PeriodicAccountBalance): ZIO[Any, RepositoryError, Unit]             = {
     val query = insertInto(pac)(X)
       .values(PeriodicAccountBalance.unapply(c).get)
 

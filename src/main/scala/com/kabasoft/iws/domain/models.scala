@@ -3,15 +3,16 @@ package com.kabasoft.iws.domain
 import com.kabasoft.iws.domain.FinancialsTransaction.DerivedTransaction_Type
 import com.kabasoft.iws.domain.common._
 import zio.schema.{DeriveSchema, Schema, StandardType}
-import java.util.{ Locale, UUID }
-import java.time.{ Instant, LocalDate, LocalDateTime, ZoneId }
+
+import java.util.{Locale, UUID}
+import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 import zio.prelude._
 import zio.stm._
-import zio._
+import zio.{UIO, _}
 
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
-import scala.collection.immutable.{ ::, Nil }
+import scala.collection.immutable.{::, Nil}
 import scala.annotation.tailrec
 
 object common {
@@ -59,24 +60,24 @@ object common {
 }
 
 final case class Account(
-  id: String,
-  name: String,
-  description: String,
-  enterdate: Instant = Instant.now(),
-  changedate: Instant = Instant.now(),
-  postingdate: Instant = Instant.now(),
-  company: String,
-  modelid: Int = 9,
-  account: String = "",
-  isDebit: Boolean,
-  balancesheet: Boolean,
-  currency: String = "EUR ",
-  idebit: BigDecimal = BigDecimal(0),
-  icredit: BigDecimal = BigDecimal(0),
-  debit: BigDecimal = BigDecimal(0),
-  credit: BigDecimal = BigDecimal(0),
-  subAccounts: Set[Account] = Nil.toSet
-) {
+                          id: String,
+                          name: String,
+                          description: String,
+                          enterdate: Instant = Instant.now(),
+                          changedate: Instant = Instant.now(),
+                          postingdate: Instant = Instant.now(),
+                          company: String,
+                          modelid: Int = 9,
+                          account: String = "",
+                          isDebit: Boolean,
+                          balancesheet: Boolean,
+                          currency: String = "EUR ",
+                          idebit: BigDecimal = BigDecimal(0),
+                          icredit: BigDecimal = BigDecimal(0),
+                          debit: BigDecimal = BigDecimal(0),
+                          credit: BigDecimal = BigDecimal(0),
+                          subAccounts: Set[Account] = Nil.toSet
+                        ) {
   def debiting(amount: BigDecimal) = copy(debit = debit.+(amount))
 
   def crediting(amount: BigDecimal) = copy(credit = credit.+(amount))
@@ -113,17 +114,17 @@ final case class Account(
   }
 
   // def updateBalance(acc: Balance_Type): Account =
- //   idebiting(acc._1).icrediting(acc._2).debiting(acc._3).crediting(acc._4)
+  //   idebiting(acc._1).icrediting(acc._2).debiting(acc._3).crediting(acc._4)
 
   //import common._
 
-@tailrec
+  @tailrec
   def updateBalanceParent(all:List[Account]): List[Account] = {
     all.find(acc=>acc.id == account) match {
       case Some(parent)=>{
         val y:Account = parent.updateBalance(this)
-          val z:List[Account]= all.filterNot(acc=>acc.id == parent.id):+y
-          y.updateBalanceParent(z)
+        val z:List[Account]= all.filterNot(acc=>acc.id == parent.id):+y
+        y.updateBalanceParent(z)
       }
       case None=> all
     }
@@ -149,22 +150,22 @@ object Account {
   val MODELID = 9
   type Account_Type = (
     String,
-    String,
-    String,
-    Instant,
-    Instant,
-    Instant,
-    String,
-    Int,
-    String,
-    Boolean,
-    Boolean,
-    String,
-    BigDecimal,
-    BigDecimal,
-    BigDecimal,
-    BigDecimal
-  )
+      String,
+      String,
+      Instant,
+      Instant,
+      Instant,
+      String,
+      Int,
+      String,
+      Boolean,
+      Boolean,
+      String,
+      BigDecimal,
+      BigDecimal,
+      BigDecimal,
+      BigDecimal
+    )
 
   def apply(acc: Account_Type): Account             =
     new Account(
@@ -319,19 +320,19 @@ object Account {
 
 }
 final case class BaseData(
-  id: String,
-  name: String,
-  description: String,
-  modelId: Int = 19,
-  isDebit: Boolean,
-  balancesheet: Boolean,
-  idebit: BigDecimal,
-  icredit: BigDecimal,
-  debit: BigDecimal,
-  credit: BigDecimal,
-  currency: String,
-  company: String
-) {
+                           id: String,
+                           name: String,
+                           description: String,
+                           modelId: Int = 19,
+                           isDebit: Boolean,
+                           balancesheet: Boolean,
+                           idebit: BigDecimal,
+                           icredit: BigDecimal,
+                           debit: BigDecimal,
+                           credit: BigDecimal,
+                           currency: String,
+                           company: String
+                         ) {
   def debiting(amount: BigDecimal)   = copy(debit = debit.+(amount))
   def crediting(amount: BigDecimal)  = copy(credit = credit.+(amount))
   def idebiting(amount: BigDecimal)  = copy(idebit = idebit.+(amount))
@@ -362,51 +363,51 @@ object BaseData {
 }
 final case class Data(data: BaseData, children: List[Data] = Nil) extends Serializable
 final case class Order(
-  id: UUID,
-  customerId: UUID,
-  date: LocalDate
-)
+                        id: UUID,
+                        customerId: UUID,
+                        date: LocalDate
+                      )
 
 final case class Customer_OLD(
-  id: UUID,
-  fname: String,
-  lname: String,
-  verified: Boolean,
-  dateOfBirth: LocalDate
-)
+                               id: UUID,
+                               fname: String,
+                               lname: String,
+                               verified: Boolean,
+                               dateOfBirth: LocalDate
+                             )
 
 final case class Product(
-  id: UUID,
-  name: String,
-  description: String,
-  imageUrl: String
-)
+                          id: UUID,
+                          name: String,
+                          description: String,
+                          imageUrl: String
+                        )
 
 final case class ProductPrice(
-  id: UUID,
-  effective: LocalDate,
-  price: Double
-)
+                               id: UUID,
+                               effective: LocalDate,
+                               price: Double
+                             )
 
 final case class OrderDetail(
-  orderId: UUID,
-  productId: UUID,
-  quantity: Int,
-  unitPrice: Double
-)
+                              orderId: UUID,
+                              productId: UUID,
+                              quantity: Int,
+                              unitPrice: Double
+                            )
 
 final case class CustomerWithOrderDate(
-  firstName: String,
-  lastName: String,
-  orderDate: LocalDate
-  // cid: UUID,
-)
+                                        firstName: String,
+                                        lastName: String,
+                                        orderDate: LocalDate
+                                        // cid: UUID,
+                                      )
 
 final case class CustomerWithOrderNumber(
-  firstName: String,
-  lastName: String,
-  count: Long
-)
+                                          firstName: String,
+                                          lastName: String,
+                                          count: Long
+                                        )
 
 sealed trait AppError extends Throwable
 
@@ -418,26 +419,26 @@ sealed trait IWS     {
   def id: String
 }
 final case class Costcenter(
+                             id: String,
+                             name: String = "",
+                             description: String = "",
+                             account: String = "",
+                             enterdate: Instant = Instant.now(),
+                             changedate: Instant = Instant.now(),
+                             postingdate: Instant = Instant.now(),
+                             modelid: Int = 11,
+                             company: String
+                           )extends  IWS
+final case class Bank(
                        id: String,
                        name: String = "",
                        description: String = "",
-                       account: String = "",
                        enterdate: Instant = Instant.now(),
                        changedate: Instant = Instant.now(),
                        postingdate: Instant = Instant.now(),
                        modelid: Int = 11,
                        company: String
                      )extends  IWS
-final case class Bank(
-  id: String,
-  name: String = "",
-  description: String = "",
-  enterdate: Instant = Instant.now(),
-  changedate: Instant = Instant.now(),
-  postingdate: Instant = Instant.now(),
-  modelid: Int = 11,
-  company: String
-)extends  IWS
 
 object Bank {
   implicit val schema: Schema[Bank] = DeriveSchema.gen[Bank]
@@ -448,23 +449,23 @@ object BankAccount   {
   implicit def ordering[A <: BankAccount]: Ordering[A] = Ordering.by(e => (e.id, e.bic, e.owner, e.company))
 }
 final case class BankStatement(
-  id: Long,
-  depositor: String,
-  postingdate: Instant,
-  valuedate: Instant,
-  postingtext: String,
-  purpose: String,
-  beneficiary: String,
-  accountno: String,
-  bankCode: String,
-  amount: BigDecimal,
-  currency: String,
-  info: String,
-  company: String,
-  companyIban: String,
-  posted: Boolean = false,
-  modelid: Int = 18
-)
+                                id: Long,
+                                depositor: String,
+                                postingdate: Instant,
+                                valuedate: Instant,
+                                postingtext: String,
+                                purpose: String,
+                                beneficiary: String,
+                                accountno: String,
+                                bankCode: String,
+                                amount: BigDecimal,
+                                currency: String,
+                                info: String,
+                                company: String,
+                                companyIban: String,
+                                posted: Boolean = false,
+                                modelid: Int = 18
+                              )
 object BankStatement {
   val CENTURY         = "20"
   val COMPANY         = "1000"
@@ -476,40 +477,40 @@ object BankStatement {
 
   type BS_Type = (
     Long,
-    String,
-    Instant,
-    Instant,
-    String,
-    String,
-    String,
-    String,
-    String,
-    BigDecimal,
-    String,
-    String,
-    String,
-    String,
-    Boolean,
-    Int
-  )
+      String,
+      Instant,
+      Instant,
+      String,
+      String,
+      String,
+      String,
+      String,
+      BigDecimal,
+      String,
+      String,
+      String,
+      String,
+      Boolean,
+      Int
+    )
 
   type BS_Type2 = (
     String,
-    Instant,
-    Instant,
-    String,
-    String,
-    String,
-    String,
-    String,
-    BigDecimal,
-    String,
-    String,
-    String,
-    String,
-    Boolean,
-    Int
-  )
+      Instant,
+      Instant,
+      String,
+      String,
+      String,
+      String,
+      String,
+      BigDecimal,
+      String,
+      String,
+      String,
+      String,
+      Boolean,
+      Int
+    )
 
   def apply(bs: BS_Type): BankStatement = BankStatement(
     bs._1,
@@ -599,42 +600,42 @@ object BankStatement {
 
 }
 final case class Module(
-                       id: String,
-                       name: String = "",
-                       description: String = "",
-                       path: String = "",
-                       enterdate: Instant = Instant.now(),
-                       changedate: Instant = Instant.now(),
-                       postingdate: Instant = Instant.now(),
-                       modelid: Int = 300,
-                       company: String
-                     )
+                         id: String,
+                         name: String = "",
+                         description: String = "",
+                         path: String = "",
+                         enterdate: Instant = Instant.now(),
+                         changedate: Instant = Instant.now(),
+                         postingdate: Instant = Instant.now(),
+                         modelid: Int = 300,
+                         company: String
+                       )
 final case class Vat(
-  id: String,
-  name: String = "",
-  description: String = "",
-  percent: BigDecimal,
-  inputVatAccount: String,
-  outputVatAccount: String,
-  enterdate: Instant = Instant.now(),
-  changedate: Instant = Instant.now(),
-  postingdate: Instant = Instant.now(),
-  company: String,
-  modelid: Int = 6
-)
+                      id: String,
+                      name: String = "",
+                      description: String = "",
+                      percent: BigDecimal,
+                      inputVatAccount: String,
+                      outputVatAccount: String,
+                      enterdate: Instant = Instant.now(),
+                      changedate: Instant = Instant.now(),
+                      postingdate: Instant = Instant.now(),
+                      company: String,
+                      modelid: Int = 6
+                    )
 
 final case class TPeriodicAccountBalance(
-  id: String,
-  account: String,
-  period: Int,
-  idebit: TRef[BigDecimal],
-  icredit: TRef[BigDecimal],
-  debit: TRef[BigDecimal],
-  credit: TRef[BigDecimal],
-  currency: String,
-  company: String,
-  modelid: Int = PeriodicAccountBalance.MODELID
-) {
+                                          id: String,
+                                          account: String,
+                                          period: Int,
+                                          idebit: TRef[BigDecimal],
+                                          icredit: TRef[BigDecimal],
+                                          debit: TRef[BigDecimal],
+                                          credit: TRef[BigDecimal],
+                                          currency: String,
+                                          company: String,
+                                          modelid: Int = PeriodicAccountBalance.MODELID
+                                        ) {
   self =>
   def debiting(amount: BigDecimal) = STM.atomically {
     self.debit.get.flatMap(balance => self.debit.set(balance + amount))
@@ -686,19 +687,28 @@ object TPeriodicAccountBalance {
     credit <-TRef.makeCommit(pac.credit)
   } yield TPeriodicAccountBalance(pac.id, pac.account, pac.period, idebit, icredit, debit, credit, pac.currency, pac.company, pac.modelid)
 
+  def debitAndCredit(pac: TPeriodicAccountBalance, poac: TPeriodicAccountBalance, amount: BigDecimal) = STM.atomically {
+    pac.debit.get.flatMap(debit => pac.debit.set(debit + amount)) *>
+    poac.credit.get.flatMap(credit => poac.credit.set(credit + amount))
+
+  }
+
+  def debitAndCreditAll(pacs: List[TPeriodicAccountBalance], poacs: List[TPeriodicAccountBalance], amount: BigDecimal) =
+    pacs.zip(poacs).map {case (pac , poac) => debitAndCredit(pac, poac, amount)}
+
 }
 final case class PeriodicAccountBalance (
-  id: String,
-  account: String,
-  period: Int,
-  idebit: BigDecimal,
-  icredit: BigDecimal,
-  debit: BigDecimal,
-  credit: BigDecimal,
-  currency: String,
-  company: String,
-  modelid: Int = PeriodicAccountBalance.MODELID
-) {
+                                          id: String,
+                                          account: String,
+                                          period: Int,
+                                          idebit: BigDecimal,
+                                          icredit: BigDecimal,
+                                          debit: BigDecimal,
+                                          credit: BigDecimal,
+                                          currency: String,
+                                          company: String,
+                                          modelid: Int = PeriodicAccountBalance.MODELID
+                                        ) {
   def debiting(amount: BigDecimal)         = copy(debit = debit.+(amount))
   def crediting(amount: BigDecimal)        = copy(credit = credit.+(amount))
   def idebiting(amount: BigDecimal)        = copy(idebit = idebit.+(amount))
@@ -745,7 +755,8 @@ object PeriodicAccountBalance {
       currency,
       PeriodicAccountBalance.MODELID
     )
-  def create(model: FinancialsTransaction)                                                              =
+
+  def create(model: FinancialsTransaction): List[PeriodicAccountBalance] =
     model.lines.flatMap { line =>
       List(
         PeriodicAccountBalance.apply(
@@ -775,13 +786,15 @@ object PeriodicAccountBalance {
           PeriodicAccountBalance.MODELID
         )
       )
-    }/*.groupBy((_.id))
-      .map { case (_, v) => reduce(v, PeriodicAccountBalance.dummy) }
-      .filterNot(_.id == PeriodicAccountBalance.dummy.id)
-      .toList
-      */
+    }
   def applyX(p: PAC_Type)                                                                               = PeriodicAccountBalance(p._1, p._2, p._3, p._4, p._5, p._6, p._7, p._8, p._9, p._10)
 
+  def applyT(tpac: TPeriodicAccountBalance): ZIO[Any,Nothing, PeriodicAccountBalance] = for {
+    idebit <- tpac.debit.get.commit
+    icredit <- tpac.debit.get.commit
+    debit <- tpac.debit.get.commit
+    credit <- tpac.debit.get.commit
+  } yield PeriodicAccountBalance(tpac.id, tpac.account, tpac.period, idebit, icredit, credit, debit, tpac.currency, tpac.company, tpac.modelid)
 }
 
 sealed trait BusinessPartner {
@@ -807,50 +820,50 @@ sealed trait BusinessPartner {
   def bankaccounts: List[BankAccount]
 }
 final case class Supplier(
-  id: String,
-  name: String,
-  description: String,
-  street: String,
-  zip: String,
-  city: String,
-  state: String,
-  country: String,
-  phone: String,
-  email: String,
-  account: String,
-  oaccount: String,
-  iban: String,
-  vatcode: String,
-  company: String,
-  modelid: Int = Supplier.MODELID,
-  enterdate: Instant = Instant.now(),
-  changedate: Instant = Instant.now(),
-  postingdate: Instant = Instant.now(),
-  bankaccounts: List[BankAccount] = List.empty[BankAccount]
-) extends BusinessPartner
+                           id: String,
+                           name: String,
+                           description: String,
+                           street: String,
+                           zip: String,
+                           city: String,
+                           state: String,
+                           country: String,
+                           phone: String,
+                           email: String,
+                           account: String,
+                           oaccount: String,
+                           iban: String,
+                           vatcode: String,
+                           company: String,
+                           modelid: Int = Supplier.MODELID,
+                           enterdate: Instant = Instant.now(),
+                           changedate: Instant = Instant.now(),
+                           postingdate: Instant = Instant.now(),
+                           bankaccounts: List[BankAccount] = List.empty[BankAccount]
+                         ) extends BusinessPartner
 object Supplier  {
   val MODELID = 1
   type TYPE = (
     String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    Int,
-    Instant,
-    Instant,
-    Instant
-  )
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      Int,
+      Instant,
+      Instant,
+      Instant
+    )
   def apply(c: TYPE): Supplier =
     Supplier(
       c._1,
@@ -876,50 +889,50 @@ object Supplier  {
     )
 }
 final case class Customer(
-  id: String,
-  name: String,
-  description: String,
-  street: String,
-  zip: String,
-  city: String,
-  state: String,
-  country: String,
-  phone: String,
-  email: String,
-  account: String,
-  oaccount: String,
-  iban: String,
-  vatcode: String,
-  company: String,
-  modelid: Int = Customer.MODELID,
-  enterdate: Instant = Instant.now(),
-  changedate: Instant = Instant.now(),
-  postingdate: Instant = Instant.now(),
-  bankaccounts: List[BankAccount] = List.empty[BankAccount]
-) extends BusinessPartner
+                           id: String,
+                           name: String,
+                           description: String,
+                           street: String,
+                           zip: String,
+                           city: String,
+                           state: String,
+                           country: String,
+                           phone: String,
+                           email: String,
+                           account: String,
+                           oaccount: String,
+                           iban: String,
+                           vatcode: String,
+                           company: String,
+                           modelid: Int = Customer.MODELID,
+                           enterdate: Instant = Instant.now(),
+                           changedate: Instant = Instant.now(),
+                           postingdate: Instant = Instant.now(),
+                           bankaccounts: List[BankAccount] = List.empty[BankAccount]
+                         ) extends BusinessPartner
 object Customer                     {
   val MODELID = 3
   type TYPE = (
     String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    Int,
-    Instant,
-    Instant,
-    Instant
-  )
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      Int,
+      Instant,
+      Instant,
+      Instant
+    )
 
   def apply(c: TYPE): Customer =
     Customer(
@@ -947,37 +960,37 @@ object Customer                     {
 }
 
 final case class FinancialsTransactionDetails(
-  lid: Long,
-  transid: Long,
-  account: String,
-  side: Boolean,
-  oaccount: String,
-  amount: BigDecimal,
-  duedate: Instant = Instant.now(),
-  text: String,
-  currency: String
-) {
+                                               lid: Long,
+                                               transid: Long,
+                                               account: String,
+                                               side: Boolean,
+                                               oaccount: String,
+                                               amount: BigDecimal,
+                                               duedate: Instant = Instant.now(),
+                                               text: String,
+                                               currency: String
+                                             ) {
   def id = lid.toString
 
 }
 final case class FinancialsTransaction(
-  tid: Long,
-  oid: Long,
-  costcenter: String,
-  account: String,
-  transdate: Instant = Instant.now(),
-  enterdate: Instant = Instant.now(),
-  postingdate: Instant = Instant.now(),
-  period: Int = common.getPeriod(Instant.now()),
-  posted: Boolean = false,
-  modelid: Int,
-  company: String,
-  text: String = "",
-  typeJournal: Int = 0,
-  file_content: Int = 0,
-  lines: List[FinancialsTransactionDetails] = Nil
-  // ,copyFlag: Boolean = false
-) {
+                                        tid: Long,
+                                        oid: Long,
+                                        costcenter: String,
+                                        account: String,
+                                        transdate: Instant = Instant.now(),
+                                        enterdate: Instant = Instant.now(),
+                                        postingdate: Instant = Instant.now(),
+                                        period: Int = common.getPeriod(Instant.now()),
+                                        posted: Boolean = false,
+                                        modelid: Int,
+                                        company: String,
+                                        text: String = "",
+                                        typeJournal: Int = 0,
+                                        file_content: Int = 0,
+                                        lines: List[FinancialsTransactionDetails] = Nil
+                                        // ,copyFlag: Boolean = false
+                                      ) {
   def id            = tid.toString
   def month: String = common.getMonthAsString(transdate)
   def year: Int     = common.getYear(transdate)
@@ -1034,48 +1047,48 @@ object FinancialsTransaction {
 
   type FinancialsTransaction_Type2 = (
     Long,
-    Long,
-    String,
-    String,
-    Instant,
-    Instant,
-    Instant,
-    Int,
-    Boolean,
-    Int,
-    String,
-    String,
-    Int,
-    Int,
-    Long,
-    String,
-    Boolean,
-    String,
-    BigDecimal,
-    Instant,
-    String,
-    String
-  )
+      Long,
+      String,
+      String,
+      Instant,
+      Instant,
+      Instant,
+      Int,
+      Boolean,
+      Int,
+      String,
+      String,
+      Int,
+      Int,
+      Long,
+      String,
+      Boolean,
+      String,
+      BigDecimal,
+      Instant,
+      String,
+      String
+    )
   type DerivedTransaction_Type     = (
     Long,
-    Long,
-    String,
-    Instant,
-    Instant,
-    Instant,
-    Int,
-    Boolean,
-    Int,
-    String,
-    String,
-    Int,
-    Long,
-    Boolean,
-    String,
-    BigDecimal,
-    String,
-    String
-  )
+      Long,
+      String,
+      Instant,
+      Instant,
+      Instant,
+      Int,
+      Boolean,
+      Int,
+      String,
+      String,
+      Int,
+      Long,
+      Boolean,
+      String,
+      BigDecimal,
+      String,
+      String
+    )
 
   def applyC(tr: FinancialsTransaction_Type): FinancialsTransaction =
     FinancialsTransaction(
@@ -1172,114 +1185,114 @@ object FinancialsTransaction {
       )
 }
 final case class DerivedTransaction(
-  id: Long,
-  oid: Long,
-  account: String,
-  transdate: Instant = Instant.now(),
-  enterdate: Instant = Instant.now(),
-  postingdate: Instant = Instant.now(),
-  period: Int = common.getPeriod(Instant.now()),
-  posted: Boolean = false,
-  modelid: Int,
-  company: String,
-  text: String = "",
-  file: Int = 0,
-  lid: Long,
-  side: Boolean,
-  oaccount: String,
-  amount: BigDecimal,
-  currency: String,
-  terms: String = ""
-)
+                                     id: Long,
+                                     oid: Long,
+                                     account: String,
+                                     transdate: Instant = Instant.now(),
+                                     enterdate: Instant = Instant.now(),
+                                     postingdate: Instant = Instant.now(),
+                                     period: Int = common.getPeriod(Instant.now()),
+                                     posted: Boolean = false,
+                                     modelid: Int,
+                                     company: String,
+                                     text: String = "",
+                                     file: Int = 0,
+                                     lid: Long,
+                                     side: Boolean,
+                                     oaccount: String,
+                                     amount: BigDecimal,
+                                     currency: String,
+                                     terms: String = ""
+                                   )
 final case class Journal(
-  id: Long,
-  transid: Long,
-  oid: Long,
-  account: String,
-  oaccount: String,
-  transdate: Instant,
-  postingdate: Instant,
-  enterdate: Instant,
-  period: Int,
-  amount: BigDecimal,
-  idebit: BigDecimal,
-  debit: BigDecimal,
-  icredit: BigDecimal,
-  credit: BigDecimal,
-  currency: String,
-  side: Boolean,
-  text: String = "",
-  month: Int,
-  year: Int,
-  company: String,
-  // typeJournal: Int = 0,
-  file: Int = 0,
-  modelid: Int
-)
+                          id: Long,
+                          transid: Long,
+                          oid: Long,
+                          account: String,
+                          oaccount: String,
+                          transdate: Instant,
+                          postingdate: Instant,
+                          enterdate: Instant,
+                          period: Int,
+                          amount: BigDecimal,
+                          idebit: BigDecimal,
+                          debit: BigDecimal,
+                          icredit: BigDecimal,
+                          credit: BigDecimal,
+                          currency: String,
+                          side: Boolean,
+                          text: String = "",
+                          month: Int,
+                          year: Int,
+                          company: String,
+                          // typeJournal: Int = 0,
+                          file: Int = 0,
+                          modelid: Int
+                        )
 
 final case class Company(
-  id: String,
-  name: String,
-  street: String,
-  zip: String,
-  city: String,
-  state: String,
- // country: String,
-  phone: String,
-  fax: String,
-  email: String,
-  partner: String,
-  locale: String,
-  bankAcc: String,
-  taxCode: String,
-  vatCode: String,
-  currency: String,
-  enterdate: Instant = Instant.now(),
-  balanceSheetAcc: String,
-  incomeStmtAcc: String,
-  modelid: Int = 10
-  /*
-  postingdate: Instant = Instant.now(),
-  changedate: Instant = Instant.now(),
-                          purchasingClearingAcc: String,
-                           salesClearingAcc: String,
-                           paymentClearingAcc: String,
-                           settlementClearingAcc: String,
-                           balanceSheetAcc: String,
-                           incomeStmtAcc: String,
-                           cashAcc: String,
-                          pageHeaderText: String,
-                          pageFooterText: String,
-                          headerText: String,
-                          footerText: String,
-                          logoContent: String,
-                          logoName: String,
-                          contentType: String,
-                          //bankaccounts: List[BankAccount] = Nil
-   */
-)
+                          id: String,
+                          name: String,
+                          street: String,
+                          zip: String,
+                          city: String,
+                          state: String,
+                          // country: String,
+                          phone: String,
+                          fax: String,
+                          email: String,
+                          partner: String,
+                          locale: String,
+                          bankAcc: String,
+                          taxCode: String,
+                          vatCode: String,
+                          currency: String,
+                          enterdate: Instant = Instant.now(),
+                          balanceSheetAcc: String,
+                          incomeStmtAcc: String,
+                          modelid: Int = 10
+                          /*
+                          postingdate: Instant = Instant.now(),
+                          changedate: Instant = Instant.now(),
+                                                  purchasingClearingAcc: String,
+                                                   salesClearingAcc: String,
+                                                   paymentClearingAcc: String,
+                                                   settlementClearingAcc: String,
+                                                   balanceSheetAcc: String,
+                                                   incomeStmtAcc: String,
+                                                   cashAcc: String,
+                                                  pageHeaderText: String,
+                                                  pageFooterText: String,
+                                                  headerText: String,
+                                                  footerText: String,
+                                                  logoContent: String,
+                                                  logoName: String,
+                                                  contentType: String,
+                                                  //bankaccounts: List[BankAccount] = Nil
+                           */
+                        )
 object Company               {
   type TYPE = (
     String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    String,
-    Instant,
-    String,
-    String,
-    Int
-  )
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      Instant,
+      String,
+      String,
+      Int
+    )
   def apply(c: TYPE): Company = Company(
     c._1,
     c._2,
@@ -1317,7 +1330,7 @@ object Role extends  Enumeration {//SimpleAuthEnum[Role, String] {
 
   //override val values: AuthGroup[Role] = AuthGroup(Admin, Customer, Accountant, Tester)
 
-   def getRepr(t: Role): String = t.roleRepr
+  def getRepr(t: Role): String = t.roleRepr
 
   //implicit val eqRole: Eq[Role] = Eq.fromUniversalEquals[Role]
 }
