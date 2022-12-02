@@ -28,7 +28,7 @@ object Main extends ZIOAppDefault {
 
   val defaultX: ZLayer[Any, Throwable, Server] = {
     implicit val trace = Trace.empty
-    ZLayer.succeed(ServerConfig().binding("localhost", 8080).port(8080)) >>> Server.live
+    ZLayer.succeed(ServerConfig().binding("127.0.0.1", 8090).port(8080)) >>> Server.live
   }
 
   val config: CorsConfig =
@@ -39,7 +39,6 @@ object Main extends ZIOAppDefault {
       allowedMethods = Some(Set(Method.GET, Method.POST))
     )
 def wrap[R](app: Http[R, AppError.RepositoryError, Request, Response] ) =  app@@ bearerAuth(jwtDecode(_).isDefined)
-  val corsMID = Http.ok.withMiddleware(cors(CorsConfig(allowedMethods = Some(Set(Method.GET, Method.POST)))))
 
   val masterfilesApp =   wrap(appAcc)++ wrap(appBank) ++ wrap(appModule) ++ wrap(appCust) ++ wrap(appSup) ++
                        wrap(appComp) ++ wrap(appBankStmt)++ wrap(appVat)++wrap(appUser)

@@ -24,7 +24,7 @@ object BankIntegrationSpec extends ZIOSpecDefault {
 
     EndpointExecutor(client, registry, ZIO.unit)
   }
-  //final case class Invocation[Id, A, B](api: EndpointSpec[A, B], input: A)
+
   val executorLayer = ZLayer.fromFunction(makeExecutor _)
   type I = EndpointExecutor[Any,Any,BankEndpoint.allBankAPI.type with BankEndpoint.bankByIdAPI.type] with BankRepository with Server
   type O = EndpointExecutor[Any,Any,BankEndpoint.allBankAPI.type with BankEndpoint.bankByIdAPI.type]
