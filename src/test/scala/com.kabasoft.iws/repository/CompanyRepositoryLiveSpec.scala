@@ -1,19 +1,19 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.Company
-import com.kabasoft.iws.repository.postgresql.PostgresContainer
+import com.kabasoft.iws.repository.container.PostgresContainer
 import zio.ZLayer
 import zio.sql.ConnectionPool
 import zio.test.TestAspect._
 import zio.test._
 
-import java.time.Instant
-
 object CompanyRepositoryLiveSpec extends ZIOSpecDefault {
 
-val company = Company("1000X", "ABC GmbH", "Word stree1 0", "55555", "FF", "DE", "+49-000000", "+49-0000001", "info@company.com"
-  , "John", "de_DE", "1800", "XXXX/XXXX/XXXX", "v5", "EUR", Instant.now(), "9900", "9800", 10)
-  val companies = List(company)
+val company1 = Company("1001", "ABC GmbH", "Word stree1 0", "55555", "FF", "Hessen", "DE", "info@company.com", "Partner", "+49-4722211"
+    , "1800", "Iban", "TAX/Code/XXXX", "v5", "EUR", "9900", "9800", 10)
+val company = Company("1000", "ABC GmbH", "Word stree1 0", "55555", "FF", "Hessen", "DE", "info@company.com", "Partner", "+49-4722211"
+  , "1800",   "Iban","TAX/Code/XXXX", "v5", "EUR" , "9900", "9800", 10)
+  val companies = List(company1)
 
   val testLayer = ZLayer.make[CompanyRepository](
     CompanyRepositoryImpl.live,
@@ -32,7 +32,7 @@ val company = Company("1000X", "ABC GmbH", "Word stree1 0", "55555", "FF", "DE",
       test("insert a new company") {
         for {
           oneRow <- CompanyRepository.create(companies)
-          count <- CompanyRepository.list(company.id).runCount
+          count <- CompanyRepository.list(company1.id).runCount
         } yield assertTrue(oneRow ==1) && assertTrue(count == 2)
       },
       test("get a company by its id") {

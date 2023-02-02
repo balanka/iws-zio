@@ -4,7 +4,7 @@ import zio.test._
 import zio.test.TestAspect._
 import com.kabasoft.iws.domain.BankStatementBuilder.{bs, company}
 import zio.ZLayer
-import com.kabasoft.iws.repository.postgresql.PostgresContainer
+import com.kabasoft.iws.repository.container.PostgresContainer
 import zio.sql.ConnectionPool
 
 object BankStatementRepositoryLiveSpec extends ZIOSpecDefault {

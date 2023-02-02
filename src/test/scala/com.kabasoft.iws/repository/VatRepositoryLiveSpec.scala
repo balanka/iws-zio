@@ -1,23 +1,27 @@
 package com.kabasoft.iws.repository
 
 import zio.test._
-
 import zio.test.TestAspect._
 import com.kabasoft.iws.domain.Vat
+
 import java.time.Instant
 import zio.ZLayer
-import com.kabasoft.iws.repository.postgresql.PostgresContainer
+import com.kabasoft.iws.repository.container.PostgresContainer
 import zio.sql.ConnectionPool
+
+import java.math.{BigDecimal, RoundingMode}
 
 object VatRepositoryLiveSpec extends ZIOSpecDefault {
 
  val company ="1000"
   val id = "4712"
   val name = "MyVat2"
+  val vat = new BigDecimal("0.19").setScale(2, RoundingMode.UNNECESSARY)
+  val vat1 = new BigDecimal("0.07").setScale(2, RoundingMode.UNNECESSARY)
 
   val vats = List(
-    Vat(id, name,"MyVat2",2, "1406", "3806", Instant.now(), Instant.now(), Instant.now(), "1000", 6),
-    Vat("4713", "MyBank2","MyBank2", 3, "1406", "3806", Instant.now(), Instant.now(), Instant.now(), "1000", 6)
+    Vat(id, name,"MyVat2",vat, "1406", "3806", Instant.now(), Instant.now(), Instant.now(), "1000", 6),
+    Vat("4713", "MyBank2","MyBank2", vat1, "1406", "3806", Instant.now(), Instant.now(), Instant.now(), "1000", 6)
   )
 
   val testLayer = ZLayer.make[VatRepository](
