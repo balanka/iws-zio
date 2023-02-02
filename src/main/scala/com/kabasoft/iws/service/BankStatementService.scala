@@ -1,6 +1,7 @@
 package com.kabasoft.iws.service
-import com.kabasoft.iws.domain._
+
 import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.domain.BankStatement
 import zio.ZIO
 
 trait BankStatementService {

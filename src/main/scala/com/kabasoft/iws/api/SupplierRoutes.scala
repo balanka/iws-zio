@@ -1,15 +1,16 @@
 package com.kabasoft.iws.api
 
+import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.api.Protocol._
-import com.kabasoft.iws.domain._
+import com.kabasoft.iws.domain.{AppError, Supplier}
 import com.kabasoft.iws.repository._
-import zio.http._
 import zio._
-import zio.json._
+import zio.http._
 import zio.http.model.{Method, Status}
+import zio.json._
 object SupplierRoutes {
 
-  val appSup: Http[SupplierRepository, AppError.RepositoryError, Request, Response] = Http.collectZIO[Request] {
+  val appSup: Http[SupplierRepository, RepositoryError, Request, Response] = Http.collectZIO[Request] {
 
       case Method.GET -> !! / "sup" =>
         SupplierRepository

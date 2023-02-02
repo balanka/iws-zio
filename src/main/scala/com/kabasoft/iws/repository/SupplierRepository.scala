@@ -1,7 +1,7 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain._
+import com.kabasoft.iws.domain.Supplier
 import zio._
 import zio.stream._
 
@@ -12,6 +12,7 @@ trait SupplierRepository {
   def delete(item: String, company: String): ZIO[Any, RepositoryError, Int]
   def delete(items: List[String], company: String): ZIO[Any, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
+  def all(companyId: String): ZIO[Any, RepositoryError, List[TYPE_]]
   def list(company: String): ZStream[Any, RepositoryError, TYPE_]
   def getBy(id: String, company: String): ZIO[Any, RepositoryError, TYPE_]
   def getByIban(Iban: String, companyId: String): ZIO[Any, RepositoryError, TYPE_]
@@ -29,6 +30,10 @@ object SupplierRepository {
     ZIO.service[SupplierRepository] flatMap (_.delete(item, company))
   def delete(items: List[String], company: String): ZIO[SupplierRepository, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
+
+  def all(company: String): ZIO[SupplierRepository, RepositoryError, List[TYPE_]] =
+    ZIO.service[SupplierRepository] flatMap (_.all(company))
+
   def list(company: String): ZStream[SupplierRepository, RepositoryError, TYPE_]                        =
     ZStream.service[SupplierRepository] flatMap (_.list(company))
   def getBy(id: String, company: String): ZIO[SupplierRepository, RepositoryError, TYPE_]               =

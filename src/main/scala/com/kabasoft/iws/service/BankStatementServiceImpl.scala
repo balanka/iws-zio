@@ -1,16 +1,14 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain._
-import com.kabasoft.iws.repository._
-import com.kabasoft.iws.service.BankStatementServiceImpl.ZERO
-import zio.prelude.AssociativeComposeOps
-import zio.{ZLayer, _}
+import com.kabasoft.iws.domain.common.zeroAmount
+import com.kabasoft.iws.domain.{BankStatement, BusinessPartner, Company, FinancialsTransaction, FinancialsTransactionDetails, common,Supplier}
+import com.kabasoft.iws.repository.{BankStatementRepository, CompanyRepository, CustomerRepository, SupplierRepository, TransactionRepository}
 import zio.stream._
+import zio.{ZLayer, _}
 
 import java.nio.file.{Files, Paths}
 import java.time.Instant
-import scala.math.Numeric.BigDecimalAsIfIntegral.abs
 
 final class BankStatementServiceImpl(
   bankStmtRepo: BankStatementRepository,
@@ -32,6 +30,7 @@ final class BankStatementServiceImpl(
                       .map(bs => bs.copy(posted = true))
                        .tapSink(sink)
                        .mapZIO(buildTransactions(_, company)
+                         .tap(tr=>ZIO.logInfo(s"Transaction created  ${tr} "))
                          .flatMap(ftrRepo.create))
                       .mapError(e => RepositoryError(e))
                       .runCollect
@@ -39,11 +38,13 @@ final class BankStatementServiceImpl(
 
     } yield nrTransaction
 
-  private[this] def buildTransactions(bs: BankStatement, company: Company): ZIO[Any, RepositoryError, FinancialsTransaction] =
-    if(bs.amount >= 0){
-      customerRepo.getByIban(bs.accountno, bs.company).map(buildTransactionFromBankStmt(bs, _, company))
-    } else{
-      supplierRepo.getByIban(bs.accountno, bs.company).map(buildTransactionFromBankStmt(bs, _, company))
+   def buildTransactions(bs: BankStatement, company: Company): ZIO[Any, RepositoryError, FinancialsTransaction] =
+    if(bs.amount.compareTo(zeroAmount) >= 0 ){
+      customerRepo.getByIban(bs.accountno, bs.company)
+        .map(s=>buildTransactionFromBankStmt(bs, s, company))
+    } else {
+      supplierRepo.getByIban(bs.accountno, bs.company)
+        .map(s=>buildTransactionFromBankStmt(bs, s, company))
     }
 
   private [this]   def getAccountOrOaccout(supplier: BusinessPartner) =
@@ -63,13 +64,13 @@ final class BankStatementServiceImpl(
         getAccountOrOaccout(supplier),
         true,
         company.bankAcc,
-        abs(bs.amount),
+        bs.amount.abs(),
         bs.valuedate,
         bs.purpose,
         bs.currency
         // bs.company
       )
-    FinancialsTransaction(
+   val tr = FinancialsTransaction(
       -1L,
       bs.id,
       "100",
@@ -86,6 +87,7 @@ final class BankStatementServiceImpl(
       0,
       List(l)
     )
+    tr
   }
 
   override def importBankStmt(
@@ -114,7 +116,6 @@ final class BankStatementServiceImpl(
 }
 
 object BankStatementServiceImpl {
-  val ZERO = BigDecimal(0)
   val live: ZLayer[
     BankStatementRepository with TransactionRepository with CustomerRepository with SupplierRepository with CompanyRepository,
     RepositoryError,

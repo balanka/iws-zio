@@ -1,9 +1,10 @@
 package com.kabasoft.iws.repository
 
-import zio.stream._
-import com.kabasoft.iws.domain._
+import com.kabasoft.iws.domain
 import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.domain.Module
 import zio._
+import zio.stream._
 
 trait ModuleRepository {
   type TYPE_ = Module
@@ -21,7 +22,7 @@ trait ModuleRepository {
 
 object ModuleRepository {
 
-  type TYPE_ = Module
+  type TYPE_ = domain.Module
   def create(item: TYPE_): ZIO[ModuleRepository, RepositoryError, Unit]                               =
     ZIO.service[ModuleRepository] flatMap (_.create(item))
   def create(items: List[TYPE_]): ZIO[ModuleRepository, RepositoryError, Int]                         =

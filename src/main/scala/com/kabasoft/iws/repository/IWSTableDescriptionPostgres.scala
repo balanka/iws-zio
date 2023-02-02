@@ -2,17 +2,10 @@ package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import zio._
-import zio.schema.{ Schema, StandardType }
-import zio.sql.postgresql.{ PostgresJdbcModule, PostgresSqlModule }
+import zio.sql.postgresql.{PostgresJdbcModule, PostgresSqlModule}
 import zio.stream._
 
-import java.time.Instant
-import java.time.format.DateTimeFormatter
-
 trait IWSTableDescriptionPostgres extends PostgresSqlModule with PostgresJdbcModule {
-
-  implicit val instantSchema: Schema[Instant] =
-    Schema.primitive(StandardType.InstantType(DateTimeFormatter.ISO_INSTANT))
 
   implicit class ZStreamSqlExt[T](zstream: ZStream[SqlDriver, Exception, T]) {
     def provideDriver(driver: ULayer[SqlDriver]): ZStream[Any, RepositoryError, T] =

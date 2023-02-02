@@ -1,50 +1,16 @@
 package com.kabasoft.iws.repository
 
-import com.kabasoft.iws.domain._
+import com.kabasoft.iws.domain.{DerivedTransaction, FinancialsTransaction, FinancialsTransactionDetails, FinancialsTransactionDetails_, FinancialsTransaction_, FinancialsTransactionx}
+import com.kabasoft.iws.api.Protocol.{derivedTransactionSchema, transactionDetailsSchema, transactionDetails_Schema, transactionSchema, transactionSchema_}
 
 trait TransactionTableDescription extends IWSTableDescriptionPostgres {
 
-  import ColumnSet._
+  val transaction = defineTable[FinancialsTransactionx]("master_compta")
+  val transaction2 = defineTable[FinancialsTransaction_]("master_compta")
+  val transactionDetails = defineTable[FinancialsTransactionDetails]("details_compta")
+  val transactionDetails_ = defineTable[FinancialsTransactionDetails_]("details_compta")
+  val financialstransaction = defineTable[DerivedTransaction]("financialstransaction")
 
-  val master_compta_sequence  = (long("last_value")).table("master_compta_id_seq")
-
-  val transaction =
-    (long("id") ++ long("oid") ++ string("costcenter") ++ string("account") ++ instant("transdate") ++ instant(
-      "enterdate"
-    ) ++ instant("postingdate") ++ int("period") ++ boolean("posted") ++ int("modelid")
-      ++ string("company") ++ string("headertext") ++ int("type_journal") ++ int("file_content")).table("master_compta")
-  val transaction2 =
-    ( long("oid") ++ string("costcenter") ++ string("account") ++ instant("transdate") ++ instant(
-      "enterdate"
-    ) ++ instant("postingdate") ++ int("period") ++ boolean("posted") ++ int("modelid")
-      ++ string("company") ++ string("headertext") ++ int("type_journal") ++ int("file_content"))
-      .table("master_compta")
-
-  val transactionDetails =
-    (long("id") ++ long("transid") ++ string("account") ++ boolean("side") ++ string("oaccount") ++ bigDecimal(
-      "amount"
-    ) ++ instant("duedate") ++ string("text") ++ string(
-      "currency"
-    )) // ++string("terms")++boolean("posted")++string("company"))
-      .table("details_compta")
-
-  val transactionDetailsx =
-    ( long("transid") ++ string("account") ++ boolean("side") ++ string("oaccount") ++ bigDecimal(
-      "amount") ++ instant("duedate") ++ string("text") ++ string(
-      "currency")
-      ).table("details_compta")
-
-  val financialstransaction =
-    (long("id") ++ long("oid") ++ string("account") ++ instant("transdate") ++ instant("enterdate") ++ instant(
-      "postingdate"
-    )
-      ++ int("period") ++ boolean("posted") ++ int("modelid") ++ string("company") ++ string("text") ++ int(
-        "file"
-      ) ++ long("lid") ++ boolean("side")
-      ++ string("oaccount") ++ bigDecimal("amount") ++ string("currency") ++ string("terms"))
-      .table("financialstransaction")
-
- val (lastTransid) = master_compta_sequence.columns
   val (
     oidx,
     costcenterx,
@@ -62,7 +28,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
   ) = transaction2.columns
 
   val (
-    tid_,
+    id_,
     oid_,
     costcenter,
     account_,
@@ -98,7 +64,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     duedatex,
     ltextx,
     currencyx /*, terms_, postedx, comapnyx*/
-  ) = transactionDetailsx.columns
+  ) = transactionDetails_.columns
 
   val (
     id,
@@ -122,7 +88,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
   ) = financialstransaction.columns
 
   def toTupleF(c: FinancialsTransaction) = (
-     c.tid,
+     c.id,
     c.oid,
     c.costcenter,
     c.account,

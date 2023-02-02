@@ -1,7 +1,7 @@
 package com.kabasoft.iws.repository
 
+import com.kabasoft.iws.domain.Company
 import zio.stream._
-import com.kabasoft.iws.domain._
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import zio._
 

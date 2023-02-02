@@ -1,24 +1,15 @@
 package com.kabasoft.iws.repository
 
-import com.kabasoft.iws.domain._
+import com.kabasoft.iws.domain.{BankStatement, BankStatement_}
+import com.kabasoft.iws.api.Protocol.bankStatementschema
+import com.kabasoft.iws.api.Protocol.bankStatement_schema
+
 
 trait BankStatementTableDescription extends IWSTableDescriptionPostgres {
 
-  import ColumnSet._
 
-  val bankStatements = (long("id") ++ string("depositor") ++ instant("postingdate") ++ instant("valuedate")
-    ++ string("postingtext") ++ string("purpose") ++ string("beneficiary") ++ string("accountno")
-    ++ string("bankcode") ++ bigDecimal("amount") ++ string("currency") ++ string("info") ++ string(
-      "company"
-    ) ++ string("companyiban") ++ boolean("posted") ++ int("modelid"))
-    .table("bankstatement")
-
-  val bankStatementInsert = (string("depositor") ++ instant("postingdate") ++ instant("valuedate")
-    ++ string("postingtext") ++ string("purpose") ++ string("beneficiary") ++ string("accountno")
-    ++ string("bankcode") ++ bigDecimal("amount") ++ string("currency") ++ string("info") ++ string(
-      "company"
-    ) ++ string("companyiban") ++ boolean("posted") ++ int("modelid"))
-    .table("bankstatement")
+  val bankStatements = defineTable[BankStatement]("bankstatement")
+  val bankStatementInsert = defineTable[BankStatement_]("bankstatement")
 
   val (
     id,
@@ -57,7 +48,7 @@ trait BankStatementTableDescription extends IWSTableDescriptionPostgres {
     modelid_
   ) = bankStatementInsert.columns
 
-  def toTuple2(c: BankStatement) = (
+  def toTuple2(c: BankStatement_) = (
     c.depositor,
     c.postingdate,
     c.valuedate,

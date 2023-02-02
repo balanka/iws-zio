@@ -1,33 +1,37 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain._
-import com.kabasoft.iws.domain.Bank._
-import com.kabasoft.iws.repository.BankRepository
+import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.domain.Bank
+import com.kabasoft.iws.repository._
 import zio._
-import zio.http.api.HttpCodec.{literal, string}
-import zio.http.api.{EndpointSpec, RouteCodec}
-
-import java.time.Instant
+import zio.http.api.HttpCodec.literal
+import zio.http.{Body, Response}
+import zio.http.api.{EndpointSpec, Middleware, MiddlewareSpec, RouteCodec}
+import zio.http.middleware.Auth
+import zio.http.model.{Headers, Status}
 
 object BankEndpoint {
-  implicit def stringToIn(s: String): RouteCodec[Unit] = RouteCodec.literal(s)
 
-  val getBankAll = EndpointSpec.get(literal("bank") ).out[List[Bank]]
-  val allBankAPI = EndpointSpec.get[Unit]("bank").out[List[Bank]]
-  val getBankById = EndpointSpec.get(literal("bank") / string).out[Bank]
-  val bankByIdAPI = EndpointSpec.get[String]("bank"/ RouteCodec.string ).out[Bank]
+  //private val createBankAPI = EndpointSpec.post[Bank](literal("bank")/RouteCodec.).out[Int]
+  private val allBankAPI = EndpointSpec.get[Unit](literal("bank")).out[List[Bank]]
+  private val bankByIdAPI = EndpointSpec.get[String](literal("bank")/ RouteCodec.string("id") ).out[Bank]
+  private val bankDeleteAPI = EndpointSpec.get[String](literal("bank")/ RouteCodec.string("id") ).out[Int]
 
-  val getBankAllEndpoint = getBankAll.implement { case () =>BankRepository.all("1000")}
-  val allBankHandler = allBankAPI.implement { case () => BankRepository.all("1000")}
+  private val allBankEndpoint = allBankAPI.implement { case () => BankRepository.all("1000")}
 
-  val getBankByIdEndpoint = getBankById.implement { case (id: String) =>BankRepository.getBy(id,"1000")}
+  private val bankByIdEndpoint = bankByIdAPI.implement { case (id: String) =>BankRepository.getBy(id,"1000")}
+  private val bankDeleteEndpoint = bankDeleteAPI.implement { case (id: String) =>BankRepository.delete(id,"1000")}
 
-  val banks = List(Bank("4711", "title", "body", Instant.now(), Instant.now(), Instant.now(),11,"1000"))
+  val middlewareSpec: MiddlewareSpec[Auth.Credentials, Unit] = MiddlewareSpec.auth
 
-  val bankByIdHandler = bankByIdAPI.implement { case (id) =>
-    ZIO.succeed(Bank(id, "title", "body", Instant.now(), Instant.now(), Instant.now(), 11, "1000"))
-  }
+  // just like api.handle
+  val middleware: Middleware[Any, Auth.Credentials, Unit] =
+    middlewareSpec.implementIncoming(_ => ZIO.unit)
 
+  private val bankServiceSpec = (allBankAPI.toServiceSpec ++ bankByIdAPI.toServiceSpec++bankDeleteAPI.toServiceSpec)
+    .middleware(middlewareSpec)
 
+  val appBank: http.App[BankRepository] = bankServiceSpec.toHttpApp(allBankEndpoint ++ bankByIdEndpoint++bankDeleteEndpoint, middleware)
+                   .mapError(e=>Response(Status.InternalServerError, Headers.empty, Body.fromString(e.getMessage)))
+  //.withDefaultErrorResponse
 }

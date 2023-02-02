@@ -1,26 +1,23 @@
 package com.kabasoft.iws.repository
 
-import com.kabasoft.iws.domain.AppError._
-import com.kabasoft.iws.domain._
+import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.domain.Costcenter
+import com.kabasoft.iws.api.Protocol.costCenterSchema
 import zio._
 import zio.sql.ConnectionPool
 import zio.stream._
 
 final class CostcenterRepositoryImpl(pool: ConnectionPool) extends CostcenterRepository with IWSTableDescriptionPostgres {
-  import ColumnSet._
 
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
 
-  val module = (string("id") ++ string("name") ++ string("description") ++ string("account")
-     ++ instant("enter_date")++ instant("modified_date")
-    ++ instant("posting_date") ++ int("modelid") ++ string("company"))
-    .table("costcenter")
+  val module = defineTable[Costcenter]("costcenter")
+
 
   val (id, name, description, account, enterdate, changedate, postingdate, modelid, company)    = module.columns
-  val X                                                                                = id ++ name ++ description ++ account ++ enterdate ++ changedate ++ postingdate ++ modelid ++ company
   val SELECT                                                                           = select(id, name, description, account, enterdate, changedate, postingdate, modelid, company).from(module)
   override def create(c: Costcenter): ZIO[Any, RepositoryError, Unit]                        = {
-    val query = insertInto(module)(X).values(Costcenter.unapply(c).get)
+    val query = insertInto(module)(id, name, description, account, enterdate, changedate, postingdate, modelid, company).values(Costcenter.unapply(c).get)
 
     ZIO.logDebug(s"Query to insert Costcenter is ${renderInsert(query)}") *>
       execute(query)
@@ -29,14 +26,14 @@ final class CostcenterRepositoryImpl(pool: ConnectionPool) extends CostcenterRep
   }
   override def create(models: List[Costcenter]): ZIO[Any, RepositoryError, Int]              = {
     val data  = models.map(Costcenter.unapply(_).get)
-    val query = insertInto(module)(X).values(data)
+    val query = insertInto(module)(id, name, description, account, enterdate, changedate, postingdate, modelid, company).values(data)
 
     ZIO.logDebug(s"Query to insert Costcenter is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
   }
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] =
-    execute(deleteFrom(module).where((id === item.toLong) && (company === companyId)))
+    execute(deleteFrom(module).where((id === item) && (company === companyId)))
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getCause()))
 

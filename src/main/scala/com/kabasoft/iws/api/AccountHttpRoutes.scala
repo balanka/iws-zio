@@ -1,17 +1,17 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.api.Protocol._
-import com.kabasoft.iws.domain._
 import com.kabasoft.iws.service.AccountService
+import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.domain.{Account, AppError}
 import com.kabasoft.iws.repository._
 import zio._
 import zio.http._
-import zio.json._
 import zio.http.model.{Method, Status}
+import zio.json._
 
 object AccountHttpRoutes {
 
-  val appAcc = Http.collectZIO[Request] {
+  val appAcc: Http[AccountRepository with AccountService, AppError.RepositoryError, Request, Response] = Http.collectZIO[Request] {
 
       case Method.GET -> !! / "acc" =>
         AccountRepository

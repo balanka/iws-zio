@@ -1,20 +1,19 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.api.Protocol._
-import com.kabasoft.iws.domain._
+import com.kabasoft.iws.domain.{AppError, Company, Customer}
 import com.kabasoft.iws.repository._
-import zio.http._
 import zio._
-import zio.json._
+import zio.http._
 import zio.http.model.{Method, Status}
+import zio.json._
 object CustomerRoutes {
-
 
   val appCust = Http.collectZIO[Request] {
       case Method.GET -> !! / "cust" =>
         CustomerRepository
-          .list("1000")
-          .runCollect
+          .all("1000")
+         // .runCollect
           .map(ch => Response.json(ch.toJson))
 
       case Method.GET -> !! / "cust" / id   =>

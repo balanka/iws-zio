@@ -1,9 +1,9 @@
 package com.kabasoft.iws.repository
 
-import zio.stream._
-import com.kabasoft.iws.domain._
 import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.domain.PeriodicAccountBalance
 import zio._
+import zio.stream._
 
 trait PacRepository {
 
@@ -12,6 +12,7 @@ trait PacRepository {
   def delete(item: String, company: String): IO[RepositoryError, Int]
   def delete(items: List[String], company: String): IO[RepositoryError, List[Int]]                    =
     ZIO.collectAll(items.map(delete(_, company)))
+  def all(companyId: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]]
   def list(company: String): ZStream[Any, RepositoryError, PeriodicAccountBalance]
   def getBy(id: String, company: String): IO[RepositoryError, PeriodicAccountBalance]
   def getByIds(ids: List[String], company: String): IO[RepositoryError, List[PeriodicAccountBalance]] =
@@ -37,6 +38,8 @@ object PacRepository {
     ZIO.service[PacRepository] flatMap (_.delete(item, company))
   def delete(items: List[String], company: String): ZIO[PacRepository, RepositoryError, List[Int]]                                         =
     ZIO.foreach(items)(delete(_, company))
+  def all(companyId: String): ZIO[PacRepository, RepositoryError, List[PeriodicAccountBalance]]                                            =
+    ZIO.service[PacRepository] flatMap (_.all(companyId))
   def list(company: String): ZStream[PacRepository, RepositoryError, PeriodicAccountBalance]                                               =
     ZStream.service[PacRepository] flatMap (_.list(company))
   def getBy(id: String, company: String): ZIO[PacRepository, RepositoryError, PeriodicAccountBalance]                                      =

@@ -1,9 +1,9 @@
 package com.kabasoft.iws.repository
 
-import zio.stream._
-import com.kabasoft.iws.domain._
 import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.domain.Vat
 import zio._
+import zio.stream._
 
 trait VatRepository {
   type TYPE_ = Vat
