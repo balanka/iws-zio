@@ -12,6 +12,7 @@ trait UserRepository {
   def delete(id: Int, company: String): ZIO[Any, RepositoryError, Int]
   def delete(ids: List[Int], company: String): ZIO[Any, RepositoryError, List[Int]] =
     ZIO.collectAll(ids.map(delete(_, company)))
+  def all(companyId: String): ZIO[Any, RepositoryError, List[TYPE_]]
   def list(company: String): ZStream[Any, RepositoryError, TYPE_]
   def getByUserName(userName: String, company: String): ZIO[Any, RepositoryError, TYPE_]
   def getById(userId: Int, companyId: String): ZIO[Any, RepositoryError, User]
@@ -31,6 +32,10 @@ object UserRepository {
     ZIO.service[UserRepository]flatMap(_.delete(id, company))
   def delete(ids: List[Int], company: String): ZIO[UserRepository, RepositoryError, List[Int]] =
     ZIO.collectAll(ids.map(delete(_, company)))
+
+  def all(companyId: String): ZIO[UserRepository, RepositoryError, List[TYPE_]] =
+    ZIO.service[UserRepository] flatMap (_.all(companyId))
+
   def list(company: String): ZStream[UserRepository, RepositoryError, TYPE_]                        =
     ZStream.service[UserRepository]flatMap(_.list(company))
   def getByUserName(userName: String, company: String): ZIO[UserRepository, RepositoryError, TYPE_]               =

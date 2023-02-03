@@ -2,16 +2,19 @@ package com.kabasoft.iws
 
 
 import com.kabasoft.iws.api.AccountHttpRoutes.appAcc
-import com.kabasoft.iws.api.CustomerRoutes.{appComp, appCust}
 import com.kabasoft.iws.api.FinancialsHttpRoutes.appFtr
 import com.kabasoft.iws.api.JournalRoutes.appJournal
 import com.kabasoft.iws.api.LoginRoutes.{appLogin, jwtDecode}
-import com.kabasoft.iws.api.BankStmtRoutes.appBankStmt
-import com.kabasoft.iws.api.MasterfilesHttpRoutes.{appBank, appCostcenter, appModule}
+import com.kabasoft.iws.api.BankStmtEndpoint.appBankStmt
+import .appCostcenter
 import com.kabasoft.iws.api.PacEndpoint.appPac
-import com.kabasoft.iws.api.SupplierRoutes.appSup
-import com.kabasoft.iws.api.UserHttpRoutes.appUser
-import com.kabasoft.iws.api.VatHttpRoutes.appVat
+import com.kabasoft.iws.api.BankEndpoint.appBank
+import com.kabasoft.iws.api.CompanyEndpoint.appComp
+import com.kabasoft.iws.api.ModuleEndpoint.appModule
+import com.kabasoft.iws.api.SupplierEndpoint.appSup
+import com.kabasoft.iws.api.CustomerEndpoint.appCust
+import com.kabasoft.iws.api.UserEndpoint.appUser
+import com.kabasoft.iws.api.VatEndpoint.appVat
 import com.kabasoft.iws.config.DbConfig
 import com.kabasoft.iws.config.DbConfig.connectionPoolConfig
 import com.kabasoft.iws.domain.AppError
@@ -58,9 +61,9 @@ object Main extends ZIOAppDefault {
 
 
   //val e:ErrorCallback = _=>ZIO.unit
-   val run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =//for {
-   //ZIO.logInfo(s"Starting http server") @@//@@ LogKeys.portKey(port)
-    Server.serve(app @@ Middleware.cors(config))
+   val run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
+    ZIO.logInfo(s"Starting http server") *> //@@//@@ LogKeys.portKey(port)
+     Server.serve(app @@ Middleware.cors(config) /*@@ZIO.addFinalizer(ZIO.logInfo("Shutting down http server"))*/)
      .provide(
      defaultX,
      connectionPoolConfig,
@@ -81,6 +84,6 @@ object Main extends ZIOAppDefault {
      VatRepositoryImpl.live,
      JournalRepositoryImpl.live,
      FinancialsServiceImpl.live)
-  //@@ZIO.addFinalizer(ZIO.logInfo("Shutting down http server") /*@@ LogKeys.portKey(port)*/)
+
    //}yield ()
 }

@@ -36,6 +36,7 @@ object StreamApp extends ZIOAppDefault {
         )
     result1 <- result
                  .mapZIO(x => persist(x))
+                  .tap(e=>ZIO.logInfo(s"Element: $e"))
                  .runCollect
                  .map(_.toList)
   } yield (result1)

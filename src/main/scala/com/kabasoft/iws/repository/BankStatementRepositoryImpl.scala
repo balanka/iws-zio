@@ -46,6 +46,8 @@ final class BankStatementRepositoryImpl(pool: ConnectionPool) extends BankStatem
         .mapError(e => RepositoryError(e.getCause()))
   }
 
+  override def all(companyId: String): ZIO[Any, RepositoryError, List[BankStatement]] =
+    list(companyId).runCollect.map(_.toList)
   override def list(companyId: String): ZStream[Any, RepositoryError, BankStatement]                   = {
     val selectAll = SELECT
     ZStream.fromZIO(

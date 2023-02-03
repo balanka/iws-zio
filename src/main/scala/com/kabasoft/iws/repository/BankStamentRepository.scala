@@ -12,6 +12,8 @@ trait BankStatementRepository {
   def delete(item: String, company: String): ZIO[Any, RepositoryError, Int]
   def delete(items: List[String], company: String): ZIO[Any, RepositoryError, List[Int]]          =
     ZIO.collectAll(items.map(delete(_, company)))
+
+  def all(companyId: String): ZIO[Any, RepositoryError, List[BankStatement]]
   def list(company: String): ZStream[Any, RepositoryError, BankStatement]
   def listByIds(ids: List[Long], company: String): ZStream[Any, RepositoryError, BankStatement]=
     list(company).filter(bs => ids.contains(bs.id))
@@ -33,6 +35,10 @@ object BankStatementRepository {
     ZIO.service[BSRepository] flatMap (_.delete(item, company))
   def delete(items: List[String], company: String): ZIO[BSRepository, RepositoryError, List[Int]]          =
     ZIO.collectAll(items.map(delete(_, company)))
+
+  def all(companyId: String): ZIO[BSRepository, RepositoryError, List[BankStatement]] =
+    ZIO.service[BSRepository] flatMap (_.all(companyId))
+
   def list(company: String): ZStream[BSRepository, RepositoryError, BankStatement]                         =
     ZStream.service[BSRepository] flatMap (_.list(company))
   //def listByIds(ids: List[Long], company: String): ZStream[BSRepository, RepositoryError, BankStatement] =

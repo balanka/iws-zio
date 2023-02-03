@@ -63,6 +63,9 @@ final class UserRepositoryImpl(pool: ConnectionPool) extends UserRepository with
       .set(menu, model.menu)
       .where((id === model.id) && (company === model.company))
 
+  override def all(companyId: String): ZIO[Any, RepositoryError, List[User]] =
+    list(companyId).runCollect.map(_.toList)
+
   override def list(companyId: String): ZStream[Any, RepositoryError, User]                   = {
     val selectAll = SELECT.where(company === companyId)
 

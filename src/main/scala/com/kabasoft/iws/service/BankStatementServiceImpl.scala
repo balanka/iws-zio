@@ -30,7 +30,7 @@ final class BankStatementServiceImpl(
                       .map(bs => bs.copy(posted = true))
                        .tapSink(sink)
                        .mapZIO(buildTransactions(_, company)
-                         .tap(tr=>ZIO.logInfo(s"Transaction created  ${tr} "))
+                         .tap(tr=>ZIO.logDebug(s"Transaction created  ${tr} "))
                          .flatMap(ftrRepo.create))
                       .mapError(e => RepositoryError(e))
                       .runCollect

@@ -74,8 +74,16 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
   }
 
 
+  override def all: ZIO[Any, RepositoryError, List[Company]] =
+    list.runCollect.map(_.toList)
+   /* for {
+    companies <- list.runCollect.map(_.toList)
+    bankAccounts_ <- listBankAccount(companyId).runCollect.map(_.toList)
+  } yield companies.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
 
-  override def list(companyId: String): ZStream[Any, RepositoryError, Company] = {
+    */
+
+  override def list: ZStream[Any, RepositoryError, Company] = {
     val selectAll =
       select(id, name, street, zip, city, state, email, partner, phone, bankAcc, iban, taxCode,vatCode, currency, locale, balanceSheetAcc, incomeStmtAcc, modelid).from(company)//.where(id === companyId)
 
@@ -84,7 +92,6 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
     ) *>
      */
     execute(selectAll.to((Company.apply _).tupled))
-   // execute(selectAll.to[Company](c => Company(c)))
       .provideDriver(driverLayer)
   }
   override def getBy(Id: String): ZIO[Any, RepositoryError, Company]           = {

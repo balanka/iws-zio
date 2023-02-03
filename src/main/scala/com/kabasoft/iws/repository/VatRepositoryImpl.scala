@@ -75,6 +75,8 @@ final class VatRepositoryImpl(pool: ConnectionPool) extends VatRepository with I
       .set(outputVatAccount, model.outputVatAccount)
       .where((id === model.id) && (company === model.company))
 
+  override def all(companyId: String): ZIO[Any, RepositoryError, List[Vat]] =
+    list(companyId).runCollect.map(_.toList)
   override def list(companyId: String): ZStream[Any, RepositoryError, Vat]                   = {
     val selectAll = SELECT
 
