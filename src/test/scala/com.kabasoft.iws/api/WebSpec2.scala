@@ -1,8 +1,9 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.api.AccountHttpRoutes.appAcc
-import com.kabasoft.iws.api.BankStmtRoutes.appBankStmt
-import com.kabasoft.iws.api.MasterfilesHttpRoutes.{appBank, appModule}
+import com.kabasoft.iws.api.BankStmtEndpoint.appBankStmt
+import com.kabasoft.iws.api.BankEndpoint.appBank
+import com.kabasoft.iws.api.ModuleEndpoint.appModule
 import com.kabasoft.iws.config.DbConfig
 import com.kabasoft.iws.config.DbConfig.connectionPoolConfig
 import com.kabasoft.iws.healthcheck.Healthcheck.expose
@@ -31,10 +32,10 @@ object WebSpec2 extends ZIOSpecDefault with HttpAppTestExtensions { self =>
         assertZIO(program)(equalTo(Vector("200 GET /acc 0ms\n")))
       },
       test("Account by id") {
-        val program = runApp(appAcc @@ debug, Request.get(url = URL(!! / "acc" / "id=9900")))
+        val program = runApp(appAcc @@ debug, Request.get(url = URL(!! / "acc" / "9900")))
           .provide(ConnectionPool.live, connectionPoolConfig, DbConfig.layer,
             AccountServiceImpl.live, AccountRepositoryImpl.live, PacRepositoryImpl.live) *> TestConsole.output
-        assertZIO(program)(equalTo(Vector("200 GET /acc/id=9900 0ms\n")))
+        assertZIO(program)(equalTo(Vector("200 GET /acc/9900 0ms\n")))
       },
       test("Bank all") {
           val program = runApp(appBank @@ debug, Request.get(url = URL(!! / "bank")))
@@ -42,9 +43,9 @@ object WebSpec2 extends ZIOSpecDefault with HttpAppTestExtensions { self =>
            assertZIO(program)(equalTo(Vector("200 GET /bank 0ms\n")))
       },
       test("Bank by id") {
-        val program = runApp(appBank @@ debug, Request.get(url = URL(!! / "bank"/"id=COLSDE33")))
+        val program = runApp(appBank @@ debug, Request.get(url = URL(!! / "bank"/"COLSDE33")))
           .provide(ConnectionPool.live, connectionPoolConfig, DbConfig.layer, BankRepositoryImpl.live) *> TestConsole.output
-        assertZIO(program)(equalTo(Vector("200 GET /bank/id=COLSDE33 0ms\n")))
+        assertZIO(program)(equalTo(Vector("200 GET /bank/COLSDE33 0ms\n")))
       },
        test("Bank statement  all") {
         val program = runApp(appBankStmt @@ debug, Request.get(url = URL(!! / "bs")))
@@ -62,9 +63,9 @@ object WebSpec2 extends ZIOSpecDefault with HttpAppTestExtensions { self =>
         assertZIO(program)(equalTo(Vector("200 GET /module 0ms\n")))
       },
       test("Module by id") {
-        val program = runApp(appModule @@ debug, Request.get(url = URL(!! / "module" / "id=1000")))
+        val program = runApp(appModule @@ debug, Request.get(url = URL(!! / "module" / "1000")))
           .provide(ConnectionPool.live, connectionPoolConfig, DbConfig.layer, ModuleRepositoryImpl.live) *> TestConsole.output
-        assertZIO(program)(equalTo(Vector("200 GET /module/id=1000 0ms\n")))
+        assertZIO(program)(equalTo(Vector("200 GET /module/1000 0ms\n")))
       },
 
     )

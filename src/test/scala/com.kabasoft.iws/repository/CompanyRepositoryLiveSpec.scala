@@ -26,13 +26,13 @@ val company = Company("1000", "ABC GmbH", "Word stree1 0", "55555", "FF", "Hesse
     suite("company repository test with postgres test container")(
       test("count all company") {
         for {
-          count <- CompanyRepository.list(company.id).runCount
+          count <- CompanyRepository.list.runCount
         } yield assertTrue(count == 1L)
       },
       test("insert a new company") {
         for {
           oneRow <- CompanyRepository.create(companies)
-          count <- CompanyRepository.list(company1.id).runCount
+          count <- CompanyRepository.list.runCount
         } yield assertTrue(oneRow ==1) && assertTrue(count == 2)
       },
       test("get a company by its id") {
