@@ -11,7 +11,8 @@ trait CostcenterRepository {
   def create(models: List[TYPE_]): ZIO[Any, RepositoryError, Int]
   def delete(item: String, company: String): ZIO[Any, RepositoryError, Int]
   def delete(items: List[String], company: String): ZIO[Any, RepositoryError, List[Int]] =
-    ZIO.collectAll(items.map(delete(_, company)))
+    ZIO.foreach(items)(delete(_, company))
+  def all(companyId: String): ZIO[Any, RepositoryError, List[TYPE_]]
   def list(company: String): ZStream[Any, RepositoryError, TYPE_]
   def getBy(id: String, company: String): ZIO[Any, RepositoryError, TYPE_]
   def getByModelId(modelid: Int, company: String): ZIO[Any, RepositoryError, TYPE_]
@@ -29,7 +30,10 @@ object CostcenterRepository {
   def delete(item: String, company: String): ZIO[CostcenterRepository, RepositoryError, Int]              =
     ZIO.service[CostcenterRepository] flatMap (_.delete(item, company))
   def delete(items: List[String], company: String): ZIO[CostcenterRepository, RepositoryError, List[Int]] =
-    ZIO.collectAll(items.map(delete(_, company)))
+    ZIO.foreach(items)(delete(_, company))
+
+  def all(companyId: String): ZIO[CostcenterRepository, RepositoryError, List[TYPE_]] =
+    ZIO.service[CostcenterRepository] flatMap (_.all(companyId))
   def list(company: String): ZStream[CostcenterRepository, RepositoryError, TYPE_]                        =
     ZStream.service[CostcenterRepository] flatMap (_.list(company))
   def getBy(id: String, company: String): ZIO[CostcenterRepository, RepositoryError, TYPE_]               =

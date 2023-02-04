@@ -49,6 +49,8 @@ final class CostcenterRepositoryImpl(pool: ConnectionPool) extends CostcenterRep
         .mapError(e => RepositoryError(e.getCause()))
   }
 
+  override def all(companyId: String): ZIO[Any, RepositoryError, List[Costcenter]] =
+    list(companyId).runCollect.map(_.toList)
   override def list(companyId: String): ZStream[Any, RepositoryError, Costcenter]                   = {
     val selectAll = SELECT.where(company === companyId)
 

@@ -6,7 +6,7 @@ import com.kabasoft.iws.api.FinancialsHttpRoutes.appFtr
 import com.kabasoft.iws.api.JournalRoutes.appJournal
 import com.kabasoft.iws.api.LoginRoutes.{appLogin, jwtDecode}
 import com.kabasoft.iws.api.BankStmtEndpoint.appBankStmt
-import .appCostcenter
+import com.kabasoft.iws.api.CostcenterEndpoint.appCC
 import com.kabasoft.iws.api.PacEndpoint.appPac
 import com.kabasoft.iws.api.BankEndpoint.appBank
 import com.kabasoft.iws.api.CompanyEndpoint.appComp
@@ -34,7 +34,7 @@ import zio.sql.ConnectionPool
 object Main extends ZIOAppDefault {
 
 
-  val defaultX: ZLayer[Any, Throwable, Server] = {
+  private val serverLayer: ZLayer[Any, Throwable, Server] = {
     implicit val trace = Trace.empty
     ZLayer.succeed(ServerConfig()
       .leakDetection(LeakDetectionLevel.PARANOID)
@@ -54,7 +54,7 @@ object Main extends ZIOAppDefault {
     val masterfilesApp =   wrap(appAcc)++ wrap(appBank) ++ wrap(appModule) ++ wrap(appCust) ++ wrap(appSup) ++
       wrap(appComp) ++ wrap(appBankStmt)++ wrap(appVat)++wrap(appUser)
     private val httpApp = wrap(appFtr) ++ masterfilesApp  ++ wrap(appPac) ++ wrap(appJournal) ++
-      wrap(appCostcenter) ++ wrap(appBankStmt)++  expose
+      wrap(appCC) ++ wrap(appBankStmt)++  expose
     val app= (appLogin  ++ httpApp)
       .mapError(e=>Response(Status.InternalServerError, Headers.empty, Body.fromString(e.getMessage)))
      //.withDefaultErrorResponse
@@ -65,7 +65,7 @@ object Main extends ZIOAppDefault {
     ZIO.logInfo(s"Starting http server") *> //@@//@@ LogKeys.portKey(port)
      Server.serve(app @@ Middleware.cors(config) /*@@ZIO.addFinalizer(ZIO.logInfo("Shutting down http server"))*/)
      .provide(
-     defaultX,
+     serverLayer,
      connectionPoolConfig,
      DbConfig.layer,
      ConnectionPool.live,
