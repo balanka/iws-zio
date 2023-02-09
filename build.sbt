@@ -1,11 +1,10 @@
 
 
-val zioVersion = "2.0.6"
+val zioVersion = "2.0.7"
 //val zioVersion                 = "2.0.2+108-f5c52bec-SNAPSHOT"
 //val zioHttpVersion             = "2.0.0-RC11+151-28ad22aa+20221107-1912-SNAPSHOT"
 //val zioHttpVersion             = "0.0.3+47-a034acfc-SNAPSHOT"
 val zioHttpVersion             = "0.0.4"
-val zioHttpTestVersion         = "2.0.0-RC9"
 val zioJsonVersion             = "0.3.0"
 val zioConfigVersion           = "3.0.1"
 //val zioSqlVersion              = "0.0.2+255-a44cbd1c+20221130-2202-SNAPSHOT"
