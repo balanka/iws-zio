@@ -30,17 +30,17 @@ object VatEndpoint {
         case Left(_) => Response.status(Status.BadRequest)
       }
   }
-  private val allAPI = EndpointSpec.get[Unit](literal("vat")).out[List[Vat]]
-  private val byIdAPI = EndpointSpec.get[String](literal("vat")/ RouteCodec.string("id") ).out[Vat]
+   val vatAllAPI = EndpointSpec.get[Unit](literal("vat")).out[List[Vat]]
+   val vatByIdAPI = EndpointSpec.get[String](literal("vat")/ RouteCodec.string("id") ).out[Vat]
   private val deleteAPI = EndpointSpec.get[String](literal("vat")/ RouteCodec.string("id") ).out[Int]
 
-  private val allEndpoint = allAPI.implement(_ => VatRepository.all("1000"))
-  private val byIdEndpoint = byIdAPI.implement  (id =>VatRepository.getBy(id,"1000"))
+   val vatAllEndpoint = vatAllAPI.implement(_ => VatRepository.all("1000"))
+   val vatByIdEndpoint = vatByIdAPI.implement  (id =>VatRepository.getBy(id,"1000"))
   private val deleteEndpoint = deleteAPI.implement(id =>VatRepository.delete(id,"1000"))
 
-  private val serviceSpec = (allAPI.toServiceSpec ++ byIdAPI.toServiceSpec++deleteAPI.toServiceSpec)
+  private val serviceSpec = (vatAllAPI.toServiceSpec ++ vatByIdAPI.toServiceSpec++deleteAPI.toServiceSpec)
 
   val appVat: HttpApp[VatRepository, AppError.RepositoryError] =
-    serviceSpec.toHttpApp(allEndpoint ++ byIdEndpoint++deleteEndpoint)++createEndpoint
+    serviceSpec.toHttpApp(vatAllEndpoint ++ vatByIdEndpoint++deleteEndpoint)++createEndpoint
 
 }
