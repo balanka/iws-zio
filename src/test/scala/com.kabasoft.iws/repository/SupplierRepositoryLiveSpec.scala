@@ -17,8 +17,8 @@ object SupplierRepositoryLiveSpec extends ZIOSpecDefault {
     ConnectionPool.live,
     PostgresContainer.createContainer
   )
-val supplierId1 = "70034"
-val  nameSupplie1 = "Sonstige GWG Lieferenten"
+val supplierId1 = "70005"
+val  nameSupplie1 = "Sonstige KFZ Lieferant"
 val newName = "New Supplier name"
   override def spec =
     suite("Supplier repository test with postgres test container")(
@@ -30,7 +30,7 @@ val newName = "New Supplier name"
           updated <- SupplierRepository.modify(stmt.copy(name = newName))
           stmt2 <- SupplierRepository.getBy(supplierId1, companyId)
           stmt3 <- SupplierRepository.getByIban(supplierIban3, companyId)
-        } yield assertTrue(oneRow == 2) && assertTrue(count == 6)&&
+        } yield assertTrue(oneRow == 2) && assertTrue(count == 7)&&
           assertTrue(stmt.name == nameSupplie1) &&
           assertTrue(stmt2.name == newName) &&
           assertTrue(stmt3.id == supplierId1)&&
