@@ -1,7 +1,7 @@
 package com.kabasoft.iws.domain
 
 import com.kabasoft.iws.domain.AccountBuilder.{accountRecvId, companyId, incaccountId, vataccountId}
-import com.kabasoft.iws.domain.CostcenterBuilder.instantFromStr
+import java.time.Instant
 
 object SupplierBuilder {
   val supplierId1 = "4711"
@@ -22,5 +22,7 @@ object SupplierBuilder {
 
   val sup = Supplier(supId, supName, supName, "", "", "", "", "", "", accId, "6825", iban, vat,companyId, Supplier.MODELID, vtime, vtime,vtime)
   val suppliers = List( supplier1, supplier2 )
+
+   def instantFromStr(str:String)=Instant.parse(str)
 
 }
