@@ -1,7 +1,7 @@
 package com.kabasoft.iws
 
 
-import com.kabasoft.iws.api.AccountHttpRoutes.appAcc
+import com.kabasoft.iws.api.AccountEndpoint.appAcc
 import com.kabasoft.iws.api.FinancialsHttpRoutes.appFtr
 import com.kabasoft.iws.api.JournalEndpoint.appJournal
 import com.kabasoft.iws.api.LoginRoutes.{appLogin, jwtDecode}

@@ -7,6 +7,7 @@ import zio.json._
 import zio.schema.DeriveSchema
 
 object Protocol {
+  implicit  val accountSchema = DeriveSchema.gen[Account]
   implicit  val account_schema = DeriveSchema.gen[Account_]
   implicit  val bankschema = DeriveSchema.gen[Bank]
   implicit  val bankStatement_schema = DeriveSchema.gen[BankStatement_]

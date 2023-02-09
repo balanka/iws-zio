@@ -1,9 +1,13 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.api.AccountHttpRoutes.appAcc
+import com.kabasoft.iws.api.AccountEndpoint.appAcc
 import com.kabasoft.iws.api.BankStmtEndpoint.appBankStmt
 import com.kabasoft.iws.api.BankEndpoint.appBank
+import com.kabasoft.iws.api.CostcenterEndpoint.appCC
+import com.kabasoft.iws.api.CustomerEndpoint.appCust
 import com.kabasoft.iws.api.ModuleEndpoint.appModule
+import com.kabasoft.iws.api.SupplierEndpoint.appSup
+import com.kabasoft.iws.api.VatEndpoint.appVat
 import com.kabasoft.iws.config.DbConfig
 import com.kabasoft.iws.config.DbConfig.connectionPoolConfig
 import com.kabasoft.iws.healthcheck.Healthcheck.expose
@@ -52,6 +56,17 @@ object WebSpec2 extends ZIOSpecDefault with HttpAppTestExtensions { self =>
           .provide(ConnectionPool.live, connectionPoolConfig, DbConfig.layer, BankStatementRepositoryImpl.live) *> TestConsole.output
         assertZIO(program)(equalTo(Vector("200 GET /bs 0ms\n")))
       },
+
+      test("Cost center all") {
+        val program = runApp(appCC @@ debug, Request.get(url = URL(!! / "cc")))
+          .provide(ConnectionPool.live, connectionPoolConfig, DbConfig.layer, CostcenterRepositoryImpl.live) *> TestConsole.output
+        assertZIO(program)(equalTo(Vector("200 GET /cc 0ms\n")))
+      },
+      test("Cost center by id") {
+        val program = runApp(appCC @@ debug, Request.get(url = URL(!! / "cc" / "300")))
+          .provide(ConnectionPool.live, connectionPoolConfig, DbConfig.layer, CostcenterRepositoryImpl.live) *> TestConsole.output
+        assertZIO(program)(equalTo(Vector("200 GET /cc/300 0ms\n")))
+      },
       /* test("User statement by userName") {
           val program = runApp(appUser @@ debug, Request.get(url = URL(!! / "user"/"name=myUserName")))
             .provide(ConnectionPool.live, connectionPoolConfig, DbConfig.layer, UserRepositoryImpl.live) *> TestConsole.output
@@ -67,7 +82,36 @@ object WebSpec2 extends ZIOSpecDefault with HttpAppTestExtensions { self =>
           .provide(ConnectionPool.live, connectionPoolConfig, DbConfig.layer, ModuleRepositoryImpl.live) *> TestConsole.output
         assertZIO(program)(equalTo(Vector("200 GET /module/1000 0ms\n")))
       },
-
+      test("Customer all") {
+        val program = runApp(appCust @@ debug, Request.get(url = URL(!! / "cust")))
+          .provide(ConnectionPool.live, connectionPoolConfig, DbConfig.layer, CustomerRepositoryImpl.live) *> TestConsole.output
+        assertZIO(program)(equalTo(Vector("200 GET /cust 0ms\n")))
+      },
+      test("Customer by id") {
+        val program = runApp(appCust @@ debug, Request.get(url = URL(!! / "cust" / "5005")))
+          .provide(ConnectionPool.live, connectionPoolConfig, DbConfig.layer, CustomerRepositoryImpl.live) *> TestConsole.output
+        assertZIO(program)(equalTo(Vector("200 GET /cust/5005 0ms\n")))
+      },
+      test("Supplier all") {
+        val program = runApp(appSup @@ debug, Request.get(url = URL(!! / "sup")))
+          .provide(ConnectionPool.live, connectionPoolConfig, DbConfig.layer, SupplierRepositoryImpl.live) *> TestConsole.output
+        assertZIO(program)(equalTo(Vector("200 GET /sup 0ms\n")))
+      },
+      test("Supplier by id") {
+        val program = runApp(appSup @@ debug, Request.get(url = URL(!! / "sup" / "70000")))
+          .provide(ConnectionPool.live, connectionPoolConfig, DbConfig.layer, SupplierRepositoryImpl.live) *> TestConsole.output
+        assertZIO(program)(equalTo(Vector("200 GET /sup/70000 0ms\n")))
+      },
+      test("Vat all") {
+        val program = runApp(appVat @@ debug, Request.get(url = URL(!! / "vat")))
+          .provide(ConnectionPool.live, connectionPoolConfig, DbConfig.layer, VatRepositoryImpl.live) *> TestConsole.output
+        assertZIO(program)(equalTo(Vector("200 GET /vat 0ms\n")))
+      },
+      test("Vat by id") {
+        val program = runApp(appVat @@ debug, Request.get(url = URL(!! / "vat" / "v0")))
+          .provide(ConnectionPool.live, connectionPoolConfig, DbConfig.layer, VatRepositoryImpl.live) *> TestConsole.output
+        assertZIO(program)(equalTo(Vector("200 GET /vat/v0 0ms\n")))
+      },
     )
 
   )
