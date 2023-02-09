@@ -561,7 +561,7 @@ final case class Costcenter(id: String,
                             enterdate: Instant = Instant.now(),
                             changedate: Instant = Instant.now(),
                             postingdate: Instant = Instant.now(),
-                            modelid: Int = 13,
+                            modelid: Int = 6,
                             company: String
                            )extends  IWS
 final case class Bank(id: String, name: String = "", description: String = "", enterdate: Instant = Instant.now(), changedate: Instant = Instant.now(), postingdate: Instant = Instant.now(), modelid: Int = 11, company: String)extends  IWS

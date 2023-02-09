@@ -3,7 +3,7 @@ package com.kabasoft.iws
 
 import com.kabasoft.iws.api.AccountHttpRoutes.appAcc
 import com.kabasoft.iws.api.FinancialsHttpRoutes.appFtr
-import com.kabasoft.iws.api.JournalRoutes.appJournal
+import com.kabasoft.iws.api.JournalEndpoint.appJournal
 import com.kabasoft.iws.api.LoginRoutes.{appLogin, jwtDecode}
 import com.kabasoft.iws.api.BankStmtEndpoint.appBankStmt
 import com.kabasoft.iws.api.CostcenterEndpoint.appCC
@@ -84,6 +84,4 @@ object Main extends ZIOAppDefault {
      VatRepositoryImpl.live,
      JournalRepositoryImpl.live,
      FinancialsServiceImpl.live)
-
-   //}yield ()
 }

@@ -335,6 +335,9 @@ values ('70034','Sonstige GWG Lieferenten','Sonstige GWG Lieferenten','sonstige 
        ,'DE16300500000001609114', 'v5','1000',1 , current_timestamp, current_timestamp, current_timestamp),
        ('70064','Sonstige KFZ Lieferant', 'Sonstige KFZ Lieferant','sonstige Str 1', '47111', 'Nirvana', 'WORLD'
        , '+000000000', 'myMail@mail.com','331030', '6530', 'DE6248040035053249000Y', 'v5', '1000', 1, current_timestamp, current_timestamp
+       , current_timestamp),
+       ('70005','Sonstige KFZ Lieferant', 'Sonstige KFZ Lieferant','sonstige Str 1', '47111', 'Nirvana', 'WORLD'
+       , '+000000000', 'myMail@mail.com','331030', '6530', 'DE84480501610047008271', 'v5', '1000', 1, current_timestamp, current_timestamp
        , current_timestamp);
 
 insert into bankaccount (id, owner, bic, company, modelid)
@@ -345,6 +348,7 @@ values ('DE27662900000001470004X','5004','SPBIDE3BXXX','1000',12),
        ('DE22480501610043000000','70034','SPBIDE3BXXX','1000',12),
        ('DE08370501980020902219Y','70060','SPBIDE3BXXX','1000',12),
        ('DE16300500000001609163Y','70063','SPBIDE3BXXX','1000',12),
+       ('DE84480501610047008271', '70005','SPBIDE3BXXX','1000',12),
        ('DE6248040035053249000Y','70064','SPBIDE3BXXX','1000',12);
 
 insert into bankstatement

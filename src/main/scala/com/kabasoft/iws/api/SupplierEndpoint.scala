@@ -31,17 +31,17 @@ object SupplierEndpoint {
         case Left(_) => Response.status(Status.BadRequest)
       }
   }
-  private val allAPI = EndpointSpec.get[Unit](literal("sup")).out[List[Supplier]]
-  private val byIdAPI = EndpointSpec.get[String](literal("sup")/ RouteCodec.string("id") ).out[Supplier]
+   val supAllAPI = EndpointSpec.get[Unit](literal("sup")).out[List[Supplier]]
+   val supByIdAPI = EndpointSpec.get[String](literal("sup")/ RouteCodec.string("id") ).out[Supplier]
   private val deleteAPI = EndpointSpec.get[String](literal("sup")/ RouteCodec.string("id") ).out[Int]
 
-  private val allEndpoint = allAPI.implement (_ => SupplierRepository.all("1000"))
-  private val byIdEndpoint = byIdAPI.implement (id =>SupplierRepository.getBy(id,"1000"))
+  val supAllEndpoint = supAllAPI.implement (_ => SupplierRepository.all("1000"))
+  val supByIdEndpoint = supByIdAPI.implement (id =>SupplierRepository.getBy(id,"1000"))
   private val deleteEndpoint = deleteAPI.implement (id =>SupplierRepository.delete(id,"1000"))
 
-  private val serviceSpec = (allAPI.toServiceSpec ++ byIdAPI.toServiceSpec++deleteAPI.toServiceSpec)
+  private val serviceSpec = (supAllAPI.toServiceSpec ++ supByIdAPI.toServiceSpec++deleteAPI.toServiceSpec)
 
 
   val appSup: HttpApp[SupplierRepository, AppError.RepositoryError] =
-    serviceSpec.toHttpApp(allEndpoint ++ byIdEndpoint++deleteEndpoint)++createEndpoint
+    serviceSpec.toHttpApp(supAllEndpoint ++ supByIdEndpoint++deleteEndpoint)++createEndpoint
 }

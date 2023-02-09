@@ -111,7 +111,7 @@ object Protocol {
   implicit val companyDecoder: JsonDecoder[Company] = DeriveJsonDecoder.gen[Company]
   implicit val costcenterEncoder: JsonEncoder[Costcenter] = DeriveJsonEncoder.gen[Costcenter]
   implicit val costcenterDecoder: JsonDecoder[Costcenter] = DeriveJsonDecoder.gen[Costcenter]
-
+  implicit val costcentersDecoder: JsonDecoder[List[Costcenter]] = DeriveJsonDecoder.gen[List[Costcenter]]
  // implicit val customerEncoder: JsonEncoder[Customer] = DeriveJsonEncoder.gen[Customer]
  // implicit val customerDecoder: JsonDecoder[Customer] = DeriveJsonDecoder.gen[Customer]
 

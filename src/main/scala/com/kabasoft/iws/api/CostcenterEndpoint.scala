@@ -30,17 +30,17 @@ object CostcenterEndpoint {
         case Left(_) => Response.status(Status.BadRequest)
       }
   }
-  private val allAPI = EndpointSpec.get[Unit](literal("cc")).out[List[Costcenter]]
-  private val byIdAPI = EndpointSpec.get[String](literal("cc")/ RouteCodec.string("id") ).out[Costcenter]
+   val ccAllAPI = EndpointSpec.get[Unit](literal("cc")).out[List[Costcenter]]
+   val ccByIdAPI = EndpointSpec.get[String](literal("cc")/ RouteCodec.string("id") ).out[Costcenter]
   private val deleteAPI = EndpointSpec.get[String](literal("cc")/ RouteCodec.string("id") ).out[Int]
 
-  private val allEndpoint = allAPI.implement(_ => CostcenterRepository.all("1000"))
-  private val byIdEndpoint = byIdAPI.implement  (id =>CostcenterRepository.getBy(id,"1000"))
+   val ccAllEndpoint = ccAllAPI.implement(_ => CostcenterRepository.all("1000"))
+   val ccByIdEndpoint = ccByIdAPI.implement  (id =>CostcenterRepository.getBy(id,"1000"))
   private val deleteEndpoint = deleteAPI.implement(id =>CostcenterRepository.delete(id,"1000"))
 
-  private val serviceSpec = (allAPI.toServiceSpec ++ byIdAPI.toServiceSpec++deleteAPI.toServiceSpec)
+  private val serviceSpec = (ccAllAPI.toServiceSpec ++ ccByIdAPI.toServiceSpec++deleteAPI.toServiceSpec)
 
   val appCC: HttpApp[CostcenterRepository, AppError.RepositoryError] =
-    serviceSpec.toHttpApp(allEndpoint ++ byIdEndpoint++deleteEndpoint)++createEndpoint
+    serviceSpec.toHttpApp(ccAllEndpoint ++ ccByIdEndpoint++deleteEndpoint)++createEndpoint
 
 }
