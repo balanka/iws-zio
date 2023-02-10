@@ -19,10 +19,10 @@ trait IWSTableDescriptionPostgres extends PostgresSqlModule with PostgresJdbcMod
         case None    => ZIO.unit
         case Some(e) => println("Message:" + e.getMessage()); ZIO.logError(e.getMessage())
       }.mapError {
-        case None    =>
-          RepositoryError(
-            new RuntimeException(s"Object with id/name $id does not exists")
-          )
+        case None    =>println(s"Object with id/name $id does not exists");
+          RepositoryError( new Throwable(s"Object with id/name $id does not exists"))
+            //new RuntimeException(s"Object with id/name $id does not exists")
+        // )
         case Some(e) => RepositoryError(e.getCause())
       }
         .provide(driver)

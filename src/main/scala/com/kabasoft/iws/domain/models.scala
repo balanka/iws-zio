@@ -1,9 +1,18 @@
 package com.kabasoft.iws.domain
 
+import java.util.Locale
+import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
+import zio.prelude._
+import zio.stm._
+import zio.{UIO, _}
+
+import java.text.NumberFormat
+import java.time.format.DateTimeFormatter
+import scala.collection.immutable.{::, Nil}
+import scala.annotation.tailrec
+import java.math.BigDecimal
 import com.kabasoft.iws.domain.FinancialsTransaction.DerivedTransaction_Type
 
-import java.util.UUID
-import java.time.LocalDate
 
 
 final case class Company(id: String,
@@ -26,63 +35,12 @@ final case class Company(id: String,
                          incomeStmtAcc: String,
                          modelid: Int
                         )
-
-
-final case class Order(
-    id: UUID,
-    customerId: UUID,
-    orderDate: LocalDate
-)
-final case class Product(
-    id: UUID,
-    name: String,
-    description: String,
-    imageUrl: String
-)
-
-final case class ProductPrice(
-    id: UUID,
-    effective: LocalDate,
-    price: Double
-)
-
-final case class OrderDetail(
-    orderId: UUID,
-    productId: UUID,
-    quantity: Int,
-    unitPrice: Double
-)
-
-final case class CustomerWithOrderDate(
-      firstName: String,
-      lastName: String,
-      orderDate: LocalDate
-)
-
-final case class CustomerWithOrderNumber(
-      firstName: String,
-      lastName: String,
-      count: Long
-)
-
 sealed trait AppError extends Throwable
 
 object AppError {
   final case class RepositoryError(cause: Throwable) extends AppError
   final case class DecodingError(message: String) extends AppError
 }
-
-import java.util.{Locale, UUID}
-import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
-import zio.prelude._
-import zio.stm._
-import zio.{UIO, _}
-
-import java.text.NumberFormat
-import java.time.format.DateTimeFormatter
-import scala.collection.immutable.{::, Nil}
-import scala.annotation.tailrec
-import java.math.BigDecimal
 
 object common {
 
@@ -129,10 +87,7 @@ object common {
   }
 }
 import  common._
-final case class Balance(id:String, idebit: BigDecimal,
-                         icredit: BigDecimal,
-                         debit: BigDecimal,
-                         credit: BigDecimal){
+final case class Balance(id:String, idebit: BigDecimal, icredit: BigDecimal, debit: BigDecimal, credit: BigDecimal){
   def debiting(amount: BigDecimal) = copy(debit = debit.add(amount))
 
   def crediting(amount: BigDecimal) = copy(credit = credit.add(amount))
@@ -170,8 +125,7 @@ object Account_ {
 
 
 }
-final case class Account(
-                          id: String,
+final case class Account(id: String,
                           name: String,
                           description: String,
                           enterdate: Instant = Instant.now(),

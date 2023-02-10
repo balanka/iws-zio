@@ -2,7 +2,7 @@ package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{Account, Account_}
-import com.kabasoft.iws.api.Protocol.account_schema
+import com.kabasoft.iws.repository.Schema.account_schema
 import zio._
 import zio.sql.ConnectionPool
 import zio.stream._

@@ -3,7 +3,7 @@ package com.kabasoft.iws.repository
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.PeriodicAccountBalance
 import zio._
-import com.kabasoft.iws.api.Protocol.pacSchema
+import com.kabasoft.iws.repository.Schema.pacSchema
 import zio.sql.ConnectionPool
 import zio.stream._
 

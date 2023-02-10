@@ -1,8 +1,8 @@
 package com.kabasoft.iws.repository
 
 import zio._
-import com.kabasoft.iws.api.Protocol.journalSchema
-import com.kabasoft.iws.api.Protocol.journal_Schema
+import com.kabasoft.iws.repository.Schema.journalSchema
+import com.kabasoft.iws.repository.Schema.journal_Schema
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{Journal, Journal_}
 import zio.sql.ConnectionPool

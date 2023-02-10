@@ -1,6 +1,7 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.api.Protocol.customerDecoder
+import com.kabasoft.iws.repository.Schema.customerSchema
 import com.kabasoft.iws.domain.{AppError, Customer}
 import com.kabasoft.iws.repository._
 import zio._

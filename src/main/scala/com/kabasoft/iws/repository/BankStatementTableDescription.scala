@@ -1,10 +1,7 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.{BankStatement, BankStatement_}
-import com.kabasoft.iws.api.Protocol.bankStatementschema
-import com.kabasoft.iws.api.Protocol.bankStatement_schema
-
-
+import com.kabasoft.iws.repository.Schema.{bankStatementsSchema, bankStatementsSchema_}
 trait BankStatementTableDescription extends IWSTableDescriptionPostgres {
 
 

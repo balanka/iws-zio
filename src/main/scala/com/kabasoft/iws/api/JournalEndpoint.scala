@@ -1,12 +1,11 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.repository.Schema.journalSchema
 import com.kabasoft.iws.domain.{AppError, Journal}
 import com.kabasoft.iws.repository._
 import zio.http._
 import zio.http.api.HttpCodec.literal
 import zio.http.api.{EndpointSpec, RouteCodec}
-import zio.schema.DeriveSchema.gen
 
 object JournalEndpoint {
 

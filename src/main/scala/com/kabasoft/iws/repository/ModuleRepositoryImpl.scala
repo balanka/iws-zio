@@ -1,7 +1,7 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.Module
-import com.kabasoft.iws.api.Protocol.moduleSchema
+import com.kabasoft.iws.repository.Schema.moduleSchema
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import zio._
 import zio.sql.ConnectionPool

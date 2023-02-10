@@ -1,6 +1,7 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.api.Protocol.companyDecoder
+import com.kabasoft.iws.repository.Schema.companySchema
 import com.kabasoft.iws.domain.{AppError, Company}
 import com.kabasoft.iws.repository._
 import zio._

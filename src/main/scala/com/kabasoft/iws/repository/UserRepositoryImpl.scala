@@ -3,7 +3,7 @@ package com.kabasoft.iws.repository
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{User, User_}
 import zio._
-import com.kabasoft.iws.api.Protocol.{userSchema, userSchema_}
+import com.kabasoft.iws.repository.Schema.{userSchema, userSchema_}
 import zio.sql.ConnectionPool
 import zio.stream._
 

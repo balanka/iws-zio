@@ -1,7 +1,7 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.{DerivedTransaction, FinancialsTransaction, FinancialsTransactionDetails, FinancialsTransactionDetails_, FinancialsTransaction_, FinancialsTransactionx}
-import com.kabasoft.iws.api.Protocol.{derivedTransactionSchema, transactionDetailsSchema, transactionDetails_Schema, transactionSchema, transactionSchema_}
+import com.kabasoft.iws.repository.Schema.{derivedTransactionSchema, transactionDetailsSchema, transactionDetails_Schema, transactionSchema, transactionSchema_}
 
 trait TransactionTableDescription extends IWSTableDescriptionPostgres {
 

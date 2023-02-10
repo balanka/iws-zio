@@ -1,7 +1,7 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.service.AccountService
-import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.api.Protocol.{accountDecoder, accountEncoder}
 import com.kabasoft.iws.domain.{Account, AppError}
 import com.kabasoft.iws.repository._
 import zio._

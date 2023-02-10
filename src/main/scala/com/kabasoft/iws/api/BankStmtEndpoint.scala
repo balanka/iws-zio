@@ -1,6 +1,7 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.api.Protocol.bankStatementDecoder
+import com.kabasoft.iws.repository.Schema.bankStatementsSchema
 import com.kabasoft.iws.domain.{AppError, BankStatement}
 import com.kabasoft.iws.repository._
 import zio._
@@ -12,7 +13,6 @@ import zio.json.DecoderOps
 
 object BankStmtEndpoint {
 
-  //private val createAPI = EndpointSpec.post[Bank](literal("bank")/RouteCodec.).out[Int]
   private val createEndpoint = Http.collectZIO[Request] {
     case req@Method.POST -> !! / "bs" =>
       (for {

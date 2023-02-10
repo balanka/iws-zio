@@ -1,6 +1,7 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.api.Protocol.supplierDecoder
+import com.kabasoft.iws.repository.Schema.supplierschema
 import com.kabasoft.iws.domain.{AppError, Supplier}
 import com.kabasoft.iws.repository._
 import zio._
@@ -9,8 +10,6 @@ import zio.http.api.{EndpointSpec, RouteCodec}
 import zio.http._
 import zio.http.model.{Method, Status}
 import zio.json.DecoderOps
-import zio.schema.DeriveSchema.gen
-
 object SupplierEndpoint {
 
   //private val createAPI = EndpointSpec.post[Supplier](literal("sup")/RouteCodec.).out[Int]

@@ -1,6 +1,6 @@
 package com.kabasoft.iws.repository
 
-import com.kabasoft.iws.api.Protocol.{bankAccountSchema, customer_Schema}
+import com.kabasoft.iws.repository.Schema.{bankAccountSchema, customer_Schema}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{BankAccount, Customer, Customer_}
 import zio._

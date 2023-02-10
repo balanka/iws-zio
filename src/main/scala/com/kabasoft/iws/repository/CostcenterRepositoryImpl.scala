@@ -2,7 +2,7 @@ package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.Costcenter
-import com.kabasoft.iws.api.Protocol.costCenterSchema
+import com.kabasoft.iws.repository.Schema.costcenterSchema
 import zio._
 import zio.sql.ConnectionPool
 import zio.stream._

@@ -2,8 +2,7 @@ package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.{BankAccount, Supplier, Supplier_}
 import zio._
-import com.kabasoft.iws.api.Protocol.supplierSchema
-import com.kabasoft.iws.api.Protocol.bankAccountSchema
+import com.kabasoft.iws.repository.Schema.{supplier_Schema, bankAccountSchema}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import zio.sql.ConnectionPool
 import zio.stream._

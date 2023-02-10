@@ -3,7 +3,7 @@ package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.Vat
 import zio._
-import com.kabasoft.iws.api.Protocol.vatSchema
+import com.kabasoft.iws.repository.Schema.vatSchema
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import zio.sql.ConnectionPool
 import zio.stream._

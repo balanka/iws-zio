@@ -1,6 +1,7 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.api.Protocol.pacDecoder
+import com.kabasoft.iws.repository.Schema.pacSchema
 import com.kabasoft.iws.domain.{AppError, PeriodicAccountBalance}
 import com.kabasoft.iws.repository.PacRepository
 import zio._
@@ -9,7 +10,6 @@ import zio.http.api.HttpCodec.literal
 import zio.http.api.{EndpointSpec, RouteCodec}
 import zio.http.model.{Method, Status}
 import zio.json.DecoderOps
-import zio.schema.DeriveSchema.gen
 
 object PacEndpoint {
 

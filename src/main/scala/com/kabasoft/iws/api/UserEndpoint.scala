@@ -1,6 +1,7 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.api.Protocol.userDecoder
+import com.kabasoft.iws.repository.Schema.userSchema
 import com.kabasoft.iws.domain.{AppError, User}
 import com.kabasoft.iws.repository._
 import zio._
@@ -30,18 +31,18 @@ object UserEndpoint {
         case Left(_) => Response.status(Status.BadRequest)
       }
   }
-  private val allAPI = EndpointSpec.get[Unit](literal("user")).out[List[User]]
-  private val byIdAPI = EndpointSpec.get[Int](literal("user")/ RouteCodec.int("id") ).out[User]
-  private val byUserNameAPI = EndpointSpec.get[String](literal("user")/ RouteCodec.string("userName") ).out[User]
+   val userAllAPI = EndpointSpec.get[Unit](literal("user")).out[List[User]]
+   val userByIdAPI = EndpointSpec.get[Int](literal("user")/ RouteCodec.int("id") ).out[User]
+   val userByUserNameAPI = EndpointSpec.get[String](literal("user")/ RouteCodec.string("userName") ).out[User]
   private val deleteAPI = EndpointSpec.get[Int](literal("user")/ RouteCodec.int("id") ).out[Int]
 
-  private val allEndpoint = allAPI.implement  (_=> UserRepository.all("1000"))
-  private val byIdEndpoint = byIdAPI.implement(id => UserRepository.getById(id, "1000"))
-  private val byUserNameEndpoint = byUserNameAPI.implement(userName => UserRepository.getByUserName(userName, "1000"))
+   val userAllEndpoint = userAllAPI.implement  (_=> UserRepository.all("1000"))
+   val userByIdEndpoint = userByIdAPI.implement(id => UserRepository.getById(id, "1000"))
+   val userByUserNameEndpoint = userByUserNameAPI.implement(userName => UserRepository.getByUserName(userName, "1000"))
   private val deleteEndpoint = deleteAPI.implement(id =>UserRepository.delete(id,"1000"))
 
-  private val serviceSpec = (allAPI.toServiceSpec ++ byIdAPI.toServiceSpec++deleteAPI.toServiceSpec ++byUserNameAPI.toServiceSpec)
+  private val serviceSpec = (userAllAPI.toServiceSpec ++ userByIdAPI.toServiceSpec++deleteAPI.toServiceSpec ++userByUserNameAPI.toServiceSpec)
 
   val appUser: HttpApp[UserRepository, AppError.RepositoryError] =
-    serviceSpec.toHttpApp(allEndpoint ++ byIdEndpoint++deleteEndpoint ++byUserNameEndpoint)++createEndpoint
+    serviceSpec.toHttpApp(userAllEndpoint ++ userByIdEndpoint++deleteEndpoint ++userByUserNameEndpoint)++createEndpoint
 }

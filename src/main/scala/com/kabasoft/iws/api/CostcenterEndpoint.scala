@@ -1,6 +1,7 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.api.Protocol.costcenterDecoder
+import com.kabasoft.iws.repository.Schema.costcenterSchema
 import com.kabasoft.iws.domain.{AppError, Costcenter}
 import com.kabasoft.iws.repository._
 import zio._
@@ -12,7 +13,6 @@ import zio.json.DecoderOps
 
 object CostcenterEndpoint {
 
-  //private val createAPI = EndpointSpec.post[Bank](literal("bank")/RouteCodec.).out[Int]
   private val createEndpoint = Http.collectZIO[Request] {
     case req@Method.POST -> !! / "cc" =>
       (for {

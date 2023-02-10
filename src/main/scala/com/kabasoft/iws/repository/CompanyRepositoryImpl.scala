@@ -1,18 +1,17 @@
 package com.kabasoft.iws.repository
 
+import com.kabasoft.iws.repository.Schema.companySchema
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.Company
 import zio._
 import zio.stream._
 import zio.sql.ConnectionPool
-import zio.schema.DeriveSchema
 
 
 final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepository with PostgresTableDescription {
 
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
 
-  implicit val companySchema = DeriveSchema.gen[Company]
 
   val company = defineTable[Company]("company")
 

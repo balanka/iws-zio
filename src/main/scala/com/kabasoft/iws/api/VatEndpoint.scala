@@ -1,6 +1,7 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.api.Protocol.vatDecoder
+import com.kabasoft.iws.repository.Schema.vatSchema
 import com.kabasoft.iws.domain.{AppError, Vat}
 import com.kabasoft.iws.repository._
 import zio._

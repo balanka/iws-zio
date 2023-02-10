@@ -1,5 +1,4 @@
 package com.kabasoft.iws.repository
-
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{BankStatement, BankStatement_}
 import zio._

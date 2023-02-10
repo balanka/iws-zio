@@ -1,6 +1,7 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.api.Protocol.moduleDecoder
+import com.kabasoft.iws.repository.Schema.moduleSchema
 import com.kabasoft.iws.domain.{AppError, Module}
 import com.kabasoft.iws.repository._
 import zio._
@@ -8,8 +9,8 @@ import zio.http._
 import zio.http.api.HttpCodec.literal
 import zio.http.api.{EndpointSpec, RouteCodec}
 import zio.http.model.{Method, Status}
-import zio.json._
-import zio.schema.DeriveSchema.gen
+import zio.json.DecoderOps
+
 
 object ModuleEndpoint {
 
