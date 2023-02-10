@@ -20,8 +20,9 @@ object CustomerBuilder {
       "0521-471164","xxx@domain.de", accountRecvId, incaccountId, IbanCustomer1, vataccountId,1000)
   val customer2 = Customer(customerId2, nameCustomer2, "KABA Soft GmbH", "Universitaet Str 2", "33615", "Bielefeld", "NRW",
       "0521-4711631", "0521-4711641", "info@fabasoft.de", accountRecvId, incaccountId, IbanCustomer2, vataccountId, 1000)
-   val dummy = Customer(dummyId, dummyNname, dummyNname, dummyNname, dummyNname, dummyNname, dummyNname, dummyNname,
-       "dummy@dummy.com", "1215", "111111", "DEddddddddddddddddommy", "v5", "1000", Customer.MODELID, vtime, vtime, vtime )
+
+  val dummy = Customer(dummyId, dummyNname, dummyNname, dummyNname, dummyNname, dummyNname, dummyNname, dummyNname,
+       "dummy@dummy.com", "1215", "111111", "DEddddddddddddddddommy", "v5", "1000", Customer.MODELID, vtime, vtime, vtime)
   val customers = List( customer1, customer2 )
 
     def instantFromStr(str:String)=Instant.parse(str)

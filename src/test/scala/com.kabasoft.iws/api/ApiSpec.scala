@@ -3,18 +3,21 @@ package com.kabasoft.iws.api
 import com.kabasoft.iws.config.DbConfig
 import com.kabasoft.iws.config.DbConfig.connectionPoolConfig
 import zio.json.EncoderOps
-import com.kabasoft.iws.domain.Bank
-import com.kabasoft.iws.repository.{BankRepository, BankRepositoryImpl, CostcenterRepository, CostcenterRepositoryImpl, CustomerRepository, CustomerRepositoryImpl, ModuleRepository, ModuleRepositoryImpl, SupplierRepository, SupplierRepositoryImpl, VatRepository, VatRepositoryImpl}
+import com.kabasoft.iws.domain.{Bank, CustomerBuilder}
+import com.kabasoft.iws.repository.{ BankRepository, BankRepositoryImpl, CostcenterRepository, CostcenterRepositoryImpl, CustomerRepository, CustomerRepositoryImpl, ModuleRepository, ModuleRepositoryImpl, SupplierRepository, SupplierRepositoryImpl, UserRepository, UserRepositoryImpl, VatRepository, VatRepositoryImpl}
 import com.kabasoft.iws.api.CostcenterEndpoint.ccByIdAPI
 import zio.http.api.HttpCodec.literal
 import com.kabasoft.iws.api.Protocol._
 import com.kabasoft.iws.api.CustomerEndpoint.custByIdAPI
 import com.kabasoft.iws.api.ModuleEndpoint.moduleByIdAPI
 import com.kabasoft.iws.api.SupplierEndpoint.supByIdAPI
+import com.kabasoft.iws.api.UserEndpoint.userByUserNameAPI
 import com.kabasoft.iws.api.VatEndpoint.vatByIdAPI
+//import com.kabasoft.iws.domain.AccountBuilder.acc
 import com.kabasoft.iws.domain.CostcenterBuilder.cc
-import com.kabasoft.iws.domain.CustomerBuilder
+import com.kabasoft.iws.domain.ModuleBuilder.m
 import com.kabasoft.iws.domain.SupplierBuilder.sup
+import com.kabasoft.iws.domain.UserBuilder.user
 import com.kabasoft.iws.domain.VatBuilder.vat1
 import zio._
 import zio.http.api.RouteCodec._
@@ -40,16 +43,20 @@ object ApiSpec extends ZIOSpecDefault {
   def instantFromStr(str:String)=Instant.parse(str)
     def spec = suite("APISpec")(
       suite("handler")(
-        test("Bank integration test ") {
-/*        val accAll = EndpointSpec.get(literal("acc") ).out[Int]
-                     .implement { id => AccountRepository.all("1000").map(_.size)}
-        val accById =  EndpointSpec.get(literal("acc") / string("id")).out[Account]
-                         .implement { id => AccountRepository.getBy(id, "1000")}*/
-          val bankById =    EndpointSpec.get(literal("bank") / string("id")).out[Bank]
-                            .implement { id =>BankRepository.getBy(id, "1000")}
-          val bankAll =EndpointSpec.get(literal("bank")).out[Int]
-                                .implement (_ => BankRepository.all("1000").map(_.size))
-          val testRoutes = testApi(bankAll++bankById) _
+/*        test("Account  integration test ") {
+          val accountById = EndpointSpec.get(literal("acc") / string("id")).out[Account]
+            .implement { id => AccountRepository.getBy(id, "1000") }
+        val accAll = EndpointSpec.get(literal("acc") ).out[Int]
+                     .implement(_ => AccountRepository.all("1000").map(_.size))
+          val testRoutes = testApi(accountById ++ accAll) _
+          testRoutes("/acc", "56") && testRoutes("/acc/00000", acc.toJson)
+        },*/
+        test("Bank integration test") {
+          val bankById = EndpointSpec.get(literal("bank") / string("id")).out[Bank]
+            .implement { id => BankRepository.getBy(id, "1000") }
+          val bankAll = EndpointSpec.get(literal("bank")).out[Int]
+            .implement(_ => BankRepository.all("1000").map(_.size))
+          val testRoutes = testApi(bankAll ++ bankById) _
           testRoutes("/bank", "56") && testRoutes("/bank/COLSDE33", bank.toJson)
         },
          test("Customer integration test") {
@@ -76,17 +83,23 @@ object ApiSpec extends ZIOSpecDefault {
           val moduleAllEndpoint = EndpointSpec.get(literal("module")).out[Int].implement(_ => ModuleRepository.all("1000").map(_.size))
           val moduleByIdEndpoint = moduleByIdAPI.implement(id => ModuleRepository.getBy(id, "1000"))
           val testRoutes = testApi(moduleByIdEndpoint ++ moduleAllEndpoint) _
-          testRoutes("/module", "14") && testRoutes("/module/0000", cc.toJson)
+          testRoutes("/module", "14") && testRoutes("/module/0000", m.toJson)
         },
-           test("Vat integration test") {
+           test("User integration test") {
+          val userAllEndpoint = EndpointSpec.get(literal("user")).out[Int].implement(_ => UserRepository.all("1000").map(_.size))
+          val userByUserNameEndpoint = userByUserNameAPI.implement(userName => UserRepository.getByUserName(userName, "1000"))
+          val testRoutes = testApi(userByUserNameEndpoint ++ userAllEndpoint) _
+          testRoutes("/user", "4") && testRoutes("/user/jdegoes011", user.toJson)
+        },
+        test("Vat integration test") {
           val vatAllEndpoint = EndpointSpec.get(literal("vat")).out[Int].implement(_ => VatRepository.all("1000").map(_.size))
           val vatByIdEndpoint = vatByIdAPI.implement(id => VatRepository.getBy(id, "1000"))
           val testRoutes = testApi(vatByIdEndpoint ++ vatAllEndpoint) _
-          testRoutes("/vat", "13") && testRoutes("/vat/v5", vat1.toJson)
+          testRoutes("/vat", "11") && testRoutes("/vat/v101", vat1.toJson)
         }
     ).provide(ConnectionPool.live, connectionPoolConfig, DbConfig.layer, BankRepositoryImpl.live,
         CostcenterRepositoryImpl.live, CustomerRepositoryImpl.live, SupplierRepositoryImpl.live, VatRepositoryImpl.live,
-        ModuleRepositoryImpl.live)
+        ModuleRepositoryImpl.live, UserRepositoryImpl.live)
     )
   def testApi[R, E](service: Endpoints[R, E, _])(
     url: String, expected: String): ZIO[R, E, TestResult] = {
