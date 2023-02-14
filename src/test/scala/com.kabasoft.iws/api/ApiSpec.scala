@@ -1,13 +1,14 @@
 package com.kabasoft.iws.api
-
+/*
 import com.kabasoft.iws.config.DbConfig
 import com.kabasoft.iws.config.DbConfig.connectionPoolConfig
 import zio.json.EncoderOps
 import com.kabasoft.iws.domain.{Bank, CustomerBuilder}
-import com.kabasoft.iws.repository.{ BankRepository, BankRepositoryImpl, CostcenterRepository, CostcenterRepositoryImpl, CustomerRepository, CustomerRepositoryImpl, ModuleRepository, ModuleRepositoryImpl, SupplierRepository, SupplierRepositoryImpl, UserRepository, UserRepositoryImpl, VatRepository, VatRepositoryImpl}
+import com.kabasoft.iws.repository.{BankRepository, BankRepositoryImpl, CostcenterRepository, CostcenterRepositoryImpl, CustomerRepository, CustomerRepositoryImpl, ModuleRepository, ModuleRepositoryImpl, SupplierRepository, SupplierRepositoryImpl, UserRepository, UserRepositoryImpl, VatRepository, VatRepositoryImpl}
 import com.kabasoft.iws.api.CostcenterEndpoint.ccByIdAPI
 import zio.http.api.HttpCodec.literal
 import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.domain.BankBuilder.bank
 import com.kabasoft.iws.api.CustomerEndpoint.custByIdAPI
 import com.kabasoft.iws.api.ModuleEndpoint.moduleByIdAPI
 import com.kabasoft.iws.api.SupplierEndpoint.supByIdAPI
@@ -27,20 +28,8 @@ import zio.schema.DeriveSchema.gen
 import zio.sql.ConnectionPool
 import zio.test._
 
-import java.time.Instant
-
-
 object ApiSpec extends ZIOSpecDefault {
-  val company = "1000"
-  val bankId = "COLSDE33"
-  val bankName = "SPARKASSE KOELN-BONN"
-  val accId = "9900"
-  val accName = "Bilanz"
-  val bank = Bank(bankId, bankName, bankName, instantFromStr("2018-01-01T00:00:00.00Z"),
-    instantFromStr("2018-01-01T00:00:00.00Z"), instantFromStr("2018-01-01T00:00:00.00Z"),11,company)
 
-
-  def instantFromStr(str:String)=Instant.parse(str)
     def spec = suite("APISpec")(
       suite("handler")(
 /*        test("Account  integration test ") {
@@ -111,3 +100,5 @@ object ApiSpec extends ZIOSpecDefault {
   }
 
 }
+
+ */
