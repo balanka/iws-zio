@@ -1,6 +1,6 @@
 package com.kabasoft.iws
 
-import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.api.Protocol.userDecoder
 import com.kabasoft.iws.domain.User
 import zio._
 import zio.http.model.{Headers, Method}
@@ -27,7 +27,7 @@ object AuthenticationClient extends ZIOAppDefault {
     token    <- Client.request(s"${url}/users/login", method= Method.POST, content=Body.fromString(data)).flatMap(_.body.asString)
     _        <- ZIO.logInfo(s"token>> ${token}<<")
      // .flatMap(body =>
-    r<-       ZIO.fromEither(token.fromJson[User])
+    r  <- ZIO.fromEither(token.fromJson[User])
           .mapError(e => new Throwable(e))
           .tapError(e => ZIO.logInfo(s"Unparseable body ${e}"))
       .either//.flatMap(user_ => user_.getOrElse(User(-1,"NoUser", "","","","","","")))
@@ -36,18 +36,18 @@ object AuthenticationClient extends ZIOAppDefault {
     // Once the jwt token is procured, adding it as a Barer token in Authorization header while accessing a protected route.
     //response <- Client.request(s"${url}/user/userName/greet", headers = Headers.bearerAuthorizationHeader(token))
 
-    //response <- Client.request(s"${url}/bank", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
+    response <- Client.request(s"${url}/bank", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
     //response <- Client.request(s"${url}/cust", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
     //response <- Client.request(s"${url}/sup", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
-   // response <- Client.request(s"${url}/acc", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
+    //response <- Client.request(s"${url}/acc", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
     //response <- Client.request(s"${url}/cc", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
    // response <- Client.request(s"${url}/module", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
    // response <- Client.request(s"${url}/vat", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
    // response <- Client.request(s"${url}/user", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
    // response <- Client.request(s"${url}/ftr", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
-    response <- Client.request(s"${url}/pac", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
+    //response <- Client.request(s"${url}/pac", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
     body     <- response.body.asString
-    _        <- Console.printLine(body)
+    _        <- Console.printLine(":::>>>"+body)
   } yield ()
 
   override val run = program.provide(Client.default)

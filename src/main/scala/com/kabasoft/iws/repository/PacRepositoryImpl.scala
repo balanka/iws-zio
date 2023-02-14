@@ -31,8 +31,8 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
       modelid
     )
       .from(pac)
-      .groupBy(account, currency, company, modelid)
       .where((company === companyId) && (period >= fromPeriod) && (period <= toPeriod))
+      .groupBy(account, currency, company, modelid)
       .orderBy(account.descending)
 
   def getBalancesQuery(fromPeriod: Int, toPeriod: Int, companyId: String) =
@@ -49,8 +49,8 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
       modelid
     )
       .from(pac)
-      .groupBy(account, currency, company, modelid)
       .where((company === companyId) && (period >= fromPeriod) && (period <= toPeriod))
+      .groupBy(account, currency, company, modelid)
       .orderBy(account.descending)
 
    def createX(c: PeriodicAccountBalance): ZIO[Any, RepositoryError, Unit]             = {

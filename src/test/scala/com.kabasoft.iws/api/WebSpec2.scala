@@ -17,7 +17,7 @@ import zio._
 import zio.http.Middleware._
 import zio.http._
 import zio.sql.ConnectionPool
-import zio.test.Assertion._
+import zio.test.Assertion.equalTo
 import zio.test._
 
 object WebSpec2 extends ZIOSpecDefault with HttpAppTestExtensions { self =>
