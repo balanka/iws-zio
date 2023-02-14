@@ -1,7 +1,7 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.User
-import com.kabasoft.iws.repository.postgresql.PostgresContainer
+import com.kabasoft.iws.repository.container.PostgresContainer
 import zio.ZLayer
 import zio.sql.ConnectionPool
 import zio.test.TestAspect._

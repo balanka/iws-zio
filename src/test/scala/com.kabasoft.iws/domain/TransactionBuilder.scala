@@ -1,6 +1,8 @@
 package com.kabasoft.iws.domain
-import AccountBuilder.{accountId, faccountId, vataccountId, incaccountId1}
 
+import com.kabasoft.iws.domain.AccountBuilder.{accountId, faccountId, incaccountId1, vataccountId}
+
+import java.math.{BigDecimal, RoundingMode}
 import java.time.Instant
 
 object TransactionBuilder {
@@ -12,16 +14,16 @@ object TransactionBuilder {
   val modelid = 112
   val period = common.getPeriod(Instant.now())
   val side = true
-  val amount = BigDecimal(100)
-  val vat = 0.19
-  val vatAmount = amount*vat
+  val amount = new BigDecimal("100.00").setScale(2, RoundingMode.HALF_UP)
+  val vat = new BigDecimal("0.19").setScale(2, RoundingMode.HALF_UP)
+  val vatAmount = amount.multiply(vat)
   val terms = "terms"
   val currency = "EUR"
   val costCenter = "311"
 
-  val line1=  FinancialsTransactionDetails(-1, transactionId, faccountId, side, incaccountId1 , amount-vatAmount, Instant.now(), terms, currency)
+  val line1=  FinancialsTransactionDetails(-1, transactionId, faccountId, side, incaccountId1 , amount.subtract(vatAmount), Instant.now(), terms, currency)
   val line2=  FinancialsTransactionDetails(-2, transactionId, faccountId, side, vataccountId, vatAmount, Instant.now(), terms, currency)
-  val line3 = FinancialsTransactionDetails(-3, transactionId2, accountId, side, faccountId, amount+vatAmount , Instant.now(), terms, currency)
+  val line3 = FinancialsTransactionDetails(-3, transactionId2, accountId, side, faccountId, amount.add(vatAmount) , Instant.now(), terms, currency)
 
 
 

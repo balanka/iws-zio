@@ -1,6 +1,6 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.api.Protocol.{loginRequestDecoder, userEncoder}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain._
 import com.kabasoft.iws.domain.common.DummyUser
@@ -8,9 +8,8 @@ import com.kabasoft.iws.repository._
 import pdi.jwt.{Jwt, JwtAlgorithm, JwtClaim}
 import zio.ZIO
 import zio.http._
-import zio.json._
 import zio.http.model.{Header, Method, Status}
-import zio.json.DecoderOps
+import zio.json.{DecoderOps, _}
 
 import java.time.Clock
 
@@ -51,11 +50,11 @@ object LoginRoutes {
           .flatMap(request =>
             ZIO
               .fromEither(request.fromJson[LoginRequest])
-              .mapError(e => new Throwable(e))
+              .mapError(e => RepositoryError(new Throwable(e)))
               .tapError(e => ZIO.logInfo(s"Unparseable body ${e}"))
           ).either.flatMap(loginRequest => {
           val loginRequest_ = loginRequest.getOrElse(invalidRequest)
-          val jwtEncode_ = jwtEncode(loginRequest_.password, 86400 * 365 * 20)
+          //val jwtEncode_ = jwtEncode(loginRequest_.password, 86400 * 365 * 20)
           // val r = UserRepository.getByUserName(loginRequest_.userName, "1000")
           // val r = UserRepository.list("1000").runCollect.map(_.toList)
           //.filter(_.userName.equals(loginRequest_.userName))
@@ -66,7 +65,8 @@ object LoginRoutes {
   private def  checkLogin(loginRequest:LoginRequest):ZIO[UserRepository, RepositoryError,Response] = for {
     r <- UserRepository.list("1000").runCollect.map(_.toList)
   }yield {
-    val user = r.find(_.userName.equals(loginRequest.userName)).getOrElse(DummyUser)
+    val useropt = r.find(_.userName.equals(loginRequest.userName))
+    val user = useropt.getOrElse(DummyUser)
     println(s"user >>>>>> ${user}")
     val content = jwtDecode(user.hash).toList.head.content
     println(s"content >>>>>> ${content}")

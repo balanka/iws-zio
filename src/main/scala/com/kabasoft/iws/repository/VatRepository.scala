@@ -1,9 +1,9 @@
 package com.kabasoft.iws.repository
 
-import zio.stream._
-import com.kabasoft.iws.domain._
 import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.domain.Vat
 import zio._
+import zio.stream._
 
 trait VatRepository {
   type TYPE_ = Vat
@@ -12,6 +12,8 @@ trait VatRepository {
   def delete(item: String, company: String): ZIO[Any, RepositoryError, Int]
   def delete(items: List[String], company: String): ZIO[Any, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
+
+  def all(companyId: String): ZIO[Any, RepositoryError, List[TYPE_]]
   def list(company: String): ZStream[Any, RepositoryError, TYPE_]
   def getBy(id: String, company: String): ZIO[Any, RepositoryError, TYPE_]
   def getByModelId(modelid: Int, company: String): ZIO[Any, RepositoryError, TYPE_]
@@ -30,6 +32,9 @@ object VatRepository {
     ZIO.service[VatRepository]flatMap(_.delete(item, company))
   def delete(items: List[String], company: String): ZIO[VatRepository, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
+
+  def all(companyId: String): ZIO[VatRepository, RepositoryError, List[TYPE_]] =
+    ZIO.service[VatRepository] flatMap (_.all(companyId))
   def list(company: String): ZStream[VatRepository, RepositoryError, TYPE_]                        =
     ZStream.service[VatRepository]flatMap(_.list(company))
   def getBy(id: String, company: String): ZIO[VatRepository, RepositoryError, TYPE_]               =

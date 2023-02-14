@@ -1,9 +1,10 @@
 package com.kabasoft.iws.repository
 
-import zio.stream._
-import com.kabasoft.iws.domain._
+import com.kabasoft.iws.domain
 import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.domain.Module
 import zio._
+import zio.stream._
 
 trait ModuleRepository {
   type TYPE_ = Module
@@ -12,6 +13,7 @@ trait ModuleRepository {
   def delete(item: String, company: String): ZIO[Any, RepositoryError, Int]
   def delete(items: List[String], company: String): ZIO[Any, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
+  def all(companyId: String): ZIO[Any, RepositoryError, List[TYPE_]]
   def list(company: String): ZStream[Any, RepositoryError, TYPE_]
   def getBy(id: String, company: String): ZIO[Any, RepositoryError, TYPE_]
   def getByModelId(modelid: Int, company: String): ZIO[Any, RepositoryError, TYPE_]
@@ -21,7 +23,7 @@ trait ModuleRepository {
 
 object ModuleRepository {
 
-  type TYPE_ = Module
+  type TYPE_ = domain.Module
   def create(item: TYPE_): ZIO[ModuleRepository, RepositoryError, Unit]                               =
     ZIO.service[ModuleRepository] flatMap (_.create(item))
   def create(items: List[TYPE_]): ZIO[ModuleRepository, RepositoryError, Int]                         =
@@ -30,6 +32,9 @@ object ModuleRepository {
     ZIO.service[ModuleRepository] flatMap (_.delete(item, company))
   def delete(items: List[String], company: String): ZIO[ModuleRepository, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
+
+   def all(companyId: String): ZIO[ModuleRepository, RepositoryError, List[TYPE_]] =
+     ZIO.service[ModuleRepository] flatMap (_.all(companyId))
   def list(company: String): ZStream[ModuleRepository, RepositoryError, TYPE_]                        =
     ZStream.service[ModuleRepository] flatMap (_.list(company))
   def getBy(id: String, company: String): ZIO[ModuleRepository, RepositoryError, TYPE_]               =

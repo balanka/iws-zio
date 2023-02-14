@@ -1,4 +1,4 @@
-package com.kabasoft.iws.repository.postgresql
+package com.kabasoft.iws.repository.container
 
 import com.dimafeng.testcontainers.PostgreSQLContainer
 import org.testcontainers.utility.DockerImageName

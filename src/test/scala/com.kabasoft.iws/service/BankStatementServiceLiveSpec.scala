@@ -1,8 +1,8 @@
 package com.kabasoft.iws.service
 
-import com.kabasoft.iws.domain.AccountBuilder.company
+import com.kabasoft.iws.domain.AccountBuilder.companyId
 import com.kabasoft.iws.domain.BankStatementBuilder
-import com.kabasoft.iws.repository.postgresql.PostgresContainer
+import com.kabasoft.iws.repository.container.PostgresContainer
 import com.kabasoft.iws.repository.{BankStatementRepository, BankStatementRepositoryImpl, CompanyRepository, CompanyRepositoryImpl, CustomerRepository, CustomerRepositoryImpl, SupplierRepository, SupplierRepositoryImpl, TransactionRepository, TransactionRepositoryImpl}
 import zio.ZLayer
 import zio.sql.ConnectionPool
@@ -29,8 +29,8 @@ object BankStatementServiceLiveSpec extends ZIOSpecDefault {
       test("create,ge all bank stmt  and post all bank statement"){
         for {
           created <- BankStatementRepository.create(BankStatementBuilder.bs)
-          bs <- BankStatementRepository.list(company).runCollect.map(_.toList)
-          postedBS <- BankStatementService.postAll(bs.map(_.id), company)
+          bs <- BankStatementRepository.list( companyId).runCollect.map(_.toList)
+          postedBS <- BankStatementService.postAll(bs.map(_.id), companyId)
         } yield  assertTrue(created == 2) && assertTrue(postedBS == 8)
      }
     ).provideLayerShared(testServiceLayer.orDie) @@ sequential

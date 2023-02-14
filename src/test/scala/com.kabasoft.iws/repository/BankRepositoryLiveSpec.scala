@@ -1,12 +1,12 @@
 package com.kabasoft.iws.repository
 
 import zio.test._
-
 import zio.test.TestAspect._
 import com.kabasoft.iws.domain.Bank
+import com.kabasoft.iws.repository.container.PostgresContainer
+
 import java.time.Instant
 import zio.ZLayer
-import com.kabasoft.iws.repository.postgresql.PostgresContainer
 import zio.sql.ConnectionPool
 
 object BankRepositoryLiveSpec extends ZIOSpecDefault {

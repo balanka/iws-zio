@@ -1,10 +1,10 @@
 package com.kabasoft.iws
 
-import zio._
 import com.kabasoft.iws.config.DbConfig
 import com.kabasoft.iws.domain.BankStatement
-import com.kabasoft.iws.repository.{BankStatementRepositoryImpl, CompanyRepositoryImpl, CustomerRepositoryImpl, SupplierRepositoryImpl, TransactionRepositoryImpl}
+import com.kabasoft.iws.repository._
 import com.kabasoft.iws.service.{BankStatementService, BankStatementServiceImpl}
+import zio._
 import zio.sql.ConnectionPool
 
 object BankStmtImportApp extends ZIOAppDefault {

@@ -1,9 +1,9 @@
 package com.kabasoft.iws.repository
 
-import zio.stream._
-import com.kabasoft.iws.domain._
 import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.domain.{DerivedTransaction, FinancialsTransaction}
 import zio._
+import zio.stream._
 
 trait TransactionRepository {
   type TYPE_ = DerivedTransaction
@@ -12,9 +12,9 @@ trait TransactionRepository {
   def create(models: List[TYPE_]): ZIO[Any, RepositoryError, Int]
   def create2(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int]=
     ZIO.collectAll(models.map(create(_))).map(_.sum)
-  def delete(item: String, company: String): ZIO[Any, RepositoryError, Int]
-  def delete(items: List[String], company: String): ZIO[Any, RepositoryError, List[Int]] =
-    ZIO.collectAll(items.map(delete(_, company)))
+  def delete(item: Long, company: String): ZIO[Any, RepositoryError, Int]
+  def delete(ids: List[Long], company: String): ZIO[Any, RepositoryError, List[Int]] =
+    ZIO.collectAll(ids.map(delete(_, company)))
   def list(company: String): ZStream[Any, RepositoryError, TYPE_]
   def all(companyId: String): ZStream[Any, RepositoryError, FinancialsTransaction]
   def getBy(id: String, company: String): ZIO[Any, RepositoryError, TYPE_]
@@ -40,10 +40,10 @@ object TransactionRepository {
   def create2(models: List[FinancialsTransaction]): ZIO[TransactionRepository, RepositoryError, Int]=
     ZIO.collectAll(models.map(create(_))).map(_.sum)
     //ZIO.service[TransactionRepository] flatMap (_.create2(models))
-  def delete(item: String, company: String): ZIO[TransactionRepository, RepositoryError, Int]                              =
-    ZIO.service[TransactionRepository] flatMap (_.delete(item, company))
-  def delete(items: List[String], company: String): ZIO[TransactionRepository, RepositoryError, List[Int]]                 =
-    ZIO.collectAll(items.map(delete(_, company)))
+  def delete(id: Long, company: String): ZIO[TransactionRepository, RepositoryError, Int]                              =
+    ZIO.service[TransactionRepository] flatMap (_.delete(id, company))
+  def delete(ids: List[Long], company: String): ZIO[TransactionRepository, RepositoryError, List[Int]]                 =
+    ZIO.collectAll(ids.map(delete(_, company)))
   def all(companyId: String): ZStream[TransactionRepository, RepositoryError, FinancialsTransaction]=
     ZStream.service[TransactionRepository] flatMap (_.all(companyId))
   def list(company: String): ZStream[TransactionRepository, RepositoryError, TYPE_]                                        =

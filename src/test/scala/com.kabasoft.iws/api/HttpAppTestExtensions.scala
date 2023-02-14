@@ -16,5 +16,8 @@ trait HttpAppTestExtensions {
 
     def status: Http[R, E, Request, Status] =
       app.map(res => res.status)
-  }
+
+  def bearerToken: Http[R, E, Request, Option[String]] =
+    app.map(res => res.bearerToken)
+}
 }

@@ -1,7 +1,7 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain._
+import com.kabasoft.iws.domain.Customer
 import zio._
 import zio.stream._
 
@@ -13,6 +13,7 @@ trait CustomerRepository {
   def delete(items: List[String], company: String): ZIO[Any, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
   def list(company: String): ZStream[Any, RepositoryError, TYPE_]
+  def all(companyId: String): ZIO[Any, RepositoryError, List[TYPE_]]
   def getBy(id: String, company: String): ZIO[Any, RepositoryError, TYPE_]
   def getByIban(Iban: String, companyId: String): ZIO[Any, RepositoryError, TYPE_]
   def getByModelId(modelid: Int, company: String): ZStream[Any, RepositoryError, TYPE_]
@@ -29,8 +30,9 @@ object CustomerRepository {
     ZIO.service[CustomerRepository] flatMap (_.delete(item, company))
   def delete(items: List[String], company: String): ZIO[CustomerRepository, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
-  def list(company: String): ZStream[CustomerRepository, RepositoryError, TYPE_]                        =
-    ZStream.service[CustomerRepository] flatMap (_.list(company))
+
+  def all(company: String): ZIO[CustomerRepository, RepositoryError, List[TYPE_]] =
+    ZIO.service[CustomerRepository] flatMap (_.all(company))
   def getBy(id: String, company: String): ZIO[CustomerRepository, RepositoryError, TYPE_]               =
     ZIO.service[CustomerRepository] flatMap (_.getBy(id, company))
   def getByIban(Iban: String, companyId: String): ZIO[CustomerRepository, RepositoryError, TYPE_]       =

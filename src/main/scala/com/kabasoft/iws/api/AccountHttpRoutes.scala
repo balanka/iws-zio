@@ -1,19 +1,11 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.api.Protocol._
-import com.kabasoft.iws.domain._
-import com.kabasoft.iws.service.AccountService
-import com.kabasoft.iws.repository._
-import zio._
-import zio.http._
-import zio.json._
-import zio.http.model.{Method, Status}
 
 object AccountHttpRoutes {
 
-  val appAcc = Http.collectZIO[Request] {
+/*  val appAcc: Http[AccountRepository with AccountService, AppError.RepositoryError, Request, Response] = Http.collectZIO[Request] {
 
-      case Method.GET -> !! / "acc" =>
+      case Method.GET -> !! / "acc1" =>
         AccountRepository
           .all("1000")
           .map(ch => Response.json(ch.toJson))
@@ -50,5 +42,5 @@ object AccountHttpRoutes {
           case Left(_)  => Response.status(Status.BadRequest)
         }
 
-    }
+    }*/
 }

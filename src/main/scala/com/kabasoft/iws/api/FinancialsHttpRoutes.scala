@@ -1,14 +1,14 @@
 package com.kabasoft.iws.api
 
-import zio.http._
-import zio._
-import zio.json._
-import com.kabasoft.iws.domain._
-import com.kabasoft.iws.repository._
-import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.api.Protocol.{financialsDerivedDecoder, financialsDerivedEncoder, financialsEncoder}
+//import com.kabasoft.iws.repository.Schema.{derivedTransactionSchema, transactionDetailsSchema, transactionSchema, transactionSchema_}
 import com.kabasoft.iws.service.FinancialsService
-import Protocol._
+import com.kabasoft.iws.domain.{AppError, DerivedTransaction}
+import com.kabasoft.iws.repository._
+import zio._
+import zio.http._
 import zio.http.model.{Method, Status}
+import zio.json._
 
 object FinancialsHttpRoutes {
 
@@ -51,7 +51,7 @@ object FinancialsHttpRoutes {
                         .fromEither(request.fromJson[DerivedTransaction])
                         .mapError(e => new Throwable(e))
                     )
-                    .mapError(e => AppError.DecodingError(e.getMessage()))
+                    .mapError(e => AppError.DecodingError(e.getMessage))
                     .tapError(e => ZIO.logInfo(s"Unparseable body ${e}"))
           _    <- TransactionRepository.create(body)
         } yield ()).either.map {

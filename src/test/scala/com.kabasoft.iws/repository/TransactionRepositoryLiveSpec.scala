@@ -1,8 +1,8 @@
 package com.kabasoft.iws.repository
 
-import com.kabasoft.iws.domain.AccountBuilder.company
+import com.kabasoft.iws.domain.AccountBuilder.companyId
 import com.kabasoft.iws.domain.TransactionBuilder.ftr1
-import com.kabasoft.iws.repository.postgresql.PostgresContainer
+import com.kabasoft.iws.repository.container.PostgresContainer
 import zio.ZLayer
 import zio.sql.ConnectionPool
 import zio.test.TestAspect._
@@ -23,11 +23,11 @@ object TransactionRepositoryLiveSpec extends ZIOSpecDefault {
         val terms ="changed text"
         for {
           oneRow <- TransactionRepository.create(ftr1)
-          all <- TransactionRepository.all(company).runCollect.map(_.toList)
-          ftr <- TransactionRepository.getByTransId(all(0).tid, company)
-          count <- TransactionRepository.all(company).runCount
+          all <- TransactionRepository.all(companyId).runCollect.map(_.toList)
+          ftr <- TransactionRepository.getByTransId(all(0).id, companyId)
+          count <- TransactionRepository.all(companyId).runCount
           nrUpdated <- TransactionRepository.modify(ftr.copy(text=terms))
-          ftr2 <- TransactionRepository.getByTransId(ftr.tid, company)
+          ftr2 <- TransactionRepository.getByTransId(ftr.id, companyId)
         } yield assertTrue(oneRow == 3)  && assertTrue(count == 1) &&
           assertTrue(nrUpdated == 3) &&assertTrue(ftr2.text == terms)
       }

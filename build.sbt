@@ -1,19 +1,15 @@
-val zioVersion                 = "2.0.4"
-//val zioVersion                 = "2.0.2+108-f5c52bec-SNAPSHOT"
-//val zioHttpVersion             = "2.0.0-RC11+151-28ad22aa+20221107-1912-SNAPSHOT"
-//val zioHttpVersion             = "0.0.3+47-a034acfc-SNAPSHOT"
-val zioHttpVersion             = "0.0.3"
-val zioHttpTestVersion         = "2.0.0-RC9"
+val zioVersion                 = "2.0.8"
+val zioHttpVersion             = "0.0.4"
 val zioJsonVersion             = "0.3.0"
 val zioConfigVersion           = "3.0.1"
-val zioSqlVersion              = "0.0.2+247-2ff7deed+20221019-1142-SNAPSHOT"
-//val zioSqlVersion              = "0.0.3+0-2ff7deed+20221013-1513-SNAPSHOT"
-//val zioSqlVersion            = "0.0.2"
+val zioJdbcVersion             = "0.0.1"
+val zioSqlVersion              = "0.1.2"
 val logbackVersion             = "1.2.7"
 val testcontainersVersion      = "1.17.5"
 val testcontainersScalaVersion = "0.40.11"
 val postgresql                 = "42.5.0"
 val JwtCoreVersion             = "9.1.1"
+val ZioSchemaVersion           = "0.4.1"
 
 
 lazy val root = (project in file("."))
@@ -22,7 +18,7 @@ lazy val root = (project in file("."))
       List(
         name         := "iws-zio",
         organization := "KABA SoftGmbH",
-        version      := "0.5",
+        version      := "0.9",
         scalaVersion := "2.13.9"
          //scalaVersion := "3.1.1"
       )
@@ -34,10 +30,10 @@ lazy val root = (project in file("."))
       // sql
       "dev.zio"           %% "zio-sql"                         % zioSqlVersion,
       "dev.zio"           %% "zio-sql-postgres"                % zioSqlVersion,
-      //"io.d11"            %% "zhttp"                           % zioHttpVersion,
-     // "io.d11"            %% "zhttp-test"                      % zioHttpTestVersion         % Test,
+      "dev.zio"            %% "zio-jdbc"                       % zioJdbcVersion,
       "dev.zio"             %% "zio-http"                       % zioHttpVersion,
-      //"dev.zio"             %% "zio-http"                      % zioHttpVersion % Test,
+      "dev.zio"             %% "zio-http"                       % zioHttpVersion % Test,
+      "dev.zio"            %% "zio-schema"                      % ZioSchemaVersion,
         // config
       "dev.zio"           %% "zio-config"                      % zioConfigVersion,
       "dev.zio"           %% "zio-config-typesafe"             % zioConfigVersion,

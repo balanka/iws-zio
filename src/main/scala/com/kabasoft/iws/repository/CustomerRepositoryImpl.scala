@@ -1,24 +1,21 @@
 package com.kabasoft.iws.repository
 
+import com.kabasoft.iws.repository.Schema.{bankAccountSchema, customer_Schema}
+import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.domain.{BankAccount, Customer, Customer_}
 import zio._
-import zio.stream._
 import zio.sql.ConnectionPool
-import com.kabasoft.iws.domain._
-import com.kabasoft.iws.domain.AppError._
+import zio.stream._
 
 final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerRepository with IWSTableDescriptionPostgres {
-  import ColumnSet._
 
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
 
-  val bankAccount =(string("iban")++string("owner")).table("bankaccount")
-  val customer =
-    (string("id") ++ string("name") ++ string("description") ++ string("street") ++ string("zip") ++ string("city") ++ string("state") ++ string(
-      "country"
-    ) ++ string("phone") ++ string("email") ++ string("account") ++ string("revenue_account") ++ string("iban") ++ string("vatcode") ++ string(
-      "company"
-    ) ++ int("modelid") ++ instant("enter_date") ++ instant("modified_date") ++ instant("posting_date")).table("customer")
-  val (iban_, owner) = bankAccount.columns
+
+  val customer = defineTable[Customer_]("customer")
+  val bankAccount = defineTable[BankAccount]("bankaccount")
+  val (iban_, bic, owner, company_, modelid_) = bankAccount.columns
+  val SELECT_BANK_ACCOUNT  = select(iban_, bic, owner, company_, modelid_).from(bankAccount)
   val (
     id,
     name,
@@ -27,7 +24,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     zip,
     city,
     state,
-    country,
+    //country,
     phone,
     email,
     account,
@@ -40,12 +37,45 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     changedate,
     postingdate
   ) = customer.columns
-  val X        =
-    id ++ name ++ description ++ street ++ zip ++ city ++ state ++ country ++ phone ++ email ++ account ++ oaccount ++ iban ++ vatcode ++ company ++ modelid ++ enterdate ++ changedate ++ postingdate
-  val X2 =
-    id ++ name ++ description ++ street ++ zip ++ city ++ state ++ country ++ phone ++ email ++ account ++ oaccount ++ iban_ ++ vatcode ++ company ++ modelid ++ enterdate ++ changedate ++ postingdate
-  val SELECT   = select(X).from(customer)
-  val SELECT2   = select(X2).from(customer.join(bankAccount).on(id === owner))
+
+  val SELECT   = select(id,
+    name,
+    description,
+    street,
+    zip,
+    city,
+    state,
+    //country,
+    phone,
+    email,
+    account,
+    oaccount,
+    iban,
+    vatcode,
+    company,
+    modelid,
+    enterdate,
+    changedate,
+    postingdate).from(customer)
+  val SELECT2   = select(id,
+    name,
+    description,
+    street,
+    zip,
+    city,
+    state,
+    //country,
+    phone,
+    email,
+    account,
+    oaccount,
+    iban_,
+    vatcode,
+    company,
+    modelid,
+    enterdate,
+    changedate,
+    postingdate).from(customer.join(bankAccount).on(id === owner))
 
   def toTuple(c: Customer)                                                             = (
     c.id,
@@ -55,7 +85,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     c.zip,
     c.city,
     c.state,
-    c.country,
+    //c.country,
     c.phone,
     c.email,
     c.account,
@@ -69,7 +99,25 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     c.postingdate
   )
   override def create(c: Customer): ZIO[Any, RepositoryError, Unit]                    = {
-    val query = insertInto(customer)(X).values(toTuple(c))
+    val query = insertInto(customer)(id,
+      name,
+      description,
+      street,
+      zip,
+      city,
+      state,
+      //country,
+      phone,
+      email,
+      account,
+      oaccount,
+      iban,
+      vatcode,
+      company,
+      modelid,
+      enterdate,
+      changedate,
+      postingdate).values(toTuple(c))
 
     ZIO.logDebug(s"Query to insert Customer is ${renderInsert(query)}") *>
       execute(query)
@@ -78,14 +126,32 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
   }
   override def create(models: List[Customer]): ZIO[Any, RepositoryError, Int]          = {
     val data  = models.map(toTuple(_)) // Customer.unapply(_).get)
-    val query = insertInto(customer)(X).values(data)
+    val query = insertInto(customer)(id,
+      name,
+      description,
+      street,
+      zip,
+      city,
+      state,
+      //country,
+      phone,
+      email,
+      account,
+      oaccount,
+      iban,
+      vatcode,
+      company,
+      modelid,
+      enterdate,
+      changedate,
+      postingdate).values(data)
 
     ZIO.logDebug(s"Query to insert CustomerXX is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
   }
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] =
-    execute(deleteFrom(customer).where((id === item.toLong) && (company === companyId)))
+    execute(deleteFrom(customer).where((id === item) && (company === companyId)))
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getCause()))
 
@@ -99,6 +165,16 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
         .provideLayer(driverLayer)
         .mapError(e => RepositoryError(e.getCause()))
   }
+
+  def listBankAccount(companyId: String): ZStream[Any, RepositoryError, BankAccount] = {
+    val selectAll = SELECT_BANK_ACCOUNT.where(company_ === companyId)
+    execute(selectAll.to((BankAccount.apply _).tupled))
+      .provideDriver(driverLayer)
+  }
+  override def all(companyId: String): ZIO[Any, RepositoryError, List[Customer]] = for {
+    customers <- list(companyId).runCollect.map(_.toList)
+    bankAccounts_ <- listBankAccount(companyId).runCollect.map(_.toList)
+  } yield customers.map(c=>c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
 
   override def list(companyId: String): ZStream[Any, RepositoryError, Customer]              = {
     val selectAll = SELECT.where(company === companyId)

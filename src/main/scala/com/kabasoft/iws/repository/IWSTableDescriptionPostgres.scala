@@ -2,17 +2,10 @@ package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import zio._
-import zio.schema.{ Schema, StandardType }
-import zio.sql.postgresql.{ PostgresJdbcModule, PostgresSqlModule }
+import zio.sql.postgresql.{PostgresJdbcModule, PostgresSqlModule}
 import zio.stream._
 
-import java.time.Instant
-import java.time.format.DateTimeFormatter
-
 trait IWSTableDescriptionPostgres extends PostgresSqlModule with PostgresJdbcModule {
-
-  implicit val instantSchema: Schema[Instant] =
-    Schema.primitive(StandardType.InstantType(DateTimeFormatter.ISO_INSTANT))
 
   implicit class ZStreamSqlExt[T](zstream: ZStream[SqlDriver, Exception, T]) {
     def provideDriver(driver: ULayer[SqlDriver]): ZStream[Any, RepositoryError, T] =
@@ -26,10 +19,10 @@ trait IWSTableDescriptionPostgres extends PostgresSqlModule with PostgresJdbcMod
         case None    => ZIO.unit
         case Some(e) => println("Message:" + e.getMessage()); ZIO.logError(e.getMessage())
       }.mapError {
-        case None    =>
-          RepositoryError(
-            new RuntimeException(s"Object with id/name $id does not exists")
-          )
+        case None    =>println(s"Object with id/name $id does not exists");
+          RepositoryError( new Throwable(s"Object with id/name $id does not exists"))
+            //new RuntimeException(s"Object with id/name $id does not exists")
+        // )
         case Some(e) => RepositoryError(e.getCause())
       }
         .provide(driver)
