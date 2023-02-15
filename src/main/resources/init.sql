@@ -81,6 +81,33 @@ CREATE TABLE bankstatement(
                               posted      boolean,
                               modelid     integer);
 
+create table if not exists public.costcenter
+(
+    id          varchar(50)                    not null
+    primary key,
+    name        varchar(255)                   not null,
+    description varchar(255),
+    account     varchar(50)                    not null,
+    postingdate timestamp default CURRENT_DATE not null,
+    changedate  timestamp default CURRENT_DATE not null,
+    enterdate   timestamp default CURRENT_DATE not null,
+    company     varchar(50)                    not null,
+    modelid     integer   default 6            not null
+    );
+create table if not exists public.module
+(
+    id          varchar(50)                       not null
+    primary key,
+    name        varchar(255)                      not null,
+    description varchar(255),
+    postingdate timestamp    default CURRENT_DATE not null,
+    changedate  timestamp    default CURRENT_DATE not null,
+    enterdate   timestamp    default CURRENT_DATE not null,
+    company     varchar(50)                       not null,
+    modelid     integer      default 6            not null,
+    path        varchar(255) default '/'::character varying
+    );
+
 create table  bank
 (
     id            varchar(50)                    not null
@@ -267,7 +294,22 @@ create table if not exists company
     income_stmt_acc      varchar                        not null,
     modelid               integer                        not null
 );
-
+create table if not exists users
+(
+    id         integer generated always as identity
+    primary key,
+    user_name  varchar                                           not null
+    unique,
+    first_name varchar                                           not null,
+    last_name  varchar                                           not null,
+    email      varchar                                           not null,
+    hash       varchar                                           not null,
+    phone      varchar                                           not null,
+    department       varchar     default 'Customer'::character varying not null,
+    menu      varchar                                           not null,
+    company    varchar(20) default '1000'::character varying     not null,
+    modelid    integer     default 111
+    );
 insert into company (id, name, street, zip, city, state, email, partner, phone, bank_acc, iban, tax_code, vat_code, currency, locale, balance_sheet_acc, income_stmt_acc, modelid)
 values ('1000', 'ABC GmbH', 'Word stree1 0','49110','FF', 'DE', 'info@mail.com','John', '+001-00000'
        ,'1810','DE', 'XXX/XXXX/XXXX','v5','EUR',  'de_DE', '9900', '9800', 10);
@@ -317,14 +359,19 @@ values
 
 insert into customer (id, name, description,street,zip,city,state,phone,email,account,oaccount,iban,vatcode,company,modelid,enterdate,changedate,postingdate)
 values ('5004','Kunde ( Sonstige Erloes)','Kunde ( Sonstige Erloes)','sonstige Str 1', '47111','Nirvana', 'WORLD'
-       , '+000000000', 'myMail@mail.com','1217', '1217', 'DE27662900000001470004X','v0', '1000', 3, current_timestamp, current_timestamp
-       , current_timestamp),
+       , '+000000000', 'myMail@mail.com','1217', '1217', 'DE27662900000001470004X','v0', '1000', 3, current_timestamp, current_timestamp, current_timestamp),
        ('5014','KKM AG', 'KKM AG','Laatzer str 0', '5009', 'Hannover', 'Niedersachsen'
-       , '+000000001', 'yourMail@mail.com','1445', '4487', 'DE27662900000001470004X','v0', '1000', 3, current_timestamp, current_timestamp
-       , current_timestamp);
+       , '+000000001', 'yourMail@mail.com','1445', '4487', 'DE27662900000001470004X','v0', '1000', 3, current_timestamp, current_timestamp, current_timestamp),
+       ('5222','Dummy', 'Dummy','Dummy', 'Dummy', 'Dummy', 'Dummy'
+       , 'Dummy', 'dummy@dummy.com','1215', '111111', 'DEddddddddddddddddommy','v5', '1000', 3, '2018-01-01 01:00:00.000'
+       , '2018-01-01 01:00:00.000', '2018-01-01 01:00:00.000');
+
 
 insert into supplier (id, name, description,street,zip,city,state,phone,email,account,oaccount,iban,vatcode,company,modelid,enterdate,changedate,postingdate)
-values ('70034','Sonstige GWG Lieferenten','Sonstige GWG Lieferenten','sonstige Str 1', '47111', 'Nirvana', 'WORLD'
+values ('70000','Dummy','Dummy','', '', '', '', '', '','331040', '6825', 'DE8448050161004700827X','v5',
+        '1000', 1, TO_TIMESTAMP('2018-12-31 12:00:00','YYYY-MM-DD HH:MI:SS'), TO_TIMESTAMP('2018-12-31 12:00:00','YYYY-MM-DD HH:MI:SS'),
+        TO_TIMESTAMP('2018-12-31 12:00:00','YYYY-MM-DD HH:MI:SS')),
+       ('70034','Sonstige GWG Lieferenten','Sonstige GWG Lieferenten','sonstige Str 1', '47111', 'Nirvana', 'WORLD'
        , '+000000000', 'myMail@mail.com','331031', '4855', 'DE27662900000001470034X','v5', '1000', 1, current_timestamp, current_timestamp
        , current_timestamp),
        ('70060', 'Sonstige ITK Lieferanten', 'Sonstige ITK Lieferanten','sonstige Str 1', '47111', 'Nirvana', 'WORLD'
@@ -357,30 +404,30 @@ values
     ('B Mady',current_timestamp, current_timestamp,'TEST POSTING','TEST PURPOSE','B Mady','DE27662900000001470034X','43007711BIC', -1000, 'EUR','INFO TXT','1000','47114300IBAN',false,18 ),
     ('KABA Soft GmbH',current_timestamp, current_timestamp,'TEST POSTING','TEST PURPOSE','KABA Soft GmbH','DE27662900000001470004X','470434300IBAN', 1000, 'EUR','INFO TXT','1000','47114300IBAN',false,18 );
 
+
 insert into bank
 (id, name, description, postingdate, changedate, enterdate,  company, modelid)
-values('4711','myFirstBank','myFirstBank',current_timestamp, current_timestamp, current_timestamp, '1000',11);
+values('4711','myFirstBank','myFirstBank',current_timestamp, current_timestamp, current_timestamp, '1000',11),
+      ('COLSDE33','SPARKASSE KOELN-BONN','SPARKASSE KOELN-BONN','2018-01-01 01:00:00.000', '2018-01-01 01:00:00.000', '2018-01-01 01:00:00.000', '1000',11);
+
+insert into costcenter (id, name, description,account, enterdate,changedate,postingdate, modelid, company)
+values('300','Production','Production','800' ,'2018-01-01 01:00:00.000', '2018-01-01 01:00:00.000', '2018-01-01 01:00:00.000',6,'1000' ),
+      ('000','Dummy','Dummy','Dummy' ,'2018-01-01 01:00:00.000', '2018-01-01 01:00:00.000', '2018-01-01 01:00:00.000', 6,'1000' );
+
+
+insert into module (id, name, description,path,enterdate,changedate,postingdate, modelid, company)
+    values('0000','Dummy','Dummy', '','2018-01-01 01:00:00.000', '2018-01-01 01:00:00.000', '2018-01-01 01:00:00.000',300,'1000' );
 
 insert into vat
 (id, name, description, percent, input_vat_account, output_vat_account, postingdate, changedate, enterdate,  company, modelid)
 values
-    ('4711','myFirstVat','myFirstVat',1, '1406', '3806', current_timestamp, current_timestamp, current_timestamp, '1000',6);
+    ('v101','Dummy','Dummy',0.07, '0650', '0651', TO_TIMESTAMP('2018-12-31 12:00:00','YYYY-MM-DD HH:MI:SS'), TO_TIMESTAMP('2018-12-31 12:00:00','YYYY-MM-DD HH:MI:SS'),
+     TO_TIMESTAMP('2018-12-31 12:00:00','YYYY-MM-DD HH:MI:SS'), '1000',14),
+    ('4711','myFirstVat','myFirstVat',1, '1406', '3806', current_timestamp, current_timestamp, current_timestamp, '1000',14);
 
-create table if not exists users
-(
-    id         integer generated always as identity
-    primary key,
-    user_name  varchar                                           not null
-    unique,
-    first_name varchar                                           not null,
-    last_name  varchar                                           not null,
-    email      varchar                                           not null,
-    hash       varchar                                           not null,
-    phone      varchar                                           not null,
-    department       varchar     default 'Customer'::character varying not null,
-    menu      varchar                                           not null,
-    company    varchar(20) default '1000'::character varying     not null,
-    modelid    integer     default 111
-    );
+
 insert into users(user_name, first_name, last_name,  hash, email, phone, department, menu, company, modelid)
-values('myUserName','myUserFirstName','myUserLastName', 'hash1', 'myEmail@email.com', '+49-1111-11100','Accountant', '1,10', '1000',111);
+values('jdegoes011','John','dgoes', '$21a$10$0IZtq3wGiRQSMIuoIgNKrePjQfmGFRgkpnHwyY9RcbUhZxU9Ha1mCX', 'whatYourGrandma1Name@gmail.com'
+   , '11-4711-0123','Admin', '1300,9,1120,3,14,1000,18,1,112,106,11,6,10', '1000',111),
+   ('myUserName','myUserFirstName','myUserLastName', 'hash1', 'myEmail@email.com', '+49-1111-11100','Accountant', '1,10', '1000',111);
+
