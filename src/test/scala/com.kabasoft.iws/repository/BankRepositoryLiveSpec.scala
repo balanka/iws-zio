@@ -33,7 +33,7 @@ object BankRepositoryLiveSpec extends ZIOSpecDefault {
         for {
           oneRow <- BankRepository.create(banks)
           count <- BankRepository.list(company).runCount
-        } yield assertTrue(oneRow == 2) && assertTrue(count == 3L)
+        } yield assertTrue(oneRow == 2) && assertTrue(count == 4L)
       },
       test("get a Bank by its id") {
         for {

@@ -36,13 +36,13 @@ object VatRepositoryLiveSpec extends ZIOSpecDefault {
       test("count all vats") {
         for {
           count <- VatRepository.list(company).runCount
-        } yield assertTrue(count==1L)
+        } yield assertTrue(count==2L)
       },
       test("insert two new vats") {
         for {
           oneRow <- VatRepository.create(vats)
           count <- VatRepository.list(company).runCount
-        } yield assertTrue(oneRow==2) && assertTrue(count==3L)
+        } yield assertTrue(oneRow==2) && assertTrue(count==4L)
       },
       test("get a Vat by its id") {
         for {

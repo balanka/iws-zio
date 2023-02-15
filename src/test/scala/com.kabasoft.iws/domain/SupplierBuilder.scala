@@ -1,6 +1,7 @@
 package com.kabasoft.iws.domain
 
 import com.kabasoft.iws.domain.AccountBuilder.{accountRecvId, companyId, incaccountId, vataccountId}
+
 import java.time.Instant
 
 object SupplierBuilder {
@@ -13,7 +14,7 @@ object SupplierBuilder {
   val supplierIban3 = "DE84480501610047008271"
   val iban = "DE8448050161004700827X"
   val name = "Sontige Lieferant Rechts und Beratung"
-  val vtime = instantFromStr("2018-01-01T00:00:00.00Z")
+  val vtime = instantFromStr("2018-12-30T23:00:00Z")
   val supplier1 = Supplier(supplierId1, "B Mady", "Bintou Mady Kaba","Bielefelder Str 1", "33615" , "Bielefeld", "NRW",  "0521-471163",
       "0521-471164","xxx@domain.de", accountRecvId, incaccountId, supplierIban3, vataccountId,1000)
 

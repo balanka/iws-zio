@@ -13,7 +13,7 @@ import zio.json.DecoderOps
 object BankEndpoint {
 
 
-  private val createEndpoint = Http.collectZIO[Request] {
+  val bankCreateEndpoint = Http.collectZIO[Request] {
     case req@Method.POST -> !! / "bank" =>
       (for {
         body <- req.body.asString
@@ -32,13 +32,13 @@ object BankEndpoint {
   }
 
 
-  val allAPI = EndpointSpec.get[Unit](literal("bank")).out[List[Bank]]
-   val byIdAPI = EndpointSpec.get[String](literal("bank")/ RouteCodec.string("id") ).out[Bank]
+  val bankAllAPI = EndpointSpec.get[Unit](literal("bank")).out[List[Bank]]
+  val bankByIdAPI = EndpointSpec.get[String](literal("bank")/ RouteCodec.string("id") ).out[Bank]
   private val deleteAPI = EndpointSpec.get[String](literal("bank")/ RouteCodec.string("id") ).out[Int]
 
 
-   val allEndpoint = allAPI.implement ( _ => BankRepository.all("1000"))
-   val byIdEndpoint = byIdAPI.implement (id =>BankRepository.getBy(id,"1000"))
+   val bankAllEndpoint = bankAllAPI.implement ( _ => BankRepository.all("1000"))
+   val bankByIdEndpoint = bankByIdAPI.implement (id =>BankRepository.getBy(id,"1000"))
   private val deleteEndpoint = deleteAPI.implement (id =>BankRepository.delete(id,"1000"))
 
 
@@ -48,10 +48,10 @@ object BankEndpoint {
  // val middleware: Middleware[Any, Auth.Credentials, Unit] =
  //   middlewareSpec.implementIncoming(_ => ZIO.unit)
 
-  private val serviceSpec = (allAPI.toServiceSpec ++ byIdAPI.toServiceSpec ++ deleteAPI.toServiceSpec)
+  private val serviceSpec = (bankAllAPI.toServiceSpec ++ bankByIdAPI.toServiceSpec ++ deleteAPI.toServiceSpec)
     //.middleware(middlewareSpec)
 
   val appBank: HttpApp[BankRepository, AppError.RepositoryError] =
-    serviceSpec.toHttpApp(allEndpoint ++ byIdEndpoint++deleteEndpoint)++createEndpoint
+    serviceSpec.toHttpApp(bankAllEndpoint ++ bankByIdEndpoint++deleteEndpoint)++bankCreateEndpoint
 
 }
