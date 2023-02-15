@@ -7,7 +7,7 @@ import java.time.Instant
 object VatBuilder {
   val vatId1 = "v101"
   val name = "Dummy"
-  val vtime = instantFromStr("2018-12-29T23:00:00Z")
+  val vtime = instantFromStr("2018-12-28T23:00:00Z")
   val amount =  new BigDecimal("0.07").setScale(2, RoundingMode.UNNECESSARY)
   val vat1 = Vat(vatId1, name, name, amount, "0650" , "0651", vtime,  vtime, vtime, companyId, 14)
 
