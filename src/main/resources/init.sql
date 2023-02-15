@@ -369,8 +369,8 @@ values ('5004','Kunde ( Sonstige Erloes)','Kunde ( Sonstige Erloes)','sonstige S
 
 insert into supplier (id, name, description,street,zip,city,state,phone,email,account,oaccount,iban,vatcode,company,modelid,enterdate,changedate,postingdate)
 values ('70000','Dummy','Dummy','', '', '', '', '', '','331040', '6825', 'DE8448050161004700827X','v5',
-        '1000', 1, TO_TIMESTAMP('2018-12-31 12:00:00','YYYY-MM-DD HH:MI:SS'), TO_TIMESTAMP('2018-12-31 12:00:00','YYYY-MM-DD HH:MI:SS'),
-        TO_TIMESTAMP('2018-12-31 12:00:00','YYYY-MM-DD HH:MI:SS')),
+        '1000', 1, TO_TIMESTAMP('2018-12-30 12:00:00','YYYY-MM-DD HH:MI:SS'), TO_TIMESTAMP('2018-12-30 12:00:00','YYYY-MM-DD HH:MI:SS'),
+        TO_TIMESTAMP('2018-12-30 12:00:00','YYYY-MM-DD HH:MI:SS')),
        ('70034','Sonstige GWG Lieferenten','Sonstige GWG Lieferenten','sonstige Str 1', '47111', 'Nirvana', 'WORLD'
        , '+000000000', 'myMail@mail.com','331031', '4855', 'DE27662900000001470034X','v5', '1000', 1, current_timestamp, current_timestamp
        , current_timestamp),
@@ -421,8 +421,8 @@ insert into module (id, name, description,path,enterdate,changedate,postingdate,
 insert into vat
 (id, name, description, percent, input_vat_account, output_vat_account, postingdate, changedate, enterdate,  company, modelid)
 values
-    ('v101','Dummy','Dummy',0.07, '0650', '0651', TO_TIMESTAMP('2018-12-31 12:00:00','YYYY-MM-DD HH:MI:SS'), TO_TIMESTAMP('2018-12-31 12:00:00','YYYY-MM-DD HH:MI:SS'),
-     TO_TIMESTAMP('2018-12-31 12:00:00','YYYY-MM-DD HH:MI:SS'), '1000',14),
+    ('v101','Dummy','Dummy',0.07, '0650', '0651', TO_TIMESTAMP('2018-12-30 12:00:00','YYYY-MM-DD HH:MI:SS'), TO_TIMESTAMP('2018-12-30 12:00:00','YYYY-MM-DD HH:MI:SS'),
+     TO_TIMESTAMP('2018-12-30 12:00:00','YYYY-MM-DD HH:MI:SS'), '1000',14),
     ('4711','myFirstVat','myFirstVat',1, '1406', '3806', current_timestamp, current_timestamp, current_timestamp, '1000',14);
 
 
