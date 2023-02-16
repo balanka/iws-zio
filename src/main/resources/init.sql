@@ -15,9 +15,9 @@ create table if not exists customer
     iban            varchar(50),
     vatcode         varchar(50),
     oaccount varchar(50),
-    postingdate    timestamp   default CURRENT_DATE not null,
-    changedate   timestamp   default CURRENT_DATE not null,
-    enterdate      timestamp   default CURRENT_DATE not null,
+    postingdate    timestamp   default CURRENT_TIMESTAMP not null,
+    changedate   timestamp   default CURRENT_TIMESTAMP not null,
+    enterdate      timestamp   default CURRENT_TIMESTAMP not null,
     company         varchar(50)                      not null,
     modelid         integer     default 3            not null,
     country         varchar(50) default ''::character varying
@@ -38,9 +38,9 @@ create table if not exists supplier(
     iban           varchar(50),
     vatcode        varchar(50),
     oaccount varchar(50),
-    postingdate   date        default CURRENT_DATE           not null,
-    changedate  date        default CURRENT_DATE           not null,
-    enterdate     date        default CURRENT_DATE           not null,
+    postingdate   timestamp        default CURRENT_TIMESTAMP           not null,
+    changedate  timestamp        default CURRENT_TIMESTAMP           not null,
+    enterdate     timestamp        default CURRENT_TIMESTAMP           not null,
     company        varchar(50)                                not null,
     modelid        integer     default 5                      not null,
     country        varchar(50) default 'X'::character varying not null
@@ -88,9 +88,9 @@ create table if not exists public.costcenter
     name        varchar(255)                   not null,
     description varchar(255),
     account     varchar(50)                    not null,
-    postingdate timestamp default CURRENT_DATE not null,
-    changedate  timestamp default CURRENT_DATE not null,
-    enterdate   timestamp default CURRENT_DATE not null,
+    postingdate timestamp   default CURRENT_TIMESTAMP not null,
+    changedate  timestamp   default CURRENT_TIMESTAMP not null,
+    enterdate   timestamp   default CURRENT_TIMESTAMP not null,
     company     varchar(50)                    not null,
     modelid     integer   default 6            not null
     );
@@ -100,9 +100,9 @@ create table if not exists public.module
     primary key,
     name        varchar(255)                      not null,
     description varchar(255),
-    postingdate timestamp    default CURRENT_DATE not null,
-    changedate  timestamp    default CURRENT_DATE not null,
-    enterdate   timestamp    default CURRENT_DATE not null,
+    postingdate timestamp   default CURRENT_TIMESTAMP not null,
+    changedate  timestamp   default CURRENT_TIMESTAMP not null,
+    enterdate   timestamp   default CURRENT_TIMESTAMP not null,
     company     varchar(50)                       not null,
     modelid     integer      default 6            not null,
     path        varchar(255) default '/'::character varying
@@ -114,9 +114,9 @@ create table  bank
         primary key,
     name          varchar(255)                   not null,
     description   varchar(255),
-    postingdate  timestamp default CURRENT_DATE not null,
-    changedate timestamp default CURRENT_DATE not null,
-    enterdate    timestamp default CURRENT_DATE not null,
+    postingdate  timestamp   default CURRENT_TIMESTAMP not null,
+    changedate timestamp   default CURRENT_TIMESTAMP not null,
+    enterdate    timestamp   default CURRENT_TIMESTAMP not null,
     company       varchar(50)                    not null,
     modelid       integer                        not null
 );
@@ -129,9 +129,9 @@ create table  vat
     percent          numeric(12, 2) default 0            not null,
     input_vat_account  varchar(50)                         not null,
     output_vat_account varchar(50)                         not null,
-    postingdate     timestamp      default CURRENT_DATE not null,
-    changedate    timestamp      default CURRENT_DATE not null,
-    enterdate       timestamp      default CURRENT_DATE not null,
+    postingdate     timestamp   default CURRENT_TIMESTAMP not null,
+    changedate    timestamp   default CURRENT_TIMESTAMP not null,
+    enterdate     timestamp   default CURRENT_TIMESTAMP not null,
     company          varchar(50)                         not null,
     modelid          integer                             not null
 );
@@ -140,9 +140,9 @@ create table  account
     id            varchar(50)  not null primary key,
     name          varchar(255)                        not null,
     description   varchar(255),
-    postingdate  timestamp      default CURRENT_DATE not null,
-    changedate timestamp      default CURRENT_DATE not null,
-    enterdate    timestamp      default CURRENT_DATE not null,
+    postingdate  timestamp      default CURRENT_TIMESTAMP not null,
+    changedate timestamp      default CURRENT_TIMESTAMP not null,
+    enterdate    timestamp      default CURRENT_TIMESTAMP not null,
     company       varchar(50)                         not null,
     modelid       integer        default 9            not null,
     account       varchar(50),
@@ -369,9 +369,7 @@ values ('5004','Kunde ( Sonstige Erloes)','Kunde ( Sonstige Erloes)','sonstige S
 
 insert into supplier (id, name, description,street,zip,city,state,phone,email,account,oaccount,iban,vatcode,company,modelid,enterdate,changedate,postingdate)
 values ('70000','Dummy','Dummy','', '', '', '', '', '','331040', '6825', 'DE8448050161004700827X','v5',
-        '1000', 1, TO_TIMESTAMP('2018-12-29 01:00:00', 'YYYY-MM-DD hh24:mi:ss')::timestamp without time zone at time zone 'Etc/UTC',
-        TO_TIMESTAMP('2018-12-29 01:00:00', 'YYYY-MM-DD hh24:mi:ss')::timestamp without time zone at time zone 'Etc/UTC',
-        TO_TIMESTAMP('2018-12-29 01:00:00', 'YYYY-MM-DD hh24:mi:ss')::timestamp without time zone at time zone 'Etc/UTC'),
+        '1000', 1, '2018-01-01 01:00:00.000', '2018-01-01 01:00:00.000', '2018-01-01 01:00:00.000'),
        ('70034','Sonstige GWG Lieferenten','Sonstige GWG Lieferenten','sonstige Str 1', '47111', 'Nirvana', 'WORLD'
        , '+000000000', 'myMail@mail.com','331031', '4855', 'DE27662900000001470034X','v5', '1000', 1, current_timestamp, current_timestamp
        , current_timestamp),
@@ -422,9 +420,7 @@ insert into module (id, name, description,path,enterdate,changedate,postingdate,
 insert into vat
 (id, name, description, percent, input_vat_account, output_vat_account, postingdate, changedate, enterdate,  company, modelid)
 values
-    ('v101','Dummy','Dummy',0.07, '0650', '0651', TO_TIMESTAMP('2018-12-29 01:00:00', 'YYYY-MM-DD hh24:mi:ss')::timestamp without time zone at time zone 'Etc/UTC',
-     TO_TIMESTAMP('2018-12-29 01:00:00', 'YYYY-MM-DD hh24:mi:ss')::timestamp without time zone at time zone 'Etc/UTC',
-     TO_TIMESTAMP('2018-12-29 01:00:00', 'YYYY-MM-DD hh24:mi:ss')::timestamp without time zone at time zone 'Etc/UTC'),
+    ('v101','Dummy','Dummy',0.07, '0650', '0651', '2018-01-01 01:00:00.000', '2018-01-01 01:00:00.000', '2018-01-01 01:00:00.000', '1000',14),
     ('4711','myFirstVat','myFirstVat',1, '1406', '3806', current_timestamp, current_timestamp, current_timestamp, '1000',14);
 
 
