@@ -7,8 +7,8 @@ object CostcenterBuilder {
   val ccId ="300"
   val accId ="800"
   val ccName ="Production"
-  val cc = Costcenter(ccId, ccName, ccName, accId, instantFromStr("2018-01-01T00:00:00.00Z"),
-    instantFromStr("2018-01-01T00:00:00.00Z"), instantFromStr("2018-01-01T00:00:00.00Z"), 6, companyId)
+  val vtime = instantFromStr("2018-01-01T00:00:00.00Z")
+  val cc = Costcenter(ccId, ccName, ccName, accId, vtime, vtime, vtime, 6, companyId)
 
   def instantFromStr(str:String)=Instant.parse(str)
 }

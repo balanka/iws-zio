@@ -36,7 +36,7 @@ object UserRepositoryLiveSpec extends ZIOSpecDefault {
         for {
           oneRow <- UserRepository.create(users)
           count <- UserRepository.list(company).runCount
-        } yield assertTrue(count==3L)  && assertTrue(oneRow==2)
+        } yield assertTrue(count==4L)  && assertTrue(oneRow==2)
       },
       test("get a User by  userName") {
         for {

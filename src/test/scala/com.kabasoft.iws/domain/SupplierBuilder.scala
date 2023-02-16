@@ -1,6 +1,7 @@
 package com.kabasoft.iws.domain
 
 import com.kabasoft.iws.domain.AccountBuilder.{accountRecvId, companyId, incaccountId, vataccountId}
+
 import java.time.Instant
 
 object SupplierBuilder {
