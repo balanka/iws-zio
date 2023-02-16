@@ -98,9 +98,10 @@ object WebSpec2 extends ZIOSpecDefault with HttpAppTestExtensions { self =>
         },
 
     ).provideShared(ConnectionPool.live, PostgresContainer.connectionPoolConfigLayer, PostgresContainer.createContainer
-        , CustomerRepositoryImpl.live, ModuleRepositoryImpl.live, CostcenterRepositoryImpl.live, BankStatementRepositoryImpl.live
-        , BankRepositoryImpl.live, AccountServiceImpl.live, AccountRepositoryImpl.live, PacRepositoryImpl.live,
-        SupplierRepositoryImpl.live, UserRepositoryImpl.live, VatRepositoryImpl.live)
+        , CustomerRepositoryImpl.live, ModuleRepositoryImpl.live, CostcenterRepositoryImpl.live
+        , BankStatementRepositoryImpl.live, BankRepositoryImpl.live, AccountServiceImpl.live
+        , AccountRepositoryImpl.live, PacRepositoryImpl.live, SupplierRepositoryImpl.live
+        , UserRepositoryImpl.live, VatRepositoryImpl.live)
   )
 
   private def runApp[R, E](app: HttpApp[R, E], request: Request)=
