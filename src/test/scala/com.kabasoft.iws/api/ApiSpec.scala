@@ -6,14 +6,16 @@ import com.kabasoft.iws.domain.CustomerBuilder
 import com.kabasoft.iws.repository.{BankRepository, BankRepositoryImpl, CostcenterRepository, CostcenterRepositoryImpl, CustomerRepository, CustomerRepositoryImpl, ModuleRepository, ModuleRepositoryImpl, SupplierRepository, SupplierRepositoryImpl, UserRepository, UserRepositoryImpl, VatRepository, VatRepositoryImpl}
 import com.kabasoft.iws.api.CostcenterEndpoint.ccByIdEndpoint
 import zio.http.api.HttpCodec.literal
-import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.api.Protocol.{vatEncoder, _}
 import com.kabasoft.iws.domain.BankBuilder.bank
 import com.kabasoft.iws.api.CustomerEndpoint.custByIdEndpoint
 import com.kabasoft.iws.api.ModuleEndpoint.moduleByIdEndpoint
 import com.kabasoft.iws.api.SupplierEndpoint.supByIdEndpoint
 import com.kabasoft.iws.api.UserEndpoint.userByUserNameEndpoint
-import com.kabasoft.iws.api.VatEndpoint.vatByIdEndpoint
+import com.kabasoft.iws.api.VatEndpoint.{vatByIdEndpoint, vatCreateEndpoint}
+import com.kabasoft.iws.domain.VatBuilder.vat1x
 import com.kabasoft.iws.repository.container.PostgresContainer
+import zio.http.{ Body, Http, Response}
 //import com.kabasoft.iws.domain.AccountBuilder.acc
 import com.kabasoft.iws.domain.CostcenterBuilder.cc
 import com.kabasoft.iws.domain.ModuleBuilder.m
@@ -75,14 +77,16 @@ object ApiSpec extends ZIOSpecDefault {
         test("Vat integration test") {
           val vatAllEndpoint = EndpointSpec.get(literal("vat")).out[Int].implement(_ => VatRepository.all("1000").map(_.size))
           val testRoutes = testApi(vatByIdEndpoint ++ vatAllEndpoint) _
-          testRoutes("/vat", "2") && testRoutes("/vat/v101", vat1.toJson)
+          val testRoutes1 = testPostApi(vatCreateEndpoint) _
+          testRoutes("/vat", "2") && testRoutes("/vat/v101", vat1.toJson) && testRoutes1("/vat", List(vat1x).toJson, "")
+
         }
     ).provide(ConnectionPool.live,  BankRepositoryImpl.live,
         CostcenterRepositoryImpl.live, CustomerRepositoryImpl.live, SupplierRepositoryImpl.live, VatRepositoryImpl.live,
         ModuleRepositoryImpl.live, UserRepositoryImpl.live, PostgresContainer.connectionPoolConfigLayer, PostgresContainer.createContainer)
     )
 
-
+//val encoded  = request.body.asString(request.charset)
   def testApi[R, E](service: Endpoints[R, E, _])(
     url: String, expected: String): ZIO[R, E, TestResult] = {
     val request = Request.get(url = URL.fromString(url).toOption.get)
@@ -92,5 +96,13 @@ object ApiSpec extends ZIOSpecDefault {
     } yield assertTrue(body == expected)
   }
 
+  def testPostApi[R, E](app: Http[R, Nothing, Request, Response] )(
+    url: String, body:String, expected: String): ZIO[R, E, TestResult] = {
+    val request = Request.post(Body.fromString(body), URL.fromString(url).toOption.get)
+    for {
+      response <- app.runZIO(request).mapError(_.get)
+      body <- response.body.asString.orDie
+    } yield assertTrue(body == expected)
+  }
 }
 

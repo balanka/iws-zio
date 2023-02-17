@@ -14,13 +14,13 @@ import zio.json.DecoderOps
 object VatEndpoint {
 
   //private val createAPI = EndpointSpec.post[Bank](literal("bank")/RouteCodec.).out[Int]
-  private val createEndpoint = Http.collectZIO[Request] {
+  val vatCreateEndpoint: Http[VatRepository, Nothing, Request, Response] = Http.collectZIO[Request] {
     case req@Method.POST -> !! / "vat" =>
       (for {
         body <- req.body.asString
           .flatMap(request =>
             ZIO
-              .fromEither(request.fromJson[Vat])
+              .fromEither(request.fromJson[List[Vat]])
               .mapError(e => new Throwable(e))
           )
           .mapError(e => AppError.DecodingError(e.getMessage()))
@@ -42,6 +42,6 @@ object VatEndpoint {
   private val serviceSpec = (vatAllAPI.toServiceSpec ++ vatByIdAPI.toServiceSpec++deleteAPI.toServiceSpec)
 
   val appVat: HttpApp[VatRepository, AppError.RepositoryError] =
-    serviceSpec.toHttpApp(vatAllEndpoint ++ vatByIdEndpoint++deleteEndpoint)++createEndpoint
+    serviceSpec.toHttpApp(vatAllEndpoint ++ vatByIdEndpoint++deleteEndpoint)++vatCreateEndpoint
 
 }
