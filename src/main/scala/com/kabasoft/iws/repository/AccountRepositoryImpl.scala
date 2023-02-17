@@ -72,6 +72,11 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
     debit,
     credit
   ).from(account)
+
+  def whereClause(Id: String,  companyId: String) =
+    List(id === Id, company === companyId)
+      .fold(Expr.literal(true))(_ && _)
+
   override def create(c: Account): ZIO[Any, RepositoryError, Unit]                     = {
     val query = insertInto(account)(id, name, description, enterdate, changedate, postingdate, company, modelid, accountid, isDebit, balancesheet, currency, idebit, icredit, debit, credit).values(tuple2(c))
 
@@ -89,7 +94,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
         .provideAndLog(driverLayer)
   }
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] =
-    execute(deleteFrom(account).where((id === item) && (company === companyId)))
+    execute(deleteFrom(account).where(whereClause (item, companyId)))
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getCause()))
 
@@ -102,7 +107,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
       .set(isDebit, model.isDebit)
       .set(balancesheet, model.balancesheet)
       .set(currency, model.currency)
-      .where((id === model.id) && (company === model.company))
+      .where(whereClause (model.id, model.company))
 
   override def modify(model: Account): ZIO[Any, RepositoryError, Int]        = {
     val update_ = build(Account_(model))

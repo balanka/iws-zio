@@ -281,6 +281,7 @@ create table if not exists company
     zip                   varchar,
     city                  varchar,
     state                 varchar,
+    country               varchar,
     email                 varchar,
     partner               varchar,
     phone                 varchar,
@@ -310,8 +311,8 @@ create table if not exists users
     company    varchar(20) default '1000'::character varying     not null,
     modelid    integer     default 111
     );
-insert into company (id, name, street, zip, city, state, email, partner, phone, bank_acc, iban, tax_code, vat_code, currency, locale, balance_sheet_acc, income_stmt_acc, modelid)
-values ('1000', 'ABC GmbH', 'Word stree1 0','49110','FF', 'DE', 'info@mail.com','John', '+001-00000'
+insert into company (id, name, street, zip, city, state, country, email, partner, phone, bank_acc, iban, tax_code, vat_code, currency, locale, balance_sheet_acc, income_stmt_acc, modelid)
+values ('1000', 'ABC GmbH', 'Word stree1 0','49110','FF', 'DE','Deutschland', 'info@mail.com','John', '+001-00000'
        ,'1810','DE', 'XXX/XXXX/XXXX','v5','EUR',  'de_DE', '9900', '9800', 10);
 
 

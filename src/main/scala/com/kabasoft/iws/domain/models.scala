@@ -13,18 +13,16 @@ import scala.annotation.tailrec
 import java.math.BigDecimal
 import com.kabasoft.iws.domain.FinancialsTransaction.DerivedTransaction_Type
 
-
-
 final case class Company(id: String,
                          name: String,
                          street: String,
                          zip: String,
                          city: String,
                          state: String,
-                         //country: String,
-                         phone: String,
+                         country: String,
                          email: String,
                          partner: String,
+                         phone: String,
                          bankAcc: String,
                          iban: String,
                          taxCode: String,
@@ -33,8 +31,7 @@ final case class Company(id: String,
                          locale: String,
                          balanceSheetAcc: String,
                          incomeStmtAcc: String,
-                         modelid: Int
-                        )
+                         modelid: Int)
 sealed trait AppError extends Throwable
 
 object AppError {

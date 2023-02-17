@@ -15,9 +15,9 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
 
   val company = defineTable[Company]("company")
 
-  val (id, name, street, zip, city, state, email, partner, phone, bankAcc, iban, taxCode,vatCode, currency, locale, balanceSheetAcc, incomeStmtAcc, modelid) = company.columns
+  val (id, name, street, zip, city, state, country, email, partner, phone, bankAcc, iban, taxCode,vatCode, currency, locale, balanceSheetAcc, incomeStmtAcc, modelid) = company.columns
 
-  val SELECT              = select(id, name, street, zip, city, state, email, partner, phone, bankAcc, iban, taxCode,vatCode, currency, locale, balanceSheetAcc, incomeStmtAcc, modelid)
+  val SELECT              = select(id, name, street, zip, city, state, country, email, partner, phone, bankAcc, iban, taxCode,vatCode, currency, locale, balanceSheetAcc, incomeStmtAcc, modelid)
                            .from(company)
   def toTuple(c: Company) = (
     c.id,
@@ -26,7 +26,7 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
     c.zip,
     c.city,
     c.state,
-   // c.country,
+    c.country,
     c.email,
     c.partner,
     c.phone,
@@ -42,7 +42,7 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
   )
 //
   override def create(c: Company): ZIO[Any, RepositoryError, Unit]           = {
-    val query = insertInto(company)(id, name, street, zip, city, state, email, partner, phone, bankAcc, iban, taxCode,vatCode, currency, locale, balanceSheetAcc, incomeStmtAcc, modelid).values(toTuple(c))
+    val query = insertInto(company)(id, name, street, zip, city, state, country, email, partner, phone, bankAcc, iban, taxCode,vatCode, currency, locale, balanceSheetAcc, incomeStmtAcc, modelid).values(toTuple(c))
 
     ZIO.logDebug(s"Query to insert Company is ${renderInsert(query)}") *>
       execute(query)
@@ -51,7 +51,7 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
   }
   override def create(models: List[Company]): ZIO[Any, RepositoryError, Int] = {
     val data  = models.map(toTuple(_))
-    val query = insertInto(company)(id, name, street, zip, city, state, email, partner, phone, bankAcc, iban, taxCode,vatCode, currency, locale, balanceSheetAcc, incomeStmtAcc, modelid).values(data)
+    val query = insertInto(company)(id, name, street, zip, city, state, country, email, partner, phone, bankAcc, iban, taxCode,vatCode, currency, locale, balanceSheetAcc, incomeStmtAcc, modelid).values(data)
 
     ZIO.logDebug(s"Query to insert Company is ${renderInsert(query)}") *>
       execute(query)
@@ -84,7 +84,7 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
 
   override def list: ZStream[Any, RepositoryError, Company] = {
     val selectAll =
-      select(id, name, street, zip, city, state, email, partner, phone, bankAcc, iban, taxCode,vatCode, currency, locale, balanceSheetAcc, incomeStmtAcc, modelid).from(company)//.where(id === companyId)
+      select(id, name, street, zip, city, state, country,email, partner, phone, bankAcc, iban, taxCode,vatCode, currency, locale, balanceSheetAcc, incomeStmtAcc, modelid).from(company)//.where(id === companyId)
 
     /* ZStream.fromZIO(
       ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")
@@ -95,7 +95,7 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
   }
   override def getBy(Id: String): ZIO[Any, RepositoryError, Company]           = {
     val selectAll =
-      select(id, name, street, zip, city, state, email, partner, phone, bankAcc, iban, taxCode,vatCode, currency, locale, balanceSheetAcc, incomeStmtAcc, modelid).from(company)//.where(id === Id)
+      select(id, name, street, zip, city, state, country, email, partner, phone, bankAcc, iban, taxCode,vatCode, currency, locale, balanceSheetAcc, incomeStmtAcc, modelid).from(company)//.where(id === Id)
 
     //ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to((Company.apply _).tupled))
