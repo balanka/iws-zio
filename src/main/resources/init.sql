@@ -358,12 +358,12 @@ values
     (CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'4400'), '4400', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'),
      0, 200, 0, 0,'1000' , 'EUR', 106)   ;
 
-insert into customer (id, name, description,street,zip,city,state,phone,email,account,oaccount,iban,vatcode,company,modelid,enterdate,changedate,postingdate)
-values ('5004','Kunde ( Sonstige Erloes)','Kunde ( Sonstige Erloes)','sonstige Str 1', '47111','Nirvana', 'WORLD'
+insert into customer (id, name, description,street,zip,city,state, country, phone,email,account,oaccount,iban,vatcode,company,modelid,enterdate,changedate,postingdate)
+values ('5004','Kunde ( Sonstige Erloes)','Kunde ( Sonstige Erloes)','sonstige Str 1', '47111','Nirvana', 'WORLD', 'DE'
        , '+000000000', 'myMail@mail.com','1217', '1217', 'DE27662900000001470004X','v0', '1000', 3, current_timestamp, current_timestamp, current_timestamp),
-       ('5014','KKM AG', 'KKM AG','Laatzer str 0', '5009', 'Hannover', 'Niedersachsen'
+       ('5014','KKM AG', 'KKM AG','Laatzer str 0', '5009', 'Hannover', 'Niedersachsen', 'DE'
        , '+000000001', 'yourMail@mail.com','1445', '4487', 'DE27662900000001470004X','v0', '1000', 3, current_timestamp, current_timestamp, current_timestamp),
-       ('5222','Dummy', 'Dummy','Dummy', 'Dummy', 'Dummy', 'Dummy'
+       ('5222','Dummy', 'Dummy','Dummy', 'Dummy', 'Dummy', 'Dummy', 'DE'
        , 'Dummy', 'dummy@dummy.com','1215', '111111', 'DEddddddddddddddddommy','v5', '1000', 3, '2018-01-01T00:00:00.00Z'
        , '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z');
 

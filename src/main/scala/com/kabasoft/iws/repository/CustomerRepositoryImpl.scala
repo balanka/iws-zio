@@ -11,10 +11,13 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
 
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
 
-
   val customer = defineTable[Customer_]("customer")
   val bankAccount = defineTable[BankAccount]("bankaccount")
   val (iban_, bic, owner, company_, modelid_) = bankAccount.columns
+
+  def whereClause(Id: String,  companyId: String) =
+    List(id === Id, company === companyId).fold(Expr.literal(true))(_ && _)
+
   val SELECT_BANK_ACCOUNT  = select(iban_, bic, owner, company_, modelid_).from(bankAccount)
   val (
     id,
@@ -24,7 +27,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     zip,
     city,
     state,
-    //country,
+    country,
     phone,
     email,
     account,
@@ -45,7 +48,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     zip,
     city,
     state,
-    //country,
+    country,
     phone,
     email,
     account,
@@ -64,7 +67,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     zip,
     city,
     state,
-    //country,
+    country,
     phone,
     email,
     account,
@@ -85,7 +88,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     c.zip,
     c.city,
     c.state,
-    //c.country,
+    c.country,
     c.phone,
     c.email,
     c.account,
@@ -106,7 +109,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
       zip,
       city,
       state,
-      //country,
+      country,
       phone,
       email,
       account,
@@ -133,7 +136,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
       zip,
       city,
       state,
-      //country,
+      country,
       phone,
       email,
       account,
@@ -151,7 +154,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
         .provideAndLog(driverLayer)
   }
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] =
-    execute(deleteFrom(customer).where((id === item) && (company === companyId)))
+    execute(deleteFrom(customer).where(whereClause(item, companyId)))
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getCause()))
 
@@ -159,7 +162,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     val update_ = update(customer)
       .set(name, model.name)
       .set(description, model.description)
-      .where((id === model.id) && (company === model.company))
+      .where(whereClause(model.id, model.company))
     ZIO.logDebug(s"Query Update Customer is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
@@ -183,7 +186,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
   }
 
   override def getBy(Id: String, companyId: String): ZIO[Any, RepositoryError, Customer] = {
-    val selectAll = SELECT.where((id === Id) && (company === companyId))
+    val selectAll = SELECT.where(whereClause(Id, companyId))
     ZIO.logDebug(s"Query to execute getBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to[Customer](c => Customer.apply(c)))
         .findFirst(driverLayer, Id)

@@ -16,12 +16,12 @@ object CustomerBuilder {
   val nameCustomer3 = "Kunde ( Sonstige Erloes)"
   val dummyNname   = "Dummy"
    val vtime = instantFromStr("2018-01-01T00:00:00.00Z")
-  val customer1 = Customer(customerId1, nameCustomer1, "Bintou Mady Kaba","Bielefelder Str 1", "33615" , "Bielefeld", "NRW",  "0521-471163",
+  val customer1 = Customer(customerId1, nameCustomer1, "Bintou Mady Kaba","Bielefelder Str 1", "33615" , "Bielefeld", "NRW", "DE",  "0521-471163",
       "0521-471164","xxx@domain.de", accountRecvId, incaccountId, IbanCustomer1, vataccountId,1000)
-  val customer2 = Customer(customerId2, nameCustomer2, "KABA Soft GmbH", "Universitaet Str 2", "33615", "Bielefeld", "NRW",
+  val customer2 = Customer(customerId2, nameCustomer2, "KABA Soft GmbH", "Universitaet Str 2", "33615", "Bielefeld", "NRW", "DE",
       "0521-4711631", "0521-4711641", "info@fabasoft.de", accountRecvId, incaccountId, IbanCustomer2, vataccountId, 1000)
 
-  val dummy = Customer(dummyId, dummyNname, dummyNname, dummyNname, dummyNname, dummyNname, dummyNname, dummyNname,
+  val dummy = Customer(dummyId, dummyNname, dummyNname, dummyNname, dummyNname, dummyNname, dummyNname, dummyNname,"DE",
        "dummy@dummy.com", "1215", "111111", "DEddddddddddddddddommy", "v5", "1000", Customer.MODELID, vtime, vtime, vtime)
   val customers = List( customer1, customer2 )
 

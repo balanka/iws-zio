@@ -23,7 +23,7 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     zip,
     city,
     state,
-    //country,
+    country,
     phone,
     email,
     account,
@@ -37,10 +37,10 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     postingdate
   ) = supplier.columns
 
-  val SELECT   = select(id, name, description, street, zip, city, state /*, country*/, phone, email, account, oaccount, iban,
+  val SELECT   = select(id, name, description, street, zip, city, state, country, phone, email, account, oaccount, iban,
     vatcode, company, modelid, enterdate, changedate, postingdate)
     .from(supplier)
-  val SELECT2   = select(id, name, description, street, zip, city, state/*, country*/, phone, email, account, oaccount, iban_
+  val SELECT2   = select(id, name, description, street, zip, city, state, country, phone, email, account, oaccount, iban_
     , vatcode, company, modelid, enterdate, changedate, postingdate)
     .from(supplier.join(bankAccount).on(id === owner))
   def toTuple(c: Supplier)                                                             = (
@@ -51,7 +51,7 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     c.zip,
     c.city,
     c.state,
-    //c.country,
+    c.country,
     c.phone,
     c.email,
     c.account,
@@ -66,7 +66,7 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
   )
 
   override def create(c: Supplier): ZIO[Any, RepositoryError, Unit]                    = {
-    val query = insertInto(supplier)(id, name, description, street, zip, city, state/*, country*/, phone, email, account, oaccount, iban,
+    val query = insertInto(supplier)(id, name, description, street, zip, city, state, country, phone, email, account, oaccount, iban,
       vatcode, company, modelid, enterdate, changedate, postingdate).values(toTuple(c))
 
     ZIO.logDebug(s"Query to insert Supplier is ${renderInsert(query)}") *>
@@ -76,7 +76,7 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
   }
   override def create(models: List[Supplier]): ZIO[Any, RepositoryError, Int]          = {
     val data  = models.map(toTuple(_))
-    val query = insertInto(supplier)(id, name, description, street, zip, city, state/*, country*/, phone, email, account, oaccount, iban,
+    val query = insertInto(supplier)(id, name, description, street, zip, city, state, country, phone, email, account, oaccount, iban,
       vatcode, company, modelid, enterdate, changedate, postingdate).values(data)
 
     ZIO.logDebug(s"Query to insert Supplier is ${renderInsert(query)}") *>
