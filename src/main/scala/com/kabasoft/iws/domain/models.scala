@@ -181,9 +181,6 @@ final case class Account(
   def remove(acc: Account): Account =
     copy(subAccounts = subAccounts.filterNot(_.id == acc.id))
 
-  def addAll(accSet: Set[Account]) =
-    copy(subAccounts = subAccounts ++ accSet)
-
   def filterAddSubAccounts(accSet: Set[Account]): Account =
     copy(subAccounts = accSet.filter(_.account == id).map(_.filterAddSubAccounts(accSet)))
 
@@ -192,7 +189,7 @@ final case class Account(
     r.flatMap(all =>
       { println("all" + all); all.find(_.id == account) } match {
         case Some(parent) =>
-          val updated = parent.updateBalancex(this)
+          val updated = parent.updateBalance(this)
           val old     = all.filterNot(_.id == id)
           accounts.set(old + updated)
           val w       = updated.updateBalanceP(accounts)
@@ -202,22 +199,12 @@ final case class Account(
     )
   }
 
-  def updateBalanceM(acc: Account): Account =
-    acc.idebiting(idebit).icrediting(icredit).debiting(debit).crediting(credit)
-
-  def updateBalance(acc: Account): Account = {
-    val x = idebiting(acc.idebit).icrediting(acc.icredit).debiting(acc.debit).crediting(acc.credit)
-    val z = x.remove(acc).add(acc)
-    z
-  }
-
-  def updateBalancex2(accounts: List[Account]): List[Account] = accounts.map(updateBalancex)
-
-  def updateBalancex(acc: Account): Account = {
-    val x = idebiting(acc.idebit).icrediting(acc.icredit).debiting(acc.debit).crediting(acc.credit)
-    val z = x.remove(acc).add(acc)
-    z
-  }
+  def updateBalance(acc: Account): Account =
+    idebiting(acc.idebit)
+      .icrediting(acc.icredit)
+      .debiting(acc.debit)
+      .crediting(acc.credit)
+      .remove(acc).add(acc)
 
   def updateBalanceFrom(pacs: Set[PeriodicAccountBalance]): Account = subAccounts.toList match {
     case Nil     =>
@@ -228,18 +215,6 @@ final case class Account(
       x.updateBalanceFrom(pacs).copy(idebit = pac.idebit, debit = pac.debit, icredit = pac.icredit, credit = pac.credit)
   }
 
-  def updateBalanceParent1(all: List[Account]): Account  =
-    all.find(acc => acc.id == account) match {
-      case Some(acc1) =>
-        val x = acc1.updateBalance(this) // .updateBalanceParent1(List.from(all.filterNot(_.id == id))++List(this))
-        x
-      case None       => this
-    }
-  def updateBalanceParent12(all: List[Account]): Account =
-    all.filter(acc => acc.id == account) match {
-      case x :: _ => println("CZCZXZ~" + x); x.updateBalance(this).updateBalanceParent12(all)
-      case Nil    => this
-    }
 
   @tailrec
   def updateBalanceParent(all: List[Account]): List[Account] =
@@ -251,29 +226,6 @@ final case class Account(
       case None         => all
     }
 
-  /*
-  def addParent(accList: List[Account], result: Set[Account]): Set[Account] = {
-    accList.find(x => x.id == account) match {
-      case Some(acc) => {
-        val xx = acc.updateBalanceFrom(this)
-          xx.addParent(accList, result.+(xx))
-      }
-      case None => result.+(this)
-    }
-  }
-
-   */
-
-  def childBalances2: Set[Balance] = Set.fill(1)(getBalance) ++ subAccounts.flatMap(
-    _.childBalances2
-  ) // if(subAccounts.nonEmpty ) subAccounts.flatMap(_.childBalances2) else Set.fill(1)(getBalance)
-
-  def childBalances: BigDecimal =
-    if (subAccounts.nonEmpty) { reduce(subAccounts, Account.dummy).balance }
-    else {
-      zeroAmount
-    }
-
   def getChildren: Set[Account] = subAccounts.toList match {
     case Nil     => Set(copy(id = id))
     case x :: xs => Set(x) ++ xs.flatMap(_.getChildren)
@@ -281,26 +233,9 @@ final case class Account(
 
   def addSubAccounts(accounts: List[Account]): Account =
     copy(subAccounts = accounts.filter(_.account == id).map(_.addSubAccounts(accounts)).toSet)
+  
 
-  def updateBalance(pac: PeriodicAccountBalance): Account = {
-    val x = icrediting(pac.idebit).debiting(pac.debit).icrediting(pac.icredit).crediting(pac.credit)
-    println(" account XXXX" + x)
-    x
-  }
 
-  def updateBalances(pacs: Set[PeriodicAccountBalance]): Account = {
-    val x = subAccounts.toList match {
-      case Nil => updateBalance(reduce(pacs.filter(_.account == id), PeriodicAccountBalance.dummy))
-      case _   =>
-        val y = subAccounts.map(_.updateBalances(pacs)) // .map(_.childBalances2).flatten
-        println(" account YYYY>>>>" + y)
-        copy(subAccounts = subAccounts) // .map(_.updateBalances(pacs)))
-    }
-    println(" account XXXX>>>>" + x)
-    x
-  }
-  // copy(subAccounts = subAccounts.map(acc=>acc.updateBalance(pacs.filter(_.account==acc.id)))
-  // val acc = reduce(pacs.filter(_.account == id).map(_.addSubAccounts(accounts)).toSet)
 }
 object Account {
   import common._
