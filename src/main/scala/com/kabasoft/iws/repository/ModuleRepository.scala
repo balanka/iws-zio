@@ -33,15 +33,15 @@ object ModuleRepository {
   def delete(items: List[String], company: String): ZIO[ModuleRepository, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
 
-   def all(companyId: String): ZIO[ModuleRepository, RepositoryError, List[TYPE_]] =
-     ZIO.service[ModuleRepository] flatMap (_.all(companyId))
-  def list(company: String): ZStream[ModuleRepository, RepositoryError, TYPE_]                        =
+  def all(companyId: String): ZIO[ModuleRepository, RepositoryError, List[TYPE_]]                =
+    ZIO.service[ModuleRepository] flatMap (_.all(companyId))
+  def list(company: String): ZStream[ModuleRepository, RepositoryError, TYPE_]                   =
     ZStream.service[ModuleRepository] flatMap (_.list(company))
-  def getBy(id: String, company: String): ZIO[ModuleRepository, RepositoryError, TYPE_]               =
+  def getBy(id: String, company: String): ZIO[ModuleRepository, RepositoryError, TYPE_]          =
     ZIO.service[ModuleRepository] flatMap (_.getBy(id, company))
-  def getByModelId(modelid: Int, company: String): ZIO[ModuleRepository, RepositoryError, TYPE_]      =
+  def getByModelId(modelid: Int, company: String): ZIO[ModuleRepository, RepositoryError, TYPE_] =
     ZIO.service[ModuleRepository] flatMap (_.getByModelId(modelid, company))
-  def modify(model: TYPE_): ZIO[ModuleRepository, RepositoryError, Int]                               =
+  def modify(model: TYPE_): ZIO[ModuleRepository, RepositoryError, Int]                          =
     ZIO.service[ModuleRepository] flatMap (_.modify(model))
 
 }

@@ -7,26 +7,64 @@ import zio._
 import zio.stream._
 import zio.sql.ConnectionPool
 
-
 final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepository with PostgresTableDescription {
 
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
 
-
   val company = defineTable[Company]("company")
 
-  val (id, name, street, zip, city, state, email, partner, phone, bankAcc, iban, taxCode,vatCode, currency, locale, balanceSheetAcc, incomeStmtAcc, modelid) = company.columns
+  val (
+    id,
+    name,
+    street,
+    zip,
+    city,
+    state,
+    country,
+    email,
+    partner,
+    phone,
+    bankAcc,
+    iban,
+    taxCode,
+    vatCode,
+    currency,
+    locale,
+    balanceSheetAcc,
+    incomeStmtAcc,
+    modelid
+  ) = company.columns
 
-  val SELECT              = select(id, name, street, zip, city, state, email, partner, phone, bankAcc, iban, taxCode,vatCode, currency, locale, balanceSheetAcc, incomeStmtAcc, modelid)
-                           .from(company)
-  def toTuple(c: Company) = (
+  val SELECT                                                                 = select(
+    id,
+    name,
+    street,
+    zip,
+    city,
+    state,
+    country,
+    email,
+    partner,
+    phone,
+    bankAcc,
+    iban,
+    taxCode,
+    vatCode,
+    currency,
+    locale,
+    balanceSheetAcc,
+    incomeStmtAcc,
+    modelid
+  )
+    .from(company)
+  def toTuple(c: Company)                                                    = (
     c.id,
     c.name,
     c.street,
     c.zip,
     c.city,
     c.state,
-   // c.country,
+    c.country,
     c.email,
     c.partner,
     c.phone,
@@ -42,7 +80,27 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
   )
 //
   override def create(c: Company): ZIO[Any, RepositoryError, Unit]           = {
-    val query = insertInto(company)(id, name, street, zip, city, state, email, partner, phone, bankAcc, iban, taxCode,vatCode, currency, locale, balanceSheetAcc, incomeStmtAcc, modelid).values(toTuple(c))
+    val query = insertInto(company)(
+      id,
+      name,
+      street,
+      zip,
+      city,
+      state,
+      country,
+      email,
+      partner,
+      phone,
+      bankAcc,
+      iban,
+      taxCode,
+      vatCode,
+      currency,
+      locale,
+      balanceSheetAcc,
+      incomeStmtAcc,
+      modelid
+    ).values(toTuple(c))
 
     ZIO.logDebug(s"Query to insert Company is ${renderInsert(query)}") *>
       execute(query)
@@ -51,7 +109,27 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
   }
   override def create(models: List[Company]): ZIO[Any, RepositoryError, Int] = {
     val data  = models.map(toTuple(_))
-    val query = insertInto(company)(id, name, street, zip, city, state, email, partner, phone, bankAcc, iban, taxCode,vatCode, currency, locale, balanceSheetAcc, incomeStmtAcc, modelid).values(data)
+    val query = insertInto(company)(
+      id,
+      name,
+      street,
+      zip,
+      city,
+      state,
+      country,
+      email,
+      partner,
+      phone,
+      bankAcc,
+      iban,
+      taxCode,
+      vatCode,
+      currency,
+      locale,
+      balanceSheetAcc,
+      incomeStmtAcc,
+      modelid
+    ).values(data)
 
     ZIO.logDebug(s"Query to insert Company is ${renderInsert(query)}") *>
       execute(query)
@@ -72,19 +150,38 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
         .mapError(e => RepositoryError(e.getCause()))
   }
 
-
   override def all: ZIO[Any, RepositoryError, List[Company]] =
     list.runCollect.map(_.toList)
-   /* for {
+  /* for {
     companies <- list.runCollect.map(_.toList)
     bankAccounts_ <- listBankAccount(companyId).runCollect.map(_.toList)
   } yield companies.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
 
-    */
+   */
 
-  override def list: ZStream[Any, RepositoryError, Company] = {
+  override def list: ZStream[Any, RepositoryError, Company]          = {
     val selectAll =
-      select(id, name, street, zip, city, state, email, partner, phone, bankAcc, iban, taxCode,vatCode, currency, locale, balanceSheetAcc, incomeStmtAcc, modelid).from(company)//.where(id === companyId)
+      select(
+        id,
+        name,
+        street,
+        zip,
+        city,
+        state,
+        country,
+        email,
+        partner,
+        phone,
+        bankAcc,
+        iban,
+        taxCode,
+        vatCode,
+        currency,
+        locale,
+        balanceSheetAcc,
+        incomeStmtAcc,
+        modelid
+      ).from(company) // .where(id === companyId)
 
     /* ZStream.fromZIO(
       ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")
@@ -93,14 +190,34 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
     execute(selectAll.to((Company.apply _).tupled))
       .provideDriver(driverLayer)
   }
-  override def getBy(Id: String): ZIO[Any, RepositoryError, Company]           = {
+  override def getBy(Id: String): ZIO[Any, RepositoryError, Company] = {
     val selectAll =
-      select(id, name, street, zip, city, state, email, partner, phone, bankAcc, iban, taxCode,vatCode, currency, locale, balanceSheetAcc, incomeStmtAcc, modelid).from(company)//.where(id === Id)
+      select(
+        id,
+        name,
+        street,
+        zip,
+        city,
+        state,
+        country,
+        email,
+        partner,
+        phone,
+        bankAcc,
+        iban,
+        taxCode,
+        vatCode,
+        currency,
+        locale,
+        balanceSheetAcc,
+        incomeStmtAcc,
+        modelid
+      ).from(company) // .where(id === Id)
 
-    //ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
-      execute(selectAll.to((Company.apply _).tupled))
-     // execute(selectAll.to[Company](c => Company(c)))
-        .findFirst(driverLayer, Id)
+    // ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
+    execute(selectAll.to((Company.apply _).tupled))
+      // execute(selectAll.to[Company](c => Company(c)))
+      .findFirst(driverLayer, Id)
   }
 
 }

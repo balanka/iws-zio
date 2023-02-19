@@ -12,18 +12,11 @@ final class BankRepositoryImpl(pool: ConnectionPool) extends BankRepository with
 
   val bank = defineTable[Bank]("bank")
 
-  val (id, name, description, enterdate, changedate, postingdate, modelid, company)    = bank.columns
+  val (id, name, description, enterdate, changedate, postingdate, modelid, company) = bank.columns
 
   val SELECT                                                                           = select(id, name, description, enterdate, changedate, postingdate, modelid, company).from(bank)
   override def create(c: Bank): ZIO[Any, RepositoryError, Unit]                        = {
-    val query = insertInto(bank)(id,
-      name,
-      description,
-      enterdate,
-      changedate,
-      postingdate,
-      modelid,
-      company).values(Bank.unapply(c).get)
+    val query = insertInto(bank)(id, name, description, enterdate, changedate, postingdate, modelid, company).values(Bank.unapply(c).get)
 
     ZIO.logDebug(s"Query to insert Bank is ${renderInsert(query)}") *>
       execute(query)
@@ -32,14 +25,7 @@ final class BankRepositoryImpl(pool: ConnectionPool) extends BankRepository with
   }
   override def create(models: List[Bank]): ZIO[Any, RepositoryError, Int]              = {
     val data  = models.map(Bank.unapply(_).get)
-    val query = insertInto(bank)(id,
-      name,
-      description,
-      enterdate,
-      changedate,
-      postingdate,
-      modelid,
-      company).values(data)
+    val query = insertInto(bank)(id, name, description, enterdate, changedate, postingdate, modelid, company).values(data)
 
     ZIO.logDebug(s"Query to insert Bank is ${renderInsert(query)}") *>
       execute(query)
@@ -61,7 +47,7 @@ final class BankRepositoryImpl(pool: ConnectionPool) extends BankRepository with
         .mapError(e => RepositoryError(e.getCause()))
   }
 
-  override def all(companyId: String): ZIO[Any, RepositoryError, List[Bank]]                  =
+  override def all(companyId: String): ZIO[Any, RepositoryError, List[Bank]] =
     list(companyId).runCollect.map(_.toList)
 
   override def list(companyId: String): ZStream[Any, RepositoryError, Bank]                   = {

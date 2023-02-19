@@ -281,6 +281,7 @@ create table if not exists company
     zip                   varchar,
     city                  varchar,
     state                 varchar,
+    country               varchar,
     email                 varchar,
     partner               varchar,
     phone                 varchar,
@@ -310,8 +311,8 @@ create table if not exists users
     company    varchar(20) default '1000'::character varying     not null,
     modelid    integer     default 111
     );
-insert into company (id, name, street, zip, city, state, email, partner, phone, bank_acc, iban, tax_code, vat_code, currency, locale, balance_sheet_acc, income_stmt_acc, modelid)
-values ('1000', 'ABC GmbH', 'Word stree1 0','49110','FF', 'DE', 'info@mail.com','John', '+001-00000'
+insert into company (id, name, street, zip, city, state, country, email, partner, phone, bank_acc, iban, tax_code, vat_code, currency, locale, balance_sheet_acc, income_stmt_acc, modelid)
+values ('1000', 'ABC GmbH', 'Word stree1 0','49110','FF', 'DE','Deutschland', 'info@mail.com','John', '+001-00000'
        ,'1810','DE', 'XXX/XXXX/XXXX','v5','EUR',  'de_DE', '9900', '9800', 10);
 
 
@@ -357,32 +358,32 @@ values
     (CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'4400'), '4400', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'),
      0, 200, 0, 0,'1000' , 'EUR', 106)   ;
 
-insert into customer (id, name, description,street,zip,city,state,phone,email,account,oaccount,iban,vatcode,company,modelid,enterdate,changedate,postingdate)
-values ('5004','Kunde ( Sonstige Erloes)','Kunde ( Sonstige Erloes)','sonstige Str 1', '47111','Nirvana', 'WORLD'
+insert into customer (id, name, description,street,zip,city,state, country, phone,email,account,oaccount,iban,vatcode,company,modelid,enterdate,changedate,postingdate)
+values ('5004','Kunde ( Sonstige Erloes)','Kunde ( Sonstige Erloes)','sonstige Str 1', '47111','Nirvana', 'WORLD', 'DE'
        , '+000000000', 'myMail@mail.com','1217', '1217', 'DE27662900000001470004X','v0', '1000', 3, current_timestamp, current_timestamp, current_timestamp),
-       ('5014','KKM AG', 'KKM AG','Laatzer str 0', '5009', 'Hannover', 'Niedersachsen'
+       ('5014','KKM AG', 'KKM AG','Laatzer str 0', '5009', 'Hannover', 'Niedersachsen', 'DE'
        , '+000000001', 'yourMail@mail.com','1445', '4487', 'DE27662900000001470004X','v0', '1000', 3, current_timestamp, current_timestamp, current_timestamp),
-       ('5222','Dummy', 'Dummy','Dummy', 'Dummy', 'Dummy', 'Dummy'
+       ('5222','Dummy', 'Dummy','Dummy', 'Dummy', 'Dummy', 'Dummy', 'DE'
        , 'Dummy', 'dummy@dummy.com','1215', '111111', 'DEddddddddddddddddommy','v5', '1000', 3, '2018-01-01T00:00:00.00Z'
        , '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z');
 
 
-insert into supplier (id, name, description,street,zip,city,state,phone,email,account,oaccount,iban,vatcode,company,modelid,enterdate,changedate,postingdate)
-values ('70000','Dummy','Dummy','', '', '', '', '', '','331040', '6825', 'DE8448050161004700827X','v5',
+insert into supplier (id, name, description,street,zip,city,state, country, phone,email,account,oaccount,iban,vatcode,company,modelid,enterdate,changedate,postingdate)
+values ('70000','Dummy','Dummy','', '', '', '', 'DE', '', '', '331040', '6825', 'DE8448050161004700827X','v5',
         '1000', 1, '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z'),
-       ('70034','Sonstige GWG Lieferenten','Sonstige GWG Lieferenten','sonstige Str 1', '47111', 'Nirvana', 'WORLD'
+       ('70034','Sonstige GWG Lieferenten','Sonstige GWG Lieferenten','sonstige Str 1', '47111', 'Nirvana', 'WORLD','DE'
        , '+000000000', 'myMail@mail.com','331031', '4855', 'DE27662900000001470034X','v5', '1000', 1, current_timestamp, current_timestamp
        , current_timestamp),
-       ('70060', 'Sonstige ITK Lieferanten', 'Sonstige ITK Lieferanten','sonstige Str 1', '47111', 'Nirvana', 'WORLD'
+       ('70060', 'Sonstige ITK Lieferanten', 'Sonstige ITK Lieferanten','sonstige Str 1', '47111', 'Nirvana', 'WORLD','DE'
        , '+000000000', 'myMail@mail.com','331036', '6810', 'DE08370501980020902219', 'v5',  '1000', 1, current_timestamp, current_timestamp
        , current_timestamp),
-       ('70063', 'Sonstige Benzin Lieferant', 'Sonstige Benzin Lieferant','sonstige Str 1', '47111', 'Nirvana', 'WORLD'
+       ('70063', 'Sonstige Benzin Lieferant', 'Sonstige Benzin Lieferant','sonstige Str 1', '47111', 'Nirvana', 'WORLD','DE'
        , '+000000000', 'myMail@mail.com','331030', '6530'
        ,'DE16300500000001609114', 'v5','1000',1 , current_timestamp, current_timestamp, current_timestamp),
-       ('70064','Sonstige KFZ Lieferant', 'Sonstige KFZ Lieferant','sonstige Str 1', '47111', 'Nirvana', 'WORLD'
+       ('70064','Sonstige KFZ Lieferant', 'Sonstige KFZ Lieferant','sonstige Str 1', '47111', 'Nirvana', 'WORLD','DE'
        , '+000000000', 'myMail@mail.com','331030', '6530', 'DE6248040035053249000Y', 'v5', '1000', 1, current_timestamp, current_timestamp
        , current_timestamp),
-       ('70005','Sonstige KFZ Lieferant', 'Sonstige KFZ Lieferant','sonstige Str 1', '47111', 'Nirvana', 'WORLD'
+       ('70005','Sonstige KFZ Lieferant', 'Sonstige KFZ Lieferant','sonstige Str 1', '47111', 'Nirvana', 'WORLD','DE'
        , '+000000000', 'myMail@mail.com','331030', '6530', 'DE84480501610047008271', 'v5', '1000', 1, current_timestamp, current_timestamp
        , current_timestamp);
 

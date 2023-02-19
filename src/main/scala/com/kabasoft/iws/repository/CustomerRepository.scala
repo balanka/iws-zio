@@ -31,15 +31,15 @@ object CustomerRepository {
   def delete(items: List[String], company: String): ZIO[CustomerRepository, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
 
-  def all(company: String): ZIO[CustomerRepository, RepositoryError, List[TYPE_]] =
+  def all(company: String): ZIO[CustomerRepository, RepositoryError, List[TYPE_]]                      =
     ZIO.service[CustomerRepository] flatMap (_.all(company))
-  def getBy(id: String, company: String): ZIO[CustomerRepository, RepositoryError, TYPE_]               =
+  def getBy(id: String, company: String): ZIO[CustomerRepository, RepositoryError, TYPE_]              =
     ZIO.service[CustomerRepository] flatMap (_.getBy(id, company))
-  def getByIban(Iban: String, companyId: String): ZIO[CustomerRepository, RepositoryError, TYPE_]       =
+  def getByIban(Iban: String, companyId: String): ZIO[CustomerRepository, RepositoryError, TYPE_]      =
     ZIO.service[CustomerRepository] flatMap (_.getByIban(Iban, companyId))
-  def getByModelId(modelid: Int, company: String): ZStream[CustomerRepository, RepositoryError, TYPE_]      =
+  def getByModelId(modelid: Int, company: String): ZStream[CustomerRepository, RepositoryError, TYPE_] =
     ZStream.service[CustomerRepository] flatMap (_.getByModelId(modelid, company))
-  def modify(model: TYPE_): ZIO[CustomerRepository, RepositoryError, Int]                               =
+  def modify(model: TYPE_): ZIO[CustomerRepository, RepositoryError, Int]                              =
     ZIO.service[CustomerRepository] flatMap (_.modify(model))
 
 }

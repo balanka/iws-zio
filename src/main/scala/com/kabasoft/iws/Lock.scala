@@ -1,6 +1,6 @@
 package com.kabasoft.iws
 
-import zio.{UIO, ZIOAppDefault, _}
+import zio.{ UIO, ZIOAppDefault, _ }
 
 object StmLock extends ZIOAppDefault {
 

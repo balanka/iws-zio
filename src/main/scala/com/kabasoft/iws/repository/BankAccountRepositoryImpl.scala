@@ -8,11 +8,11 @@ import zio.sql.ConnectionPool
 import zio.stream._
 final class BankAccountRepositoryImpl(pool: ConnectionPool) extends BankAccountRepository with IWSTableDescriptionPostgres {
 
-  lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
-  val bankAccount = defineTable[BankAccount]("bankaccount")
-  val (id, bic, owner, company, modelid) = bankAccount.columns
-  val SELECT  = select(id, bic, owner, company, modelid).from(bankAccount)
-  override def create(c: BankAccount): ZIO[Any, RepositoryError, Unit]                        = {
+  lazy val driverLayer                                                                 = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
+  val bankAccount                                                                      = defineTable[BankAccount]("bankaccount")
+  val (id, bic, owner, company, modelid)                                               = bankAccount.columns
+  val SELECT                                                                           = select(id, bic, owner, company, modelid).from(bankAccount)
+  override def create(c: BankAccount): ZIO[Any, RepositoryError, Unit]                 = {
     val query = insertInto(bankAccount)(id, bic, owner, company, modelid).values(BankAccount.unapply(c).get)
 
     ZIO.logDebug(s"Query to insert bank account is ${renderInsert(query)}") *>
@@ -20,7 +20,7 @@ final class BankAccountRepositoryImpl(pool: ConnectionPool) extends BankAccountR
         .provideAndLog(driverLayer)
         .unit
   }
-  override def create(models: List[BankAccount]): ZIO[Any, RepositoryError, Int]              = {
+  override def create(models: List[BankAccount]): ZIO[Any, RepositoryError, Int]       = {
     val data  = models.map(BankAccount.unapply(_).get)
     val query = insertInto(bankAccount)(id, bic, owner, company, modelid).values(data)
 
@@ -47,7 +47,7 @@ final class BankAccountRepositoryImpl(pool: ConnectionPool) extends BankAccountR
         .mapError(e => RepositoryError(e.getCause()))
   }
 
-  override def all(companyId: String): ZIO[Any, RepositoryError, List[BankAccount]]                  =
+  override def all(companyId: String): ZIO[Any, RepositoryError, List[BankAccount]] =
     list(companyId).runCollect.map(_.toList)
 
   override def list(companyId: String): ZStream[Any, RepositoryError, BankAccount]                   = {

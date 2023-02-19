@@ -13,10 +13,9 @@ final class ModuleRepositoryImpl(pool: ConnectionPool) extends ModuleRepository 
 
   val module = defineTable[Module]("module")
 
-
-  val (id, name, description, path, enterdate, changedate, postingdate, modelid, company)    = module.columns
-  val SELECT                                                                           = select(id, name, description, path, enterdate, changedate, postingdate, modelid, company).from(module)
-  override def create(c: Module): ZIO[Any, RepositoryError, Unit]                        = {
+  val (id, name, description, path, enterdate, changedate, postingdate, modelid, company) = module.columns
+  val SELECT                                                                              = select(id, name, description, path, enterdate, changedate, postingdate, modelid, company).from(module)
+  override def create(c: Module): ZIO[Any, RepositoryError, Unit]                         = {
     val query = insertInto(module)(id, name, description, path, enterdate, changedate, postingdate, modelid, company).values(Module.unapply(c).get)
 
     ZIO.logDebug(s"Query to insert Module is ${renderInsert(query)}") *>
@@ -24,7 +23,7 @@ final class ModuleRepositoryImpl(pool: ConnectionPool) extends ModuleRepository 
         .provideAndLog(driverLayer)
         .unit
   }
-  override def create(models: List[Module]): ZIO[Any, RepositoryError, Int]              = {
+  override def create(models: List[Module]): ZIO[Any, RepositoryError, Int]               = {
     val data  = models.map(Module.unapply(_).get)
     val query = insertInto(module)(id, name, description, path, enterdate, changedate, postingdate, modelid, company).values(data)
 
@@ -32,7 +31,7 @@ final class ModuleRepositoryImpl(pool: ConnectionPool) extends ModuleRepository 
       execute(query)
         .provideAndLog(driverLayer)
   }
-  override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] =
+  override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int]    =
     execute(deleteFrom(module).where((id === item) && (company === companyId)))
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getCause()))
@@ -49,7 +48,7 @@ final class ModuleRepositoryImpl(pool: ConnectionPool) extends ModuleRepository 
         .mapError(e => RepositoryError(e.getCause()))
   }
 
-  override def all(companyId: String): ZIO[Any, RepositoryError, List[Module]] =
+  override def all(companyId: String): ZIO[Any, RepositoryError, List[Module]]                  =
     list(companyId).runCollect.map(_.toList)
   override def list(companyId: String): ZStream[Any, RepositoryError, Module]                   = {
     val selectAll = SELECT.where(company === companyId)

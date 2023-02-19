@@ -7,7 +7,7 @@ import zio.stream._
 
 trait PacRepository {
 
-  //def create(item: PeriodicAccountBalance): IO[RepositoryError, Unit]
+  // def create(item: PeriodicAccountBalance): IO[RepositoryError, Unit]
   def create(models: List[PeriodicAccountBalance]): ZIO[Any, RepositoryError, Int]
   def delete(item: String, company: String): IO[RepositoryError, Int]
   def delete(items: List[String], company: String): IO[RepositoryError, List[Int]]                    =
@@ -23,14 +23,14 @@ trait PacRepository {
   def find4Period(fromPeriod: Int, toPeriod: Int, company: String): ZStream[Any, RepositoryError, PeriodicAccountBalance]
   def find4Period(accountId: String, fromPeriod: Int, toPeriod: Int, company: String): ZStream[Any, RepositoryError, PeriodicAccountBalance]
   def getBalances4Period(fromPeriod: Int, toPeriod: Int, companyId: String): ZStream[Any, RepositoryError, PeriodicAccountBalance]
- // def modify(model: PeriodicAccountBalance): ZIO[Any, RepositoryError, Int]
+  // def modify(model: PeriodicAccountBalance): ZIO[Any, RepositoryError, Int]
   def modify(models: List[PeriodicAccountBalance]): ZIO[Any, RepositoryError, Int]
 
 }
 
 object PacRepository {
 
- // def create(item: PeriodicAccountBalance): ZIO[PacRepository, RepositoryError, Unit]                                                      =
+  // def create(item: PeriodicAccountBalance): ZIO[PacRepository, RepositoryError, Unit]                                                      =
   //  ZIO.service[PacRepository] flatMap (_.create(item))
   def create(items: List[PeriodicAccountBalance]): ZIO[PacRepository, RepositoryError, Int]                                                =
     ZIO.service[PacRepository] flatMap (_.create(items))
@@ -61,7 +61,7 @@ object PacRepository {
     ZStream.service[PacRepository] flatMap (_.find4Period(accountId, fromPeriod, toPeriod, company))
   def getBalances4Period(fromPeriod: Int, toPeriod: Int, company: String): ZStream[PacRepository, RepositoryError, PeriodicAccountBalance] =
     ZStream.service[PacRepository] flatMap (_.getBalances4Period(fromPeriod, toPeriod, company))
-  //def modify(model: PeriodicAccountBalance): ZIO[PacRepository, RepositoryError, Int]                                                      =
+  // def modify(model: PeriodicAccountBalance): ZIO[PacRepository, RepositoryError, Int]                                                      =
   //  ZIO.service[PacRepository] flatMap (_.modify(model))
   def modify(models: List[PeriodicAccountBalance]): ZIO[PacRepository, RepositoryError, Int]                                               =
     ZIO.service[PacRepository] flatMap (_.modify(models))

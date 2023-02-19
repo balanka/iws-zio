@@ -1,9 +1,8 @@
 package com.kabasoft.iws.api
 
-
 object AccountHttpRoutes {
 
-/*  val appAcc: Http[AccountRepository with AccountService, AppError.RepositoryError, Request, Response] = Http.collectZIO[Request] {
+  /*  val appAcc: Http[AccountRepository with AccountService, AppError.RepositoryError, Request, Response] = Http.collectZIO[Request] {
 
       case Method.GET -> !! / "acc1" =>
         AccountRepository

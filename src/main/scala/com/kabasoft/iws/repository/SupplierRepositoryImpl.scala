@@ -1,8 +1,8 @@
 package com.kabasoft.iws.repository
 
-import com.kabasoft.iws.domain.{BankAccount, Supplier, Supplier_}
+import com.kabasoft.iws.domain.{ BankAccount, Supplier, Supplier_ }
 import zio._
-import com.kabasoft.iws.repository.Schema.{supplier_Schema, bankAccountSchema}
+import com.kabasoft.iws.repository.Schema.{ bankAccountSchema, supplier_Schema }
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import zio.sql.ConnectionPool
 import zio.stream._
@@ -10,9 +10,13 @@ import zio.stream._
 final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierRepository with IWSTableDescriptionPostgres {
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
 
-  val supplier = defineTable[Supplier_]("supplier")
-  val bankAccount = defineTable[BankAccount]("bankaccount")
+  val supplier                                = defineTable[Supplier_]("supplier")
+  val bankAccount                             = defineTable[BankAccount]("bankaccount")
   val (iban_, bic, owner, company_, modelid_) = bankAccount.columns
+
+  def whereClause(Id: String, companyId: String) =
+    List(id === Id, company === companyId).fold(Expr.literal(true))(_ && _)
+
   val SELECT_BANK_ACCOUNT = select(iban_, bic, owner, company_, modelid_).from(bankAccount)
 
   val (
@@ -23,7 +27,7 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     zip,
     city,
     state,
-    //country,
+    country,
     phone,
     email,
     account,
@@ -37,13 +41,51 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     postingdate
   ) = supplier.columns
 
-  val SELECT   = select(id, name, description, street, zip, city, state /*, country*/, phone, email, account, oaccount, iban,
-    vatcode, company, modelid, enterdate, changedate, postingdate)
+  val SELECT               = select(
+    id,
+    name,
+    description,
+    street,
+    zip,
+    city,
+    state,
+    country,
+    phone,
+    email,
+    account,
+    oaccount,
+    iban,
+    vatcode,
+    company,
+    modelid,
+    enterdate,
+    changedate,
+    postingdate
+  )
     .from(supplier)
-  val SELECT2   = select(id, name, description, street, zip, city, state/*, country*/, phone, email, account, oaccount, iban_
-    , vatcode, company, modelid, enterdate, changedate, postingdate)
+  val SELECT2              = select(
+    id,
+    name,
+    description,
+    street,
+    zip,
+    city,
+    state,
+    country,
+    phone,
+    email,
+    account,
+    oaccount,
+    iban_,
+    vatcode,
+    company,
+    modelid,
+    enterdate,
+    changedate,
+    postingdate
+  )
     .from(supplier.join(bankAccount).on(id === owner))
-  def toTuple(c: Supplier)                                                             = (
+  def toTuple(c: Supplier) = (
     c.id,
     c.name,
     c.description,
@@ -51,7 +93,7 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     c.zip,
     c.city,
     c.state,
-    //c.country,
+    c.country,
     c.phone,
     c.email,
     c.account,
@@ -66,8 +108,27 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
   )
 
   override def create(c: Supplier): ZIO[Any, RepositoryError, Unit]                    = {
-    val query = insertInto(supplier)(id, name, description, street, zip, city, state/*, country*/, phone, email, account, oaccount, iban,
-      vatcode, company, modelid, enterdate, changedate, postingdate).values(toTuple(c))
+    val query = insertInto(supplier)(
+      id,
+      name,
+      description,
+      street,
+      zip,
+      city,
+      state,
+      country,
+      phone,
+      email,
+      account,
+      oaccount,
+      iban,
+      vatcode,
+      company,
+      modelid,
+      enterdate,
+      changedate,
+      postingdate
+    ).values(toTuple(c))
 
     ZIO.logDebug(s"Query to insert Supplier is ${renderInsert(query)}") *>
       execute(query)
@@ -76,15 +137,34 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
   }
   override def create(models: List[Supplier]): ZIO[Any, RepositoryError, Int]          = {
     val data  = models.map(toTuple(_))
-    val query = insertInto(supplier)(id, name, description, street, zip, city, state/*, country*/, phone, email, account, oaccount, iban,
-      vatcode, company, modelid, enterdate, changedate, postingdate).values(data)
+    val query = insertInto(supplier)(
+      id,
+      name,
+      description,
+      street,
+      zip,
+      city,
+      state,
+      country,
+      phone,
+      email,
+      account,
+      oaccount,
+      iban,
+      vatcode,
+      company,
+      modelid,
+      enterdate,
+      changedate,
+      postingdate
+    ).values(data)
 
     ZIO.logDebug(s"Query to insert Supplier is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
   }
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] =
-    execute(deleteFrom(supplier).where((id === item) && (company === companyId)))
+    execute(deleteFrom(supplier).where(whereClause(item, companyId)))
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getCause()))
 
@@ -92,7 +172,7 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     val update_ = update(supplier)
       .set(name, model.name)
       .set(description, model.description)
-      .where((id === model.id) && (company === model.company))
+      .where(whereClause(model.id, model.company))
     ZIO.logDebug(s"Query Update supplier is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
@@ -106,7 +186,7 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
   }
 
   override def all(companyId: String): ZIO[Any, RepositoryError, List[Supplier]] = for {
-    suppliers <- list(companyId).runCollect.map(_.toList)
+    suppliers     <- list(companyId).runCollect.map(_.toList)
     bankAccounts_ <- listBankAccount(companyId).runCollect.map(_.toList)
   } yield suppliers.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
 
@@ -115,20 +195,20 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     execute(selectAll.to[Supplier](c => Supplier.apply(c)))
       .provideDriver(driverLayer)
   }
-  override def getBy(Id: String, companyId: String): ZIO[Any, RepositoryError, Supplier] = {
-    val selectAll = SELECT.where((id === Id) && (company === companyId))
+  override def getBy(id: String, companyId: String): ZIO[Any, RepositoryError, Supplier] = {
+    val selectAll = SELECT.where(whereClause(id, companyId))
 
     ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to[Supplier](c => Supplier.apply(c)))
-        .findFirst(driverLayer, Id)
+        .findFirst(driverLayer, id)
   }
 
-  override def getByIban(Iban: String, companyId: String): ZIO[Any, RepositoryError, Supplier]    = {
-    val selectAll = SELECT2.where((iban_ === Iban) && (company === companyId))
+  override def getByIban(iban: String, companyId: String): ZIO[Any, RepositoryError, Supplier]    = {
+    val selectAll = SELECT2.where((iban_ === iban) && (company === companyId))
 
     ZIO.logDebug(s"Query to execute getByIban is ${renderRead(selectAll)}") *>
       execute(selectAll.to[Supplier](c => Supplier.apply(c)))
-        .findFirst(driverLayer, Iban)
+        .findFirst(driverLayer, iban)
   }
   override def getByModelId(modelId: Int, companyId: String): ZIO[Any, RepositoryError, Supplier] = {
     val selectAll = SELECT.where((modelid === modelId) && (company === companyId))

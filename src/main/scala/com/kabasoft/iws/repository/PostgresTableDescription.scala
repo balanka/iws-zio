@@ -9,7 +9,7 @@ trait PostgresTableDescription extends PostgresJdbcModule {
 
   implicit class ZStreamSqlExt[T](zstream: ZStream[SqlDriver, Exception, T]) {
     def provideDriver(
-        driver: ULayer[SqlDriver]
+      driver: ULayer[SqlDriver]
     ): ZStream[Any, RepositoryError, T] =
       zstream
         .tapError(e => ZIO.logError(e.getMessage()))
@@ -17,29 +17,27 @@ trait PostgresTableDescription extends PostgresJdbcModule {
         .provideLayer(driver)
 
     def findFirst(
-        driver: ULayer[SqlDriver],
-        id: java.util.UUID
+      driver: ULayer[SqlDriver],
+      id: java.util.UUID
     ): ZIO[Any, RepositoryError, T] =
-      zstream.runHead.some
-        .tapError {
-          case None    => ZIO.unit
-          case Some(e) => ZIO.logError(e.getMessage())
-        }
-        .mapError {
-          case None =>
-            RepositoryError(
-              new RuntimeException(s"Order with id $id does not exists")
-            )
-          case Some(e) => RepositoryError(e.getCause())
-        }
+      zstream.runHead.some.tapError {
+        case None    => ZIO.unit
+        case Some(e) => ZIO.logError(e.getMessage())
+      }.mapError {
+        case None    =>
+          RepositoryError(
+            new RuntimeException(s"Order with id $id does not exists")
+          )
+        case Some(e) => RepositoryError(e.getCause())
+      }
         .provide(driver)
 
     def findFirst(driver: ULayer[SqlDriver], id: String): ZIO[Any, RepositoryError, T] =
       zstream.runHead.some.tapError {
-        case None => ZIO.unit
+        case None    => ZIO.unit
         case Some(e) => println("Message:" + e.getMessage()); ZIO.logError(e.getMessage())
       }.mapError {
-        case None =>
+        case None    =>
           RepositoryError(
             new RuntimeException(s"Object with id/name $id does not exists")
           )
