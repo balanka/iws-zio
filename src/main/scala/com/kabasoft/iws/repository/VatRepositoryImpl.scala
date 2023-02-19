@@ -1,6 +1,5 @@
 package com.kabasoft.iws.repository
 
-
 import com.kabasoft.iws.domain.Vat
 import zio._
 import com.kabasoft.iws.repository.Schema.vatSchema
@@ -28,21 +27,24 @@ final class VatRepositoryImpl(pool: ConnectionPool) extends VatRepository with I
     modelid
   ) = vat.columns
 
-
-  val SELECT = select(id, name, description, percent, inputVatAccount, outputVatAccount, enterdate, changedate
-    , postingdate, company, modelid).from(vat)
+  val SELECT =
+    select(id, name, description, percent, inputVatAccount, outputVatAccount, enterdate, changedate, postingdate, company, modelid).from(vat)
 
   override def create(c: Vat): ZIO[Any, RepositoryError, Unit]                         = {
-    val query = insertInto(vat)(id, name, description, percent, inputVatAccount, outputVatAccount, enterdate,
-      changedate, postingdate, company, modelid).values(Vat.unapply(c).get)
+    val query =
+      insertInto(vat)(id, name, description, percent, inputVatAccount, outputVatAccount, enterdate, changedate, postingdate, company, modelid).values(
+        Vat.unapply(c).get
+      )
 
     ZIO.logDebug(s"Query to insert Vat is ${renderInsert(query)}") *>
       execute(query).provideAndLog(driverLayer).unit
   }
   override def create(models: List[Vat]): ZIO[Any, RepositoryError, Int]               = {
     val data  = models.map(Vat.unapply(_).get)
-    val query = insertInto(vat)(id, name, description, percent, inputVatAccount, outputVatAccount, enterdate,
-      changedate, postingdate, company, modelid).values(data)
+    val query =
+      insertInto(vat)(id, name, description, percent, inputVatAccount, outputVatAccount, enterdate, changedate, postingdate, company, modelid).values(
+        data
+      )
     ZIO.logDebug(s"Query to insert Vat is ${renderInsert(query)}") *>
       execute(query).provideAndLog(driverLayer)
   }
@@ -75,7 +77,7 @@ final class VatRepositoryImpl(pool: ConnectionPool) extends VatRepository with I
       .set(outputVatAccount, model.outputVatAccount)
       .where((id === model.id) && (company === model.company))
 
-  override def all(companyId: String): ZIO[Any, RepositoryError, List[Vat]] =
+  override def all(companyId: String): ZIO[Any, RepositoryError, List[Vat]]                  =
     list(companyId).runCollect.map(_.toList)
   override def list(companyId: String): ZStream[Any, RepositoryError, Vat]                   = {
     val selectAll = SELECT

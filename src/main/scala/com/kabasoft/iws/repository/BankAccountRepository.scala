@@ -31,7 +31,7 @@ object BankAccountRepository {
     ZIO.service[BankAccountRepository] flatMap (_.delete(item, company))
   def delete(items: List[String], company: String): ZIO[BankAccountRepository, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
-  def all(companyId: String): ZIO[BankAccountRepository, RepositoryError, List[BankAccount]]  =
+  def all(companyId: String): ZIO[BankAccountRepository, RepositoryError, List[BankAccount]]               =
     ZIO.service[BankAccountRepository] flatMap (_.all(companyId))
   def list(company: String): ZStream[BankAccountRepository, RepositoryError, TYPE_]                        =
     ZStream.service[BankAccountRepository] flatMap (_.list(company))

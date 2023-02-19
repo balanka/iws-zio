@@ -1,11 +1,10 @@
 package com.kabasoft.iws.repository
 
-import com.kabasoft.iws.domain.{BankStatement, BankStatement_}
-import com.kabasoft.iws.repository.Schema.{bankStatementsSchema, bankStatementsSchema_}
+import com.kabasoft.iws.domain.{ BankStatement, BankStatement_ }
+import com.kabasoft.iws.repository.Schema.{ bankStatementsSchema, bankStatementsSchema_ }
 trait BankStatementTableDescription extends IWSTableDescriptionPostgres {
 
-
-  val bankStatements = defineTable[BankStatement]("bankstatement")
+  val bankStatements      = defineTable[BankStatement]("bankstatement")
   val bankStatementInsert = defineTable[BankStatement_]("bankstatement")
 
   val (

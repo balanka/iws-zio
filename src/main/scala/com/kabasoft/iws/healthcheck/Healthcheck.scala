@@ -1,7 +1,7 @@
 package com.kabasoft.iws.healthcheck
 
 import zio._
-import zio.http.model.{Method, Status}
+import zio.http.model.{ Method, Status }
 import zio.http._
 
 object Healthcheck {

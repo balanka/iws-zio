@@ -34,16 +34,15 @@ object SupplierRepository {
   def all(company: String): ZIO[SupplierRepository, RepositoryError, List[TYPE_]] =
     ZIO.service[SupplierRepository] flatMap (_.all(company))
 
-  def list(company: String): ZStream[SupplierRepository, RepositoryError, TYPE_]                        =
+  def list(company: String): ZStream[SupplierRepository, RepositoryError, TYPE_]                   =
     ZStream.service[SupplierRepository] flatMap (_.list(company))
-  def getBy(id: String, company: String): ZIO[SupplierRepository, RepositoryError, TYPE_]               =
+  def getBy(id: String, company: String): ZIO[SupplierRepository, RepositoryError, TYPE_]          =
     ZIO.service[SupplierRepository] flatMap (_.getBy(id, company))
-  def getByIban(Iban: String, companyId: String): ZIO[SupplierRepository, RepositoryError, TYPE_]=
+  def getByIban(Iban: String, companyId: String): ZIO[SupplierRepository, RepositoryError, TYPE_]  =
     ZIO.service[SupplierRepository] flatMap (_.getByIban(Iban, companyId))
-  def getByModelId(modelid: Int, company: String): ZIO[SupplierRepository, RepositoryError, TYPE_]      =
+  def getByModelId(modelid: Int, company: String): ZIO[SupplierRepository, RepositoryError, TYPE_] =
     ZIO.service[SupplierRepository] flatMap (_.getByModelId(modelid, company))
-  def modify(model: TYPE_): ZIO[SupplierRepository, RepositoryError, Int]                               =
+  def modify(model: TYPE_): ZIO[SupplierRepository, RepositoryError, Int]                          =
     ZIO.service[SupplierRepository] flatMap (_.modify(model))
 
 }
-

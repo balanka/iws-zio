@@ -35,7 +35,7 @@ object AccountRepository {
   def list(company: String): ZStream[AccountRepository, RepositoryError, Account] =
     ZStream.service[AccountRepository] flatMap (_.list(company))
 
-  def all(companyId: String): ZIO[AccountRepository, RepositoryError, List[Account]]=
+  def all(companyId: String): ZIO[AccountRepository, RepositoryError, List[Account]] =
     ZIO.service[AccountRepository] flatMap (_.all(companyId))
 
   def getBy(id: String, company: String): ZIO[AccountRepository, RepositoryError, Account] =

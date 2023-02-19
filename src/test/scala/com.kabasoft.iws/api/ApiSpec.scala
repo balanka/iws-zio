@@ -52,33 +52,35 @@ object ApiSpec extends ZIOSpecDefault {
             .implement ( _ => BankRepository.all("1000").map(_.size))
           val testRoutes = testApi(bankAll ++ bankByIdEndpoint) _
           val testRoutes1 = testPostApi(bankCreateEndpoint) _
-          testRoutes("/bank", "2") && testRoutes("/bank/COLSDE33", bank.toJson)&& testRoutes1("/user", List(bankx).toJson, "")
+          testRoutes("/bank", "2") && testRoutes("/bank/"+bank.id, bank.toJson) && testRoutes1("/bank", List(bankx).toJson, "")
         },
          test("Customer integration test") {
           val custAllEndpoint = EndpointSpec.get[Unit](literal("cust")).out[Int]
             .implement(_ => CustomerRepository.all("1000").map(_.size))
           val testRoutes = testApi(custByIdEndpoint ++ custAllEndpoint) _
           val testRoutes1 = testPostApi(custCreateEndpoint) _
-          testRoutes("/cust", "3") && testRoutes("/cust/"+cust.id, cust.toJson)&& testRoutes1("/user", List(custx).toJson, "")
+          testRoutes("/cust", "3") && testRoutes("/cust/"+cust.id, cust.toJson)&& testRoutes1("/cust", List(custx).toJson, "")
         },
         test("Supplier integration test") {
           val supAllEndpoint = EndpointSpec.get[Unit](literal("sup")).out[Int]
             .implement(_ => SupplierRepository.all("1000").map(_.size))
           val testRoutes = testApi(supByIdEndpoint ++ supAllEndpoint) _
           val testRoutes1 = testPostApi(supCreateEndpoint) _
-          testRoutes("/sup", "6") && testRoutes("/sup/"+sup.id, sup.toJson)&& testRoutes1("/user", List(supx).toJson, "")
+          testRoutes("/sup", "6") && testRoutes("/sup/"+sup.id, sup.toJson)&& testRoutes1("/sup", List(supx).toJson, "")
         },
         test("Cost center integration test") {
-          val ccAllEndpoint = EndpointSpec.get(literal("cc")).out[Int].implement(_ => CostcenterRepository.all("1000").map(_.size))
+          val ccAllEndpoint = EndpointSpec.get(literal("cc")).out[Int]
+            .implement(_ => CostcenterRepository.all("1000").map(_.size))
           val testRoutes = testApi(ccByIdEndpoint ++ ccAllEndpoint) _
           val testRoutes1 = testPostApi(ccCreateEndpoint) _
-          testRoutes("/cc", "2") && testRoutes("/cc/300", cc.toJson)&& testRoutes1("/user", List(ccx).toJson, "")
+          testRoutes("/cc", "2") && testRoutes("/cc/300", cc.toJson)&& testRoutes1("/cc", List(ccx).toJson, "")
         },
           test("Module integration test") {
-          val moduleAllEndpoint = EndpointSpec.get(literal("module")).out[Int].implement(_ => ModuleRepository.all("1000").map(_.size))
+          val moduleAllEndpoint = EndpointSpec.get(literal("module")).out[Int]
+            .implement(_ => ModuleRepository.all("1000").map(_.size))
           val testRoutes = testApi(moduleByIdEndpoint ++ moduleAllEndpoint) _
           val testRoutes1 = testPostApi(moduleCreateEndpoint) _
-          testRoutes("/module", "1") && testRoutes("/module/"+m.id, mx.toJson)&& testRoutes1("/user", List(mx).toJson, "")
+          testRoutes("/module", "1") && testRoutes("/module/"+m.id, mx.toJson)&& testRoutes1("/module", List(mx).toJson, "")
         },
            test("User integration test") {
           val userAllEndpoint = EndpointSpec.get(literal("user")).out[Int].implement(_ => UserRepository.all("1000").map(_.size))

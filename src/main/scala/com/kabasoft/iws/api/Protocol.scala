@@ -1,9 +1,25 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain
-import com.kabasoft.iws.domain.{Account, Bank, BankAccount, BankStatement, Company, Costcenter, Customer,
-  DerivedTransaction, FinancialsTransaction, FinancialsTransactionDetails,
-   Journal,  LoginRequest, PeriodicAccountBalance, Role, Supplier,  User, Vat}
+import com.kabasoft.iws.domain.{
+  Account,
+  Bank,
+  BankAccount,
+  BankStatement,
+  Company,
+  Costcenter,
+  Customer,
+  DerivedTransaction,
+  FinancialsTransaction,
+  FinancialsTransactionDetails,
+  Journal,
+  LoginRequest,
+  PeriodicAccountBalance,
+  Role,
+  Supplier,
+  User,
+  Vat
+}
 import zio._
 import zio.json._
 
@@ -20,12 +36,11 @@ object Protocol {
   implicit val customersEncoder: JsonEncoder[Customers] =
     DeriveJsonEncoder.gen[Customers]
 
-
   implicit val moduleDecoder: JsonDecoder[domain.Module] = DeriveJsonDecoder.gen[domain.Module]
   implicit val moduleEncoder: JsonEncoder[domain.Module] = DeriveJsonEncoder.gen[domain.Module]
 
-  implicit val supplierEncoder: JsonEncoder[Supplier] = DeriveJsonEncoder.gen[Supplier]
-  implicit val supplierDecoder: JsonDecoder[Supplier] = DeriveJsonDecoder.gen[Supplier]
+  implicit val supplierEncoder: JsonEncoder[Supplier]        = DeriveJsonEncoder.gen[Supplier]
+  implicit val supplierDecoder: JsonDecoder[Supplier]        = DeriveJsonDecoder.gen[Supplier]
   implicit val suppliersDecoder: JsonDecoder[List[Supplier]] = DeriveJsonDecoder.gen[List[Supplier]]
 
   implicit lazy val accountEncoder: JsonEncoder[Account] = DeriveJsonEncoder.gen[Account]
@@ -51,10 +66,10 @@ object Protocol {
   implicit val pacEncoder: JsonEncoder[PeriodicAccountBalance] = DeriveJsonEncoder.gen[PeriodicAccountBalance]
   implicit val pacDecoder: JsonDecoder[PeriodicAccountBalance] = DeriveJsonDecoder.gen[PeriodicAccountBalance]
 
-  implicit val companyEncoder: JsonEncoder[Company] = DeriveJsonEncoder.gen[Company]
-  implicit val companyDecoder: JsonDecoder[Company] = DeriveJsonDecoder.gen[Company]
-  implicit val costcenterEncoder: JsonEncoder[Costcenter] = DeriveJsonEncoder.gen[Costcenter]
-  implicit val costcenterDecoder: JsonDecoder[Costcenter] = DeriveJsonDecoder.gen[Costcenter]
+  implicit val companyEncoder: JsonEncoder[Company]              = DeriveJsonEncoder.gen[Company]
+  implicit val companyDecoder: JsonDecoder[Company]              = DeriveJsonDecoder.gen[Company]
+  implicit val costcenterEncoder: JsonEncoder[Costcenter]        = DeriveJsonEncoder.gen[Costcenter]
+  implicit val costcenterDecoder: JsonDecoder[Costcenter]        = DeriveJsonDecoder.gen[Costcenter]
   implicit val costcentersDecoder: JsonDecoder[List[Costcenter]] = DeriveJsonDecoder.gen[List[Costcenter]]
 
   implicit val financialsDerivedEncoder: JsonEncoder[DerivedTransaction] = DeriveJsonEncoder.gen[DerivedTransaction]

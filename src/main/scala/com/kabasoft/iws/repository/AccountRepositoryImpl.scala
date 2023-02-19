@@ -1,7 +1,7 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Account, Account_}
+import com.kabasoft.iws.domain.{ Account, Account_ }
 import com.kabasoft.iws.repository.Schema.account_schema
 import zio._
 import zio.sql.ConnectionPool
@@ -9,10 +9,8 @@ import zio.stream._
 
 final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepository with IWSTableDescriptionPostgres {
 
-
-  lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
-  val map:List[Account] = List.empty[Account]
-
+  lazy val driverLayer   = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
+  val map: List[Account] = List.empty[Account]
 
   val account = defineTable[Account_]("account")
 
@@ -54,7 +52,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
     credit
   ) = account.columns
 
-  val SELECT                                                                           = select(
+  val SELECT = select(
     id,
     name,
     description,
@@ -73,12 +71,29 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
     credit
   ).from(account)
 
-  def whereClause(Id: String,  companyId: String) =
+  def whereClause(Id: String, companyId: String) =
     List(id === Id, company === companyId)
       .fold(Expr.literal(true))(_ && _)
 
   override def create(c: Account): ZIO[Any, RepositoryError, Unit]                     = {
-    val query = insertInto(account)(id, name, description, enterdate, changedate, postingdate, company, modelid, accountid, isDebit, balancesheet, currency, idebit, icredit, debit, credit).values(tuple2(c))
+    val query = insertInto(account)(
+      id,
+      name,
+      description,
+      enterdate,
+      changedate,
+      postingdate,
+      company,
+      modelid,
+      accountid,
+      isDebit,
+      balancesheet,
+      currency,
+      idebit,
+      icredit,
+      debit,
+      credit
+    ).values(tuple2(c))
 
     ZIO.logDebug(s"Query to insert Account is ${renderInsert(query)}") *>
       execute(query)
@@ -87,14 +102,31 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
   }
   override def create(models: List[Account]): ZIO[Any, RepositoryError, Int]           = {
     val data  = models.map(tuple2(_))
-    val query = insertInto(account)(id, name, description, enterdate, changedate, postingdate, company, modelid, accountid, isDebit, balancesheet, currency, idebit, icredit, debit, credit).values(data)
+    val query = insertInto(account)(
+      id,
+      name,
+      description,
+      enterdate,
+      changedate,
+      postingdate,
+      company,
+      modelid,
+      accountid,
+      isDebit,
+      balancesheet,
+      currency,
+      idebit,
+      icredit,
+      debit,
+      credit
+    ).values(data)
 
     ZIO.logDebug(s"Query to insert Account is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
   }
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] =
-    execute(deleteFrom(account).where(whereClause (item, companyId)))
+    execute(deleteFrom(account).where(whereClause(item, companyId)))
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getCause()))
 
@@ -107,7 +139,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
       .set(isDebit, model.isDebit)
       .set(balancesheet, model.balancesheet)
       .set(currency, model.currency)
-      .where(whereClause (model.id, model.company))
+      .where(whereClause(model.id, model.company))
 
   override def modify(model: Account): ZIO[Any, RepositoryError, Int]        = {
     val update_ = build(Account_(model))
@@ -117,23 +149,23 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
         .mapError(e => RepositoryError(e.getCause()))
   }
   override def modify(models: List[Account]): ZIO[Any, RepositoryError, Int] = {
-    val update_ = models.map(acc=>build( Account_(acc)))
-   ZIO.foreach(update_.map(renderUpdate))(sql=>ZIO.logDebug(s"Query Update Account is ${sql}")) *>
-    executeBatchUpdate(update_)
-      .provideLayer(driverLayer)
-      .map(_.sum)
-      .mapError(e => RepositoryError(e.getCause()))
+    val update_ = models.map(acc => build(Account_(acc)))
+    ZIO.foreach(update_.map(renderUpdate))(sql => ZIO.logDebug(s"Query Update Account is ${sql}")) *>
+      executeBatchUpdate(update_)
+        .provideLayer(driverLayer)
+        .map(_.sum)
+        .mapError(e => RepositoryError(e.getCause()))
   }
 
   override def all(companyId: String): ZIO[Any, RepositoryError, List[Account]] = for {
     accounts <- list(companyId).runCollect.map(_.toList)
-  } yield accounts//.map(_.addSubAccounts(accounts))
-
+  } yield accounts // .map(_.addSubAccounts(accounts))
 
   override def list(companyId: String): ZStream[Any, RepositoryError, Account] =
-      ZStream.fromZIO(
-      ZIO.logDebug(s"Query to execute findAll is ${renderRead(SELECT)}")) *>
-      execute(SELECT.to(c => {val x = Account.apply(c); map :+ (x); x}))
+    ZStream.fromZIO(ZIO.logDebug(s"Query to execute findAll is ${renderRead(SELECT)}")) *>
+      execute(SELECT.to { c =>
+        val x = Account.apply(c); map :+ (x); x
+      })
         .provideDriver(driverLayer)
 
   override def getBy(Id: String, companyId: String): ZIO[Any, RepositoryError, Account]          = {

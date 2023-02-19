@@ -1,6 +1,6 @@
 package com.kabasoft.iws.repository
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{BankStatement, BankStatement_}
+import com.kabasoft.iws.domain.{ BankStatement, BankStatement_ }
 import zio._
 import zio.sql.ConnectionPool
 import zio.stream._
@@ -10,18 +10,66 @@ final class BankStatementRepositoryImpl(pool: ConnectionPool) extends BankStatem
   lazy val driverLayer = ZLayer
     .make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
 
-  val SELECT  = select(id, depositor, postingdate, valuedate, postingtext, purpose, beneficiary, accountno, bankCode, amount, currency, info, company, companyIban, posted, modelid).from(bankStatements)
+  val SELECT = select(
+    id,
+    depositor,
+    postingdate,
+    valuedate,
+    postingtext,
+    purpose,
+    beneficiary,
+    accountno,
+    bankCode,
+    amount,
+    currency,
+    info,
+    company,
+    companyIban,
+    posted,
+    modelid
+  ).from(bankStatements)
 
-
-  override def create(bs: BankStatement): ZIO[Any, RepositoryError, Unit]               = {
-    val query = insertInto(bankStatementInsert)(depositor_, postingdate_, valuedate_, postingtext_, purpose_, beneficiary_, accountno_, bankCode_, amount_, currency_, info_, company_, companyIban_, posted_, modelid_).values(toTuple2(BankStatement_(bs)))
+  override def create(bs: BankStatement): ZIO[Any, RepositoryError, Unit]              = {
+    val query = insertInto(bankStatementInsert)(
+      depositor_,
+      postingdate_,
+      valuedate_,
+      postingtext_,
+      purpose_,
+      beneficiary_,
+      accountno_,
+      bankCode_,
+      amount_,
+      currency_,
+      info_,
+      company_,
+      companyIban_,
+      posted_,
+      modelid_
+    ).values(toTuple2(BankStatement_(bs)))
 
     ZIO.logDebug(s"Query to insert BankStatement is ${renderInsert(query)}") *>
       execute(query).provideAndLog(driverLayer).unit
   }
   override def create(models: List[BankStatement]): ZIO[Any, RepositoryError, Int]     = {
     val data  = models.map(c => toTuple2(BankStatement_(c)))
-    val query = insertInto(bankStatementInsert)(depositor_, postingdate_, valuedate_, postingtext_, purpose_, beneficiary_, accountno_, bankCode_, amount_, currency_, info_, company_, companyIban_, posted_, modelid_).values(data)
+    val query = insertInto(bankStatementInsert)(
+      depositor_,
+      postingdate_,
+      valuedate_,
+      postingtext_,
+      purpose_,
+      beneficiary_,
+      accountno_,
+      bankCode_,
+      amount_,
+      currency_,
+      info_,
+      company_,
+      companyIban_,
+      posted_,
+      modelid_
+    ).values(data)
 
     ZIO.logDebug(s"Query to insert BankStatement is ${renderInsert(query)}") *>
       execute(query).provideAndLog(driverLayer)
@@ -47,7 +95,7 @@ final class BankStatementRepositoryImpl(pool: ConnectionPool) extends BankStatem
 
   override def all(companyId: String): ZIO[Any, RepositoryError, List[BankStatement]] =
     list(companyId).runCollect.map(_.toList)
-  override def list(companyId: String): ZStream[Any, RepositoryError, BankStatement]                   = {
+  override def list(companyId: String): ZStream[Any, RepositoryError, BankStatement]  = {
     val selectAll = SELECT
     ZStream.fromZIO(
       ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")

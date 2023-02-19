@@ -14,12 +14,12 @@ trait BankStatementService {
     company: String,
     buildFn: String => BankStatement
   ): ZIO[Any, RepositoryError, Int]
-  def postAll(ids: List[Long], companyId: String) : ZIO[Any, RepositoryError, Int]
+  def postAll(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, Int]
 
 }
 object BankStatementService {
 
-  def postAll(ids: List[Long], companyId: String) : ZIO[BankStatementService, RepositoryError, Int] =
+  def postAll(ids: List[Long], companyId: String): ZIO[BankStatementService, RepositoryError, Int] =
     ZIO.service[BankStatementService].flatMap(_.postAll(ids, companyId))
 
   def importBankStmt(
