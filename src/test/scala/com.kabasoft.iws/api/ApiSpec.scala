@@ -73,14 +73,14 @@ object ApiSpec extends ZIOSpecDefault {
             .implement(_ => CostcenterRepository.all("1000").map(_.size))
           val testRoutes = testApi(ccByIdEndpoint ++ ccAllEndpoint) _
           val testRoutes1 = testPostApi(ccCreateEndpoint) _
-          testRoutes("/cc", "2") && testRoutes("/cc/300", cc.toJson)&& testRoutes1("/cc", List(ccx).toJson, "")
+          testRoutes("/cc", "2") && testRoutes("/cc/"+cc.id, cc.toJson)&& testRoutes1("/cc", List(ccx).toJson, "")
         },
           test("Module integration test") {
           val moduleAllEndpoint = EndpointSpec.get(literal("module")).out[Int]
             .implement(_ => ModuleRepository.all("1000").map(_.size))
           val testRoutes = testApi(moduleByIdEndpoint ++ moduleAllEndpoint) _
           val testRoutes1 = testPostApi(moduleCreateEndpoint) _
-          testRoutes("/module", "1") && testRoutes("/module/"+m.id, mx.toJson)&& testRoutes1("/module", List(mx).toJson, "")
+          testRoutes("/module", "1") && testRoutes("/module/"+m.id, m.toJson)&& testRoutes1("/module", List(mx).toJson, "")
         },
            test("User integration test") {
           val userAllEndpoint = EndpointSpec.get(literal("user")).out[Int].implement(_ => UserRepository.all("1000").map(_.size))
@@ -92,7 +92,7 @@ object ApiSpec extends ZIOSpecDefault {
           val vatAllEndpoint = EndpointSpec.get(literal("vat")).out[Int].implement(_ => VatRepository.all("1000").map(_.size))
           val testRoutes = testApi(vatByIdEndpoint ++ vatAllEndpoint) _
           val testRoutes1 = testPostApi(vatCreateEndpoint) _
-          testRoutes("/vat", "2") && testRoutes("/vat/v101", vat1.toJson) && testRoutes1("/vat", List(vat1x).toJson, "")
+          testRoutes("/vat", "2") && testRoutes("/vat/"+vat1.id, vat1.toJson) && testRoutes1("/vat", List(vat1x).toJson, "")
 
         }
     ).provide(ConnectionPool.live,  BankRepositoryImpl.live,
