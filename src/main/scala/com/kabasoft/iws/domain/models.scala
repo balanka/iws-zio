@@ -205,16 +205,7 @@ final case class Account(
       .debiting(acc.debit)
       .crediting(acc.credit)
       .remove(acc).add(acc)
-
-  def updateBalanceFrom(pacs: Set[PeriodicAccountBalance]): Account = subAccounts.toList match {
-    case Nil     =>
-      val pac = reduce(pacs.filter(pac => pac.account == id), PeriodicAccountBalance.dummy)
-      copy(idebit = pac.idebit, debit = pac.debit, icredit = pac.icredit, credit = pac.credit)
-    case x :: xs =>
-      val pac = reduce(xs.map(_.updateBalanceFrom(pacs)), Account.dummy)
-      x.updateBalanceFrom(pacs).copy(idebit = pac.idebit, debit = pac.debit, icredit = pac.icredit, credit = pac.credit)
-  }
-
+  
 
   @tailrec
   def updateBalanceParent(all: List[Account]): List[Account] =
@@ -233,7 +224,7 @@ final case class Account(
 
   def addSubAccounts(accounts: List[Account]): Account =
     copy(subAccounts = accounts.filter(_.account == id).map(_.addSubAccounts(accounts)).toSet)
-  
+
 
 
 }
