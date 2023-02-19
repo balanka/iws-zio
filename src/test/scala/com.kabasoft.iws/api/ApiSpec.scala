@@ -52,7 +52,7 @@ object ApiSpec extends ZIOSpecDefault {
             .implement ( _ => BankRepository.all("1000").map(_.size))
           val testRoutes = testApi(bankAll ++ bankByIdEndpoint) _
           val testRoutes1 = testPostApi(bankCreateEndpoint) _
-          testRoutes("/bank", "2") && testRoutes("/bank/"+bank.id, bank.toJson)&& testRoutes1("/user", List(bankx).toJson, "")
+          testRoutes("/bank", "2") && testRoutes("/bank/COLSDE33", bank.toJson)&& testRoutes1("/user", List(bankx).toJson, "")
         },
          test("Customer integration test") {
           val custAllEndpoint = EndpointSpec.get[Unit](literal("cust")).out[Int]
