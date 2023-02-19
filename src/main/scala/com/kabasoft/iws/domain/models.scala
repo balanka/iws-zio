@@ -509,23 +509,6 @@ final case class BaseData(
   def balance                        = if (isDebit) dbalance else cbalance
 
 }
-object BaseData {
-  def apply(acc: Account): BaseData =
-    BaseData(
-      acc.id,
-      acc.name,
-      acc.description,
-      19,
-      acc.isDebit,
-      acc.balancesheet,
-      acc.idebit,
-      acc.icredit,
-      acc.debit,
-      acc.credit,
-      acc.currency,
-      acc.company
-    )
-}
 
 sealed trait IWS {
   def id: String
