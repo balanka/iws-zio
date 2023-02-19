@@ -19,7 +19,7 @@ object BankEndpoint {
         body <- req.body.asString
           .flatMap(request =>
             ZIO
-              .fromEither(request.fromJson[Bank])
+              .fromEither(request.fromJson[List[Bank]])
               .mapError(e => new Throwable(e))
           )
           .mapError(e => AppError.DecodingError(e.getMessage))

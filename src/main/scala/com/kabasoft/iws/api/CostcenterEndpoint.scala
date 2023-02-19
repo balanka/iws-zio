@@ -13,13 +13,13 @@ import zio.json.DecoderOps
 
 object CostcenterEndpoint {
 
-  private val createEndpoint = Http.collectZIO[Request] {
+   val ccCreateEndpoint = Http.collectZIO[Request] {
     case req@Method.POST -> !! / "cc" =>
       (for {
         body <- req.body.asString
           .flatMap(request =>
             ZIO
-              .fromEither(request.fromJson[Costcenter])
+              .fromEither(request.fromJson[List[Costcenter]])
               .mapError(e => new Throwable(e))
           )
           .mapError(e => AppError.DecodingError(e.getMessage))
@@ -41,6 +41,6 @@ object CostcenterEndpoint {
   private val serviceSpec = (ccAllAPI.toServiceSpec ++ ccByIdAPI.toServiceSpec++deleteAPI.toServiceSpec)
 
   val appCC: HttpApp[CostcenterRepository, AppError.RepositoryError] =
-    serviceSpec.toHttpApp(ccAllEndpoint ++ ccByIdEndpoint++deleteEndpoint)++createEndpoint
+    serviceSpec.toHttpApp(ccAllEndpoint ++ ccByIdEndpoint++deleteEndpoint)++ccCreateEndpoint
 
 }

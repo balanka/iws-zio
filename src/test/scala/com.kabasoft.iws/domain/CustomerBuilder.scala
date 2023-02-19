@@ -8,6 +8,7 @@ object CustomerBuilder {
   val customerId2 = "4712"
   val customerId3 = "5004"
   val dummyId     = "5222"
+  val dummyIdx     = "5222x"
   val nameCustomer1 = "B Mady"
   val nameCustomer2 = "KABA Soft GmbH"
   val IbanCustomer1 ="DE27662900000001470034X"
@@ -21,8 +22,10 @@ object CustomerBuilder {
   val customer2 = Customer(customerId2, nameCustomer2, "KABA Soft GmbH", "Universitaet Str 2", "33615", "Bielefeld", "NRW", "DE",
       "0521-4711631", "0521-4711641", "info@fabasoft.de", accountRecvId, incaccountId, IbanCustomer2, vataccountId, 1000)
 
-  val dummy = Customer(dummyId, dummyNname, dummyNname, dummyNname, dummyNname, dummyNname, dummyNname, "DE", dummyNname,
+  val cust = Customer(dummyId, dummyNname, dummyNname, dummyNname, dummyNname, dummyNname, dummyNname, "DE", dummyNname,
        "dummy@dummy.com", "1215", "111111", "DEddddddddddddddddommy", "v5", "1000", Customer.MODELID, vtime, vtime, vtime)
+  val custx = Customer(dummyIdx, dummyNname, dummyNname, dummyNname, dummyNname, dummyNname, dummyNname, "DE", dummyNname,
+    "dummy@dummy.com", "1215", "111111", "DEddddddddddddddddommy", "v5", "1000", Customer.MODELID, vtime, vtime, vtime)
   val customers = List( customer1, customer2 )
 
     def instantFromStr(str:String)=Instant.parse(str)

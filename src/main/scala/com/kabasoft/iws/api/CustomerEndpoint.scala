@@ -14,16 +14,15 @@ import zio.schema.DeriveSchema.gen
 
 object CustomerEndpoint {
 
-  private val createEndpoint = Http.collectZIO[Request] {
+  val custCreateEndpoint = Http.collectZIO[Request] {
     case req@Method.POST -> !! / "cust" =>
       (for {
         body <- req.body.asString
           .flatMap(request =>
-            ZIO
-              .fromEither(request.fromJson[Customer])
-              .mapError(e => new Throwable(e))
+            ZIO.fromEither(request.fromJson[List[Customer]])
+               .mapError(e => new Throwable(e))
           )
-          .mapError(e => AppError.DecodingError(e.getMessage()))
+          .mapError(e => AppError.DecodingError(e.getMessage))
           .tapError(e => ZIO.logInfo(s"Unparseable customer body ${e}"))
         _ <- CustomerRepository.create(body)
       } yield ()).either.map {
@@ -42,5 +41,5 @@ object CustomerEndpoint {
   private val serviceSpec = (custAllAPI.toServiceSpec ++ custByIdAPI.toServiceSpec++deleteAPI.toServiceSpec)
 
   val appCust: HttpApp[CustomerRepository, AppError.RepositoryError] =
-    serviceSpec.toHttpApp(custAllEndpoint ++ custByIdEndpoint++deleteEndpoint)++createEndpoint
+    serviceSpec.toHttpApp(custAllEndpoint ++ custByIdEndpoint++deleteEndpoint)++custCreateEndpoint
 }

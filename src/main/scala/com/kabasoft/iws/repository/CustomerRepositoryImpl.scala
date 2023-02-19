@@ -153,8 +153,8 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
       execute(query)
         .provideAndLog(driverLayer)
   }
-  override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] =
-    execute(deleteFrom(customer).where(whereClause(item, companyId)))
+  override def delete(id: String, companyId: String): ZIO[Any, RepositoryError, Int] =
+    execute(deleteFrom(customer).where(whereClause(id, companyId)))
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getCause()))
 
@@ -185,11 +185,11 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     .provideDriver(driverLayer)
   }
 
-  override def getBy(Id: String, companyId: String): ZIO[Any, RepositoryError, Customer] = {
-    val selectAll = SELECT.where(whereClause(Id, companyId))
+  override def getBy(id: String, companyId: String): ZIO[Any, RepositoryError, Customer] = {
+    val selectAll = SELECT.where(whereClause(id, companyId))
     ZIO.logDebug(s"Query to execute getBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to[Customer](c => Customer.apply(c)))
-        .findFirst(driverLayer, Id)
+        .findFirst(driverLayer, id)
   }
 
 

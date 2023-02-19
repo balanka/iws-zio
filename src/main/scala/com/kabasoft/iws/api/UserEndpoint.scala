@@ -14,13 +14,13 @@ import zio.json.DecoderOps
 object UserEndpoint {
 
   //private val createAPI = EndpointSpec.post[User](literal("user")/RouteCodec.).out[Int]
-  private val createEndpoint = Http.collectZIO[Request] {
+  val userCreateEndpoint = Http.collectZIO[Request] {
     case req@Method.POST -> !! / "user" =>
       (for {
         body <- req.body.asString
           .flatMap(request =>
             ZIO
-              .fromEither(request.fromJson[User])
+              .fromEither(request.fromJson[List[User]])
               .mapError(e => new Throwable(e))
           )
           .mapError(e => AppError.DecodingError(e.getMessage()))
@@ -44,5 +44,5 @@ object UserEndpoint {
   private val serviceSpec = (userAllAPI.toServiceSpec ++ userByIdAPI.toServiceSpec++deleteAPI.toServiceSpec ++userByUserNameAPI.toServiceSpec)
 
   val appUser: HttpApp[UserRepository, AppError.RepositoryError] =
-    serviceSpec.toHttpApp(userAllEndpoint ++ userByIdEndpoint++deleteEndpoint ++userByUserNameEndpoint)++createEndpoint
+    serviceSpec.toHttpApp(userAllEndpoint ++ userByIdEndpoint++deleteEndpoint ++userByUserNameEndpoint)++userCreateEndpoint
 }

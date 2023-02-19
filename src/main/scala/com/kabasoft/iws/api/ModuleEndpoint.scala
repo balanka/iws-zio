@@ -14,16 +14,16 @@ import zio.json.DecoderOps
 
 object ModuleEndpoint {
 
-  private val createEndpoint = Http.collectZIO[Request] {
+   val moduleCreateEndpoint = Http.collectZIO[Request] {
     case req@Method.POST -> !! / "module" =>
       (for {
         body <- req.body.asString
           .flatMap(request =>
             ZIO
-              .fromEither(request.fromJson[Module])
+              .fromEither(request.fromJson[List[Module]])
               .mapError(e => new Throwable(e))
           )
-          .mapError(e => AppError.DecodingError(e.getMessage()))
+          .mapError(e => AppError.DecodingError(e.getMessage))
           .tapError(e => ZIO.logInfo(s"Unparseable body ${e}"))
         _ <- ModuleRepository.create(body)
       } yield ()).either.map {
@@ -41,6 +41,6 @@ object ModuleEndpoint {
   private val serviceSpec = (moduleAllAPI.toServiceSpec ++ moduleByIdAPI.toServiceSpec++deleteAPI.toServiceSpec)
 
   val appModule: HttpApp[ModuleRepository, AppError.RepositoryError] =
-    serviceSpec.toHttpApp(moduleAllEndpoint ++ moduleByIdEndpoint++deleteEndpoint)++createEndpoint
+    serviceSpec.toHttpApp(moduleAllEndpoint ++ moduleByIdEndpoint++deleteEndpoint)++moduleCreateEndpoint
 
 }

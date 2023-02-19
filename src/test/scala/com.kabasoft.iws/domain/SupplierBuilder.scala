@@ -8,6 +8,7 @@ object SupplierBuilder {
   val supplierId1 = "4711"
   val supplierId2 = "4712"
   val supId = "70000"
+  val supIdx = "70000x"
   val vat = "v5"
   val supName= "Dummy"
   val accId = "331040"
@@ -22,6 +23,7 @@ object SupplierBuilder {
       "0521-4711631", "0521-4711641", "info@kabasoft.de", accountRecvId, incaccountId, "DE22480501610043719244_Y", vataccountId, 1000)
 
   val sup = Supplier(supId, supName, supName, "", "", "", "", "DE","", "", accId, "6825", iban, vat,companyId, Supplier.MODELID, vtime, vtime,vtime)
+  val supx = Supplier(supIdx, supName, supName, "", "", "", "", "DE","", "", accId, "6825", iban, vat,companyId, Supplier.MODELID, vtime, vtime,vtime)
   val suppliers = List( supplier1, supplier2 )
 
    def instantFromStr(str:String)=Instant.parse(str)

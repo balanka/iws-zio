@@ -13,13 +13,13 @@ import zio.json.DecoderOps
 object SupplierEndpoint {
 
   //private val createAPI = EndpointSpec.post[Supplier](literal("sup")/RouteCodec.).out[Int]
-  private val createEndpoint = Http.collectZIO[Request] {
-    case req@Method.POST -> !! / "module" =>
+ val supCreateEndpoint = Http.collectZIO[Request] {
+    case req@Method.POST -> !! / "sup" =>
       (for {
         body <- req.body.asString
           .flatMap(request =>
             ZIO
-              .fromEither(request.fromJson[Supplier])
+              .fromEither(request.fromJson[List[Supplier]])
               .mapError(e => new Throwable(e))
           )
           .mapError(e => AppError.DecodingError(e.getMessage()))
@@ -42,5 +42,5 @@ object SupplierEndpoint {
 
 
   val appSup: HttpApp[SupplierRepository, AppError.RepositoryError] =
-    serviceSpec.toHttpApp(supAllEndpoint ++ supByIdEndpoint++deleteEndpoint)++createEndpoint
+    serviceSpec.toHttpApp(supAllEndpoint ++ supByIdEndpoint++deleteEndpoint)++supCreateEndpoint
 }
