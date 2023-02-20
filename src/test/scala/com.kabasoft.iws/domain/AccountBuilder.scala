@@ -65,6 +65,7 @@ object AccountBuilder {
     Account.MODELID, incaccountId, false, true, "EUR", zero, zero, zero, zero, Nil.toSet)
 
   val acc = Account("00000", "Dummy", "Dummy", vtime, vtime, vtime, companyId, Account.MODELID, "5", true, true, "EUR", zero, zero, zero, zero, Nil.toSet)
+  val accx = Account("00000x", "Dummy", "Dummy", vtime, vtime, vtime, companyId, Account.MODELID, "5", true, true, "EUR", zero, zero, zero, zero, Nil.toSet)
 
   val list =List(INST_ACC, INST_ACC1, INST_ACC2, REV_ACC8, REV_ACC, REV_ACC1, REV_ACC2, faccount
     , baccount, baccount1,raccount,raccount1, vataccount, liabilityAccount, liabilityAccount1)

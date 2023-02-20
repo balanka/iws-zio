@@ -1,10 +1,9 @@
 package com.kabasoft.iws.api
 
+import com.kabasoft.iws.api.AccountEndpoint.{accByIdEndpoint, accCreateEndpoint}
 import com.kabasoft.iws.api.BankEndpoint.{bankByIdEndpoint, bankCreateEndpoint}
 import zio.json.EncoderOps
-import com.kabasoft.iws.repository.{BankRepository, BankRepositoryImpl, CostcenterRepository, CostcenterRepositoryImpl,
-  CustomerRepository, CustomerRepositoryImpl, ModuleRepository, ModuleRepositoryImpl, SupplierRepository, SupplierRepositoryImpl,
-  UserRepository, UserRepositoryImpl, VatRepository, VatRepositoryImpl}
+import com.kabasoft.iws.repository.{AccountRepository, AccountRepositoryImpl, BankRepository, BankRepositoryImpl, CostcenterRepository, CostcenterRepositoryImpl, CustomerRepository, CustomerRepositoryImpl, ModuleRepository, ModuleRepositoryImpl, SupplierRepository, SupplierRepositoryImpl, UserRepository, UserRepositoryImpl, VatRepository, VatRepositoryImpl}
 import com.kabasoft.iws.api.CostcenterEndpoint.{ccByIdEndpoint, ccCreateEndpoint}
 import zio.http.api.HttpCodec.literal
 import com.kabasoft.iws.api.Protocol.{vatEncoder, _}
@@ -14,6 +13,7 @@ import com.kabasoft.iws.api.ModuleEndpoint.{moduleByIdEndpoint, moduleCreateEndp
 import com.kabasoft.iws.api.SupplierEndpoint.{supByIdEndpoint, supCreateEndpoint}
 import com.kabasoft.iws.api.UserEndpoint.{userByUserNameEndpoint, userCreateEndpoint}
 import com.kabasoft.iws.api.VatEndpoint.{vatByIdEndpoint, vatCreateEndpoint}
+import com.kabasoft.iws.domain.AccountBuilder.{acc, accx}
 import com.kabasoft.iws.domain.CostcenterBuilder.ccx
 import com.kabasoft.iws.domain.CustomerBuilder.{cust, custx}
 import com.kabasoft.iws.domain.ModuleBuilder.mx
@@ -22,7 +22,6 @@ import com.kabasoft.iws.domain.UserBuilder.userx
 import com.kabasoft.iws.domain.VatBuilder.vat1x
 import com.kabasoft.iws.repository.container.PostgresContainer
 import zio.http.{Body, Http, Response}
-//import com.kabasoft.iws.domain.AccountBuilder.acc
 import com.kabasoft.iws.domain.CostcenterBuilder.cc
 import com.kabasoft.iws.domain.ModuleBuilder.m
 import com.kabasoft.iws.domain.SupplierBuilder.sup
@@ -39,14 +38,13 @@ object ApiSpec extends ZIOSpecDefault {
 
     def spec = suite("APISpec")(
       suite("handler")(
-        /*test("Account  integration test ") {
-          val accountById = EndpointSpec.get(literal("acc") / string("id")).out[Account]
-            .implement { id => AccountRepository.getBy(id, "1000") }
+        test("Account  integration test ") {
         val accAll = EndpointSpec.get(literal("acc") ).out[Int]
                      .implement(_ => AccountRepository.all("1000").map(_.size))
-          val testRoutes = testApi(accountById ++ accAll) _
-          testRoutes("/acc", "56") && testRoutes("/acc/00000", acc.toJson)
-        },*/
+          val testRoutes = testApi(accByIdEndpoint ++ accAll) _
+          val testRoutes1 = testPostApi(accCreateEndpoint) _
+          testRoutes("/acc", "14") && testRoutes("/acc/"+acc.id, acc.toJson)&& testRoutes1("/acc", List(accx).toJson, "")
+        },
         test("Bank integration test") {
           val bankAll = EndpointSpec.get[Unit](literal("bank")).out[Int]
             .implement ( _ => BankRepository.all("1000").map(_.size))
@@ -95,7 +93,7 @@ object ApiSpec extends ZIOSpecDefault {
           testRoutes("/vat", "2") && testRoutes("/vat/"+vat1.id, vat1.toJson) && testRoutes1("/vat", List(vat1x).toJson, "")
 
         }
-    ).provide(ConnectionPool.live,  BankRepositoryImpl.live,
+    ).provide(ConnectionPool.live,  AccountRepositoryImpl.live, BankRepositoryImpl.live,
         CostcenterRepositoryImpl.live, CustomerRepositoryImpl.live, SupplierRepositoryImpl.live, VatRepositoryImpl.live,
         ModuleRepositoryImpl.live, UserRepositoryImpl.live, PostgresContainer.connectionPoolConfigLayer, PostgresContainer.createContainer)
     )

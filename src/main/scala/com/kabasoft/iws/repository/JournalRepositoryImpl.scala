@@ -13,16 +13,23 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
 
   val journals  = defineTable[Journal]("journal")
   val journals_ = defineTable[Journal_]("journal")
+  def whereClause(modelId: Int, companyId: String) = List(modelid === modelId, company === companyId)
+    .fold(Expr.literal(true))(_ && _)
+  def whereClause(Id: Long, companyId: String) = List(id === Id, company === companyId)
+    .fold(Expr.literal(true))(_ && _)
+  def whereClause(accountId: String, companyId: String,from:Int, to:Int) =
+    List(account === accountId, company === companyId, period >= from, period <= to)
+      .fold(Expr.literal(true))(_ && _)
 
   val (
     id,
     transid,
-    // oid,
+    oid,
     account,
     oaccount,
     transdate,
-    // enterdate,
-    // postingdate,
+    enterdate,
+    postingdate,
     period,
     amount,
     idebit,
@@ -41,12 +48,12 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
 
   val (
     transidx,
-    // oidx,
+    oidx,
     accountx,
     oaccountx,
     transdatex,
-    // enterdatex,
-    // postingdatex,
+    enterdatex,
+    postingdatex,
     periodx,
     amountx,
     idebitx,
@@ -65,12 +72,12 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
 
   def tuple1(c: Journal)                                                           = (
     c.transid,
-    // c.oid,
+    c.oid,
     c.account,
     c.oaccount,
     c.transdate,
-    // c.enterdate,
-    // c.postingdate,
+    c.enterdate,
+    c.postingdate,
     c.period,
     c.amount,
     c.idebit,
@@ -86,15 +93,14 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
     // c.file,
     c.modelid
   )
-  def tuple2(c: Journal)                                                           = (
-    c.id,
+  def tuple2(c: Journal_)                                                           = (
     c.transid,
-    // c.oid,
+    c.oid,
     c.account,
     c.oaccount,
     c.transdate,
-    // c.enterdate,
-    // c.postingdate,
+    c.enterdate,
+    c.postingdate,
     c.period,
     c.amount,
     c.idebit,
@@ -112,10 +118,13 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
   )
   override def create(c: Journal): ZIO[Any, RepositoryError, Unit]                 = {
     val query = insertInto(journals_)(
-      transidx /*, oidx*/,
+      transidx,
+      oidx,
       accountx,
       oaccountx,
-      transdatex /*, enterdatex, postingdatex*/,
+      transdatex,
+      enterdatex,
+      postingdatex,
       periodx,
       amountx,
       idebitx,
@@ -130,7 +139,7 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
       companyx /*, filex*/,
       modelidx
     )
-      .values(tuple1(c))
+      .values(tuple2(Journal_(c)))
 
     ZIO.logDebug(s"Query to insert Journal is ${renderInsert(query)}") *>
       execute(query)
@@ -140,9 +149,12 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
   val SELECT                                                                       = select(
     id,
     transid,
+    oid,
     account,
     oaccount,
     transdate,
+    enterdate,
+    postingdate,
     period,
     amount,
     idebit,
@@ -159,12 +171,15 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
   )
     .from(journals)
   override def create(models: List[Journal]): ZIO[Any, RepositoryError, Int]       = {
-    val data  = models.map(tuple1)
+    val data  = models.map(Journal_.apply).map(tuple2)
     val query = insertInto(journals_)(
       transidx,
+      oidx,
       accountx,
       oaccountx,
       transdatex,
+      enterdatex,
+      postingdatex,
       periodx,
       amountx,
       idebitx,
@@ -185,9 +200,9 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
         .provideAndLog(driverLayer)
   }
   override def delete(Id: Long, companyId: String): ZIO[Any, RepositoryError, Int] =
-    execute(deleteFrom(journals).where((id === Id) && (company === companyId)))
+    execute(deleteFrom(journals).where(whereClause(Id, companyId)))
       .provideLayer(driverLayer)
-      .mapError(e => RepositoryError(e.getCause()))
+      .mapError(e => RepositoryError(e.getCause))
 
   override def list(companyId: String): ZStream[Any, RepositoryError, Journal]        =
     ZStream.fromZIO(
@@ -195,25 +210,25 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
     ) *>
       execute(SELECT.to((Journal.apply _).tupled))
         .provideDriver(driverLayer)
-  override def getBy(Id: Long, companyId: String): ZIO[Any, RepositoryError, Journal] = {
-    val selectAll = SELECT.where((id === Id) && (company === companyId))
+  override def getBy(id: Long, companyId: String): ZIO[Any, RepositoryError, Journal] = {
+    val selectAll = SELECT.where(whereClause(id, companyId))
 
     ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to((Journal.apply _).tupled))
-        .findFirstLong(driverLayer, Id)
+        .findFirstLong(driverLayer, id)
   }
 
-  override def getByModelId(modelId: Int, companyId: String): ZIO[Any, RepositoryError, Journal] = {
-    val selectAll = SELECT.where((modelid === modelId) && (company === companyId))
+  override def getByModelId(modelid: Int, companyId: String): ZIO[Any, RepositoryError, Journal] = {
+    val selectAll = SELECT.where(whereClause(modelid, companyId))
 
     ZIO.logDebug(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
       execute(selectAll.to((Journal.apply _).tupled))
-        .findFirstInt(driverLayer, modelId)
+        .findFirstInt(driverLayer, modelid)
   }
 
   override def find4Period(accountId: String, fromPeriod: Int, toPeriod: Int, companyId: String): ZStream[Any, RepositoryError, Journal] = {
     val selectAll = SELECT
-      .where((account === accountId) && (company === companyId) && (period >= fromPeriod) && (period <= toPeriod))
+      .where(whereClause(accountId, companyId, fromPeriod, toPeriod))
       .orderBy(account.descending)
 
     ZStream.fromZIO(

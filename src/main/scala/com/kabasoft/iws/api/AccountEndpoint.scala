@@ -14,15 +14,15 @@ import zio.json.DecoderOps
 
 object AccountEndpoint {
 
-  private val createEndpoint = Http.collectZIO[Request] { case req @ Method.POST -> !! / "acc" =>
+   val accCreateEndpoint = Http.collectZIO[Request] { case req @ Method.POST -> !! / "acc" =>
     (for {
       body <- req.body.asString
                 .flatMap(request =>
                   ZIO
-                    .fromEither(request.fromJson[Account])
+                    .fromEither(request.fromJson[List[Account]])
                     .mapError(e => new Throwable(e))
                 )
-                .mapError(e => AppError.DecodingError(e.getMessage()))
+                .mapError(e => AppError.DecodingError(e.getMessage))
                 .tapError(e => ZIO.logInfo(s"Unparseable Vat body ${e}"))
       _    <- AccountRepository.create(body)
     } yield ()).either.map {
@@ -42,22 +42,20 @@ object AccountEndpoint {
         / RouteCodec.string("accId") / RouteCodec.int("from") / RouteCodec.int("to")
     )
     .out[Int]
-  private val allAPI         = EndpointSpec.get[Unit](literal("acc")).out[List[Account]]
-  private val byIdAPI        = EndpointSpec.get[String](literal("acc") / RouteCodec.string("id")).out[Account]
+   val accAllAPI         = EndpointSpec.get[Unit](literal("acc")).out[List[Account]]
+   val accByIdAPI        = EndpointSpec.get[String](literal("acc") / RouteCodec.string("id")).out[Account]
   private val deleteAPI      = EndpointSpec.get[String](literal("acc") / RouteCodec.string("id")).out[Int]
 
-  val closePeriodEndpoint    =
-    closePeriodAPI.implement((in) => AccountService.closePeriod(in._2, in._3, in._1, "1000"))
-  val balanceEndpoint        =
-    balanceAPI.implement((in) => AccountService.getBalance(in._1, in._2, in._3, "1000"))
-  private val allEndpoint    = allAPI.implement(_ => AccountRepository.all("1000"))
-  private val byIdEndpoint   = byIdAPI.implement(id => AccountRepository.getBy(id, "1000"))
+  val closePeriodEndpoint    = closePeriodAPI.implement((in) => AccountService.closePeriod(in._2, in._3, in._1, "1000"))
+  val balanceEndpoint        = balanceAPI.implement((in) => AccountService.getBalance(in._1, in._2, in._3, "1000"))
+   val accAllEndpoint    = accAllAPI.implement(_ => AccountRepository.all("1000"))
+   val accByIdEndpoint   = accByIdAPI.implement(id => AccountRepository.getBy(id, "1000"))
   private val deleteEndpoint = deleteAPI.implement(id => AccountRepository.delete(id, "1000"))
 
-  private val serviceSpec = (allAPI.toServiceSpec ++ byIdAPI.toServiceSpec ++ deleteAPI.toServiceSpec
+  private val serviceSpec = (accAllAPI.toServiceSpec ++ accByIdAPI.toServiceSpec ++ deleteAPI.toServiceSpec
     ++ balanceAPI.toServiceSpec ++ closePeriodAPI.toServiceSpec)
 
   val appAcc: HttpApp[AccountRepository with AccountService, AppError.RepositoryError] =
-    serviceSpec.toHttpApp(allEndpoint ++ byIdEndpoint ++ balanceEndpoint ++ closePeriodEndpoint ++ deleteEndpoint) ++ createEndpoint
+    serviceSpec.toHttpApp(accAllEndpoint ++ accByIdEndpoint ++ balanceEndpoint ++ closePeriodEndpoint ++ deleteEndpoint) ++ accCreateEndpoint
 
 }

@@ -53,10 +53,6 @@ object LoginRoutes {
                 .either
                 .flatMap { loginRequest =>
                   val loginRequest_ = loginRequest.getOrElse(invalidRequest)
-                  // val jwtEncode_ = jwtEncode(loginRequest_.password, 86400 * 365 * 20)
-                  // val r = UserRepository.getByUserName(loginRequest_.userName, "1000")
-                  // val r = UserRepository.list("1000").runCollect.map(_.toList)
-                  // .filter(_.userName.equals(loginRequest_.userName))
                   checkLogin(loginRequest_)
                 }
     } yield body
