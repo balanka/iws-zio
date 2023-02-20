@@ -249,12 +249,12 @@ create table if not exists journal
     id           bigint  default nextval('journal_id_seq'::regclass) not null
     primary key,
     transid      bigint                                              not null,
-    --oid          bigint,
+    oid          bigint,
     account      varchar(50)                                         not null,
     oaccount     varchar(50)                                         not null,
     transdate    timestamp                                           not null,
-    --enterdate    timestamp                                           not null,
-    --postingdate  timestamp                                           not null,
+    enterdate    timestamp                                           not null,
+    postingdate  timestamp                                           not null,
     period       integer                                             not null,
     amount       numeric(12, 2),
     company      varchar(50)                                         not null,
@@ -318,29 +318,31 @@ values ('1000', 'ABC GmbH', 'Word stree1 0','49110','FF', 'DE','Deutschland', 'i
 
 insert into account
 (id, name, description, enterdate, postingdate, changedate, company, modelid, account,is_debit, balancesheet, currency, idebit, icredit, debit, credit ) values
-                                                                      ('9900','Bilanz','Bilanz',current_timestamp, current_timestamp, current_timestamp, '1000',11
+                                                                      ('9900','Bilanz','Bilanz',current_timestamp, current_timestamp, current_timestamp, '1000',9
                                                                       , '', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('9901','Bilanz Aktiva','Bilanz Aktiva',current_timestamp, current_timestamp, current_timestamp, '1000',11
+                                                                      ('9901','Bilanz Aktiva','Bilanz Aktiva',current_timestamp, current_timestamp, current_timestamp, '1000',9
                                                                       , '9900', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('9902','Bilanz Passiva','Bilanz Passiva',current_timestamp, current_timestamp, current_timestamp, '1000',11
+                                                                      ('9902','Bilanz Passiva','Bilanz Passiva',current_timestamp, current_timestamp, current_timestamp, '1000',9
                                                                       , '9900', false, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('9800','GuV Aktiva','GuV Aktiva',current_timestamp, current_timestamp, current_timestamp, '1000',11
+                                                                      ('9800','GuV Aktiva','GuV Aktiva',current_timestamp, current_timestamp, current_timestamp, '1000',9
                                                                       , '9902', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('9801','GuV Aktiva','GuV Aktiva',current_timestamp, current_timestamp, current_timestamp, '1000',11
+                                                                      ('9801','GuV Aktiva','GuV Aktiva',current_timestamp, current_timestamp, current_timestamp, '1000',9
                                                                       , '9800', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('9802','GuV Passiva','GuV Passiva',current_timestamp, current_timestamp, current_timestamp, '1000',11
+                                                                      ('9802','GuV Passiva','GuV Passiva',current_timestamp, current_timestamp, current_timestamp, '1000',9
                                                                       , '9800', false, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('4000','Umsatzerloese','Umsatzerloese',current_timestamp, current_timestamp, current_timestamp, '1000',11
+                                                                      ('4000','Umsatzerloese','Umsatzerloese',current_timestamp, current_timestamp, current_timestamp, '1000',9
                                                                       , '9802', false, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('4400','Umsatzerloese 19%','Umsatzerloese 19%',current_timestamp, current_timestamp, current_timestamp, '1000',11
+                                                                      ('4400','Umsatzerloese 19%','Umsatzerloese 19%',current_timestamp, current_timestamp, current_timestamp, '1000',9
                                                                       , '4000', false, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('1200','Forderungen aus Lieferungen und Leistungen','Forderung a. L & L',current_timestamp, current_timestamp, current_timestamp, '1000',11
+                                                                      ('1200','Forderungen aus Lieferungen und Leistungen','Forderung a. L & L',current_timestamp, current_timestamp, current_timestamp, '1000',9
                                                                       , '9901', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('1800','Bank','Bank',current_timestamp, current_timestamp, current_timestamp, '1000',11
+                                                                      ('1800','Bank','Bank',current_timestamp, current_timestamp, current_timestamp, '1000',9
                                                                       , '9901', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('1810','Giro SPK Bielefeld','Giro SPK Bielefeld',current_timestamp, current_timestamp, current_timestamp, '1000',11, '1800', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('1600','Kasse','Kasse',current_timestamp, current_timestamp, current_timestamp, '1000',11, '9901', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('1601','Kasse','Kasse',current_timestamp, current_timestamp, current_timestamp, '1000',11, '1600', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0);
+                                                                      ('1810','Giro SPK Bielefeld','Giro SPK Bielefeld',current_timestamp, current_timestamp, current_timestamp, '1000',9, '1800', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
+                                                                      ('1600','Kasse','Kasse',current_timestamp, current_timestamp, current_timestamp, '1000',9, '9901', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
+                                                                      ('1601','Kasse','Kasse',current_timestamp, current_timestamp, current_timestamp, '1000',9, '1600', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
+                                                                      ('00000','Dummy','Dummy','2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '1000',9, '5', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0);
+
 
 insert into periodic_account_balance
 (id, account, period, idebit,debit,icredit,credit, company,currency,modelid)
