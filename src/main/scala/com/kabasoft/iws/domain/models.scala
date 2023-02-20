@@ -205,7 +205,7 @@ final case class Account(
       .debiting(acc.debit)
       .crediting(acc.credit)
       .remove(acc).add(acc)
-  
+
 
   @tailrec
   def updateBalanceParent(all: List[Account]): List[Account] =
