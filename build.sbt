@@ -1,7 +1,8 @@
 val zioVersion                 = "2.0.9"
-val zioHttpVersion             = "0.0.4"
+//val zioHttpVersion             = "0.0.4"
+val zioHttpVersion             = "0.0.4+32-51285fc4+20230301-2319-SNAPSHOT"
 val zioJsonVersion             = "0.3.0"
-val zioConfigVersion           = "3.0.1"
+val zioConfigVersion           = "3.0.7"
 val zioJdbcVersion             = "0.0.1"
 val zioSqlVersion              = "0.1.2"
 val logbackVersion             = "1.2.7"
@@ -27,10 +28,10 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
       // core
       "dev.zio"           %% "zio"                             % zioVersion,
+      "dev.zio"           %% "zio-streams"                      % zioVersion,
       // sql
       "dev.zio"           %% "zio-sql"                         % zioSqlVersion,
       "dev.zio"           %% "zio-sql-postgres"                % zioSqlVersion,
-      "dev.zio"            %% "zio-jdbc"                       % zioJdbcVersion,
       "dev.zio"             %% "zio-http"                       % zioHttpVersion,
       "dev.zio"             %% "zio-http"                       % zioHttpVersion % Test,
       "dev.zio"            %% "zio-schema"                      % ZioSchemaVersion,
@@ -51,7 +52,7 @@ lazy val root = (project in file("."))
       "org.testcontainers" % "testcontainers"                  % testcontainersVersion      % Test,
       "org.testcontainers" % "database-commons"                % testcontainersVersion      % Test,
       "org.testcontainers" % "postgresql"                      % testcontainersVersion      % Test,
-      "org.testcontainers" % "jdbc"                            % testcontainersVersion      % Test
+      //"org.testcontainers" % "jdbc"                            % testcontainersVersion      % Test
     ),
     testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
   )
