@@ -1,44 +1,28 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.api.Protocol.moduleDecoder
+import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.repository.Schema.moduleSchema
-import com.kabasoft.iws.domain.{ AppError, Module }
+import com.kabasoft.iws.repository.Schema.repositoryErrorSchema
+import com.kabasoft.iws.domain.Module
 import com.kabasoft.iws.repository._
-import zio._
-import zio.http._
-import zio.http.api.HttpCodec.literal
-import zio.http.api.{ EndpointSpec, RouteCodec }
-import zio.http.model.{ Method, Status }
-import zio.json.DecoderOps
+import zio.http.codec.HttpCodec._
+import zio.http.codec.HttpCodec.string
+import zio.http.endpoint.Endpoint
+import zio.http.model.Status
 
 object ModuleEndpoint {
 
-  val moduleCreateEndpoint = Http.collectZIO[Request] { case req @ Method.POST -> !! / "module" =>
-    (for {
-      body <- req.body.asString
-                .flatMap(request =>
-                  ZIO
-                    .fromEither(request.fromJson[List[Module]])
-                    .mapError(e => new Throwable(e))
-                )
-                .mapError(e => AppError.DecodingError(e.getMessage))
-                .tapError(e => ZIO.logInfo(s"Unparseable body ${e}"))
-      _    <- ModuleRepository.create(body)
-    } yield ()).either.map {
-      case Right(_) => Response.status(Status.Created)
-      case Left(_)  => Response.status(Status.BadRequest)
-    }
-  }
-  val moduleAllAPI         = EndpointSpec.get[Unit](literal("module")).out[List[Module]]
-  val moduleByIdAPI        = EndpointSpec.get[String](literal("module") / RouteCodec.string("id")).out[Module]
-  private val deleteAPI    = EndpointSpec.get[String](literal("module") / RouteCodec.string("id")).out[Int]
+  val moduleCreateAPI      = Endpoint.post("module").in[Module].out[Int].outError[RepositoryError](Status.InternalServerError)
+  val moduleAllAPI         = Endpoint.get("module").out[List[Module]].outError[RepositoryError](Status.InternalServerError)
+  val moduleByIdAPI        = Endpoint.get("module" / string("id")).out[Module].outError[RepositoryError](Status.InternalServerError)
+  private val deleteAPI    = Endpoint.get("module" / string("id")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
-  val moduleAllEndpoint      = moduleAllAPI.implement(_ => ModuleRepository.all("1000"))
-  val moduleByIdEndpoint     = moduleByIdAPI.implement(id => ModuleRepository.getBy(id, "1000"))
-  private val deleteEndpoint = deleteAPI.implement(id => ModuleRepository.delete(id, "1000"))
-  private val serviceSpec    = (moduleAllAPI.toServiceSpec ++ moduleByIdAPI.toServiceSpec ++ deleteAPI.toServiceSpec)
+  val moduleCreateEndpoint   = moduleCreateAPI.implement(m => ModuleRepository.create(List(m)).mapError(e => RepositoryError(e.getMessage)))
+  val moduleAllEndpoint      = moduleAllAPI.implement(_ => ModuleRepository.all("1000").mapError(e => RepositoryError(e.getMessage)))
+  val moduleByIdEndpoint     = moduleByIdAPI.implement(id => ModuleRepository.getBy(id, "1000").mapError(e => RepositoryError(e.getMessage)))
+  private val deleteEndpoint = deleteAPI.implement(id => ModuleRepository.delete(id, "1000").mapError(e => RepositoryError(e.getMessage)))
+   val routesModule    = moduleAllEndpoint ++ moduleByIdEndpoint ++ moduleCreateEndpoint ++deleteEndpoint
 
-  val appModule: HttpApp[ModuleRepository, AppError.RepositoryError] =
-    serviceSpec.toHttpApp(moduleAllEndpoint ++ moduleByIdEndpoint ++ deleteEndpoint) ++ moduleCreateEndpoint
+  val appModule= routesModule//.toApp//@@ bearerAuth(jwtDecode(_).isDefined)  ++ moduleCreateEndpoint
 
 }
