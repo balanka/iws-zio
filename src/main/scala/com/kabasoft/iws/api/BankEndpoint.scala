@@ -17,11 +17,11 @@ object BankEndpoint {
   private val deleteAPI = Endpoint.get("bank" / string("id")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
   private val bankAllEndpoint        = bankAllAPI.implement(company => BankRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
-  val bankCreteEndpoint = bankCreateAPI.implement(bank => BankRepository.create(List(bank)).mapError(e => RepositoryError(e.getMessage)))
+  val bankCreateEndpoint = bankCreateAPI.implement(bank => BankRepository.create(List(bank)).mapError(e => RepositoryError(e.getMessage)))
   val bankByIdEndpoint = bankByIdAPI.implement(id => BankRepository.getBy(id, "1000").mapError(e => RepositoryError(e.getMessage)))
   private val deleteEndpoint = deleteAPI.implement(id => BankRepository.delete(id, "1000").mapError(e => RepositoryError(e.getMessage)))
 
-  val routes = bankAllEndpoint ++ bankByIdEndpoint  ++ bankCreteEndpoint ++deleteEndpoint//++ bankCreateEndpoint)
+  val routes = bankAllEndpoint ++ bankByIdEndpoint  ++ bankCreateEndpoint ++deleteEndpoint//++ bankCreateEndpoint)
 
   val appBank = routes//.toApp //@@ bearerAuth(jwtDecode(_).isDefined)
 

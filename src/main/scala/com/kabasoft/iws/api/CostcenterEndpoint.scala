@@ -14,12 +14,12 @@ import zio.http.model.Status
 object CostcenterEndpoint {
 
   val ccCreateAPI          = Endpoint.post("cc").in[Costcenter].out[Int].outError[RepositoryError](Status.InternalServerError)
-  val ccAllAPI          = Endpoint.get("cc").out[List[Costcenter]].outError[RepositoryError](Status.InternalServerError)
+  val ccAllAPI          = Endpoint.get("cc"/ string("company")).out[List[Costcenter]].outError[RepositoryError](Status.InternalServerError)
   val ccByIdAPI         = Endpoint.get("cc" /string("id")).out[Costcenter].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI = Endpoint.get("cc" / string("id")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
   val ccCreateEndpoint       = ccCreateAPI.implement(cc => CostcenterRepository.create(List(cc)).mapError(e => RepositoryError(e.getMessage)))
-  val ccAllEndpoint          = ccAllAPI.implement(_ => CostcenterRepository.all("1000").mapError(e => RepositoryError(e.getMessage)))
+  val ccAllEndpoint          = ccAllAPI.implement(company => CostcenterRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
   val ccByIdEndpoint         = ccByIdAPI.implement(id => CostcenterRepository.getBy(id, "1000").mapError(e => RepositoryError(e.getMessage)))
    val deleteEndpoint = deleteAPI.implement(id => CostcenterRepository.delete(id, "1000").mapError(e => RepositoryError(e.getMessage)))
 

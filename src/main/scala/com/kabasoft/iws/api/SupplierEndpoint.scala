@@ -14,12 +14,12 @@ import zio.http.model.Status
 object SupplierEndpoint {
 
   val supCreateAPI      = Endpoint.post("sup").in[Supplier].out[Int].outError[RepositoryError](Status.InternalServerError)
-  val supAllAPI         = Endpoint.get("sup").out[List[Supplier]].outError[RepositoryError](Status.InternalServerError)
+  val supAllAPI         = Endpoint.get("sup"/ string("company")).out[List[Supplier]].outError[RepositoryError](Status.InternalServerError)
   val supByIdAPI        = Endpoint.get("sup" / string("id")).out[Supplier].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI = Endpoint.get("sup" / string("id")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
   val supCreateEndpoint      = supCreateAPI.implement(sup => SupplierRepository.create(List(sup)).mapError(e => RepositoryError(e.getMessage)))
-  val supAllEndpoint         = supAllAPI.implement(_ => SupplierRepository.all("1000").mapError(e => RepositoryError(e.getMessage)))
+  val supAllEndpoint         = supAllAPI.implement(company => SupplierRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
   val supByIdEndpoint        = supByIdAPI.implement(id => SupplierRepository.getBy(id, "1000").mapError(e => RepositoryError(e.getMessage)))
   private val deleteEndpoint = deleteAPI.implement(id => SupplierRepository.delete(id, "1000").mapError(e => RepositoryError(e.getMessage)))
 

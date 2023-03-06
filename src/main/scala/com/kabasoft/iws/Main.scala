@@ -2,7 +2,6 @@ package com.kabasoft.iws
 
 import com.kabasoft.iws.api.AccountEndpoint.appAcc
 import zio.http.Middleware.bearerAuth
-//import com.kabasoft.iws.api.FinancialsHttpRoutes.appFtr
 import com.kabasoft.iws.api.JournalEndpoint.appJournal
 import com.kabasoft.iws.api.LoginRoutes.{appLogin, jwtDecode}
 import com.kabasoft.iws.api.BankStmtEndpoint.appBankStmt

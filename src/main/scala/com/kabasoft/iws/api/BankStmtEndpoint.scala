@@ -13,12 +13,12 @@ import zio.http.model.Status
 object BankStmtEndpoint {
 
   private val createAPI         = Endpoint.post("bs").in[BankStatement].out[Int].outError[RepositoryError](Status.InternalServerError)
-  private val allAPI         = Endpoint.get("bs").out[List[BankStatement]].outError[RepositoryError](Status.InternalServerError)
+  private val allAPI         = Endpoint.get("bs"/ string("company")).out[List[BankStatement]].outError[RepositoryError](Status.InternalServerError)
   private val byIdAPI        = Endpoint.get("bs" / string("id")).out[BankStatement].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI      = Endpoint.get("bs" / string("id")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
    val createBanktmtEndpoint    = createAPI.implement(bs => BankStatementRepository.create(List(bs)).mapError(e => RepositoryError(e.getMessage)))
-  private val allEndpoint    = allAPI.implement(_ => BankStatementRepository.all("1000").mapError(e => RepositoryError(e.getMessage)))
+  private val allEndpoint    = allAPI.implement(company => BankStatementRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
   private val byIdEndpoint   = byIdAPI.implement(id => BankStatementRepository.getBy(id, "1000").mapError(e => RepositoryError(e.getMessage)))
   private val deleteEndpoint = deleteAPI.implement(id => BankStatementRepository.delete(id, "1000").mapError(e => RepositoryError(e.getMessage)))
 

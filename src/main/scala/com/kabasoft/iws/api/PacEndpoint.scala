@@ -13,12 +13,12 @@ import zio.http.model.Status
 object PacEndpoint {
 
 
-  private val allPacAPI       = Endpoint.get("pac").out[List[PeriodicAccountBalance]].outError[RepositoryError](Status.InternalServerError)
+  private val allPacAPI       = Endpoint.get("pac"/ string("company")).out[List[PeriodicAccountBalance]].outError[RepositoryError](Status.InternalServerError)
    val pacByAccountPeriodAPI       = Endpoint.get("pac"/string("accId")/int("fromPeriod")/int("toPeriod"))
      .out[List[PeriodicAccountBalance]].outError[RepositoryError](Status.InternalServerError)
 
   private val pacByIdAPI      = Endpoint.get("pac" / string("id")).out[PeriodicAccountBalance].outError[RepositoryError](Status.InternalServerError)
-  private val allPacEndpoint  = allPacAPI.implement(_ => PacRepository.all("1000").mapError(e => RepositoryError(e.getMessage)))
+  private val allPacEndpoint  = allPacAPI.implement(company => PacRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
   private val pacByIdEndpoint = pacByIdAPI.implement(id => PacRepository.getBy(id, "1000").mapError(e => RepositoryError(e.getMessage)))
    val pacByAccountPeriodAEndpoint = pacByAccountPeriodAPI.implement{ case (accId:String, fromPeriod:Int,toPeriod:Int) =>
      PacRepository.find4Period(accId, fromPeriod, toPeriod, "1000").runCollect.mapBoth(e => RepositoryError(e.getMessage), _.toList)}

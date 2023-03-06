@@ -13,7 +13,7 @@ import zio.schema.DeriveSchema.gen
 
 object CompanyEndpoint {
 
-  private val companyCreateAPI         = Endpoint.post("comp").in[Company].out[Int].outError[RepositoryError](Status.InternalServerError)
+  private val companyCreateAPI      = Endpoint.post("comp").in[Company].out[Int].outError[RepositoryError](Status.InternalServerError)
   private val companyAllAPI         = Endpoint.get("comp").out[List[Company]].outError[RepositoryError](Status.InternalServerError)
   private val companyByIdAPI        = Endpoint.get("comp" / string("id")).out[Company].outError[RepositoryError](Status.InternalServerError)
   private val companyDeleteAPI      = Endpoint.get("comp" / string("id")).out[Int].outError[RepositoryError](Status.InternalServerError)

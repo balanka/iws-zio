@@ -14,7 +14,7 @@ import zio.http.model.Status
 
 object JournalEndpoint {
 
-  val byIdAPI                         = Endpoint.get("jou" / int("id")).out[Journal].outError[RepositoryError](Status.InternalServerError)
+  val byIdAPI                  = Endpoint.get("jou" / int("id")).out[Journal].outError[RepositoryError](Status.InternalServerError)
    val byAccountFromToAPI      = Endpoint.get("jou" / string("accId") / int("from") / int("to")).out[List[Journal]].outError[RepositoryError](Status.InternalServerError)
   val journalByIdEndpoint                 = byIdAPI.implement(id => JournalRepository.getBy(id.toLong, "1000").mapError(e => RepositoryError(e.getMessage)))
    val journalByAccountFromToEndpoint = byAccountFromToAPI.implement { case (accId:String, from:Int,to:Int) =>
