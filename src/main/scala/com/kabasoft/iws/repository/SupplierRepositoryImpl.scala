@@ -166,7 +166,7 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] =
     execute(deleteFrom(supplier).where(whereClause(item, companyId)))
       .provideLayer(driverLayer)
-      .mapError(e => RepositoryError(e.getCause()))
+      .mapError(e => RepositoryError(e.getMessage))
 
   override def modify(model: Supplier): ZIO[Any, RepositoryError, Int] = {
     val update_ = update(supplier)
@@ -176,7 +176,7 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     ZIO.logDebug(s"Query Update supplier is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
-        .mapError(e => RepositoryError(e.getCause()))
+        .mapError(e => RepositoryError(e.getMessage))
   }
 
   def listBankAccount(companyId: String): ZStream[Any, RepositoryError, BankAccount] = {

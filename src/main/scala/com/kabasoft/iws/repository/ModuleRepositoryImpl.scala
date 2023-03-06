@@ -34,7 +34,7 @@ final class ModuleRepositoryImpl(pool: ConnectionPool) extends ModuleRepository 
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int]    =
     execute(deleteFrom(module).where((id === item) && (company === companyId)))
       .provideLayer(driverLayer)
-      .mapError(e => RepositoryError(e.getCause()))
+      .mapError(e => RepositoryError(e.getMessage))
 
   override def modify(model: Module): ZIO[Any, RepositoryError, Int] = {
     val update_ = update(module)
@@ -45,7 +45,7 @@ final class ModuleRepositoryImpl(pool: ConnectionPool) extends ModuleRepository 
     ZIO.logDebug(s"Query Update Module is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
-        .mapError(e => RepositoryError(e.getCause()))
+        .mapError(e => RepositoryError(e.getMessage))
   }
 
   override def all(companyId: String): ZIO[Any, RepositoryError, List[Module]]                  =

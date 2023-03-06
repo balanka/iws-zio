@@ -1,5 +1,6 @@
 package com.kabasoft.iws.repository
 
+import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain._
 import zio.schema.DeriveSchema
 
@@ -25,6 +26,7 @@ object Schema {
   implicit val derivedTransactionSchema  = DeriveSchema.gen[DerivedTransaction]
   implicit val transactionDetailsSchema  = DeriveSchema.gen[FinancialsTransactionDetails]
   implicit val transactionDetails_Schema = DeriveSchema.gen[FinancialsTransactionDetails_]
+  implicit val repositoryErrorSchema     = DeriveSchema.gen[RepositoryError]
   implicit val userSchema                = DeriveSchema.gen[User]
   implicit val userSchema_               = DeriveSchema.gen[User_]
   implicit val vatSchema                 = DeriveSchema.gen[Vat]

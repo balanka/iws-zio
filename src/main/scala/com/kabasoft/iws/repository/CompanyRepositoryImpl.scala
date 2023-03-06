@@ -138,7 +138,7 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
   override def delete(item: String): ZIO[Any, RepositoryError, Int]          =
     execute(deleteFrom(company).where((id === item)))
       .provideLayer(driverLayer)
-      .mapError(e => RepositoryError(e.getCause()))
+      .mapError(e => RepositoryError(e.getMessage))
 
   override def modify(model: Company): ZIO[Any, RepositoryError, Int] = {
     val update_ = update(company)
@@ -147,7 +147,7 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
     ZIO.logDebug(s"Query Update Company is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
-        .mapError(e => RepositoryError(e.getCause()))
+        .mapError(e => RepositoryError(e.getMessage))
   }
 
   override def all: ZIO[Any, RepositoryError, List[Company]] =

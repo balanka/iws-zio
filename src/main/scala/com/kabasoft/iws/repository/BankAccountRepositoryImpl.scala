@@ -31,7 +31,7 @@ final class BankAccountRepositoryImpl(pool: ConnectionPool) extends BankAccountR
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] =
     execute(deleteFrom(bankAccount).where((id === item) && (company === companyId)))
       .provideLayer(driverLayer)
-      .mapError(e => RepositoryError(e.getCause()))
+      .mapError(e => RepositoryError(e.getMessage))
 
   override def modify(model: BankAccount): ZIO[Any, RepositoryError, Int] = {
     val update_ = update(bankAccount)
@@ -44,7 +44,7 @@ final class BankAccountRepositoryImpl(pool: ConnectionPool) extends BankAccountR
     ZIO.logDebug(s"Query Update bank account is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
-        .mapError(e => RepositoryError(e.getCause()))
+        .mapError(e => RepositoryError(e.getMessage))
   }
 
   override def all(companyId: String): ZIO[Any, RepositoryError, List[BankAccount]] =

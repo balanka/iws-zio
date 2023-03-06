@@ -66,14 +66,14 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
   override def delete(id: String, companyId: String): ZIO[Any, RepositoryError, Int]        =
     execute(deleteFrom(pac).where(whereClause(id, companyId)))
       .provideLayer(driverLayer)
-      .mapError(e => RepositoryError(e.getCause))
+      .mapError(e => RepositoryError(e.getMessage))
 
   def modify(model: PeriodicAccountBalance): ZIO[Any, RepositoryError, Int] = {
     val update_ = build(model)
     execute(update_)
       .provideLayer(driverLayer)
       .provideLayer(driverLayer)
-      .mapError(e => RepositoryError(e.getCause))
+      .mapError(e => RepositoryError(e.getMessage))
   }
 
   private def build(model: PeriodicAccountBalance) = {
@@ -96,7 +96,7 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
       val update_ = models.map(build)
       executeBatchUpdate(update_)
         .provideLayer(driverLayer)
-        .mapBoth(e => RepositoryError(e.getCause), _.sum)
+        .mapBoth(e => RepositoryError(e.getMessage), _.sum)
     }
 
   override def list(companyId: String): ZStream[Any, RepositoryError, PeriodicAccountBalance]  = {

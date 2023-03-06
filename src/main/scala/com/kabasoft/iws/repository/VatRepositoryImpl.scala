@@ -51,22 +51,20 @@ final class VatRepositoryImpl(pool: ConnectionPool) extends VatRepository with I
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] =
     execute(deleteFrom(vat).where((id === item) && (company === companyId)))
       .provideLayer(driverLayer)
-      .mapError(e => RepositoryError(e.getCause()))
+      .mapError(e => RepositoryError(e.getMessage))
 
   override def modify(model: Vat): ZIO[Any, RepositoryError, Int]        = {
     val update_ = build(model)
     ZIO.logDebug(s"Query Update vat is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
-        .mapError(e => RepositoryError(e.getCause()))
+        .mapError(e => RepositoryError(e.getMessage))
   }
   override def modify(models: List[Vat]): ZIO[Any, RepositoryError, Int] = {
-    val update_ = models.map(build(_))
+    val update_ = models.map(build)
     // ZIO.logDebug(s"Query Update vat is ${renderUpdate(update_)}") *>
     executeBatchUpdate(update_)
-      .provideLayer(driverLayer)
-      .map(_.sum)
-      .mapError(e => RepositoryError(e.getCause()))
+      .provideLayer(driverLayer).mapBoth(e => RepositoryError(e.getMessage), _.sum)
   }
   private def build(model: TYPE_)                                        =
     update(vat)
