@@ -1,25 +1,8 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain
-import com.kabasoft.iws.domain.{
-  Account,
-  Bank,
-  BankAccount,
-  BankStatement,
-  Company,
-  Costcenter,
-  Customer,
-  DerivedTransaction,
-  FinancialsTransaction,
-  FinancialsTransactionDetails,
-  Journal,
-  LoginRequest,
-  PeriodicAccountBalance,
-  Role,
-  Supplier,
-  User,
-  Vat
-}
+import com.kabasoft.iws.domain.AppError. RepositoryError
+import com.kabasoft.iws.domain.{Account, Bank, BankAccount, BankStatement, Company, Costcenter, Customer, DerivedTransaction, FinancialsTransaction, FinancialsTransactionDetails, Journal, LoginRequest, PeriodicAccountBalance, Role, Supplier, User, Vat}
 import zio._
 import zio.json._
 
@@ -83,5 +66,8 @@ object Protocol {
 
   implicit val journalEncoder: JsonEncoder[Journal] = DeriveJsonEncoder.gen[Journal]
   implicit val journalDecoder: JsonDecoder[Journal] = DeriveJsonDecoder.gen[Journal]
+
+  implicit val repoErrorEncoder: JsonEncoder[RepositoryError] = DeriveJsonEncoder.gen[RepositoryError]
+  implicit val repErrorErrorDecoder: JsonDecoder[RepositoryError] = DeriveJsonDecoder.gen[RepositoryError]
 
 }

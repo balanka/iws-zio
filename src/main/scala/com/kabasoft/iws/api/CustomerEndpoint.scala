@@ -1,45 +1,29 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.api.Protocol.customerDecoder
+import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.repository.Schema.customerSchema
-import com.kabasoft.iws.domain.{ AppError, Customer }
+import com.kabasoft.iws.repository.Schema.repositoryErrorSchema
+import com.kabasoft.iws.domain.Customer
 import com.kabasoft.iws.repository._
-import zio._
-import zio.http._
-import zio.http.api.HttpCodec.literal
-import zio.http.api.{ EndpointSpec, RouteCodec }
-import zio.http.model.{ Method, Status }
-import zio.json.DecoderOps
+import zio.http.codec.HttpCodec._
+import zio.http.codec.HttpCodec.string
+import zio.http.endpoint.Endpoint
+import zio.http.model.Status
 import zio.schema.DeriveSchema.gen
 
 object CustomerEndpoint {
 
-  val custCreateEndpoint = Http.collectZIO[Request] { case req @ Method.POST -> !! / "cust" =>
-    (for {
-      body <- req.body.asString
-                .flatMap(request =>
-                  ZIO
-                    .fromEither(request.fromJson[List[Customer]])
-                    .mapError(e => new Throwable(e))
-                )
-                .mapError(e => AppError.DecodingError(e.getMessage))
-                .tapError(e => ZIO.logInfo(s"Unparseable customer body ${e}"))
-      _    <- CustomerRepository.create(body)
-    } yield ()).either.map {
-      case Right(_) => Response.status(Status.Created)
-      case Left(_)  => Response.status(Status.BadRequest)
-    }
-  }
-  val custAllAPI         = EndpointSpec.get[Unit](literal("cust")).out[List[Customer]]
-  val custByIdAPI        = EndpointSpec.get[String](literal("cust") / RouteCodec.string("id")).out[Customer]
-  private val deleteAPI  = EndpointSpec.get[String](literal("cust") / RouteCodec.string("id")).out[Int]
+  val custCreateAPI         = Endpoint.post("cust").in[Customer].out[Int].outError[RepositoryError](Status.InternalServerError)
+  val custAllAPI         = Endpoint.get("cust").out[List[Customer]].outError[RepositoryError](Status.InternalServerError)
+  val custByIdAPI        = Endpoint.get("cust" / string("id")).out[Customer].outError[RepositoryError](Status.InternalServerError)
+  private val deleteAPI  = Endpoint.get("cust" / string("id")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
-  val custAllEndpoint        = custAllAPI.implement { case () => CustomerRepository.all("1000") }
-  val custByIdEndpoint       = custByIdAPI.implement(id => CustomerRepository.getBy(id, "1000"))
-  private val deleteEndpoint = deleteAPI.implement(id => CustomerRepository.delete(id, "1000"))
+  val custCreateEndpoint     = custCreateAPI.implement (cust=> CustomerRepository.create(List(cust)).mapError(e => RepositoryError(e.getMessage)))
+  val custAllEndpoint        = custAllAPI.implement (_=> CustomerRepository.all("1000").mapError(e => RepositoryError(e.getMessage)))
+  val custByIdEndpoint       = custByIdAPI.implement(id => CustomerRepository.getBy(id, "1000").mapError(e => RepositoryError(e.getMessage)))
+   val deleteEndpoint = deleteAPI.implement(id => CustomerRepository.delete(id, "1000").mapError(e => RepositoryError(e.getMessage)))
 
-  private val serviceSpec = (custAllAPI.toServiceSpec ++ custByIdAPI.toServiceSpec ++ deleteAPI.toServiceSpec)
+  val routesCust = custAllEndpoint ++ custByIdEndpoint ++ custCreateEndpoint ++deleteEndpoint
 
-  val appCust: HttpApp[CustomerRepository, AppError.RepositoryError] =
-    serviceSpec.toHttpApp(custAllEndpoint ++ custByIdEndpoint ++ deleteEndpoint) ++ custCreateEndpoint
+  val appCust= routesCust//.toApp //@@ bearerAuth(jwtDecode(_).isDefined) ++ custCreateEndpoint
 }
