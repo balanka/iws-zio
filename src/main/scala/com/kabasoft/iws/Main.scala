@@ -3,7 +3,7 @@ package com.kabasoft.iws
 import com.kabasoft.iws.api.AccountEndpoint.appAcc
 import zio.http.Middleware.bearerAuth
 import com.kabasoft.iws.api.JournalEndpoint.appJournal
-import com.kabasoft.iws.api.LoginRoutes.{appLogin, jwtDecode}
+import com.kabasoft.iws.api.LoginRoutes.{jwtDecode, loginEndpoint}
 import com.kabasoft.iws.api.BankStmtEndpoint.appBankStmt
 import com.kabasoft.iws.api.CostcenterEndpoint.appCC
 import com.kabasoft.iws.api.PacEndpoint.appPac
@@ -63,7 +63,7 @@ object Main extends ZIOAppDefault {
 
   //private val masterfilesApp  = wrap(appAcc) ++ wrap(appBank) ++ wrap(appModule) ++ wrap(appCust) ++ wrap(appSup) ++
    // wrap(appComp) ++ wrap(appBankStmt) ++ wrap(appVat) ++ wrap(appUser)
-   val httpApp =  (appLogin ++ (appVat ++ appSup ++ appCust ++ appModule ++ appAcc ++ appBank  ++ appComp //++ appFtr
+   val httpApp =  (loginEndpoint.toApp ++ (appVat ++ appSup ++ appCust ++ appModule ++ appAcc ++ appBank  ++ appComp //++ appFtr
      ++ appBankStmt ++  appUser ++ appPac ++ appJournal ++ appCC ++ appBankStmt).toApp @@ bearerAuth(jwtDecode(_).isDefined) ++ expose)
      .mapError(e => Response(Status.InternalServerError, Headers.empty, Body.fromString(e.toString)))
  // val appx =  appBank++ appAcc ++appCC ++ appModule++ appCust ++ appSup ++ appComp++appBankStmt++appVat ++ appUser++

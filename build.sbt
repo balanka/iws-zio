@@ -1,5 +1,6 @@
 val zioVersion                 = "2.0.10"
-val zioHttpVersion             = "0.0.4+36-dab4ab27-SNAPSHOT"
+//val zioHttpVersion             = "0.0.4+36-dab4ab27-SNAPSHOT"
+val zioHttpVersion             = "0.0.4+37-87c66011-SNAPSHOT"
 //val zioHttpVersion             = "0.0.4+32-51285fc4+20230301-2319-SNAPSHOT"
 val zioJsonVersion             = "0.3.0"
 val zioConfigVersion           = "3.0.7"
@@ -12,6 +13,8 @@ val postgresql                 = "42.5.0"
 val JwtCoreVersion             = "9.1.1"
 val ZioSchemaVersion           = "0.4.2"
 
+ThisBuild / resolvers +=
+  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 
 lazy val root = (project in file("."))
   .settings(
