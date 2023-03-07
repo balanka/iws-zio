@@ -42,63 +42,63 @@ object ApiSpec extends ZIOSpecDefault {
     def spec = suite("APISpec")(
       suite("handler")(
         test("Account  integration test ") {
-        val accAll = Endpoint.get("acc").out[Int].outError[RepositoryError](Status.InternalServerError)
+        val accAll = Endpoint.get(literal("acc")).out[Int].outError[RepositoryError](Status.InternalServerError)
                      .implement(_ => AccountRepository.all("1000").mapBoth(e => RepositoryError(e.getMessage), _.size))
-          val testRoutes = testApi((accByIdEndpoint ++ accAll)) _
+          val testRoutes = testApi((accAll ++accByIdEndpoint)) _
           val testRoutes1 = testPostApi(accCreteEndpoint) _
-          testRoutes("/acc/1000", "14") && testRoutes("/acc/"+acc.id, acc.toJson)&& testRoutes1("/acc", List(accx).toJson, "")
+          testRoutes("/acc", "14") && testRoutes("/acc/"+acc.id, acc.toJson)&& testRoutes1("/acc", accx.toJson, "1")
         },
         test("Bank integration test") {
           val bankAll = Endpoint.get("bank"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
             .implement ( company => BankRepository.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
-          val testRoutes = testApi(bankAll ++ bankByIdEndpoint) _
+          val testRoutes = testApi(bankAll ++ bankByIdEndpoint++bankCreateEndpoint) _
           val testRoutes1 = testPostApi(bankCreateEndpoint) _
-          testRoutes("/bank/1000", "2") && testRoutes("/bank/"+bank.id, bank.toJson) && testRoutes1("/bank", List(bankx).toJson, "")
+          testRoutes("/bank/"+bank.company, "2") && testRoutes("/bank/"+bank.id+"/"+bank.company, bank.toJson) && testRoutes1("/bank", bankx.toJson, "1")
         },
          test("Customer integration test") {
           val custAllEndpoint = Endpoint.get("cust"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
-            .implement((company:String) => CustomerRepository.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
+            .implement(company => CustomerRepository.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
           val testRoutes = testApi(custByIdEndpoint ++ custAllEndpoint) _
           val testRoutes1 = testPostApi(custCreateEndpoint) _
-          testRoutes("/cust/1000", "3") && testRoutes("/cust/"+cust.id, cust.toJson)&& testRoutes1("/cust", List(custx).toJson, "")
+          testRoutes("/cust/"+cust.company, "3") && testRoutes("/cust/"+cust.id+"/"+cust.company, cust.toJson)&& testRoutes1("/cust", custx.toJson, "1")
         },
         test("Supplier integration test") {
           val supAllEndpoint = Endpoint.get("sup"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
-            .implement((company:String) => SupplierRepository.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
+            .implement(company => SupplierRepository.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
           val testRoutes = testApi(supByIdEndpoint ++ supAllEndpoint) _
           val testRoutes1 = testPostApi(supCreateEndpoint) _
-          testRoutes("/sup/1000", "6") && testRoutes("/sup/"+sup.id, sup.toJson)&& testRoutes1("/sup", List(supx).toJson, "")
+          testRoutes("/sup/"+sup.company, "6") && testRoutes("/sup/"+sup.id+"/"+sup.company, sup.toJson)&& testRoutes1("/sup", supx.toJson, "1")
         },
         test("Cost center integration test") {
           val ccAllEndpoint = Endpoint.get("cc"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
             .implement((company:String) => CostcenterRepository.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
           val testRoutes = testApi(ccByIdEndpoint ++ ccAllEndpoint) _
           val testRoutes1 = testPostApi(ccCreateEndpoint) _
-          testRoutes("/cc/1000", "2") && testRoutes("/cc/"+cc.id, cc.toJson)&& testRoutes1("/cc", List(ccx).toJson, "")
+          testRoutes("/cc/"+cc.company, "2") && testRoutes("/cc/"+cc.id+"/"+cc.company, cc.toJson)&& testRoutes1("/cc", ccx.toJson, "1")
         },
           test("Module integration test") {
           val moduleAllEndpoint = Endpoint.get("module"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
             .implement((company:String) => ModuleRepository.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
           val testRoutes = testApi(moduleByIdEndpoint ++ moduleAllEndpoint) _
           val testRoutes1 = testPostApi(moduleCreateEndpoint) _
-          testRoutes("/module/1000", "1") && testRoutes("/module/"+m.id, m.toJson)&& testRoutes1("/module", List(mx).toJson, "")
+          testRoutes("/module/"+m.company, "1") && testRoutes("/module/"+m.id+"/"+m.company, m.toJson)&& testRoutes1("/module", mx.toJson, "1")
         },
            test("User integration test") {
           val userAllEndpoint = Endpoint.get("user"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
             .implement((company:String) => UserRepository.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
           val testRoutes = testApi(userByUserNameEndpoint ++ userAllEndpoint) _
          val testRoutes1 = testPostApi(userCreateEndpoint) _
-          testRoutes("/user/1000", "2") && testRoutes("/user/"+user.userName, user.toJson)&& testRoutes1("/user", List(userx).toJson, "")
+          testRoutes("/user/1000", "2") && testRoutes("/user/"+user.userName+"/"+user.company, user.toJson)&& testRoutes1("/user", userx.toJson, "1")
         },
         test("Vat integration test") {
           val vatAllEndpoint = Endpoint.get("vat"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
             .implement((company:String) => VatRepository.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
           val testRoutes = testApi(vatByIdEndpoint ++ vatAllEndpoint) _
           val testRoutes1 = testPostApi(vatCreateEndpoint) _
-          testRoutes("/vat/1000", "2") && testRoutes("/vat/"+vat1.id, vat1.toJson) && testRoutes1("/vat", List(vat1x).toJson, "")
+          testRoutes("/vat/1000", "2") && testRoutes("/vat/"+vat1.id+"/"+vat1.company, vat1.toJson) && testRoutes1("/vat", vat1x.toJson, "1")
 
         }
-    ).provide(ConnectionPool.live,  AccountRepositoryImpl.live, BankRepositoryImpl.live,
+    ).provideShared(ConnectionPool.live,  AccountRepositoryImpl.live, BankRepositoryImpl.live,
         CostcenterRepositoryImpl.live, CustomerRepositoryImpl.live, SupplierRepositoryImpl.live, VatRepositoryImpl.live,
         ModuleRepositoryImpl.live, UserRepositoryImpl.live, PostgresContainer.connectionPoolConfigLayer, PostgresContainer.createContainer)
     )
