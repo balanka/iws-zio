@@ -17,7 +17,7 @@ object AuthenticationClient extends ZIOAppDefault {
    * a protected route. Run AuthenticationServer before running this example.
    */
 
-  val url         = "http://localhost:8091"
+  val url         = "http://127.0.0.1:8080"
   // val data = s"""{"userName":"mady" ,"password":"wuduwali2x"}"""
   val data        = s"""{"userName":"bate2" ,"password":"wuduwali2x"}"""
   val defaultUser = User(-1, "NoUser", "", "", "", "", "", "")

@@ -35,7 +35,7 @@ object AccountBuilder {
   val ccy = "EUR"
   val t = Instant.now()
   val zero = BigDecimal.valueOf(0, 2 )
-  val vtime = instantFromStr("2018-01-01T00:00:00.00Z")
+  val vtime = instantFromStr("2018-01-01T10:00:00.00Z")
   val INST_ACC =  Account(paccountId0, "Bilanz","Bilanz",t , t, t, "1000", Account.MODELID, "", true, true, ccy, zero, zero, zero, zero, Nil.toSet)
   val INST_ACC1 =  Account(paccountId1, "Bilanz Aktiva","Bilanz Aktiva",t , t, t, companyId, Account.MODELID, paccountId0, true, true, ccy, zero, zero, zero, zero, Nil.toSet)
   val INST_ACC2 =  Account(paccountId2, "Bilanz Passiva","Bilanz Passiva",t , t, t, companyId, Account.MODELID, paccountId0, false, true, ccy, zero, zero, zero, zero, Nil.toSet)

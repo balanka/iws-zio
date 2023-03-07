@@ -13,14 +13,14 @@ import zio.schema.DeriveSchema.gen
 
 object CustomerEndpoint {
 
-  val custCreateAPI         = Endpoint.post("cust").in[Customer].out[Int].outError[RepositoryError](Status.InternalServerError)
+  val custCreateAPI      = Endpoint.post("cust").in[Customer].out[Int].outError[RepositoryError](Status.InternalServerError)
   val custAllAPI         = Endpoint.get("cust"/ string("company")).out[List[Customer]].outError[RepositoryError](Status.InternalServerError)
-  val custByIdAPI        = Endpoint.get("cust" / string("id")).out[Customer].outError[RepositoryError](Status.InternalServerError)
+  val custByIdAPI        = Endpoint.get("cust" / string("id")/ string("company")).out[Customer].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI  = Endpoint.get("cust" / string("id")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
   val custCreateEndpoint     = custCreateAPI.implement (cust=> CustomerRepository.create(List(cust)).mapError(e => RepositoryError(e.getMessage)))
   val custAllEndpoint        = custAllAPI.implement (company=> CustomerRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
-  val custByIdEndpoint       = custByIdAPI.implement(id => CustomerRepository.getBy(id, "1000").mapError(e => RepositoryError(e.getMessage)))
+  val custByIdEndpoint       = custByIdAPI.implement(p => CustomerRepository.getBy(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
    val deleteEndpoint = deleteAPI.implement(id => CustomerRepository.delete(id, "1000").mapError(e => RepositoryError(e.getMessage)))
 
   val routesCust = custAllEndpoint ++ custByIdEndpoint ++ custCreateEndpoint ++deleteEndpoint

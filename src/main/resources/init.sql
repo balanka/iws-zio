@@ -341,7 +341,7 @@ insert into account
                                                                       ('1810','Giro SPK Bielefeld','Giro SPK Bielefeld',current_timestamp, current_timestamp, current_timestamp, '1000',9, '1800', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
                                                                       ('1600','Kasse','Kasse',current_timestamp, current_timestamp, current_timestamp, '1000',9, '9901', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
                                                                       ('1601','Kasse','Kasse',current_timestamp, current_timestamp, current_timestamp, '1000',9, '1600', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('00000','Dummy','Dummy','2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '1000',9, '5', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0);
+                                                                      ('00000','Dummy','Dummy','2018-01-01T11:00:00.00Z', '2018-01-01T11:00:00.00Z', '2018-01-01T11:00:00.00Z', '1000',9, '5', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0);
 
 
 insert into periodic_account_balance
@@ -366,13 +366,13 @@ values ('5004','Kunde ( Sonstige Erloes)','Kunde ( Sonstige Erloes)','sonstige S
        ('5014','KKM AG', 'KKM AG','Laatzer str 0', '5009', 'Hannover', 'Niedersachsen', 'DE'
        , '+000000001', 'yourMail@mail.com','1445', '4487', 'DE27662900000001470004X','v0', '1000', 3, current_timestamp, current_timestamp, current_timestamp),
        ('5222','Dummy', 'Dummy','Dummy', 'Dummy', 'Dummy', 'Dummy', 'DE'
-       , 'Dummy', 'dummy@dummy.com','1215', '111111', 'DEddddddddddddddddommy','v5', '1000', 3, '2018-01-01T00:00:00.00Z'
-       , '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z');
+       , 'Dummy', 'dummy@dummy.com','1215', '111111', 'DEddddddddddddddddommy','v5', '1000', 3, '2018-01-01T11:00:00.00Z'
+       , '2018-01-01T11:00:00.00Z', '2018-01-01T11:00:00.00Z');
 
 
 insert into supplier (id, name, description,street,zip,city,state, country, phone,email,account,oaccount,iban,vatcode,company,modelid,enterdate,changedate,postingdate)
 values ('70000','Dummy','Dummy','', '', '', '', 'DE', '', '', '331040', '6825', 'DE8448050161004700827X','v5',
-        '1000', 1, '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z'),
+        '1000', 1, '2018-01-01T11:00:00.00Z', '2018-01-01T11:00:00.00Z', '2018-01-01T11:00:00.00Z'),
        ('70034','Sonstige GWG Lieferenten','Sonstige GWG Lieferenten','sonstige Str 1', '47111', 'Nirvana', 'WORLD','DE'
        , '+000000000', 'myMail@mail.com','331031', '4855', 'DE27662900000001470034X','v5', '1000', 1, current_timestamp, current_timestamp
        , current_timestamp),
@@ -410,20 +410,20 @@ values
 insert into bank
 (id, name, description, postingdate, changedate, enterdate,  company, modelid)
 values('4711','myFirstBank','myFirstBank',current_timestamp, current_timestamp, current_timestamp, '1000',11),
-      ('COLSDE33','SPARKASSE KOELN-BONN','SPARKASSE KOELN-BONN','2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '1000',11);
+      ('COLSDE33','SPARKASSE KOELN-BONN','SPARKASSE KOELN-BONN','2018-01-01T11:00:00.00Z', '2018-01-01T11:00:00.00Z', '2018-01-01T11:00:00.00Z', '1000',11);
 
 insert into costcenter (id, name, description,account, enterdate,changedate,postingdate, modelid, company)
-values('300','Production','Production','800' ,'2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z',6,'1000' ),
-      ('000','Dummy','Dummy','Dummy' ,'2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', 6,'1000' );
+values('300','Production','Production','800' ,'2018-01-01T11:00:00.00Z', '2018-01-01T11:00:00.00Z', '2018-01-01T11:00:00.00Z',6,'1000' ),
+      ('000','Dummy','Dummy','Dummy' ,'2018-01-01T11:00:00.00Z', '2018-01-01T11:00:00.00Z', '2018-01-01T11:00:00.00Z', 6,'1000' );
 
 
 insert into module (id, name, description,path,enterdate,changedate,postingdate, modelid, company)
-    values('0000','Dummy','Dummy', '','2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z',300,'1000' );
+    values('0000','Dummy','Dummy', '','2018-01-01T11:00:00.00Z', '2018-01-01T11:00:00.00Z', '2018-01-01T11:00:00.00Z',300,'1000' );
 
 insert into vat
 (id, name, description, percent, input_vat_account, output_vat_account, postingdate, changedate, enterdate,  company, modelid)
 values
-    ('v101','Dummy','Dummy',0.07, '0650', '0651', '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '1000',14),
+    ('v101','Dummy','Dummy',0.07, '0650', '0651', '2018-01-01T11:00:00.00Z', '2018-01-01T11:00:00.00Z', '2018-01-01T11:00:00.00Z', '1000',14),
     ('4711','myFirstVat','myFirstVat',1, '1406', '3806', current_timestamp, current_timestamp, current_timestamp, '1000',14);
 
 

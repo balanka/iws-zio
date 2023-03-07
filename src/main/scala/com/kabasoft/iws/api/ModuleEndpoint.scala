@@ -14,12 +14,12 @@ object ModuleEndpoint {
 
   val moduleCreateAPI      = Endpoint.post("module").in[Module].out[Int].outError[RepositoryError](Status.InternalServerError)
   val moduleAllAPI         = Endpoint.get("module"/ string("company")).out[List[Module]].outError[RepositoryError](Status.InternalServerError)
-  val moduleByIdAPI        = Endpoint.get("module" / string("id")).out[Module].outError[RepositoryError](Status.InternalServerError)
+  val moduleByIdAPI        = Endpoint.get("module" / string("id")/ string("company")).out[Module].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI    = Endpoint.get("module" / string("id")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
   val moduleCreateEndpoint   = moduleCreateAPI.implement(m => ModuleRepository.create(List(m)).mapError(e => RepositoryError(e.getMessage)))
   val moduleAllEndpoint      = moduleAllAPI.implement(company => ModuleRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
-  val moduleByIdEndpoint     = moduleByIdAPI.implement(id => ModuleRepository.getBy(id, "1000").mapError(e => RepositoryError(e.getMessage)))
+  val moduleByIdEndpoint     = moduleByIdAPI.implement(p => ModuleRepository.getBy(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
   private val deleteEndpoint = deleteAPI.implement(id => ModuleRepository.delete(id, "1000").mapError(e => RepositoryError(e.getMessage)))
    val routesModule    = moduleAllEndpoint ++ moduleByIdEndpoint ++ moduleCreateEndpoint ++deleteEndpoint
 
