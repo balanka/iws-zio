@@ -1,61 +1,43 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.api.Protocol.accountDecoder
 import com.kabasoft.iws.repository.Schema.accountSchema
-import com.kabasoft.iws.domain.{ Account, AppError }
+import com.kabasoft.iws.repository.Schema.repositoryErrorSchema
+import com.kabasoft.iws.domain.Account
+import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.service.AccountService
-import com.kabasoft.iws.repository._
-import zio._
-import zio.http._
-import zio.http.api.HttpCodec.literal
-import zio.http.api.{ EndpointSpec, RouteCodec }
-import zio.http.model.{ Method, Status }
-import zio.json.DecoderOps
+import com.kabasoft.iws.repository.AccountRepository
+import zio.ZIO
+import zio.http.codec.HttpCodec._
+import zio.http.codec.HttpCodec.string
+import zio.http.endpoint.Endpoint
+import zio.http.model.Status
+
 
 object AccountEndpoint {
 
-   val accCreateEndpoint = Http.collectZIO[Request] { case req @ Method.POST -> !! / "acc" =>
-    (for {
-      body <- req.body.asString
-                .flatMap(request =>
-                  ZIO
-                    .fromEither(request.fromJson[List[Account]])
-                    .mapError(e => new Throwable(e))
-                )
-                .mapError(e => AppError.DecodingError(e.getMessage))
-                .tapError(e => ZIO.logInfo(s"Unparseable Vat body ${e}"))
-      _    <- AccountRepository.create(body)
-    } yield ()).either.map {
-      case Right(_) => Response.status(Status.Created)
-      case Left(_)  => Response.status(Status.BadRequest)
-    }
-  }
-  val balanceAPI             = EndpointSpec
-    .get[(String, Int, Int)](
-      literal("balance")
-        / RouteCodec.string("accId") / RouteCodec.int("from") / RouteCodec.int("to")
-    )
-    .out[List[Account]]
-  val closePeriodAPI         = EndpointSpec
-    .get[(String, Int, Int)](
-      literal("close")
-        / RouteCodec.string("accId") / RouteCodec.int("from") / RouteCodec.int("to")
-    )
-    .out[Int]
-   val accAllAPI         = EndpointSpec.get[Unit](literal("acc")).out[List[Account]]
-   val accByIdAPI        = EndpointSpec.get[String](literal("acc") / RouteCodec.string("id")).out[Account]
-  private val deleteAPI      = EndpointSpec.get[String](literal("acc") / RouteCodec.string("id")).out[Int]
+  val accCreateAPI = Endpoint.post("acc").in[Account].out[Int].outError[RepositoryError](Status.InternalServerError)
+  val accAllAPI = Endpoint.get("acc"/ string("company")).out[List[Account]].outError[RepositoryError](Status.InternalServerError)
+  val balanceAPI = Endpoint.get("balance" / string("accId") / int("from") / int("to")).out[List[Account]]
+    .outError[RepositoryError](Status.InternalServerError)
+  val accByIdAPI = Endpoint.get("acc" / string("id")).out[Account].outError[RepositoryError](Status.InternalServerError)
+  val deleteAPI = Endpoint.get("acc" / string("id")).out[Int].outError[RepositoryError](Status.InternalServerError)
+  val closePeriodAPI = Endpoint.get("balance" / string("accId") / int("from") / int("to")).out[Int]
+    .outError[RepositoryError](Status.InternalServerError)
 
-  val closePeriodEndpoint    = closePeriodAPI.implement((in) => AccountService.closePeriod(in._2, in._3, in._1, "1000"))
-  val balanceEndpoint        = balanceAPI.implement((in) => AccountService.getBalance(in._1, in._2, in._3, "1000"))
-   val accAllEndpoint    = accAllAPI.implement(_ => AccountRepository.all("1000"))
-   val accByIdEndpoint   = accByIdAPI.implement(id => AccountRepository.getBy(id, "1000"))
-  private val deleteEndpoint = deleteAPI.implement(id => AccountRepository.delete(id, "1000"))
 
-  private val serviceSpec = (accAllAPI.toServiceSpec ++ accByIdAPI.toServiceSpec ++ deleteAPI.toServiceSpec
-    ++ balanceAPI.toServiceSpec ++ closePeriodAPI.toServiceSpec)
+  val accAllEndpoint = accAllAPI.implement(company => AccountRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
+  val accCreteEndpoint = accCreateAPI.implement(account =>
+    ZIO.logDebug(s"Insert Account  ${account}") *>
+    AccountRepository.create(List(account)).mapError(e => RepositoryError(e.getMessage)))
+  val balanceEndpoint = balanceAPI.implement { case (accId: String, from: Int, to: Int) =>
+    AccountService.getBalance(accId, from, to, "1000").mapError(e => RepositoryError(e.getMessage))}
+  val accByIdEndpoint = accByIdAPI.implement(id => AccountRepository.getBy(id, "1000").mapError(e => RepositoryError(e.getMessage)))
+  val closePeriodEndpoint = closePeriodAPI.implement { case (accId: String, from: Int, to: Int) =>
+    AccountService.closePeriod(from, to, accId, "1000").mapError(e => RepositoryError(e.getMessage))}
+  val deleteEndpoint = deleteAPI.implement(id => AccountRepository.delete(id, "1000").mapError(e => RepositoryError(e.getMessage)))
 
-  val appAcc: HttpApp[AccountRepository with AccountService, AppError.RepositoryError] =
-    serviceSpec.toHttpApp(accAllEndpoint ++ accByIdEndpoint ++ balanceEndpoint ++ closePeriodEndpoint ++ deleteEndpoint) ++ accCreateEndpoint
+  val routes = accAllEndpoint ++ accByIdEndpoint ++ balanceEndpoint ++ closePeriodEndpoint ++ accCreteEndpoint ++ deleteEndpoint
+
+  val appAcc = routes //.toApp @@ bearerAuth(jwtDecode(_).isDefined)
 
 }

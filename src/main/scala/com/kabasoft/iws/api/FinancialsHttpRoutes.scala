@@ -12,7 +12,7 @@ import zio.json._
 
 object FinancialsHttpRoutes {
 
-  val appFtr = Http.collectZIO[Request] {
+  val appFtr: Http[TransactionRepository with FinancialsService, AppError.RepositoryError, Request, Response] = Http.collectZIO[Request] {
 
     case Method.GET -> !! / "ftr" =>
       TransactionRepository

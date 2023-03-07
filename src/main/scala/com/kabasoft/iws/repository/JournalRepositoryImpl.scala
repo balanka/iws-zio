@@ -202,7 +202,7 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
   override def delete(Id: Long, companyId: String): ZIO[Any, RepositoryError, Int] =
     execute(deleteFrom(journals).where(whereClause(Id, companyId)))
       .provideLayer(driverLayer)
-      .mapError(e => RepositoryError(e.getCause))
+      .mapError(e => RepositoryError(e.getMessage))
 
   override def list(companyId: String): ZStream[Any, RepositoryError, Journal]        =
     ZStream.fromZIO(

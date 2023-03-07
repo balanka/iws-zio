@@ -1,29 +1,27 @@
 package com.kabasoft.iws.api
 
+import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.repository.Schema.journalSchema
-import com.kabasoft.iws.domain.{ AppError, Journal }
+import com.kabasoft.iws.repository.Schema.repositoryErrorSchema
+import com.kabasoft.iws.domain.Journal
 import com.kabasoft.iws.repository._
-import zio.http._
-import zio.http.api.HttpCodec.literal
-import zio.http.api.{ EndpointSpec, RouteCodec }
+import zio.http.codec.HttpCodec._
+import zio.http.codec.HttpCodec.string
+import zio.http.codec.HttpCodec.int
+import zio.http.endpoint.Endpoint
+import zio.http.model.Status
+
 
 object JournalEndpoint {
 
-  val byIdAPI                         = EndpointSpec.get[Int](literal("jou") / RouteCodec.int("id")).out[Journal]
-  private val byAccountFromToAPI      = EndpointSpec
-    .get[(String, Int, Int)](
-      literal("jou")
-        / RouteCodec.string("accId") / RouteCodec.int("from") / RouteCodec.int("to")
-    )
-    .out[List[Journal]]
-  // private val deleteAPI = EndpointSpec.get[String](literal("jou")/ RouteCodec.string("id") ).out[Int]
-  val jouByIdEndpoint                 = byIdAPI.implement(id => JournalRepository.getBy(id.toLong, "1000"))
-  private val byAccountFromToEndpoint =
-    byAccountFromToAPI.implement((accId) => JournalRepository.find4Period(accId._1, accId._2, accId._3, "1000").runCollect.map(_.toList))
-  // private val deleteEndpoint = deleteAPI.implement (id =>JournalRepository.delete(id.toLong,"1000"))
+  val byIdAPI                  = Endpoint.get("jou" / int("id")).out[Journal].outError[RepositoryError](Status.InternalServerError)
+   val byAccountFromToAPI      = Endpoint.get("jou" / string("accId") / int("from") / int("to")).out[List[Journal]].outError[RepositoryError](Status.InternalServerError)
+  val journalByIdEndpoint                 = byIdAPI.implement(id => JournalRepository.getBy(id.toLong, "1000").mapError(e => RepositoryError(e.getMessage)))
+   val journalByAccountFromToEndpoint = byAccountFromToAPI.implement { case (accId:String, from:Int,to:Int) =>
+      JournalRepository.find4Period(accId, from, to, "1000").runCollect.mapBoth(e => RepositoryError(e.getMessage), _.toList)}
 
-  private val serviceSpec = (byIdAPI.toServiceSpec ++ byAccountFromToAPI.toServiceSpec)
 
-  val appJournal: HttpApp[JournalRepository, AppError.RepositoryError] =
-    serviceSpec.toHttpApp(jouByIdEndpoint ++ byAccountFromToEndpoint)
+   val routesJournal = journalByIdEndpoint ++ journalByAccountFromToEndpoint
+
+  val appJournal = routesJournal//.toApp //@@ bearerAuth(jwtDecode(_).isDefined)
 }

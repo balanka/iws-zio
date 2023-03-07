@@ -1,8 +1,7 @@
 package com.kabasoft.iws.repository
 
-import com.kabasoft.iws.domain.Bank
+import com.kabasoft.iws.domain.{AppError, Bank}
 import com.kabasoft.iws.repository.Schema.bankSchema
-import com.kabasoft.iws.domain.AppError.RepositoryError
 import zio._
 import zio.sql.ConnectionPool
 import zio.stream._
@@ -15,7 +14,7 @@ final class BankRepositoryImpl(pool: ConnectionPool) extends BankRepository with
   val (id, name, description, enterdate, changedate, postingdate, modelid, company) = bank.columns
 
   val SELECT                                                                           = select(id, name, description, enterdate, changedate, postingdate, modelid, company).from(bank)
-  override def create(c: Bank): ZIO[Any, RepositoryError, Unit]                        = {
+  override def create(c: Bank): ZIO[Any, AppError, Unit]                        = {
     val query = insertInto(bank)(id, name, description, enterdate, changedate, postingdate, modelid, company).values(Bank.unapply(c).get)
 
     ZIO.logDebug(s"Query to insert Bank is ${renderInsert(query)}") *>
@@ -23,7 +22,7 @@ final class BankRepositoryImpl(pool: ConnectionPool) extends BankRepository with
         .provideAndLog(driverLayer)
         .unit
   }
-  override def create(models: List[Bank]): ZIO[Any, RepositoryError, Int]              = {
+  override def create(models: List[Bank]): ZIO[Any, AppError, Int]              = {
     val data  = models.map(Bank.unapply(_).get)
     val query = insertInto(bank)(id, name, description, enterdate, changedate, postingdate, modelid, company).values(data)
 
@@ -31,12 +30,12 @@ final class BankRepositoryImpl(pool: ConnectionPool) extends BankRepository with
       execute(query)
         .provideAndLog(driverLayer)
   }
-  override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] =
+  override def delete(item: String, companyId: String): ZIO[Any, AppError, Int] =
     execute(deleteFrom(bank).where((id === item) && (company === companyId)))
       .provideLayer(driverLayer)
-      .mapError(e => RepositoryError(e.getCause()))
+      .mapError(e => AppError.DecodingError(e.getMessage))
 
-  override def modify(model: Bank): ZIO[Any, RepositoryError, Int] = {
+  override def modify(model: Bank): ZIO[Any, AppError, Int] = {
     val update_ = update(bank)
       .set(name, model.name)
       .set(description, model.description)
@@ -44,13 +43,13 @@ final class BankRepositoryImpl(pool: ConnectionPool) extends BankRepository with
     ZIO.logDebug(s"Query Update Bank is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
-        .mapError(e => RepositoryError(e.getCause()))
+        .mapError(e => AppError.DecodingError(e.getMessage))
   }
 
-  override def all(companyId: String): ZIO[Any, RepositoryError, List[Bank]] =
+  override def all(companyId: String): ZIO[Any, AppError, List[Bank]] =
     list(companyId).runCollect.map(_.toList)
 
-  override def list(companyId: String): ZStream[Any, RepositoryError, Bank]                   = {
+  override def list(companyId: String): ZStream[Any, AppError, Bank]                   = {
     val selectAll = SELECT.where(company === companyId)
     ZStream.fromZIO(
       ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")
@@ -58,14 +57,14 @@ final class BankRepositoryImpl(pool: ConnectionPool) extends BankRepository with
       execute(selectAll.to((Bank.apply _).tupled))
         .provideDriver(driverLayer)
   }
-  override def getBy(Id: String, companyId: String): ZIO[Any, RepositoryError, Bank]          = {
+  override def getBy(Id: String, companyId: String): ZIO[Any, AppError, Bank]          = {
     val selectAll = SELECT.where((id === Id) && (company === companyId))
 
     ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to((Bank.apply _).tupled))
         .findFirst(driverLayer, Id)
   }
-  override def getByModelId(modelId: Int, companyId: String): ZIO[Any, RepositoryError, Bank] = {
+  override def getByModelId(modelId: Int, companyId: String): ZIO[Any, AppError, Bank] = {
     val selectAll = SELECT.where((modelid === modelId) && (company === companyId))
 
     ZIO.logDebug(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>

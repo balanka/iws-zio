@@ -1,42 +1,32 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.api.Protocol.pacDecoder
+import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.repository.Schema.pacSchema
-import com.kabasoft.iws.domain.{ AppError, PeriodicAccountBalance }
+import com.kabasoft.iws.repository.Schema.repositoryErrorSchema
+import com.kabasoft.iws.domain.PeriodicAccountBalance
 import com.kabasoft.iws.repository.PacRepository
-import zio._
-import zio.http._
-import zio.http.api.HttpCodec.literal
-import zio.http.api.{ EndpointSpec, RouteCodec }
-import zio.http.model.{ Method, Status }
-import zio.json.DecoderOps
+import zio.http.codec.HttpCodec._
+import zio.http.codec.HttpCodec.{int, string}
+import zio.http.endpoint.Endpoint
+import zio.http.model.Status
 
 object PacEndpoint {
 
-  private val createEndpoint  = Http.collectZIO[Request] { case req @ Method.POST -> !! / "pac" =>
-    (for {
-      body <- req.body.asString
-                .flatMap(request =>
-                  ZIO
-                    .fromEither(request.fromJson[PeriodicAccountBalance])
-                    .mapError(e => new Throwable(e))
-                )
-                .mapError(e => AppError.DecodingError(e.getMessage()))
-                .tapError(e => ZIO.logInfo(s"Unparseable PeriodicAccountBalance body ${e}"))
-      _    <- PacRepository.create(List(body))
-    } yield ()).either.map {
-      case Right(_) => Response.status(Status.Created)
-      case Left(_)  => Response.status(Status.BadRequest)
-    }
-  }
-  private val allPacAPI       = EndpointSpec.get[Unit](literal("pac")).out[List[PeriodicAccountBalance]]
-  // private val streamPacAPI = EndpointSpec.get[Unit](literal("pac")).outStream[PeriodicAccountBalance]
-  private val pacByIdAPI      = EndpointSpec.get[String](literal("pac") / RouteCodec.string("id")).out[PeriodicAccountBalance]
-  private val allPacEndpoint  = allPacAPI.implement(_ => PacRepository.all("1000"))
-  private val pacByIdEndpoint = pacByIdAPI.implement(id => PacRepository.getBy(id, "1000"))
 
-  private val pacServiceSpec = (allPacAPI.toServiceSpec ++ pacByIdAPI.toServiceSpec)
+  private val allPacAPI       = Endpoint.get("pac"/ string("company")).out[List[PeriodicAccountBalance]]
+    .outError[RepositoryError](Status.InternalServerError)
+   val pacByAccountPeriodAPI       = Endpoint.get("pac"/string("accId")/int("fromPeriod")/int("toPeriod"))
+     .out[List[PeriodicAccountBalance]].outError[RepositoryError](Status.InternalServerError)
 
-  val appPac = pacServiceSpec.toHttpApp(allPacEndpoint ++ pacByIdEndpoint) ++ createEndpoint
+  //private val pacByIdAPI      = Endpoint.get("pac" / string("id")).out[PeriodicAccountBalance].outError[RepositoryError](Status.InternalServerError)
+  private val allPacEndpoint  = allPacAPI.implement(company => PacRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
+ // private val pacByIdEndpoint = pacByIdAPI.implement(id => PacRepository.getBy(id, "1000").mapError(e => RepositoryError(e.getMessage)))
+   val pacByAccountPeriodAEndpoint = pacByAccountPeriodAPI.implement{ case (accId:String, fromPeriod:Int,toPeriod:Int) =>
+     PacRepository.find4Period(accId, fromPeriod, toPeriod, "1000").runCollect.mapBoth(e => RepositoryError(e.getMessage), _.toList)}
+
+  val routesPac = allPacEndpoint ++pacByAccountPeriodAEndpoint
+
+  val appPac = routesPac//.toApp //@@ bearerAuth(jwtDecode(_).isDefined)
+
 
 }

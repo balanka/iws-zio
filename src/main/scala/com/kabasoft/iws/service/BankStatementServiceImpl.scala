@@ -34,7 +34,7 @@ final class BankStatementServiceImpl(
                              .tap(tr => ZIO.logDebug(s"Transaction created  ${tr} "))
                              .flatMap(ftrRepo.create)
                          )
-                         .mapError(e => RepositoryError(e))
+                         .mapError(e => RepositoryError(e.getMessage))
                          .runCollect
                          .map(_.toList.sum)
 
@@ -112,7 +112,7 @@ final class BankStatementServiceImpl(
                 .filterNot(p => p.replaceAll(char, "").startsWith(header))
                 .map(p => buildFn(p.replaceAll(char, "")))
             } // >>>ZSink.fromZIO(bankStmtRepo.create(_))
-            .mapError(e => RepositoryError(e))
+            .mapError(e => RepositoryError(e.getMessage))
             .runCollect
             .map(_.toList)
     nr <- bankStmtRepo.create(bs)

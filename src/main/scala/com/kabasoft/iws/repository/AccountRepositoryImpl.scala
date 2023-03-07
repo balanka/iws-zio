@@ -128,7 +128,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] =
     execute(deleteFrom(account).where(whereClause(item, companyId)))
       .provideLayer(driverLayer)
-      .mapError(e => RepositoryError(e.getCause()))
+      .mapError(e => RepositoryError(e.getMessage))
 
   private def build(model: Account_) =
     update(account)
@@ -146,7 +146,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
     ZIO.logDebug(s"Query Update Account is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
-        .mapError(e => RepositoryError(e.getCause()))
+        .mapError(e => RepositoryError(e.getMessage))
   }
   override def modify(models: List[Account]): ZIO[Any, RepositoryError, Int] = {
     val update_ = models.map(acc => build(Account_(acc)))
@@ -154,7 +154,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
       executeBatchUpdate(update_)
         .provideLayer(driverLayer)
         .map(_.sum)
-        .mapError(e => RepositoryError(e.getCause()))
+        .mapError(e => RepositoryError(e.getMessage))
   }
 
   override def all(companyId: String): ZIO[Any, RepositoryError, List[Account]] = for {

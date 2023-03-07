@@ -164,7 +164,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
   override def delete(id: String, companyId: String): ZIO[Any, RepositoryError, Int] =
     execute(deleteFrom(customer).where(whereClause(id, companyId)))
       .provideLayer(driverLayer)
-      .mapError(e => RepositoryError(e.getCause()))
+      .mapError(e => RepositoryError(e.getMessage))
 
   override def modify(model: Customer): ZIO[Any, RepositoryError, Int] = {
     val update_ = update(customer)
@@ -174,7 +174,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     ZIO.logDebug(s"Query Update Customer is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
-        .mapError(e => RepositoryError(e.getCause()))
+        .mapError(e => RepositoryError(e.getMessage))
   }
 
   def listBankAccount(companyId: String): ZStream[Any, RepositoryError, BankAccount] = {

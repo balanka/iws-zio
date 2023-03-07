@@ -318,30 +318,30 @@ values ('1000', 'ABC GmbH', 'Word stree1 0','49110','FF', 'DE','Deutschland', 'i
 
 insert into account
 (id, name, description, enterdate, postingdate, changedate, company, modelid, account,is_debit, balancesheet, currency, idebit, icredit, debit, credit ) values
-                                                                      ('9900','Bilanz','Bilanz',current_timestamp, current_timestamp, current_timestamp, '1000',9
-                                                                      , '', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('9901','Bilanz Aktiva','Bilanz Aktiva',current_timestamp, current_timestamp, current_timestamp, '1000',9
-                                                                      , '9900', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('9902','Bilanz Passiva','Bilanz Passiva',current_timestamp, current_timestamp, current_timestamp, '1000',9
-                                                                      , '9900', false, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('9800','GuV Aktiva','GuV Aktiva',current_timestamp, current_timestamp, current_timestamp, '1000',9
-                                                                      , '9902', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('9801','GuV Aktiva','GuV Aktiva',current_timestamp, current_timestamp, current_timestamp, '1000',9
-                                                                      , '9800', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('9802','GuV Passiva','GuV Passiva',current_timestamp, current_timestamp, current_timestamp, '1000',9
-                                                                      , '9800', false, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('4000','Umsatzerloese','Umsatzerloese',current_timestamp, current_timestamp, current_timestamp, '1000',9
-                                                                      , '9802', false, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('4400','Umsatzerloese 19%','Umsatzerloese 19%',current_timestamp, current_timestamp, current_timestamp, '1000',9
-                                                                      , '4000', false, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('1200','Forderungen aus Lieferungen und Leistungen','Forderung a. L & L',current_timestamp, current_timestamp, current_timestamp, '1000',9
-                                                                      , '9901', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('1800','Bank','Bank',current_timestamp, current_timestamp, current_timestamp, '1000',9
-                                                                      , '9901', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('1810','Giro SPK Bielefeld','Giro SPK Bielefeld',current_timestamp, current_timestamp, current_timestamp, '1000',9, '1800', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('1600','Kasse','Kasse',current_timestamp, current_timestamp, current_timestamp, '1000',9, '9901', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('1601','Kasse','Kasse',current_timestamp, current_timestamp, current_timestamp, '1000',9, '1600', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
-                                                                      ('00000','Dummy','Dummy','2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '1000',9, '5', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0);
+                                                                                                                                                             ('9900','Bilanz','Bilanz',current_timestamp, current_timestamp, current_timestamp, '1000',9
+                                                                                                                                                             , '', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
+                                                                                                                                                             ('9901','Bilanz Aktiva','Bilanz Aktiva',current_timestamp, current_timestamp, current_timestamp, '1000',9
+                                                                                                                                                             , '9900', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
+                                                                                                                                                             ('9902','Bilanz Passiva','Bilanz Passiva',current_timestamp, current_timestamp, current_timestamp, '1000',9
+                                                                                                                                                             , '9900', false, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
+                                                                                                                                                             ('9800','GuV Aktiva','GuV Aktiva',current_timestamp, current_timestamp, current_timestamp, '1000',9
+                                                                                                                                                             , '9902', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
+                                                                                                                                                             ('9801','GuV Aktiva','GuV Aktiva',current_timestamp, current_timestamp, current_timestamp, '1000',9
+                                                                                                                                                             , '9800', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
+                                                                                                                                                             ('9802','GuV Passiva','GuV Passiva',current_timestamp, current_timestamp, current_timestamp, '1000',9
+                                                                                                                                                             , '9800', false, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
+                                                                                                                                                             ('4000','Umsatzerloese','Umsatzerloese',current_timestamp, current_timestamp, current_timestamp, '1000',9
+                                                                                                                                                             , '9802', false, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
+                                                                                                                                                             ('4400','Umsatzerloese 19%','Umsatzerloese 19%',current_timestamp, current_timestamp, current_timestamp, '1000',9
+                                                                                                                                                             , '4000', false, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
+                                                                                                                                                             ('1200','Forderungen aus Lieferungen und Leistungen','Forderung a. L & L',current_timestamp, current_timestamp, current_timestamp, '1000',9
+                                                                                                                                                             , '9901', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
+                                                                                                                                                             ('1800','Bank','Bank',current_timestamp, current_timestamp, current_timestamp, '1000',9
+                                                                                                                                                             , '9901', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
+                                                                                                                                                             ('1810','Giro SPK Bielefeld','Giro SPK Bielefeld',current_timestamp, current_timestamp, current_timestamp, '1000',9, '1800', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
+                                                                                                                                                             ('1600','Kasse','Kasse',current_timestamp, current_timestamp, current_timestamp, '1000',9, '9901', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
+                                                                                                                                                             ('1601','Kasse','Kasse',current_timestamp, current_timestamp, current_timestamp, '1000',9, '1600', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
+                                                                                                                                                             ('00000','Dummy','Dummy','2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '1000',9, '5', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0);
 
 
 insert into periodic_account_balance
@@ -356,7 +356,7 @@ values
     (CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'1810'), '1810', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'),
      0, 50, 0, 0,'1000' , 'EUR', 106),
     (CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'1601'), '1601', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'),
-    0, 200, 0, 0,'1000' , 'EUR', 106),
+     0, 200, 0, 0,'1000' , 'EUR', 106),
     (CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'4400'), '4400', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'),
      0, 200, 0, 0,'1000' , 'EUR', 106)   ;
 
@@ -366,13 +366,13 @@ values ('5004','Kunde ( Sonstige Erloes)','Kunde ( Sonstige Erloes)','sonstige S
        ('5014','KKM AG', 'KKM AG','Laatzer str 0', '5009', 'Hannover', 'Niedersachsen', 'DE'
        , '+000000001', 'yourMail@mail.com','1445', '4487', 'DE27662900000001470004X','v0', '1000', 3, current_timestamp, current_timestamp, current_timestamp),
        ('5222','Dummy', 'Dummy','Dummy', 'Dummy', 'Dummy', 'Dummy', 'DE'
-       , 'Dummy', 'dummy@dummy.com','1215', '111111', 'DEddddddddddddddddommy','v5', '1000', 3, '2018-01-01T00:00:00.00Z'
-       , '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z');
+       , 'Dummy', 'dummy@dummy.com','1215', '111111', 'DEddddddddddddddddommy','v5', '1000', 3, '2018-01-01T10:00:00.00Z'
+       , '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z');
 
 
 insert into supplier (id, name, description,street,zip,city,state, country, phone,email,account,oaccount,iban,vatcode,company,modelid,enterdate,changedate,postingdate)
 values ('70000','Dummy','Dummy','', '', '', '', 'DE', '', '', '331040', '6825', 'DE8448050161004700827X','v5',
-        '1000', 1, '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z'),
+        '1000', 1, '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z'),
        ('70034','Sonstige GWG Lieferenten','Sonstige GWG Lieferenten','sonstige Str 1', '47111', 'Nirvana', 'WORLD','DE'
        , '+000000000', 'myMail@mail.com','331031', '4855', 'DE27662900000001470034X','v5', '1000', 1, current_timestamp, current_timestamp
        , current_timestamp),
@@ -410,25 +410,25 @@ values
 insert into bank
 (id, name, description, postingdate, changedate, enterdate,  company, modelid)
 values('4711','myFirstBank','myFirstBank',current_timestamp, current_timestamp, current_timestamp, '1000',11),
-      ('COLSDE33','SPARKASSE KOELN-BONN','SPARKASSE KOELN-BONN','2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '1000',11);
+      ('COLSDE33','SPARKASSE KOELN-BONN','SPARKASSE KOELN-BONN','2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '1000',11);
 
 insert into costcenter (id, name, description,account, enterdate,changedate,postingdate, modelid, company)
-values('300','Production','Production','800' ,'2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z',6,'1000' ),
-      ('000','Dummy','Dummy','Dummy' ,'2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', 6,'1000' );
+values('300','Production','Production','800' ,'2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z',6,'1000' ),
+      ('000','Dummy','Dummy','Dummy' ,'2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', 6,'1000' );
 
 
 insert into module (id, name, description,path,enterdate,changedate,postingdate, modelid, company)
-    values('0000','Dummy','Dummy', '','2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z',300,'1000' );
+values('0000','Dummy','Dummy', '','2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z',300,'1000' );
 
 insert into vat
 (id, name, description, percent, input_vat_account, output_vat_account, postingdate, changedate, enterdate,  company, modelid)
 values
-    ('v101','Dummy','Dummy',0.07, '0650', '0651', '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '2018-01-01T00:00:00.00Z', '1000',14),
+    ('v101','Dummy','Dummy',0.07, '0650', '0651', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '1000',14),
     ('4711','myFirstVat','myFirstVat',1, '1406', '3806', current_timestamp, current_timestamp, current_timestamp, '1000',14);
 
 
 insert into users(user_name, first_name, last_name,  hash, email, phone, department, menu, company, modelid)
 values('jdegoes011','John','dgoes', '$21a$10$0IZtq3wGiRQSMIuoIgNKrePjQfmGFRgkpnHwyY9RcbUhZxU9Ha1mCX', 'whatYourGrandma1Name@gmail.com'
-   , '11-4711-0123','Admin', '1300,9,1120,3,14,1000,18,1,112,106,11,6,10', '1000',111),
-   ('myUserName','myUserFirstName','myUserLastName', 'hash1', 'myEmail@email.com', '+49-1111-11100','Accountant', '1,10', '1000',111);
+      , '11-4711-0123','Admin', '1300,9,1120,3,14,1000,18,1,112,106,11,6,10', '1000',111),
+      ('myUserName','myUserFirstName','myUserLastName', 'hash1', 'myEmail@email.com', '+49-1111-11100','Accountant', '1,10', '1000',111);
 

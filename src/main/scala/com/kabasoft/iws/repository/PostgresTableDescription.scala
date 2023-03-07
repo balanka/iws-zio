@@ -12,8 +12,8 @@ trait PostgresTableDescription extends PostgresJdbcModule {
       driver: ULayer[SqlDriver]
     ): ZStream[Any, RepositoryError, T] =
       zstream
-        .tapError(e => ZIO.logError(e.getMessage()))
-        .mapError(e => RepositoryError(e.getCause()))
+        .tapError(e => ZIO.logError(e.getMessage))
+        .mapError(e => RepositoryError(e.getMessage))
         .provideLayer(driver)
 
     def findFirst(
@@ -22,26 +22,20 @@ trait PostgresTableDescription extends PostgresJdbcModule {
     ): ZIO[Any, RepositoryError, T] =
       zstream.runHead.some.tapError {
         case None    => ZIO.unit
-        case Some(e) => ZIO.logError(e.getMessage())
+        case Some(e) => ZIO.logError(e.getMessage)
       }.mapError {
-        case None    =>
-          RepositoryError(
-            new RuntimeException(s"Order with id $id does not exists")
-          )
-        case Some(e) => RepositoryError(e.getCause())
+        case None    => RepositoryError(s"Order with id $id does not exists")
+        case Some(e) => RepositoryError(e.getMessage)
       }
         .provide(driver)
 
     def findFirst(driver: ULayer[SqlDriver], id: String): ZIO[Any, RepositoryError, T] =
       zstream.runHead.some.tapError {
         case None    => ZIO.unit
-        case Some(e) => println("Message:" + e.getMessage()); ZIO.logError(e.getMessage())
+        case Some(e) => println("Message:" + e.getMessage); ZIO.logError(e.getMessage)
       }.mapError {
-        case None    =>
-          RepositoryError(
-            new RuntimeException(s"Object with id/name $id does not exists")
-          )
-        case Some(e) => RepositoryError(e.getCause())
+        case None    => RepositoryError(s"Object with id/name $id does not exists")
+        case Some(e) => RepositoryError(e.getMessage)
       }
         .provide(driver)
   }
@@ -49,8 +43,8 @@ trait PostgresTableDescription extends PostgresJdbcModule {
   implicit class ZioSqlExt[T](zio: ZIO[SqlDriver, Exception, T]) {
     def provideAndLog(driver: ULayer[SqlDriver]): ZIO[Any, RepositoryError, T] =
       zio
-        .tapError(e => ZIO.logError(e.getMessage()))
-        .mapError(e => RepositoryError(e.getCause()))
+        .tapError(e => ZIO.logError(e.getMessage))
+        .mapError(e => RepositoryError(e.getMessage))
         .provide(driver)
   }
 }

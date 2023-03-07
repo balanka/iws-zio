@@ -32,22 +32,20 @@ final class UserRepositoryImpl(pool: ConnectionPool) extends UserRepository with
   override def delete(Id: Int, companyId: String): ZIO[Any, RepositoryError, Int] =
     execute(deleteFrom(users).where((id === Id) && (company === companyId)))
       .provideLayer(driverLayer)
-      .mapError(e => RepositoryError(e.getCause()))
+      .mapError(e => RepositoryError(e.getMessage))
 
   override def modify(model: User): ZIO[Any, RepositoryError, Int]        = {
     val update_ = build(model)
     ZIO.logDebug(s"Query Update vat is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
-        .mapError(e => RepositoryError(e.getCause()))
+        .mapError(e => RepositoryError(e.getMessage))
   }
   override def modify(models: List[User]): ZIO[Any, RepositoryError, Int] = {
-    val update_ = models.map(build(_))
+    val update_ = models.map(build)
     // ZIO.logInfo(s"Query Update vat is ${renderUpdate(update_)}") *>
     executeBatchUpdate(update_)
-      .provideLayer(driverLayer)
-      .map(_.sum)
-      .mapError(e => RepositoryError(e.getCause()))
+      .provideLayer(driverLayer).mapBoth(e => RepositoryError(e.getMessage), _.sum)
   }
 
   private def build(model: User) =

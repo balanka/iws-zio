@@ -16,7 +16,7 @@ object CustomerBuilder {
   val IbanCustomer3 ="DE27662900000001470004X"
   val nameCustomer3 = "Kunde ( Sonstige Erloes)"
   val dummyNname   = "Dummy"
-   val vtime = instantFromStr("2018-01-01T00:00:00.00Z")
+   val vtime = instantFromStr("2018-01-01T10:00:00.00Z")
   val customer1 = Customer(customerId1, nameCustomer1, "Bintou Mady Kaba","Bielefelder Str 1", "33615" , "Bielefeld", "NRW", "DE",  "0521-471163",
       "0521-471164","xxx@domain.de", accountRecvId, incaccountId, IbanCustomer1, vataccountId,1000)
   val customer2 = Customer(customerId2, nameCustomer2, "KABA Soft GmbH", "Universitaet Str 2", "33615", "Bielefeld", "NRW", "DE",

@@ -1,45 +1,29 @@
 package com.kabasoft.iws.api
-
-import com.kabasoft.iws.api.Protocol.bankStatementDecoder
+import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.repository.Schema.bankStatementsSchema
-import com.kabasoft.iws.domain.{ AppError, BankStatement }
+import com.kabasoft.iws.repository.Schema.repositoryErrorSchema
+import com.kabasoft.iws.domain.BankStatement
 import com.kabasoft.iws.repository._
-import zio._
-import zio.http._
-import zio.http.api.HttpCodec.literal
-import zio.http.api.{ EndpointSpec, RouteCodec }
-import zio.http.model.{ Method, Status }
-import zio.json.DecoderOps
+import zio.http.codec.HttpCodec._
+import zio.http.codec.HttpCodec.string
+import zio.http.endpoint.Endpoint
+import zio.http.model.Status
+
 
 object BankStmtEndpoint {
 
-  private val createEndpoint = Http.collectZIO[Request] { case req @ Method.POST -> !! / "bs" =>
-    (for {
-      body <- req.body.asString
-                .flatMap(request =>
-                  ZIO
-                    .fromEither(request.fromJson[BankStatement])
-                    .mapError(e => new Throwable(e))
-                )
-                .mapError(e => AppError.DecodingError(e.getMessage()))
-                .tapError(e => ZIO.logInfo(s"Unparseable Bank body ${e}"))
-      _    <- BankStatementRepository.create(body)
-    } yield ()).either.map {
-      case Right(_) => Response.status(Status.Created)
-      case Left(_)  => Response.status(Status.BadRequest)
-    }
-  }
-  private val allAPI         = EndpointSpec.get[Unit](literal("bs")).out[List[BankStatement]]
-  private val byIdAPI        = EndpointSpec.get[String](literal("bs") / RouteCodec.string("id")).out[BankStatement]
-  private val deleteAPI      = EndpointSpec.get[String](literal("bs") / RouteCodec.string("id")).out[Int]
+  private val createAPI         = Endpoint.post("bs").in[BankStatement].out[Int].outError[RepositoryError](Status.InternalServerError)
+  private val allAPI         = Endpoint.get("bs"/ string("company")).out[List[BankStatement]].outError[RepositoryError](Status.InternalServerError)
+  private val byIdAPI        = Endpoint.get("bs" / string("id")/ string("company")).out[BankStatement].outError[RepositoryError](Status.InternalServerError)
+  private val deleteAPI      = Endpoint.get("bs" / string("id")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
-  private val allEndpoint    = allAPI.implement(_ => BankStatementRepository.all("1000"))
-  private val byIdEndpoint   = byIdAPI.implement(id => BankStatementRepository.getBy(id, "1000"))
-  private val deleteEndpoint = deleteAPI.implement(id => BankStatementRepository.delete(id, "1000"))
+   val createBanktmtEndpoint    = createAPI.implement(bs => BankStatementRepository.create(List(bs)).mapError(e => RepositoryError(e.getMessage)))
+  private val allEndpoint    = allAPI.implement(company => BankStatementRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
+  private val byIdEndpoint   = byIdAPI.implement(p => BankStatementRepository.getBy(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
+  private val deleteEndpoint = deleteAPI.implement(id => BankStatementRepository.delete(id, "1000").mapError(e => RepositoryError(e.getMessage)))
 
-  private val serviceSpec = (allAPI.toServiceSpec ++ byIdAPI.toServiceSpec ++ deleteAPI.toServiceSpec)
+   val routesBankStmt = allEndpoint ++ byIdEndpoint ++ createBanktmtEndpoint ++deleteEndpoint
 
-  val appBankStmt: HttpApp[BankStatementRepository, AppError.RepositoryError] =
-    serviceSpec.toHttpApp(allEndpoint ++ byIdEndpoint ++ deleteEndpoint) ++ createEndpoint
+  val appBankStmt = routesBankStmt//.toApp //@@ bearerAuth(jwtDecode(_).isDefined)
 
 }

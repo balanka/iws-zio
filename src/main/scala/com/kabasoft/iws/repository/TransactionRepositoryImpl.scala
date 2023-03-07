@@ -157,7 +157,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
   override def delete(Id: Long, companyId: String): ZIO[Any, RepositoryError, Int] =
     execute(deleteFrom(financialstransaction).where((id === Id) && (company === companyId)))
       .provideLayer(driverLayer)
-      .mapError(e => RepositoryError(e.getCause()))
+      .mapError(e => RepositoryError(e.getMessage))
   private def updateDetails(
     details: FinancialsTransactionDetails
   ): Update[TransactionRepositoryImpl.this.transactionDetails.TableType] =
@@ -190,12 +190,10 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 
     val result: ZIO[Any, RepositoryError, Int] = for {
       r2 <- executeBatchUpdate(detailsUpdate)
-              .provideLayer(driverLayer)
-              .map(_.sum)
-              .mapError(e => RepositoryError(e.getCause))
+        .provideLayer(driverLayer).mapBoth(e => RepositoryError(e.getMessage), _.sum)
       r1 <- execute(update_)
               .provideLayer(driverLayer)
-              .mapError(e => RepositoryError(e.getCause))
+              .mapError(e => RepositoryError(e.getMessage))
     } yield r1 + r2
     result
   }
@@ -206,13 +204,9 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
     val update_       = trans.map(build)
     for {
       r2 <- executeBatchUpdate(detailsUpdate)
-              .provideLayer(driverLayer)
-              .map(_.sum)
-              .mapError(e => RepositoryError(e.getCause))
+        .provideLayer(driverLayer).mapBoth(e => RepositoryError(e.getMessage), _.sum)
       r1 <- executeBatchUpdate(update_)
-              .provideLayer(driverLayer)
-              .map(_.sum)
-              .mapError(e => RepositoryError(e.getCause))
+        .provideLayer(driverLayer).mapBoth(e => RepositoryError(e.getMessage), _.sum)
     } yield r2 + r1
 
   }
@@ -223,12 +217,10 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
     val update_       = build(trans)
     for {
       r2 <- executeBatchUpdate(detailsUpdate)
-              .provideLayer(driverLayer)
-              .map(_.sum)
-              .mapError(e => RepositoryError(e.getCause))
+        .provideLayer(driverLayer).mapBoth(e => RepositoryError(e.getMessage), _.sum)
       r1 <- execute(update_)
               .provideLayer(driverLayer)
-              .mapError(e => RepositoryError(e.getCause))
+              .mapError(e => RepositoryError(e.getMessage))
     } yield r1 + r2
   }
 
