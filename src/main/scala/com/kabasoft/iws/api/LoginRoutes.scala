@@ -1,17 +1,16 @@
 package com.kabasoft.iws.api
 
+import com.kabasoft.iws.api.Protocol.{loginRequestDecoder, userEncoder}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain._
 import com.kabasoft.iws.domain.common.DummyUser
 import com.kabasoft.iws.repository._
-import com.kabasoft.iws.repository.Schema.{loginRequestSchema, userSchema, repositoryErrorSchema}
 import pdi.jwt.{Jwt, JwtAlgorithm, JwtClaim}
 import zio.ZIO
-import zio.http.codec.HttpCodec._
-import zio.http.endpoint.Endpoint
-import zio.http.model.Status
+import zio.http._
 
-
+import zio.http.model.{Header, Method, Status}
+import zio.json.{DecoderOps, EncoderOps}
 
 import java.time.Clock
 
@@ -43,9 +42,29 @@ object LoginRoutes {
 
   val invalidRequest = LoginRequest("InvalidUsername", "InvalidPassword")
 
-  def loginAPI = Endpoint.post("users" / "login").in[LoginRequest].out[User].outError[RepositoryError](Status.InternalServerError)
-  val loginEndpoint = loginAPI.implement{loginRequest => checkLogin(loginRequest).mapError(e => RepositoryError(e.getMessage))}
-  private def checkLogin(loginRequest: LoginRequest): ZIO[UserRepository, RepositoryError, User] = for {
+  def appLogin = Http.collectZIO[Request] { case req@Method.POST -> !! / "users" / "login" =>
+    for {
+      body <- req.body.asString
+        .flatMap(request =>
+          ZIO
+            .fromEither(request.fromJson[LoginRequest])
+            .mapError(e => RepositoryError(e))
+            .tapError(e => ZIO.logInfo(s"Unparseable body ${e}"))
+        )
+       // .either
+        .flatMap { loginRequest =>
+          val loginRequest_ = loginRequest//.getOrElse(invalidRequest)
+          checkLogin(loginRequest_)
+        }
+    } yield body
+  }
+
+  //def loginAPI = Endpoint.post("users" / "login").in[LoginRequest].out[User].outError[RepositoryError](Status.InternalServerError)
+  //val loginEndpoint = loginAPI.implement {
+ //   loginRequest => checkLogin(loginRequest).mapError(e => RepositoryError(e.getMessage))
+     // Response.json(user.toJson).addHeader(Header("authorization", token)).addHeader(Header("Origin", "localhost:3000"))
+ // }
+  private def checkLogin(loginRequest: LoginRequest): ZIO[UserRepository, RepositoryError, Response] = for {
     r <- UserRepository.list("1000").runCollect.map(_.toList)
   } yield {
     val useropt   = r.find(_.userName.equals(loginRequest.userName))
@@ -62,22 +81,23 @@ object LoginRoutes {
     if (check) {
       val k = "wuduwali2x"
       val json = s"""{"${k}"}"""
-      val json2 = s"""{"${pwd}"}"""
+      //val json2 = s"""{"${pwd}"}"""
       val encoded = user.hash // Jwt.encode(buildClaim(json, 1000000), SECRET_KEY, JwtAlgorithm.HS512)
       val token = jwtEncode(json, 1000000)
-      val token2 = jwtEncode(json2, 1000000)
+      //val token2 = jwtEncode(json2, 1000000)
       println(s"encodedencodedencodedencodedencoded  ${user}")
       println(s"encodedencodedencodedencodedencoded  ${encoded}")
       println(s"token  ${token}")
-      println(s"token2  ${token2}")
+      //println(s"token2  ${token2}")
       //@@ bearerAuth(jwtDecode(_).isDefined)
-      user
-      //Response.json(user.toJson).addHeader(Header("authorization", token)).addHeader(Header("Origin", "localhost:3000"))
+
+      Response.json(user.toJson).addHeader(Header("authorization", token)).addHeader(Header("Origin", "http://localhost:3000"))
+        .addHeader(Header("Access-Control-Allow-Origin", "http://localhost:3000"))
     } else {
       // ZIO.logInfo(s"Invalid  user name or password  ${username}")*>
       println(s"encodedencodedencodedencodedencoded  ${content} ----${pwd}")
-      //Response.text("Invalid  user name or password " + loginRequest.userName + "/" + loginRequest.password).setStatus(Status.Unauthorized)
-      DummyUser
+      Response.text("Invalid  user name or password " + loginRequest.userName + "/" + loginRequest.password).setStatus(Status.Unauthorized)
+      //DummyUser
     }
   }
 }
