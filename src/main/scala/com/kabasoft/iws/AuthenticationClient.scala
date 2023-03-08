@@ -5,6 +5,7 @@ import com.kabasoft.iws.api.Protocol._
 import com.kabasoft.iws.domain.User
 import zio._
 import zio.http.model.Headers.accessControlAllowOrigin
+//import zio.http.model.Headers.accessControlAllowOrigin
 import zio.http.model.{Headers, Method}
 import zio.http.{Body, Client}
 import zio.json.DecoderOps
@@ -17,9 +18,9 @@ object AuthenticationClient extends ZIOAppDefault {
    * a protected route. Run AuthenticationServer before running this example.
    */
 
-  val url         = "http://127.0.0.1:8080"
+  val url         = "http://127.0.0.1:8091"
   // val data = s"""{"userName":"mady" ,"password":"wuduwali2x"}"""
-  val data        = s"""{"userName":"bate2" ,"password":"wuduwali2x"}"""
+  val data        = s"""{"userName":"jdegoes011" ,"password":"wuduwali2x"}"""
   val defaultUser = User(-1, "NoUser", "", "", "", "", "", "")
 
   val program = for {
