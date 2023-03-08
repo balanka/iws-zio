@@ -3,7 +3,7 @@ package com.kabasoft.iws
 import com.kabasoft.iws.api.AccountEndpoint.appAcc
 import zio.http.Middleware.bearerAuth
 import com.kabasoft.iws.api.JournalEndpoint.appJournal
-import com.kabasoft.iws.api.LoginRoutes.{jwtDecode, loginEndpoint}
+import com.kabasoft.iws.api.LoginRoutes.{appLogin, jwtDecode}
 import com.kabasoft.iws.api.BankStmtEndpoint.appBankStmt
 import com.kabasoft.iws.api.CostcenterEndpoint.appCC
 import com.kabasoft.iws.api.PacEndpoint.appPac
@@ -20,8 +20,8 @@ import com.kabasoft.iws.healthcheck.Healthcheck.expose
 import com.kabasoft.iws.repository._
 import com.kabasoft.iws.service._
 import zio._
-import zio.http.{Body, Middleware, Response}
-import zio.http.model.{Headers, Status}
+import zio.http.Middleware
+
 
 import java.time.Clock
 //import zio.http.ServerConfig.LeakDetectionLevel
@@ -63,9 +63,9 @@ object Main extends ZIOAppDefault {
 
   //private val masterfilesApp  = wrap(appAcc) ++ wrap(appBank) ++ wrap(appModule) ++ wrap(appCust) ++ wrap(appSup) ++
    // wrap(appComp) ++ wrap(appBankStmt) ++ wrap(appVat) ++ wrap(appUser)
-   val httpApp =  (loginEndpoint.toApp ++ (appVat ++ appSup ++ appCust ++ appModule ++ appAcc ++ appBank  ++ appComp //++ appFtr
-     ++ appBankStmt ++  appUser ++ appPac ++ appJournal ++ appCC ++ appBankStmt).toApp @@ bearerAuth(jwtDecode(_).isDefined) ++ expose)
-     .mapError(e => Response(Status.InternalServerError, Headers.empty, Body.fromString(e.toString)))
+   val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc ++ appBank  ++ appComp //++ appFtr
+     ++ appBankStmt ++  appUser ++ appPac ++ appJournal ++ appCC ++ appBankStmt).toApp @@ bearerAuth(jwtDecode(_).isDefined)
+    // .mapError(e => Response(Status.InternalServerError, Headers.empty, Body.fromString(e.toString)))
  // val appx =  appBank++ appAcc ++appCC ++ appModule++ appCust ++ appSup ++ appComp++appBankStmt++appVat ++ appUser++
  //    appPac ++ appJournal ++appCC ++ appBankStmt ++ appFtr ++ expose
  //   .mapError(e => Response(Status.InternalServerError, Headers.empty, Body.fromString(e.getMessage)))
@@ -79,7 +79,7 @@ object Main extends ZIOAppDefault {
   val run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
     ZIO.logInfo(s"Starting http server") *> // @@//@@ LogKeys.portKey(port)
       Server
-        .serve(httpApp @@Middleware.cors(config) /*@@ZIO.addFinalizer(ZIO.logInfo("Shutting down http server"))*/ )
+        .serve((expose++appLogin).withDefaultErrorResponse ++httpApp @@Middleware.cors(config) /*@@ZIO.addFinalizer(ZIO.logInfo("Shutting down http server"))*/ )
         .provide(
           serverLayer,
           connectionPoolConfig,
