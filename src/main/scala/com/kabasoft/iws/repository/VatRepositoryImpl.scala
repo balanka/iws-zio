@@ -49,7 +49,7 @@ final class VatRepositoryImpl(pool: ConnectionPool) extends VatRepository with I
       execute(query).provideAndLog(driverLayer)
   }
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] =
-    execute(deleteFrom(vat).where((id === item) && (company === companyId)))
+    execute(deleteFrom(vat).where(company === companyId && id === item))
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getMessage))
 

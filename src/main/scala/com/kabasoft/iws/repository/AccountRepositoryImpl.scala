@@ -125,10 +125,13 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
       execute(query)
         .provideAndLog(driverLayer)
   }
-  override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] =
-    execute(deleteFrom(account).where(whereClause(item, companyId)))
+  override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
+    val delete_ = deleteFrom(account).where(company === companyId && id === item)
+    ZIO.logDebug(s"Delete Account is ${renderDelete(delete_)}") *>
+    execute(delete_)
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getMessage))
+  }
 
   private def build(model: Account_) =
     update(account)

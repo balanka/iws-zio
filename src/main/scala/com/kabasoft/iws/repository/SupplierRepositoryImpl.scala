@@ -14,8 +14,8 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
   val bankAccount                             = defineTable[BankAccount]("bankaccount")
   val (iban_, bic, owner, company_, modelid_) = bankAccount.columns
 
-  def whereClause(Id: String, companyId: String) =
-    List(id === Id, company === companyId).fold(Expr.literal(true))(_ && _)
+  def whereClause(Idx: String, companyId: String) =
+    List(id === Idx, company === companyId).fold(Expr.literal(true))(_ && _)
 
   val SELECT_BANK_ACCOUNT = select(iban_, bic, owner, company_, modelid_).from(bankAccount)
 
@@ -163,10 +163,16 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
       execute(query)
         .provideAndLog(driverLayer)
   }
-  override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] =
-    execute(deleteFrom(supplier).where(whereClause(item, companyId)))
-      .provideLayer(driverLayer)
-      .mapError(e => RepositoryError(e.getMessage))
+  override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
+    val delete_ = deleteFrom(supplier).where(company === companyId && id === item)
+    ZIO.logDebug(s"Delete supplier is ${renderDelete(delete_)}") *>
+      execute(delete_)
+        .provideLayer(driverLayer)
+        .mapError(e => RepositoryError(e.getMessage))
+  }
+//    execute(deleteFrom(supplier).where(whereClause(item, companyId)))
+//      .provideLayer(driverLayer)
+//      .mapError(e => RepositoryError(e.getMessage))
 
   override def modify(model: Supplier): ZIO[Any, RepositoryError, Int] = {
     val update_ = update(supplier)

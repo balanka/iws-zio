@@ -74,10 +74,13 @@ final class BankStatementRepositoryImpl(pool: ConnectionPool) extends BankStatem
     ZIO.logDebug(s"Query to insert BankStatement is ${renderInsert(query)}") *>
       execute(query).provideAndLog(driverLayer)
   }
-  override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] =
-    execute(deleteFrom(bankStatements).where((id === item.toLong) && (company === companyId)))
-      .provideLayer(driverLayer)
-      .mapError(e => RepositoryError(e.getMessage))
+  override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
+    val delete_ = deleteFrom(bankStatements).where((company === companyId) && id === item.toLong)
+    ZIO.logDebug(s"Delete Bank is ${renderDelete(delete_)}") *>
+      execute(delete_)
+        .provideLayer(driverLayer)
+        .mapError(e => RepositoryError(e.getMessage))
+  }
 
   override def modify(model: BankStatement): ZIO[Any, RepositoryError, Int] = {
     val update_ = update(bankStatements)
