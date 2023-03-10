@@ -30,7 +30,7 @@ final class UserRepositoryImpl(pool: ConnectionPool) extends UserRepository with
       execute(query).provideAndLog(driverLayer)
   }
   override def delete(Id: Int, companyId: String): ZIO[Any, RepositoryError, Int] =
-    execute(deleteFrom(users).where((id === Id) && (company === companyId)))
+    execute(deleteFrom(users).where(company === companyId && id === Id))
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getMessage))
 

@@ -19,24 +19,24 @@ object AccountEndpoint {
   val accAllAPI = Endpoint.get("acc"/ string("company")).out[List[Account]].outError[RepositoryError](Status.InternalServerError)
   val balanceAPI = Endpoint.get("balance" / string("accId") / int("from") / int("to")).out[List[Account]]
     .outError[RepositoryError](Status.InternalServerError)
-  val accByIdAPI = Endpoint.get("acc" / string("id")).out[Account].outError[RepositoryError](Status.InternalServerError)
-  val deleteAPI = Endpoint.get("acc" / string("id")).out[Int].outError[RepositoryError](Status.InternalServerError)
+  val accByIdAPI = Endpoint.get("acc" / string("id")/ string("company")).out[Account].outError[RepositoryError](Status.InternalServerError)
+  val deleteAPI = Endpoint.delete("acc" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
   val closePeriodAPI = Endpoint.get("balance" / string("accId") / int("from") / int("to")).out[Int]
     .outError[RepositoryError](Status.InternalServerError)
 
 
-  val accAllEndpoint = accAllAPI.implement(company => AccountRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
-  val accCreteEndpoint = accCreateAPI.implement(account =>
+  private val accAllEndpoint = accAllAPI.implement(company => AccountRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
+  val accCreateEndpoint = accCreateAPI.implement(account =>
     ZIO.logDebug(s"Insert Account  ${account}") *>
     AccountRepository.create(List(account)).mapError(e => RepositoryError(e.getMessage)))
   val balanceEndpoint = balanceAPI.implement { case (accId: String, from: Int, to: Int) =>
     AccountService.getBalance(accId, from, to, "1000").mapError(e => RepositoryError(e.getMessage))}
-  val accByIdEndpoint = accByIdAPI.implement(id => AccountRepository.getBy(id, "1000").mapError(e => RepositoryError(e.getMessage)))
+  val accByIdEndpoint = accByIdAPI.implement{ case (id,company)  => AccountRepository.getBy(id, company).mapError(e => RepositoryError(e.getMessage))}
   val closePeriodEndpoint = closePeriodAPI.implement { case (accId: String, from: Int, to: Int) =>
     AccountService.closePeriod(from, to, accId, "1000").mapError(e => RepositoryError(e.getMessage))}
-  val deleteEndpoint = deleteAPI.implement(id => AccountRepository.delete(id, "1000").mapError(e => RepositoryError(e.getMessage)))
+  val accDeleteEndpoint = deleteAPI.implement { case (id,company) => AccountRepository.delete(id, company).mapError(e => RepositoryError(e.getMessage))}
 
-  val routes = accAllEndpoint ++ accByIdEndpoint ++ balanceEndpoint ++ closePeriodEndpoint ++ accCreteEndpoint ++ deleteEndpoint
+  val routes = accAllEndpoint ++ accByIdEndpoint ++ balanceEndpoint ++ closePeriodEndpoint ++ accCreateEndpoint ++ accDeleteEndpoint
 
   val appAcc = routes //.toApp @@ bearerAuth(jwtDecode(_).isDefined)
 

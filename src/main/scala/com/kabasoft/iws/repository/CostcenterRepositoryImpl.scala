@@ -33,7 +33,7 @@ final class CostcenterRepositoryImpl(pool: ConnectionPool) extends CostcenterRep
         .provideAndLog(driverLayer)
   }
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int]       =
-    execute(deleteFrom(module).where((id === item) && (company === companyId)))
+    execute(deleteFrom(module).where(company === companyId  && id === item))
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getMessage))
 

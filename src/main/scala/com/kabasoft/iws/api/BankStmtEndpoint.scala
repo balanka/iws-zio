@@ -15,14 +15,14 @@ object BankStmtEndpoint {
   private val createAPI         = Endpoint.post("bs").in[BankStatement].out[Int].outError[RepositoryError](Status.InternalServerError)
   private val allAPI         = Endpoint.get("bs"/ string("company")).out[List[BankStatement]].outError[RepositoryError](Status.InternalServerError)
   private val byIdAPI        = Endpoint.get("bs" / string("id")/ string("company")).out[BankStatement].outError[RepositoryError](Status.InternalServerError)
-  private val deleteAPI      = Endpoint.get("bs" / string("id")).out[Int].outError[RepositoryError](Status.InternalServerError)
+  private val deleteAPI      = Endpoint.get("bs" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
    val createBanktmtEndpoint    = createAPI.implement(bs => BankStatementRepository.create(List(bs)).mapError(e => RepositoryError(e.getMessage)))
   private val allEndpoint    = allAPI.implement(company => BankStatementRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
   private val byIdEndpoint   = byIdAPI.implement(p => BankStatementRepository.getBy(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
-  private val deleteEndpoint = deleteAPI.implement(id => BankStatementRepository.delete(id, "1000").mapError(e => RepositoryError(e.getMessage)))
+  private val bsDeleteEndpoint = deleteAPI.implement(p => BankStatementRepository.delete(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
 
-   val routesBankStmt = allEndpoint ++ byIdEndpoint ++ createBanktmtEndpoint ++deleteEndpoint
+   val routesBankStmt = allEndpoint ++ byIdEndpoint ++ createBanktmtEndpoint ++bsDeleteEndpoint
 
   val appBankStmt = routesBankStmt//.toApp //@@ bearerAuth(jwtDecode(_).isDefined)
 

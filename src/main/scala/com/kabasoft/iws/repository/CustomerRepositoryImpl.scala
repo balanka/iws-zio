@@ -15,8 +15,8 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
   val bankAccount                             = defineTable[BankAccount]("bankaccount")
   val (iban_, bic, owner, company_, modelid_) = bankAccount.columns
 
-  def whereClause(Id: String, companyId: String) =
-    List(id === Id, company === companyId).fold(Expr.literal(true))(_ && _)
+  def whereClause(Idx: String, companyId: String) =
+    List(company === companyId, id === Idx ).fold(Expr.literal(true))(_ && _)
 
   val SELECT_BANK_ACCOUNT = select(iban_, bic, owner, company_, modelid_).from(bankAccount)
   val (

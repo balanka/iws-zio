@@ -15,15 +15,15 @@ object UserEndpoint {
   val userAllAPI         = Endpoint.get("user"/ string("company")).out[List[User]].outError[RepositoryError](Status.InternalServerError)
  // val userByIdAPI        = Endpoint.get("user" / int("id")).out[User].outError[RepositoryError](Status.InternalServerError)
   val userByUserNameAPI  = Endpoint.get("user" / string("userName")/ string("company")).out[User].outError[RepositoryError](Status.InternalServerError)
-  private val deleteAPI  = Endpoint.get("user" / int("id")).out[Int].outError[RepositoryError](Status.InternalServerError)
+  private val deleteAPI  = Endpoint.delete("user" / int("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
   val userCreateEndpoint     = userCreateAPI.implement(user => UserRepository.create(List(user)).mapError(e => RepositoryError(e.getMessage)))
   val userAllEndpoint        = userAllAPI.implement(company => UserRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
   //val userByIdEndpoint       = userByIdAPI.implement(id => UserRepository.getById(id, "1000").mapError(e => RepositoryError(e.getMessage)))
   val userByUserNameEndpoint = userByUserNameAPI.implement(p => UserRepository.getByUserName(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
-  private val deleteEndpoint = deleteAPI.implement(id => UserRepository.delete(id, "1000").mapError(e => RepositoryError(e.getMessage)))
+   val userDeleteEndpoint = deleteAPI.implement(p => UserRepository.delete(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
 
-   val routesUser = userAllEndpoint  ++ userByUserNameEndpoint ++ userCreateEndpoint ++deleteEndpoint
+   val routesUser = userAllEndpoint  ++ userByUserNameEndpoint ++ userCreateEndpoint ++userDeleteEndpoint
 
   val appUser = routesUser//.toApp //@@ bearerAuth(jwtDecode(_).isDefined) ++ vatCreateEndpoint
 

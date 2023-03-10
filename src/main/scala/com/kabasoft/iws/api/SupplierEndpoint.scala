@@ -16,14 +16,14 @@ object SupplierEndpoint {
   val supCreateAPI      = Endpoint.post("sup").in[Supplier].out[Int].outError[RepositoryError](Status.InternalServerError)
   val supAllAPI         = Endpoint.get("sup"/ string("company")).out[List[Supplier]].outError[RepositoryError](Status.InternalServerError)
   val supByIdAPI        = Endpoint.get("sup" / string("id")/ string("company")).out[Supplier].outError[RepositoryError](Status.InternalServerError)
-  private val deleteAPI = Endpoint.get("sup" / string("id")).out[Int].outError[RepositoryError](Status.InternalServerError)
+  private val deleteAPI = Endpoint.delete("sup" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
   val supCreateEndpoint      = supCreateAPI.implement(sup => SupplierRepository.create(List(sup)).mapError(e => RepositoryError(e.getMessage)))
   val supAllEndpoint         = supAllAPI.implement(company => SupplierRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
   val supByIdEndpoint        = supByIdAPI.implement{ case (id, company) => SupplierRepository.getBy(id, company).mapError(e => RepositoryError(e.getMessage))}
-  private val deleteEndpoint = deleteAPI.implement(id => SupplierRepository.delete(id, "1000").mapError(e => RepositoryError(e.getMessage)))
+  val supDeleteEndpoint = deleteAPI.implement(p => SupplierRepository.delete(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
 
-   val routesSup = supAllEndpoint ++ supByIdEndpoint ++ supCreateEndpoint ++deleteEndpoint
+   val routesSup = supAllEndpoint ++ supByIdEndpoint ++ supCreateEndpoint ++supDeleteEndpoint
 
   val appSup = routesSup//.toApp //@@ bearerAuth(jwtDecode(_).isDefined) ++ supCreateEndpoint
 }

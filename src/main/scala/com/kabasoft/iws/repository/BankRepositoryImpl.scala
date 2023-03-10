@@ -1,5 +1,6 @@
 package com.kabasoft.iws.repository
 
+import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{AppError, Bank}
 import com.kabasoft.iws.repository.Schema.bankSchema
 import zio._
@@ -30,10 +31,13 @@ final class BankRepositoryImpl(pool: ConnectionPool) extends BankRepository with
       execute(query)
         .provideAndLog(driverLayer)
   }
-  override def delete(item: String, companyId: String): ZIO[Any, AppError, Int] =
-    execute(deleteFrom(bank).where((id === item) && (company === companyId)))
-      .provideLayer(driverLayer)
-      .mapError(e => AppError.DecodingError(e.getMessage))
+  override def delete(item: String, companyId: String): ZIO[Any, AppError, Int] = {
+    val delete_ = deleteFrom(bank).where(company === companyId && id === item)
+    ZIO.logInfo(s"Delete Bank is ${renderDelete(delete_)}") *>
+      execute(delete_)
+        .provideLayer(driverLayer)
+        .mapError(e => RepositoryError(e.getMessage))
+  }
 
   override def modify(model: Bank): ZIO[Any, AppError, Int] = {
     val update_ = update(bank)
@@ -43,7 +47,7 @@ final class BankRepositoryImpl(pool: ConnectionPool) extends BankRepository with
     ZIO.logDebug(s"Query Update Bank is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
-        .mapError(e => AppError.DecodingError(e.getMessage))
+        .mapError(e => RepositoryError(e.getMessage))
   }
 
   override def all(companyId: String): ZIO[Any, AppError, List[Bank]] =
