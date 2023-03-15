@@ -17,11 +17,11 @@ object BankEndpoint {
   val bankByIdAPI       = Endpoint.get("bank" / string("id")/ string("company")).out[Bank].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI = Endpoint.delete("bank" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
-  private val bankAllEndpoint        = bankAllAPI.implement(company => BankRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
+  private val bankAllEndpoint        = bankAllAPI.implement(company => BankCache.all(company).mapError(e => RepositoryError(e.getMessage)))
   val bankCreateEndpoint = bankCreateAPI.implement(bank =>
     ZIO.logDebug(s"Insert bank  ${bank}") *>
     BankRepository.create(List(bank)).mapError(e => RepositoryError(e.getMessage)))
-  val bankByIdEndpoint = bankByIdAPI.implement( p => BankRepository.getBy(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
+  val bankByIdEndpoint = bankByIdAPI.implement( p => BankCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val bankDeleteEndpoint = deleteAPI.implement(p => BankRepository.delete(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
 
   val routes = bankAllEndpoint ++ bankByIdEndpoint  ++ bankCreateEndpoint ++bankDeleteEndpoint//++ bankCreateEndpoint)

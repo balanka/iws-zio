@@ -6,40 +6,43 @@ import zio._
 import zio.stream._
 
 trait CustomerRepository {
-  type TYPE_ = Customer
-  def create(item: TYPE_): ZIO[Any, RepositoryError, Unit]
-  def create(models: List[TYPE_]): ZIO[Any, RepositoryError, Int]
+  def create(item: Customer): ZIO[Any, RepositoryError, Unit]
+  def create(models: List[Customer]): ZIO[Any, RepositoryError, Int]
   def delete(item: String, company: String): ZIO[Any, RepositoryError, Int]
   def delete(items: List[String], company: String): ZIO[Any, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
-  def list(company: String): ZStream[Any, RepositoryError, TYPE_]
-  def all(companyId: String): ZIO[Any, RepositoryError, List[TYPE_]]
-  def getBy(id: String, company: String): ZIO[Any, RepositoryError, TYPE_]
-  def getByIban(Iban: String, companyId: String): ZIO[Any, RepositoryError, TYPE_]
-  def getByModelId(modelid: Int, company: String): ZStream[Any, RepositoryError, TYPE_]
-  def modify(model: TYPE_): ZIO[Any, RepositoryError, Int]
+  def list(company: String): ZStream[Any, RepositoryError, Customer]
+  def all(companyId: String): ZIO[Any, RepositoryError, List[Customer]]
+  def getBy(id: (String,  String)): ZIO[Any, RepositoryError, Customer]
+  def getByIban(Iban: String, companyId: String): ZIO[Any, RepositoryError, Customer]
+  def getByModelId(modelid:(Int, String)): ZIO[Any, RepositoryError, List[Customer]]
+  def getByModelIdStream(modelid:Int, companyId:String): ZStream[Any, RepositoryError, Customer]
+  def modify(model: Customer): ZIO[Any, RepositoryError, Int]
 
 }
 object CustomerRepository {
-  type TYPE_ = Customer
-  def create(item: TYPE_): ZIO[CustomerRepository, RepositoryError, Unit]                               =
+
+  def create(item: Customer): ZIO[CustomerRepository, RepositoryError, Unit]                               =
     ZIO.service[CustomerRepository] flatMap (_.create(item))
-  def create(items: List[TYPE_]): ZIO[CustomerRepository, RepositoryError, Int]                         =
+  def create(items: List[Customer]): ZIO[CustomerRepository, RepositoryError, Int]                         =
     ZIO.service[CustomerRepository] flatMap (_.create(items))
   def delete(item: String, company: String): ZIO[CustomerRepository, RepositoryError, Int]              =
     ZIO.service[CustomerRepository] flatMap (_.delete(item, company))
   def delete(items: List[String], company: String): ZIO[CustomerRepository, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
 
-  def all(company: String): ZIO[CustomerRepository, RepositoryError, List[TYPE_]]                      =
+  def all(company: String): ZIO[CustomerRepository, RepositoryError, List[Customer]]                      =
     ZIO.service[CustomerRepository] flatMap (_.all(company))
-  def getBy(id: String, company: String): ZIO[CustomerRepository, RepositoryError, TYPE_]              =
-    ZIO.service[CustomerRepository] flatMap (_.getBy(id, company))
-  def getByIban(Iban: String, companyId: String): ZIO[CustomerRepository, RepositoryError, TYPE_]      =
+  def getBy(id:(String, String)): ZIO[CustomerRepository, RepositoryError, Customer]              =
+    ZIO.service[CustomerRepository] flatMap (_.getBy(id))
+  def getByIban(Iban: String, companyId: String): ZIO[CustomerRepository, RepositoryError, Customer]      =
     ZIO.service[CustomerRepository] flatMap (_.getByIban(Iban, companyId))
-  def getByModelId(modelid: Int, company: String): ZStream[CustomerRepository, RepositoryError, TYPE_] =
-    ZStream.service[CustomerRepository] flatMap (_.getByModelId(modelid, company))
-  def modify(model: TYPE_): ZIO[CustomerRepository, RepositoryError, Int]                              =
+  def getByModelId(modelid:(Int, String)): ZIO[CustomerRepository, RepositoryError, List[Customer]] =
+    ZIO.service[CustomerRepository] flatMap (_.getByModelId(modelid))
+
+  def getByModelIdStream(modelid: Int, company: String): ZStream[CustomerRepository, RepositoryError, Customer] =
+    ZStream.service[CustomerRepository] flatMap (_.getByModelIdStream(modelid, company))
+  def modify(model: Customer): ZIO[CustomerRepository, RepositoryError, Int]                              =
     ZIO.service[CustomerRepository] flatMap (_.modify(model))
 
 }

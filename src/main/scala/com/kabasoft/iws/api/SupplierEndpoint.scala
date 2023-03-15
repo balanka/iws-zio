@@ -19,8 +19,8 @@ object SupplierEndpoint {
   private val deleteAPI = Endpoint.delete("sup" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
   val supCreateEndpoint      = supCreateAPI.implement(sup => SupplierRepository.create(List(sup)).mapError(e => RepositoryError(e.getMessage)))
-  val supAllEndpoint         = supAllAPI.implement(company => SupplierRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
-  val supByIdEndpoint        = supByIdAPI.implement{ case (id, company) => SupplierRepository.getBy(id, company).mapError(e => RepositoryError(e.getMessage))}
+  val supAllEndpoint         = supAllAPI.implement(company => SupplierCache.all(company).mapError(e => RepositoryError(e.getMessage)))
+  val supByIdEndpoint        = supByIdAPI.implement( p => SupplierCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val supDeleteEndpoint = deleteAPI.implement(p => SupplierRepository.delete(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
 
    val routesSup = supAllEndpoint ++ supByIdEndpoint ++ supCreateEndpoint ++supDeleteEndpoint

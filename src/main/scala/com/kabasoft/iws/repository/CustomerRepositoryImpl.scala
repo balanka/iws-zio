@@ -193,11 +193,11 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
       .provideDriver(driverLayer)
   }
 
-  override def getBy(id: String, companyId: String): ZIO[Any, RepositoryError, Customer] = {
-    val selectAll = SELECT.where(whereClause(id, companyId))
+  override def getBy(id:(String, String)): ZIO[Any, RepositoryError, Customer] = {
+    val selectAll = SELECT.where(whereClause(id._1, id._2))
     ZIO.logDebug(s"Query to execute getBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to[Customer](c => Customer.apply(c)))
-        .findFirst(driverLayer, id)
+        .findFirst(driverLayer, id._1)
   }
 
   override def getByIban(Iban: String, companyId: String): ZIO[Any, RepositoryError, Customer]        = {
@@ -207,12 +207,17 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
       execute(selectAll.to[Customer](c => Customer.apply(c)))
         .findFirst(driverLayer, Iban)
   }
-  override def getByModelId(modelId: Int, companyId: String): ZStream[Any, RepositoryError, Customer] = {
-    val selectAll = SELECT.where((modelid === modelId) && (company === companyId))
-    execute(selectAll.to[Customer](c => Customer.apply(c)))
-      .provideDriver(driverLayer)
-  }
+  override def getByModelId(id: (Int, String)): ZIO[Any, RepositoryError, List[Customer]] = for {
+    customers <- getByModelIdStream(id._1, id._2).runCollect.map(_.toList)
+    bankAccounts_ <- listBankAccount(id._2).runCollect.map(_.toList)
+  } yield customers.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
 
+  override def getByModelIdStream(modelId: Int, companyId: String): ZStream[Any, RepositoryError, Customer] = {
+    val selectAll = SELECT.where((modelid === modelId) && (company === companyId))
+    ZStream.fromZIO(ZIO.logDebug(s"Query to execute getByModelId is ${renderRead(selectAll)}")) *>
+      execute(selectAll.to(c => Customer.apply(c)))
+        .provideDriver(driverLayer)
+  }
 }
 object CustomerRepositoryImpl {
   val live: ZLayer[ConnectionPool, Throwable, CustomerRepository] =

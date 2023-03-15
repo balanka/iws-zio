@@ -43,7 +43,7 @@ object AccountRepositoryLiveSpec extends ZIOSpecDefault {
       },
       test("get an account by its id") {
         for {
-          stmt <- AccountRepository.getBy(faccountId,companyId)
+          stmt <- AccountRepository.getBy((faccountId,companyId))
         } yield assertTrue(stmt.name == fname) && assertTrue(stmt.id == faccountId)
       }
     ).provideLayerShared(testLayer.orDie) @@ sequential

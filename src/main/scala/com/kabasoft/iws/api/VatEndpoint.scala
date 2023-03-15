@@ -17,12 +17,12 @@ object VatEndpoint {
   private val deleteAPI                                                  = Endpoint.delete("vat" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
   val vatCreateEndpoint      = vatCreateAPI.implement(vat => VatRepository.create(List(vat)).mapError(e => RepositoryError(e.getMessage)))
-  val vatAllEndpoint         = vatAllAPI.implement(company => VatRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
-  val vatByIdEndpoint        = vatByIdAPI.implement(p => VatRepository.getBy(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
+  val vatAllEndpoint         = vatAllAPI.implement(company => VatCache.all(company).mapError(e => RepositoryError(e.getMessage)))
+  val vatByIdEndpoint        = vatByIdAPI.implement(p => VatCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
    val vatDeleteEndpoint = deleteAPI.implement(p => VatRepository.delete(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
 
    val routesVat = vatAllEndpoint ++ vatByIdEndpoint ++ vatCreateEndpoint ++vatDeleteEndpoint
 
-  val appVat = routesVat//.toApp //@@ bearerAuth(jwtDecode(_).isDefined) ++ vatCreateEndpoint
+  val appVat = routesVat//.toApp@@ bearerAuth(jwtDecode(_).isDefined) ++ vatCreateEndpoint
 
 }
