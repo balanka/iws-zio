@@ -37,7 +37,7 @@ object BankRepositoryLiveSpec extends ZIOSpecDefault {
       },
       test("get a Bank by its id") {
         for {
-          stmt <- BankRepository.getBy(id,company)
+          stmt <- BankRepository.getBy((id,company))
         } yield assertTrue(stmt.name == name) && assertTrue(stmt.id==id)
       }
     ).provideLayerShared(testLayer.orDie) @@ sequential

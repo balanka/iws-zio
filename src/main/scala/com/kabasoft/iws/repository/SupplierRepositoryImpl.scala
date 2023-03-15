@@ -201,12 +201,12 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     execute(selectAll.to[Supplier](c => Supplier.apply(c)))
       .provideDriver(driverLayer)
   }
-  override def getBy(id: String, companyId: String): ZIO[Any, RepositoryError, Supplier] = {
-    val selectAll = SELECT.where(whereClause(id, companyId))
+  override def getBy(id:(String,String)): ZIO[Any, RepositoryError, Supplier] = {
+    val selectAll = SELECT.where(whereClause(id._1, id._2))
 
     ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to[Supplier](c => Supplier.apply(c)))
-        .findFirst(driverLayer, id)
+        .findFirst(driverLayer, id._1)
   }
 
   override def getByIban(iban: String, companyId: String): ZIO[Any, RepositoryError, Supplier]    = {
@@ -216,14 +216,18 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
       execute(selectAll.to[Supplier](c => Supplier.apply(c)))
         .findFirst(driverLayer, iban)
   }
-  override def getByModelId(modelId: Int, companyId: String): ZIO[Any, RepositoryError, Supplier] = {
+
+  override def getByModelId(id: (Int, String)): ZIO[Any, RepositoryError, List[Supplier]] = for {
+    suppliers <- getByModelIdStream(id._1, id._2).runCollect.map(_.toList)
+    bankAccounts_ <- listBankAccount(id._2).runCollect.map(_.toList)
+  } yield suppliers.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
+
+  override def getByModelIdStream(modelId: Int, companyId: String): ZStream[Any, RepositoryError, Supplier] = {
     val selectAll = SELECT.where((modelid === modelId) && (company === companyId))
-
-    ZIO.logDebug(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
+    ZStream.fromZIO(ZIO.logDebug(s"Query to execute getByModelId is ${renderRead(selectAll)}")) *>
       execute(selectAll.to[Supplier](c => Supplier.apply(c)))
-        .findFirstInt(driverLayer, modelId)
+        .provideDriver(driverLayer)
   }
-
 }
 object SupplierRepositoryImpl {
   val live: ZLayer[ConnectionPool, Throwable, SupplierRepository] =

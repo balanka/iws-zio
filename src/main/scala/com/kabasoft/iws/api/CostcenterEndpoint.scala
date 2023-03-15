@@ -19,8 +19,8 @@ object CostcenterEndpoint {
   private val deleteAPI = Endpoint.delete("cc" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
   val ccCreateEndpoint       = ccCreateAPI.implement(cc => CostcenterRepository.create(List(cc)).mapError(e => RepositoryError(e.getMessage)))
-  val ccAllEndpoint          = ccAllAPI.implement(company => CostcenterRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
-  val ccByIdEndpoint         = ccByIdAPI.implement(p => CostcenterRepository.getBy(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
+  val ccAllEndpoint          = ccAllAPI.implement(company => CostcenterCache.all(company).mapError(e => RepositoryError(e.getMessage)))
+  val ccByIdEndpoint         = ccByIdAPI.implement(p => CostcenterCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
    val ccDeleteEndpoint = deleteAPI.implement(p => CostcenterRepository.delete(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
 
    val routesCC = ccAllEndpoint ++ ccByIdEndpoint ++ ccCreateEndpoint ++ccDeleteEndpoint

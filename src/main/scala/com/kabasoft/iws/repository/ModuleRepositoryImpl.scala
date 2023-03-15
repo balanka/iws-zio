@@ -59,19 +59,23 @@ final class ModuleRepositoryImpl(pool: ConnectionPool) extends ModuleRepository 
       execute(selectAll.to((Module.apply _).tupled))
         .provideDriver(driverLayer)
   }
-  override def getBy(Id: String, companyId: String): ZIO[Any, RepositoryError, Module]          = {
-    val selectAll = SELECT.where((id === Id) && (company === companyId))
+  override def getBy(Id:(String,  String)): ZIO[Any, RepositoryError, Module]          = {
+    val selectAll = SELECT.where((id === Id._1) && (company === Id._2))
 
     ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to((Module.apply _).tupled))
-        .findFirst(driverLayer, Id)
+        .findFirst(driverLayer, Id._1)
   }
-  override def getByModelId(modelId: Int, companyId: String): ZIO[Any, RepositoryError, Module] = {
-    val selectAll = SELECT.where((modelid === modelId) && (company === companyId))
 
-    ZIO.logDebug(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
+  override def getByModelId(id: (Int, String)): ZIO[Any, RepositoryError, List[Module]] = for {
+    all <- getByModelIdStream(id._1, id._2).runCollect.map(_.toList)
+  } yield all
+
+  override def getByModelIdStream(modelId: Int, companyId: String): ZStream[Any, RepositoryError, Module] = {
+    val selectAll = SELECT.where((modelid === modelId) && (company === companyId))
+    ZStream.fromZIO(ZIO.logDebug(s"Query to execute getByModelId is ${renderRead(selectAll)}")) *>
       execute(selectAll.to((Module.apply _).tupled))
-        .findFirstInt(driverLayer, modelId)
+        .provideDriver(driverLayer)
   }
 
 }

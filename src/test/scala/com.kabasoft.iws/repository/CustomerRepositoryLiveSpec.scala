@@ -25,9 +25,9 @@ val newName = "New CustomerName"
         for {
           oneRow <- CustomerRepository.create(customers)
          // customers <- CustomerRepository.all(companyId)
-          stmt <- CustomerRepository.getBy(customerId3, companyId)
+          stmt <- CustomerRepository.getBy((customerId3, companyId))
           updated <- CustomerRepository.modify(stmt.copy(name = newName))
-          stmt2 <- CustomerRepository.getBy(customerId3, companyId)
+          stmt2 <- CustomerRepository.getBy((customerId3, companyId))
           stmt3 <- CustomerRepository.getByIban(IbanCustomer3, companyId)
         } yield assertTrue(oneRow == 2) && //assertTrue(customers.size == 2)&&
           assertTrue(stmt.name == nameCustomer3) &&

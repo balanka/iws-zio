@@ -19,8 +19,8 @@ object CustomerEndpoint {
   private val deleteAPI  = Endpoint.delete("cust" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
   val custCreateEndpoint     = custCreateAPI.implement (cust=> CustomerRepository.create(List(cust)).mapError(e => RepositoryError(e.getMessage)))
-  val custAllEndpoint        = custAllAPI.implement (company=> CustomerRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
-  val custByIdEndpoint       = custByIdAPI.implement(p => CustomerRepository.getBy(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
+  val custAllEndpoint        = custAllAPI.implement (company=> CustomerCache.all(company).mapError(e => RepositoryError(e.getMessage)))
+  val custByIdEndpoint       = custByIdAPI.implement(p => CustomerCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
    val custDeleteEndpoint = deleteAPI.implement(p => CustomerRepository.delete(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
 
   val routesCust = custAllEndpoint ++ custByIdEndpoint ++ custCreateEndpoint ++custDeleteEndpoint

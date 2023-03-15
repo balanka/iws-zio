@@ -1,7 +1,7 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{ Account, Account_ }
+import com.kabasoft.iws.domain.{Account, Account_}
 import com.kabasoft.iws.repository.Schema.account_schema
 import zio._
 import zio.sql.ConnectionPool
@@ -160,6 +160,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
         .mapError(e => RepositoryError(e.getMessage))
   }
 
+
   override def all(companyId: String): ZIO[Any, RepositoryError, List[Account]] = for {
     accounts <- list(companyId).runCollect.map(_.toList)
   } yield accounts // .map(_.addSubAccounts(accounts))
@@ -171,19 +172,27 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
       })
         .provideDriver(driverLayer)
 
-  override def getBy(Id: String, companyId: String): ZIO[Any, RepositoryError, Account]          = {
-    val selectAll = SELECT.where((id === Id) && (company === companyId))
+  override def getBy(Id: (String,  String)): ZIO[Any, RepositoryError, Account]          = {
+    val selectAll = SELECT.where((id === Id._1) && (company === Id._2))
 
     ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to(c => (Account.apply(c))))
-        .findFirst(driverLayer, Id)
+        .findFirst(driverLayer, Id._1)
   }
-  override def getByModelId(modelId: Int, companyId: String): ZIO[Any, RepositoryError, Account] = {
+
+  def getByModelId(id: (Int,  String)): ZIO[Any, RepositoryError, List[Account]]= for {
+    accounts <- getByModelIdStream(id._1, id._2).runCollect.map(_.toList)
+  } yield accounts // .map(_.addSubAccounts(accounts))
+  override def getByModelIdStream(modelId: Int, companyId: String): ZStream[Any, RepositoryError, Account] = {
     val selectAll = SELECT.where((modelid === modelId) && (company === companyId))
 
-    ZIO.logDebug(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
-      execute(selectAll.to(c => (Account.apply(c))))
-        .findFirstInt(driverLayer, modelId)
+    ZStream.fromZIO(ZIO.logDebug(s"Query to execute getByModelId is ${renderRead(selectAll)}")) *>
+      execute(selectAll.to {c =>
+          val x = Account.apply(c); map :+ (x); x
+        }
+        //selectAll.to(c => (Account.apply(c)))
+        )
+        .provideDriver(driverLayer)
   }
 
 }
@@ -191,4 +200,11 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
 object AccountRepositoryImpl {
   val live: ZLayer[ConnectionPool, RepositoryError, AccountRepository] =
     ZLayer.fromFunction(new AccountRepositoryImpl(_))
+
+//  val  cachex: ZIO[ConnectionPool , RepositoryError, Cache[String, RepositoryError, List[Account]]] = Cache.make(
+//    capacity = 100,
+//    timeToLive = Duration.Infinity,
+//    lookup = Lookup((key: String) => AccountRepository.all(key))
+//  ).provideSomeLayer(live)
+
 }

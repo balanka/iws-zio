@@ -26,9 +26,9 @@ val newName = "New Supplier name"
         for {
           oneRow <- SupplierRepository.create(suppliers)
           count <- SupplierRepository.list(companyId).runCount
-          stmt <- SupplierRepository.getBy(supplierId1, companyId)
+          stmt <- SupplierRepository.getBy((supplierId1, companyId))
           updated <- SupplierRepository.modify(stmt.copy(name = newName))
-          stmt2 <- SupplierRepository.getBy(supplierId1, companyId)
+          stmt2 <- SupplierRepository.getBy((supplierId1, companyId))
           stmt3 <- SupplierRepository.getByIban(supplierIban3, companyId)
         } yield assertTrue(oneRow == 2) && assertTrue(count == 8)&&
           assertTrue(stmt.name == nameSupplie1) &&
