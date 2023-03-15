@@ -1,6 +1,6 @@
 val zioVersion                 = "2.0.10"
 //val zioHttpVersion             = "0.0.4+36-dab4ab27-SNAPSHOT"
-val zioHttpVersion             = "0.0.4+37-87c66011-SNAPSHOT"
+val zioHttpVersion             = "0.0.5"
 //val zioHttpVersion             = "0.0.4+32-51285fc4+20230301-2319-SNAPSHOT"
 val zioJsonVersion             = "0.3.0"
 val zioConfigVersion           = "3.0.7"
@@ -11,10 +11,13 @@ val testcontainersVersion      = "1.17.5"
 val testcontainersScalaVersion = "0.40.11"
 val postgresql                 = "42.5.0"
 val JwtCoreVersion             = "9.1.1"
-val ZioSchemaVersion           = "0.4.2"
+val zioSchemaVersion           = "0.4.2"
+val zioCacheVersion           = "0.2.2"
+val zioQueryVersion           = "0.4.0"
 
 ThisBuild / resolvers +=
   "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
+ThisBuild / scalacOptions += "-Wconf:any:wv"
 
 lazy val root = (project in file("."))
   .settings(
@@ -26,7 +29,7 @@ lazy val root = (project in file("."))
         scalaVersion := "2.13.9"
          //scalaVersion := "3.1.1"
       )
-    ),
+    ),//++ScalaSettings.scala213Settings,
     name           := "iws-zio",
     libraryDependencies ++= Seq(
       // core
@@ -36,12 +39,14 @@ lazy val root = (project in file("."))
       "dev.zio"           %% "zio-sql"                         % zioSqlVersion,
       "dev.zio"           %% "zio-sql-postgres"                % zioSqlVersion,
       "dev.zio"             %% "zio-http"                       % zioHttpVersion,
-      "dev.zio"             %% "zio-http"                       % zioHttpVersion % Test,
-      "dev.zio"            %% "zio-schema"                      % ZioSchemaVersion,
+      //"dev.zio"             %% "zio-http"                       % zioHttpVersion % Test,
+      "dev.zio"            %% "zio-schema"                      % zioSchemaVersion,
         // config
       "dev.zio"           %% "zio-config"                      % zioConfigVersion,
       "dev.zio"           %% "zio-config-typesafe"             % zioConfigVersion,
       "dev.zio"           %% "zio-config-magnolia"             % zioConfigVersion,
+      "dev.zio"           %% "zio-cache"                      % zioCacheVersion,
+      "dev.zio"           %% "zio-query"                      % zioQueryVersion,
       // json
       "dev.zio"           %% "zio-json"                        % zioJsonVersion,
        "com.github.jwt-scala"   %% "jwt-core"                  % JwtCoreVersion,
