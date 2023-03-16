@@ -51,30 +51,16 @@ object Main extends ZIOAppDefault {
       allowedOrigins = s => s.equals("127.0.0.1:3000")||s.equals("http://127.0.0.1:3000")||
                             s.equals("localhost:3000")|| s.equals("http://localhost:3000"),
       allowedMethods = Some(Set(Method.GET, Method.POST))
-     // allowedHeaders = Some(
-    //  Set(HttpHeaderNames.CONTENT_TYPE.toString, HttpHeaderNames.AUTHORIZATION.toString)
-      //  HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN.toString, "*"),
-
     )
 
 
-  val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc ++ appBank  ++ appComp //++ appFtr
-     ++ appBankStmt ++  appUser ++ appPac ++ appJournal ++ appCC ++ appBankStmt)//.toApp.withDefaultErrorResponse @@ bearerAuth(jwtDecode(_).isDefined)
-    // .mapError(e => Response(Status.InternalServerError, Headers.empty, Body.fromString(e.toString)))
- // val appx =  appBank++ appAcc ++appCC ++ appModule++ appCust ++ appSup ++ appComp++appBankStmt++appVat ++ appUser++
- //    appPac ++ appJournal ++appCC ++ appBankStmt ++ appFtr ++ expose
- //   .mapError(e => Response(Status.InternalServerError, Headers.empty, Body.fromString(e.getMessage)))
-  //val app             = (appLogin ++ appCust++ appBank ++ appAcc ++ appCC ++ appModule  ++ appSup ++ appComp ++ appBankStmt ++ appVat ++ appUser ++
-  //  appPac ++ appJournal ++ appCC ++ appBankStmt ++ appFtr ++ expose)/*@@ bearerAuth(decode))*/.map(r=>r.addHeader(Header("Access-Control-Allow-Origin", "*")))
-   //val app = (appLogin ++httpApp)//.map(r=>r.addHeader(Header("Access-Control-Allow-Origin", "*")))
-   //                                          .mapError(e => Response(Status.InternalServerError, Headers.empty, Body.fromString(e.toString)))
-  // .withDefaultErrorResponse
+  val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc ++ appBank  ++ appComp  //++ appFtr
+     ++ appBankStmt ++  appUser ++ appPac ++ appJournal ++ appCC ++ appBankStmt ++expose)//.toApp.withDefaultErrorResponse @@ bearerAuth(jwtDecode(_).isDefined)
 
-  // val e:ErrorCallback = _=>ZIO.unit
   @nowarn val run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
     ZIO.logInfo(s"Starting http server") *> // @@//@@ LogKeys.portKey(port)
       Server
-        .serve((expose++appLogin).withDefaultErrorResponse ++httpApp.toApp@@ bearerAuth(jwtDecode(_).isDefined)@@cors(config) /*@@ZIO.addFinalizer(ZIO.logInfo("Shutting down http server"))*/ )
+        .serve((appLogin).withDefaultErrorResponse ++httpApp.toApp@@ bearerAuth(jwtDecode(_).isDefined)@@cors(config) /*@@ZIO.addFinalizer(ZIO.logInfo("Shutting down http server"))*/ )
         .provide(
           serverLayer,
           connectionPoolConfig,
