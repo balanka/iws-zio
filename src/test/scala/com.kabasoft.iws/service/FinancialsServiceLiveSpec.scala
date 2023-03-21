@@ -43,7 +43,7 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
         val creditAmount = new BigDecimal("350.00").setScale(2, RoundingMode.HALF_UP)
         for {
           oneRow     <- TransactionRepository.create2(List(ftr1, ftr2))
-          ftr        <-   TransactionRepository.all(companyId).runCollect.map(_.toList)
+          ftr        <-   TransactionRepository.all(companyId)
           postedRows <- FinancialsService.postAll(ftr.map(_.id), companyId).map(_.sum)
           oaccountEntry <- FinancialsService.journal(line1.oaccount, period, period, companyId).map(_.size)
           accountEntry <- FinancialsService.journal(line1.account, period, period, companyId).map(_.size)
