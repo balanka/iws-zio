@@ -8,7 +8,7 @@ import zio.cache.{Cache, Lookup}
 import java.util.concurrent.TimeUnit
 
 
-final class AccountCacheImpl (repository: AccountRepository) extends AccountCache  {
+final case class AccountCacheImpl (repository: AccountRepository) extends AccountCache  {
 
   override def all(companyId: String): ZIO[Any, RepositoryError, List[Account]] = Cache.make(
     capacity = 100000,

@@ -1,14 +1,14 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{ DerivedTransaction, FinancialsTransaction, Journal, PeriodicAccountBalance }
+import com.kabasoft.iws.domain.{FinancialsTransaction, Journal, PeriodicAccountBalance }
 import zio._
 
 trait FinancialsService {
 
   def create(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int]
-  def create(item: DerivedTransaction): ZIO[Any, RepositoryError, Int]
-  def create(models: List[DerivedTransaction]): ZIO[Any, RepositoryError, Int]
+
+  def create(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int]
   // def post(model: FinancialsTransaction, company: String): ZIO[Any, RepositoryError, Int]
   def post(id: Long, company: String): ZIO[Any, RepositoryError, Int]
   // def post(model: DerivedTransaction, company: String): ZIO[Any, RepositoryError, List[Int]]
@@ -27,9 +27,8 @@ object FinancialsService {
 
   def create(model: FinancialsTransaction): ZIO[FinancialsService, RepositoryError, Int]    =
     ZIO.service[FinancialsService].flatMap(_.create(model))
-  def create(item: DerivedTransaction): ZIO[FinancialsService, RepositoryError, Int]        =
-    ZIO.service[FinancialsService] flatMap (_.create(item))
-  def create(items: List[DerivedTransaction]): ZIO[FinancialsService, RepositoryError, Int] =
+
+  def create(items: List[FinancialsTransaction]): ZIO[FinancialsService, RepositoryError, Int] =
     ZIO.service[FinancialsService] flatMap (_.create(items))
   // def post(model: FinancialsTransaction, company: String): ZIO[FinancialsService, RepositoryError, Int]=
   //  ZIO.service[FinancialsService]flatMap(_.post(model, company))

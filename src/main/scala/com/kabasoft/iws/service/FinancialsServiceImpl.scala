@@ -4,7 +4,6 @@ import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.common._
 import com.kabasoft.iws.domain.{
   common,
-  DerivedTransaction,
   FinancialsTransaction,
   FinancialsTransactionDetails,
   Journal,
@@ -24,15 +23,13 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRe
   override def create(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] =
     ftrRepo.create(model)
 
-  override def create(item: DerivedTransaction): ZIO[Any, RepositoryError, Int] =
-    ftrRepo.create(item)
 
-  override def create(items: List[DerivedTransaction]): ZIO[Any, RepositoryError, Int] =
+  override def create(items: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =
     ftrRepo.create(items)
 
   override def postAll(ids: List[Long], company: String): ZIO[Any, RepositoryError, List[Int]] =
     for {
-      queries <- ZIO.foreach(ids)(id => ftrRepo.getByTransId(id, company))
+      queries <- ZIO.foreach(ids)(id => ftrRepo.getByTransId((id, company)))
       models   = queries.filter(_.posted == false)
       all     <- ZIO.foreach(models)(postTransaction(_, company))
     } yield all
@@ -59,7 +56,7 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRe
 
   override def post(id: Long, company: String): ZIO[Any, RepositoryError, Int] =
     ftrRepo
-      .getByTransId(id, company)
+      .getByTransId((id, company))
       .flatMap(trans => postTransaction(trans, company))
 
   private[this] def postTransaction(transaction: FinancialsTransaction, company: String): ZIO[Any, RepositoryError, Int] = {

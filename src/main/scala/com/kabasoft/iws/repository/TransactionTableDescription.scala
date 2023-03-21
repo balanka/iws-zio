@@ -12,14 +12,14 @@ import com.kabasoft.iws.repository.Schema.{
   derivedTransactionSchema,
   transactionDetailsSchema,
   transactionDetails_Schema,
-  transactionSchema,
-  transactionSchema_
+  transactionSchema_,
+  transactionSchemax
 }
 
 trait TransactionTableDescription extends IWSTableDescriptionPostgres {
 
   val transaction           = defineTable[FinancialsTransactionx]("master_compta")
-  val transaction2          = defineTable[FinancialsTransaction_]("master_compta")
+  val transactionInsert     = defineTable[FinancialsTransaction_]("master_compta")
   val transactionDetails    = defineTable[FinancialsTransactionDetails]("details_compta")
   val transactionDetails_   = defineTable[FinancialsTransactionDetails_]("details_compta")
   val financialstransaction = defineTable[DerivedTransaction]("financialstransaction")
@@ -38,12 +38,12 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     textx,
     type_journalx,
     file_contentx
-  ) = transaction2.columns
+  ) = transactionInsert.columns
 
   val (
     id_,
     oid_,
-    costcenter,
+    costcenter_,
     account_,
     transdate_,
     enterdate_,
@@ -53,7 +53,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     modelid_,
     company_,
     text_,
-    type_journal,
+    type_journal_,
     file_content_
   ) = transaction.columns
   val (

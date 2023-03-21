@@ -41,26 +41,42 @@ object AuthenticationClient extends ZIOAppDefault {
     // Once the jwt token is procured, adding it as a Barer token in Authorization header while accessing a protected route.
     // response <- Client.request(s"${url}/user/userName/greet", headers = Headers.bearerAuthorizationHeader(token))
     //responsex <- Client.request(s"${url}/cust", method = Method.GET, headers = Headers.bearerAuthorizationHeader(token)++accessControlAllowOrigin("*"))
-    responsex <- Client.request(s"${url}/bank/1000", headers = Headers.bearerAuthorizationHeader(token))//++accessControlAllowOrigin("*"))
-    response <- Client.request(s"${url}/health2", headers = Headers.bearerAuthorizationHeader(token))
-    //response <- Client.request(s"http://127.0.0.1:9090/health", headers = Headers.bearerAuthorizationHeader(token))
-    // response <- Client.request(s"${url}/cust", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
-    // response <- Client.request(s"${url}/sup", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
-    // response <- Client.request(s"${url}/acc", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
-    // response <- Client.request(s"${url}/cc", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
-    // response <- Client.request(s"${url}/module", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
-    // response <- Client.request(s"${url}/vat", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
-    // response <- Client.request(s"${url}/user", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
-    // response <- Client.request(s"${url}/ftr", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
-    // response <- Client.request(s"${url}/pac", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
-    body     <- response.body.asString
-    bodyx     <- responsex.body.asString
-   // bodyy     <- responsey.status.code
-    _        <- Console.printLine(":::acc>>>" + body )
-    _        <- Console.printLine(":::bank>>>" + bodyx )
-   // _        <- Console.printLine(":::health>>>" + responsey.status.code )
-    //_        <- Console.printLine(":::>>>" + responsex.body.asChunk.map(_.toList) )
-    //_        <- Console.printLine(":::>>>" + response.body.asString )
+    response0 <- Client.request(s"${url}/bank/1000", headers = Headers.bearerAuthorizationHeader(token))//++accessControlAllowOrigin("*"))
+    response1 <- Client.request(s"${url}/health2", headers = Headers.bearerAuthorizationHeader(token))
+    response2 <- Client.request(s"http://127.0.0.1:9090/health", headers = Headers.bearerAuthorizationHeader(token))
+     response3 <- Client.request(s"${url}/cust/1000", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
+     response4 <- Client.request(s"${url}/sup/1000", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
+     response5 <- Client.request(s"${url}/acc/1000", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
+     response6 <- Client.request(s"${url}/cc/1000", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
+     response7 <- Client.request(s"${url}/module/1000", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
+     response8 <- Client.request(s"${url}/vat/1000", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
+     response9 <- Client.request(s"${url}/user/1000", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
+     response10 <- Client.request(s"${url}/ftr/1000", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
+     //response <- Client.request(s"${url}/pac/1000", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
+    body     <- response0.body.asString
+    body1     <- response1.body.asString
+    body2     <- response2.body.asString
+    body3     <- response3.body.asString
+    body4     <- response4.body.asString
+    body5     <- response5.body.asString
+    body6     <- response6.body.asString
+    body7     <- response7.body.asString
+    body8     <- response8.body.asString
+    body9     <- response9.body.asString
+    body10     <- response10.body.asString
+
+    _        <- Console.printLine(":::acc>>>" + body1 )
+    _        <- Console.printLine(":::bank>>>" + body2 )
+    _        <- Console.printLine(":::Customer>>>" + body3 )
+    _        <- Console.printLine(":::Supplier>>>" + body4 )
+    _        <- Console.printLine(":::account>>>" + body5 )
+    _        <- Console.printLine(":::Costcenter>>>" + body6 )
+    _        <- Console.printLine(":::bank>>>" + body7 )
+    _        <- Console.printLine(":::bank>>>" + body8 )
+    _        <- Console.printLine(":::bank>>>" + body9 )
+    _        <- Console.printLine(":::bank>>>" + body10 )
+    _        <- Console.printLine(":::bank>>>" + body3 )
+
   } yield (println(":::>>>" + body ))
 
   override val run = program.provide(Client.default)
