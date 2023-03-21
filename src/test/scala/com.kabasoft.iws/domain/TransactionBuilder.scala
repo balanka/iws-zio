@@ -12,6 +12,7 @@ object TransactionBuilder {
   val lineTransactionId1 = 1L
   val lineTransactionId2 = 2L
   val modelid = 112
+  val modelid2 = 114
   val period = common.getPeriod(Instant.now())
   val side = true
   val amount = new BigDecimal("100.00").setScale(2, RoundingMode.HALF_UP)
@@ -30,7 +31,7 @@ object TransactionBuilder {
   val ftr1 = FinancialsTransaction(transactionId,-1,costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
     , period, false, modelid, company, "comments", -1,-1, List(line1, line2))
   val ftr2 = FinancialsTransaction(transactionId2, -1, costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
-    , period, false, modelid, company, "comments", -1, -1, List(line3))
+    , period, false, modelid2, company, "comments", -1, -1, List(line3))
   val dtransactions = ftr1.toDerive()
   val pacs = PeriodicAccountBalance.create(ftr1).distinct
 

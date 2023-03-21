@@ -322,18 +322,13 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 
   override def getByModelId(modelId:(Int, String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =for {
     trans <- getByModelIdX(modelId._1,modelId._2).mapZIO(tr => getTransWithLines(tr.id, modelId._2)).runCollect.map(_.toList)
-//    val selectAll = SELECT2.where((modelid_ === modelId._1) && (company_ === modelId._2))
-//    ZStream.fromZIO(ZIO.logDebug(s"Query to execute getByModelId is ${renderRead(selectAll)}")) *>
-//      execute(selectAll.to[FinancialsTransaction](c => FinancialsTransaction.applyC(c)))
-//        .provideDriver(driverLayer)
   }yield trans
 
   override def getByModelIdX(modelId: Int, companyId: String): ZStream[Any, RepositoryError, FinancialsTransaction] = {
     val selectAll = SELECT2.where((modelid_ === modelId) && (company_ === companyId))
-    execute(selectAll.to[FinancialsTransaction](c => FinancialsTransaction.apply(c)))
-      .provideDriver(driverLayer)
-      .mapZIO(tr => getTransWithLines(tr.id, companyId))
-
+    ZStream.fromZIO(ZIO.logInfo(s"Query to execute getByModelIdX modelid:  ${modelId}  companyId:  ${companyId}is ${renderRead(selectAll)}")) *>
+      execute(selectAll.to[FinancialsTransaction](c => FinancialsTransaction.applyC(c)))
+        .provideDriver(driverLayer)
   }
 
 }
