@@ -1,7 +1,7 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AccountBuilder.companyId
-import com.kabasoft.iws.domain.TransactionBuilder.ftr1
+import com.kabasoft.iws.domain.TransactionBuilder.{ftr1, ftr2, modelid2}
 import com.kabasoft.iws.repository.container.PostgresContainer
 import zio.ZLayer
 import zio.sql.ConnectionPool
@@ -22,13 +22,14 @@ object TransactionRepositoryLiveSpec extends ZIOSpecDefault {
       test("insert a new transactions, modify, gets aTransaction by transId and count the Nr all transactions ") {
         val terms ="changed text"
         for {
-          oneRow <- TransactionRepository.create(ftr1)
+          oneRow <- TransactionRepository.create2(List(ftr1,ftr2) )
           all <- TransactionRepository.all(companyId)
           ftr <- TransactionRepository.getByTransId((all(0).id, companyId))
           count <- TransactionRepository.all(companyId).map(_.size)
           nrUpdated <- TransactionRepository.modify(ftr.copy(text=terms))
           ftr2 <- TransactionRepository.getByTransId((ftr.id, companyId))
-        } yield assertTrue(oneRow == 3)  && assertTrue(count == 1) &&
+          ftrByModelIdCount <- TransactionRepository.getByModelId((modelid2, companyId)).map(_.size)
+        } yield assertTrue(oneRow == 5)  && assertTrue(count == 2) && assertTrue(ftrByModelIdCount == 1) &&
           assertTrue(nrUpdated == 3) &&assertTrue(ftr2.text == terms)
       }
     ).provideLayerShared(testLayer.orDie) @@ sequential

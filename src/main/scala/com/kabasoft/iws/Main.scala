@@ -11,6 +11,7 @@ import com.kabasoft.iws.api.CompanyEndpoint.appComp
 import com.kabasoft.iws.api.ModuleEndpoint.appModule
 import com.kabasoft.iws.api.SupplierEndpoint.appSup
 import com.kabasoft.iws.api.CustomerEndpoint.appCust
+import com.kabasoft.iws.api.FinancialsEndpoint.appFtr
 import com.kabasoft.iws.api.UserEndpoint.appUser
 import com.kabasoft.iws.api.VatEndpoint.appVat
 import com.kabasoft.iws.config.DbConfig
@@ -54,7 +55,7 @@ object Main extends ZIOAppDefault {
     )
 
 
-  val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc ++ appBank  ++ appComp  //++ appFtr
+  val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc ++ appBank  ++ appComp  ++ appFtr
      ++ appBankStmt ++  appUser ++ appPac ++ appJournal ++ appCC ++ appBankStmt ++expose)//.toApp.withDefaultErrorResponse @@ bearerAuth(jwtDecode(_).isDefined)
 
   @nowarn val run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
@@ -81,12 +82,13 @@ object Main extends ZIOAppDefault {
           ModuleRepositoryImpl.live,
           ModuleCacheImpl.live,
           BankStatementRepositoryImpl.live,
-          //TransactionRepositoryImpl.live,
+          FinancialsTransactionCacheImpl.live,
+          TransactionRepositoryImpl.live,
           PacRepositoryImpl.live,
           UserRepositoryImpl.live,
           VatRepositoryImpl.live,
           VatCacheImpl.live,
           JournalRepositoryImpl.live,
-         // FinancialsServiceImpl.live
+          FinancialsServiceImpl.live
         )
 }
