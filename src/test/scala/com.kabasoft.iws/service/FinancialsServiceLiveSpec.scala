@@ -42,9 +42,9 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
         val amount2 = new BigDecimal("550.00").setScale(2, RoundingMode.HALF_UP)
         val creditAmount = new BigDecimal("350.00").setScale(2, RoundingMode.HALF_UP)
         for {
-          oneRow     <- TransactionRepository.create2(List(ftr1, ftr2))
+          oneRow     <- TransactionRepository.create(List(ftr1, ftr2))
           ftr        <-   TransactionRepository.all(companyId)
-          postedRows <- FinancialsService.postAll(ftr.map(_.id), companyId).map(_.sum)
+          postedRows <- FinancialsService.postAll(ftr.map(_.id), companyId)
           oaccountEntry <- FinancialsService.journal(line1.oaccount, period, period, companyId).map(_.size)
           accountEntry <- FinancialsService.journal(line1.account, period, period, companyId).map(_.size)
           vatEntry       <- FinancialsService.journal(line2.oaccount, period, period, companyId).map(_.size)
@@ -54,9 +54,9 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
           balance       <-AccountService.getBalance(paccountId0, fromPeriod, toPeriod, companyId).map(_.toList.head)
         } yield {;
           assertTrue(oneRow == 5)&&assertTrue(nrOfAccounts == 1)&&
-          assertTrue(postedRows == 17) &&
-            assertTrue(nrOfPacs == 1) && assertTrue(accountEntry == 3) &&
-          assertTrue(oaccountEntry == 1)&& assertTrue(vatEntry == 1) && assertTrue(balances4P.size == 4) &&
+          assertTrue(postedRows == 43) &&
+            assertTrue(nrOfPacs == 1) && assertTrue(accountEntry == 5) &&
+          assertTrue(oaccountEntry == 2)&& assertTrue(vatEntry == 2) && assertTrue(balances4P.size == 4) &&
           assertTrue(balances4P.headOption.getOrElse(PeriodicAccountBalance.dummy).debit.equals(amount)) &&
           assertTrue(balance.debit.equals(amount2))&& assertTrue(balance.credit.equals(creditAmount))
         }

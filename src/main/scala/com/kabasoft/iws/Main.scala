@@ -51,9 +51,8 @@ object Main extends ZIOAppDefault {
       allowedHeaders = Some(Set("*")),
       allowedOrigins = s => s.equals("127.0.0.1:3000")||s.equals("http://127.0.0.1:3000")||
                             s.equals("localhost:3000")|| s.equals("http://localhost:3000"),
-      allowedMethods = Some(Set(Method.GET, Method.POST))
+      allowedMethods = Some(Set(Method.GET, Method.POST,Method.PATCH))
     )
-
 
   val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc ++ appBank  ++ appComp  ++ appFtr
      ++ appBankStmt ++  appUser ++ appPac ++ appJournal ++ appCC ++ appBankStmt ++expose)//.toApp.withDefaultErrorResponse @@ bearerAuth(jwtDecode(_).isDefined)

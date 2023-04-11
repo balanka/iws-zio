@@ -13,13 +13,13 @@ trait FinancialsService {
   def post(id: Long, company: String): ZIO[Any, RepositoryError, Int]
   // def post(model: DerivedTransaction, company: String): ZIO[Any, RepositoryError, List[Int]]
 
-  def postAll(ids: List[Long], company: String): ZIO[Any, RepositoryError, List[Int]]
+  def postAll(ids: List[Long], company: String): ZIO[Any, RepositoryError, Int]
 
   def getBy(id: String, company: String): ZIO[FinancialsService, RepositoryError, PeriodicAccountBalance]
   def journal(accountId: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[Journal]]
   def getByIds(ids: List[String], company: String): ZIO[FinancialsService, RepositoryError, List[PeriodicAccountBalance]]
 
-  def postTransaction4Period(fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[Int]]
+  def postTransaction4Period(fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, Int]
 
 }
 
@@ -37,7 +37,7 @@ object FinancialsService {
   // def post(model: DerivedTransaction, company: String): ZIO[FinancialsService, RepositoryError, List[Int]] =
   //   ZIO.service[FinancialsService]flatMap(_.post(model, company))
 
-  def postAll(ids: List[Long], company: String): ZIO[FinancialsService, RepositoryError, List[Int]]                                       =
+  def postAll(ids: List[Long], company: String): ZIO[FinancialsService, RepositoryError, Int]                                       =
     ZIO.service[FinancialsService] flatMap (_.postAll(ids, company))
   def journal(accountId: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[FinancialsService, RepositoryError, List[Journal]] =
     ZIO.service[FinancialsService] flatMap (_.journal(accountId, fromPeriod, toPeriod, company))
@@ -47,6 +47,6 @@ object FinancialsService {
   def getByIds(ids: List[String], company: String): ZIO[FinancialsService, RepositoryError, List[PeriodicAccountBalance]] =
     ZIO.serviceWithZIO[FinancialsService](_.getByIds(ids, company))
 
-  def postTransaction4Period(fromPeriod: Int, toPeriod: Int, company: String): ZIO[FinancialsService, RepositoryError, List[Int]] =
+  def postTransaction4Period(fromPeriod: Int, toPeriod: Int, company: String): ZIO[FinancialsService, RepositoryError, Int] =
     ZIO.serviceWithZIO[FinancialsService](_.postTransaction4Period(fromPeriod, toPeriod, company))
 }

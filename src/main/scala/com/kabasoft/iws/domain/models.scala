@@ -1,16 +1,16 @@
 package com.kabasoft.iws.domain
 
 import java.util.Locale
-import java.time.{ Instant, LocalDate, LocalDateTime, ZoneId }
+import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 import zio.prelude._
 import zio.stm._
-import zio.{ UIO, _ }
+import zio.{UIO, _}
 
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
-import scala.collection.immutable.{ ::, Nil }
+import scala.collection.immutable.{::, Nil}
 import scala.annotation.tailrec
-import java.math.BigDecimal
+import java.math.{BigDecimal, RoundingMode}
 import com.kabasoft.iws.domain.FinancialsTransaction.DerivedTransaction_Type
 
 final case class Company(
@@ -1147,7 +1147,8 @@ final case class FinancialsTransaction(
   def month: String = common.getMonthAsString(transdate)
   def year: Int     = common.getYear(transdate)
   def getPeriod     = common.getPeriod(transdate)
-  def total         = lines.reduce((l1, l2) => l2.copy(amount = l2.amount.add(l1.amount)))
+
+  def total: BigDecimal = lines.map(_.amount) reduce ((l1, l2) => l2.add(l1).setScale(2, RoundingMode.HALF_UP))
   def toDerive()    = lines.map(l =>
     DerivedTransaction(
       id,

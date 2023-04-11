@@ -1,7 +1,6 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.{
-  DerivedTransaction,
   FinancialsTransaction,
   FinancialsTransactionDetails,
   FinancialsTransactionDetails_,
@@ -9,7 +8,6 @@ import com.kabasoft.iws.domain.{
   FinancialsTransactionx
 }
 import com.kabasoft.iws.repository.Schema.{
-  derivedTransactionSchema,
   transactionDetailsSchema,
   transactionDetails_Schema,
   transactionSchema_,
@@ -21,8 +19,8 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
   val transaction           = defineTable[FinancialsTransactionx]("master_compta")
   val transactionInsert     = defineTable[FinancialsTransaction_]("master_compta")
   val transactionDetails    = defineTable[FinancialsTransactionDetails]("details_compta")
-  val transactionDetails_   = defineTable[FinancialsTransactionDetails_]("details_compta")
-  val financialstransaction = defineTable[DerivedTransaction]("financialstransaction")
+  val transactionDetailsInsert   = defineTable[FinancialsTransactionDetails_]("details_compta")
+
 
   val (
     oidx,
@@ -77,28 +75,8 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     duedatex,
     ltextx,
     currencyx /*, terms_, postedx, comapnyx*/
-  ) = transactionDetails_.columns
+  ) = transactionDetailsInsert.columns
 
-  val (
-    id,
-    oid,
-    account,
-    transdate,
-    enterdate,
-    postingdate,
-    period,
-    posted,
-    modelid,
-    company,
-    text,
-    file,
-    lid,
-    side,
-    oaccount,
-    amount,
-    currency,
-    terms
-  ) = financialstransaction.columns
 
   def toTupleF(c: FinancialsTransaction) = (
     c.id,
@@ -133,9 +111,15 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     c.file_content
   )
 
-  def toTuple(c: FinancialsTransactionDetails) = FinancialsTransactionDetails.unapply(c).get
-
-  def toTuple(c: DerivedTransaction) = DerivedTransaction.unapply(c).get
+  def toTuple(c: FinancialsTransactionDetails) = (
+    c.transid,
+    c.account,
+    c.side,
+    c.oaccount,
+    c.amount,
+    c.duedate,
+    c.text,
+    c.currency)
 
   def toTupleC(c: FinancialsTransactionDetails) = (
     c.transid,

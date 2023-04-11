@@ -174,7 +174,7 @@ CREATE SEQUENCE master_compta_id_seq
     INCREMENT 1
    MINVALUE 1
    MAXVALUE 9223372036854775807
-   START 1
+   START 2
    CACHE 1;
 
 create table if not exists master_compta
@@ -432,3 +432,9 @@ values('jdegoes011','John','dgoes', '$21a$10$0IZtq3wGiRQSMIuoIgNKrePjQfmGFRgkpnH
       , '11-4711-0123','Admin', '1300,9,1120,3,14,1000,18,1,112,106,11,6,10', '1000',111),
       ('myUserName','myUserFirstName','myUserLastName', 'hash1', 'myEmail@email.com', '+49-1111-11100','Accountant', '1,10', '1000',111);
 
+
+INSERT INTO master_compta (id, oid, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content)
+VALUES (1, -1, '300', '1600', '2023-04-08T14:46:44.173Z', '2023-04-08T15:07:28.685Z', '2023-04-08T15:07:28.685Z', 202304, false, 124, '1000', '', 0, 0);
+INSERT INTO details_compta (transid, account, side, oaccount, amount, duedate, text, currency)
+VALUES (1, '1200', true, '4400', 81.00, '2023-04-09T15:50:17.598252Z', 'terms', 'EUR' ),
+       (1, '1200', true, '3806', 19.00, '2023-04-09T15:50:17.598270Z', 'terms', 'EUR');

@@ -26,6 +26,7 @@ trait PacRepository {
   // def modify(model: PeriodicAccountBalance): ZIO[Any, RepositoryError, Int]
   def modify(models: List[PeriodicAccountBalance]): ZIO[Any, RepositoryError, Int]
 
+
 }
 
 object PacRepository {

@@ -22,16 +22,18 @@ object TransactionBuilder {
   val currency = "EUR"
   val costCenter = "311"
 
-  val line1=  FinancialsTransactionDetails(-1, transactionId, faccountId, side, incaccountId1 , amount.subtract(vatAmount), Instant.now(), terms, currency)
-  val line2=  FinancialsTransactionDetails(-2, transactionId, faccountId, side, vataccountId, vatAmount, Instant.now(), terms, currency)
-  val line3 = FinancialsTransactionDetails(-3, transactionId2, accountId, side, faccountId, amount.add(vatAmount) , Instant.now(), terms, currency)
+  val line1=  FinancialsTransactionDetails(-1, 0, faccountId, side, incaccountId1 , amount.subtract(vatAmount), Instant.now(), terms, currency)
+  val line2=  FinancialsTransactionDetails(-1, 0, faccountId, side, vataccountId, vatAmount, Instant.now(), terms, currency)
+  val line3 = FinancialsTransactionDetails(-3, 0, accountId, side, faccountId, amount.add(vatAmount) , Instant.now(), terms, currency)
+  val line4 = FinancialsTransactionDetails(-4, 0, accountId, side, faccountId, amount.add(vatAmount) , Instant.now(), terms, currency)
 
 
-
-  val ftr1 = FinancialsTransaction(transactionId,-1,costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
-    , period, false, modelid, company, "comments", -1,-1, List(line1, line2))
-  val ftr2 = FinancialsTransaction(transactionId2, -1, costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
+  val ftr1 = FinancialsTransaction(0,-1,costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
+    , period, false, modelid, company, "comments"+modelid, -1,-1, List(line1, line2))
+  val ftr2 = FinancialsTransaction(0, -1, costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
     , period, false, modelid2, company, "comments", -1, -1, List(line3))
+  val ftr4 = FinancialsTransaction(0, -1, costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
+    , period, false, modelid2, company, "comments", -1, -1, List(line4))
   val dtransactions = ftr1.toDerive()
   val pacs = PeriodicAccountBalance.create(ftr1).distinct
 

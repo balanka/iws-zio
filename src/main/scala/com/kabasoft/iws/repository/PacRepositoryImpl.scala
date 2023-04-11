@@ -1,11 +1,13 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.PeriodicAccountBalance
+import com.kabasoft.iws.domain.common.pacMonoid
+import com.kabasoft.iws.domain.{PeriodicAccountBalance, common}
 import zio._
 import com.kabasoft.iws.repository.Schema.pacSchema
 import zio.sql.ConnectionPool
 import zio.stream._
+
 
 final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with IWSTableDescriptionPostgres {
   import AggregationDef._
@@ -53,14 +55,18 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
         .provideAndLog(driverLayer)
         .unit
   }
+
   override def create(models_ : List[PeriodicAccountBalance]): ZIO[Any, RepositoryError, Int] =
     if (models_.isEmpty) {
       ZIO.succeed(0)
     } else {
-      val data_ = models_.map(PeriodicAccountBalance.unapply(_).get)
+      val datax = models_.groupBy(_.id) map { case (_, v) =>
+        common.reduce(v, PeriodicAccountBalance.dummy) // .copy(id = k)
+      }
+      val data_ = datax.toList.map(PeriodicAccountBalance.unapply(_).get)
       val query = insertInto(pac)(id, account, period, idebit, icredit, debit, credit, currency, company, modelid).values(data_)
-
-      ZIO.logDebug(s"Query to insert PeriodicAccountBalance is ${renderInsert(query)}") *>
+      val insertSql = {renderInsert(query)}
+      ZIO.logInfo(s"Query to insert PeriodicAccountBalance is ${insertSql}") *>
         execute(query).provideAndLog(driverLayer)
     }
   override def delete(id: String, companyId: String): ZIO[Any, RepositoryError, Int]        =
