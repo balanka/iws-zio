@@ -8,8 +8,8 @@ import com.kabasoft.iws.repository._
 import pdi.jwt.{Jwt, JwtAlgorithm, JwtClaim}
 import zio.ZIO
 import zio.http._
-
-import zio.http.model.{Header, Method, Status}
+import zio.http.Header.Custom
+import zio.http.{Method, Status}
 import zio.json.{DecoderOps, EncoderOps}
 
 import java.time.Clock
@@ -91,12 +91,12 @@ object LoginRoutes {
       //println(s"token2  ${token2}")
       //@@ bearerAuth(jwtDecode(_).isDefined)
 
-      Response.json(user.toJson).addHeader(Header("authorization", token)).addHeader(Header("Origin", "http://localhost:3000"))
-        .addHeader(Header("Access-Control-Allow-Origin", "http://localhost:3000"))
+      Response.json(user.toJson).addHeader(Custom("authorization", token)).addHeader(Custom("Origin", "http://localhost:3000"))
+        .addHeader(Custom("Access-Control-Allow-Origin", "http://localhost:3000"))
     } else {
       // ZIO.logInfo(s"Invalid  user name or password  ${username}")*>
       println(s"encodedencodedencodedencodedencoded  ${content} ----${pwd}")
-      Response.text("Invalid  user name or password " + loginRequest.userName + "/" + loginRequest.password).setStatus(Status.Unauthorized)
+      Response.text("Invalid  user name or password " + loginRequest.userName + "/" + loginRequest.password).withStatus(Status.Unauthorized)
       //DummyUser
     }
   }

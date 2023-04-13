@@ -9,7 +9,7 @@ import zio.http.codec.HttpCodec._
 import zio.http.codec.HttpCodec.string
 import zio.http.codec.HttpCodec.int
 import zio.http.endpoint.Endpoint
-import zio.http.model.Status
+import zio.http.Status
 
 
 object JournalEndpoint {

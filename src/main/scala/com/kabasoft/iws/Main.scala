@@ -20,14 +20,14 @@ import com.kabasoft.iws.healthcheck.Healthcheck.expose
 import com.kabasoft.iws.repository._
 import com.kabasoft.iws.service._
 import zio._
+import zio.http.Header.{AccessControlAllowHeaders, AccessControlAllowMethods, AccessControlAllowOrigin, Origin}
 import zio.http.HttpAppMiddleware.{bearerAuth, cors}
 
 import java.time.Clock
-import zio.http.middleware.Cors.CorsConfig
-import zio.http.model.Method
-import zio.http.{Server, ServerConfig}
+import zio.http.internal.middlewares.Cors.CorsConfig
+import zio.http.{Method, Server}
+import zio.http.Server.Config
 import zio.sql.ConnectionPool
-
 import scala.annotation.nowarn
 
 
@@ -38,20 +38,20 @@ object Main extends ZIOAppDefault {
   private val serverLayer: ZLayer[Any, Throwable, Server] = {
     implicit val trace = Trace.empty
     ZLayer.succeed(
-      ServerConfig()
-        //.leakDetection(LeakDetectionLevel.PARANOID)
-        .binding("localhost", 8091) /*.port(8080)*/
+      Config.default.binding("localhost", 8091)
     ) >>> Server.live
   }
 
   val config: CorsConfig =
     CorsConfig(
-      anyOrigin = true,
-      anyMethod = false,
-      allowedHeaders = Some(Set("*")),
-      allowedOrigins = s => s.equals("127.0.0.1:3000")||s.equals("http://127.0.0.1:3000")||
-                            s.equals("localhost:3000")|| s.equals("http://localhost:3000"),
-      allowedMethods = Some(Set(Method.GET, Method.POST,Method.PATCH))
+      //anyOrigin = true,
+      //anyMethod = false,
+      allowedHeaders = AccessControlAllowHeaders.All,
+      allowedOrigin = {
+        case origin @Origin.Value(_,host,_) if(host=="localhost" || host=="127.0.0.1")=>Some(AccessControlAllowOrigin.Specific(origin))
+        case _ =>None
+      },
+      allowedMethods = AccessControlAllowMethods.Some(NonEmptyChunk(Method.GET, Method.POST,Method.PATCH))
     )
 
   val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc ++ appBank  ++ appComp  ++ appFtr

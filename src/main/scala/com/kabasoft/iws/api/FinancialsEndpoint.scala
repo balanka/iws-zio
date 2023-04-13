@@ -8,7 +8,7 @@ import com.kabasoft.iws.service.FinancialsService
 import zio.ZIO
 import zio.http.codec.HttpCodec.{int, _}
 import zio.http.endpoint.Endpoint
-import zio.http.model.Status
+import zio.http.Status
 
 object FinancialsEndpoint {
 

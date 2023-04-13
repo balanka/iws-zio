@@ -33,7 +33,7 @@ import zio._
 import zio.http.endpoint.{Endpoint, Routes}
 import zio.http.codec.HttpCodec._
 import zio.http.endpoint.EndpointMiddleware.None
-import zio.http.model.Status
+import zio.http.Status
 import zio.http.{Request, URL}
 import zio.schema.DeriveSchema.gen
 import zio.sql.ConnectionPool
@@ -142,7 +142,7 @@ object ApiSpec extends ZIOSpecDefault {
 
   def testApi[R, E](service: Routes[R, E, None])(
     url: String, expected: String): ZIO[R, Response, TestResult] = {
-    val request = Request.get(url = URL.fromString(url).toOption.get)
+    val request = Request.get(url = URL.decode(url).toOption.get)
     for {
       response <- service.toApp.runZIO(request).mapError(_.get)
       body <- response.body.asString.orDie
@@ -151,7 +151,7 @@ object ApiSpec extends ZIOSpecDefault {
 
   def testDeleteApi[R, E](service: Routes[R, E, None])(
     url: String, expected: String): ZIO[R, Response, TestResult] = {
-    val request = Request.delete(url = URL.fromString(url).toOption.get)
+    val request = Request.delete(url = URL.decode(url).toOption.get)
     for {
       response <- service.toApp.runZIO(request).mapError(_.get)
       body <- response.body.asString.orDie
@@ -160,7 +160,7 @@ object ApiSpec extends ZIOSpecDefault {
 
   def testPostApi[R, E](routes: Routes[R, E, None])(
     url: String, body: String, expected: String): ZIO[R, Response, TestResult] = {
-    val request = Request.post(Body.fromString(body), URL.fromString(url).toOption.get)
+    val request = Request.post(Body.fromString(body), URL.decode(url).toOption.get)
     for {
       response <- routes.toApp.runZIO(request).mapError(_.get)
       body <- response.body.asString.orDie
@@ -168,7 +168,7 @@ object ApiSpec extends ZIOSpecDefault {
   }
   def testPutApi[R, E](routes:  Routes[R, E, None] )(
     url: String, body:String, expected: String): ZIO[R, Response, TestResult] = {
-    val request = Request.put(Body.fromString(body), URL.fromString(url).toOption.get)
+    val request = Request.put(Body.fromString(body), URL.decode(url).toOption.get)
     for {
       response <- routes.toApp.runZIO(request).mapError(_.get)
       body <- response.body.asString.orDie

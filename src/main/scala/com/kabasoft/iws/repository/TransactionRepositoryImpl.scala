@@ -32,8 +32,12 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 
   private val SELECT_LINE = select(lid_, transid, laccount_, side_, oaccount_, amount_, duedate_, ltext_, currency_).from(transactionDetails)
   private val CURRVAL     = FunctionDef[String, Long](FunctionName("currval"))
+  //private val LASTVAL     = FunctionDef[String, Long](FunctionName("lastval"))
+
   private def getLastTransid: ZIO[Any, RepositoryError, Option[Long]] = {
     val selectAll = select(CURRVAL("master_compta_id_seq"))
+    //val selectAll = select(LASTVAL("master_compta_id_seq"))
+
     execute(selectAll).runHead.provideAndLog(driverLayer)
 
   }
