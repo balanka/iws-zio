@@ -138,7 +138,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
     val splitted2 = splitted._2.partition(deletePredicate)
     val newLines = splitted._1
     val deletedLineIds = splitted2._1.map(line => line.id)
-    val oldLines = splitted2._2
+    val oldLines = splitted._2
     val detailsUpdate = oldLines.map(d => buildUpdateDetails(d))
     val update_       = build(model)
     val result: ZIO[Any, RepositoryError, Int] = for {

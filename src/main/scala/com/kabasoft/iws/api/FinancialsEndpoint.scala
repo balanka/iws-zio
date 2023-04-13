@@ -17,7 +17,7 @@ object FinancialsEndpoint {
   private val ftrByModelIdAPI  = Endpoint.get("ftr"/ literal("model")/ string("company")/int("modelid")).out[List[FinancialsTransaction]].outError[RepositoryError](Status.InternalServerError)
   val ftrByTransIdAPI  = Endpoint.get("ftr1" / string("company")/ int("transid")).out[FinancialsTransaction].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI = Endpoint.delete("ftr" / string("company")/ int("transid")).out[Int].outError[RepositoryError](Status.InternalServerError)
-  private val ftrModifyAPI     = Endpoint.post("ftr").in[FinancialsTransaction].out[Int].outError[RepositoryError](Status.InternalServerError)
+  val ftrModifyAPI     = Endpoint.post("ftr").in[FinancialsTransaction].out[Int].outError[RepositoryError](Status.InternalServerError)
   private val ftrPostAPI     = Endpoint.get("ftr/post"/ string("company")/int("transid")).out[Int].outError[RepositoryError](Status.InternalServerError)
   private val ftrPost4PeriodAPI     = Endpoint.get("ftr/post"/ string("company")/ int("from") / int("to")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
@@ -30,7 +30,7 @@ object FinancialsEndpoint {
   private val ftrPostEndpoint = ftrPostAPI.implement(p => FinancialsService.post(p._2.toLong, p._1).mapError(e => RepositoryError(e.getMessage)))
   private val ftrByModelIdEndpoint = ftrByModelIdAPI.implement(p => FinancialsTransactionCache.getByModelId((p._2,p._1)).mapError(e => RepositoryError(e.getMessage)))
   private val ftrPost4PeriodEndpoint = ftrPost4PeriodAPI.implement(p => FinancialsService.postTransaction4Period(p._2, p._3, p._1).mapError(e => RepositoryError(e.getMessage)))
-  private val ftrModifyEndpoint = ftrModifyAPI.implement(ftr => ZIO.logInfo(s"Modify Transaction  ${ftr}") *>
+  val ftrModifyEndpoint = ftrModifyAPI.implement(ftr => ZIO.logInfo(s"Modify Transaction  ${ftr}") *>
     TransactionRepository.modify(ftr).mapError(e => RepositoryError(e.getMessage)))
   private val ftrDeleteEndpoint = deleteAPI.implement(p => TransactionRepository.delete(p._2.toLong, p._1).mapError(e => RepositoryError(e.getMessage)))
 

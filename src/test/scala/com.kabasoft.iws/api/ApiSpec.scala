@@ -8,7 +8,7 @@ import com.kabasoft.iws.api.CostcenterEndpoint.{ccByIdEndpoint, ccCreateEndpoint
 import com.kabasoft.iws.api.Protocol._
 import com.kabasoft.iws.domain.BankBuilder.{bank, bankx}
 import com.kabasoft.iws.api.CustomerEndpoint.{custByIdEndpoint, custCreateEndpoint, custDeleteEndpoint}
-import com.kabasoft.iws.api.FinancialsEndpoint.ftrCreateEndpoint
+import com.kabasoft.iws.api.FinancialsEndpoint.{ftrCreateEndpoint, ftrModifyEndpoint}
 import com.kabasoft.iws.api.ModuleEndpoint.{moduleByIdEndpoint, moduleCreateEndpoint, moduleDeleteEndpoint}
 import com.kabasoft.iws.api.SupplierEndpoint.{supByIdEndpoint, supCreateEndpoint, supDeleteEndpoint}
 import com.kabasoft.iws.api.UserEndpoint.{userByUserNameEndpoint, userCreateEndpoint, userDeleteEndpoint}
@@ -26,7 +26,7 @@ import zio.http.{Body, Response}
 import com.kabasoft.iws.domain.CostcenterBuilder.cc
 import com.kabasoft.iws.domain.ModuleBuilder.m
 import com.kabasoft.iws.domain.SupplierBuilder.sup
-import com.kabasoft.iws.domain.TransactionBuilder.ftr4
+import com.kabasoft.iws.domain.TransactionBuilder.{ftr4, ftr5}
 import com.kabasoft.iws.domain.UserBuilder.user
 import com.kabasoft.iws.domain.VatBuilder.vat1
 import zio._
@@ -62,10 +62,14 @@ object ApiSpec extends ZIOSpecDefault {
               TransactionRepository.getByTransId((p._2.toLong, p._1)).mapBoth(e => RepositoryError(e.getMessage), _.total))
 
           val testRoutes1 = testPutApi(ftrCreateEndpoint) _
-          val testRoutes = testApi(ftrByModelId ++ ftrByTransId) _
+          val testRoutes = testApi(ftrByModelId ++ ftrByTransId ++ ftrModifyEndpoint) _
+          val testRoutes2 = testPostApi( ftrModifyEndpoint) _
+          val payload = ftr5.copy(lines = ftr5.lines.map(l=>l.copy (text="modified"))).toJson
+
           //val deleteRoutes = testDeleteApi(bankDeleteEndpoint) _
 
-          testRoutes("/ftr2/1000/1" , "100.00") && testRoutes("/ftr1/1000/"+124, "1") &&  testRoutes1("/ftr", ftr4.toJson, "2") //
+          testRoutes("/ftr2/1000/1" , "100.00") && testRoutes("/ftr1/1000/"+124, "1") &&  testRoutes1("/ftr", ftr4.toJson, "2") &&
+          testRoutes2("/ftr", payload, "3")
           // deleteRoutes("/bank/" + bank.id + "/" + bank.company, "1") && testRoutes1("/bank", bankx.to)Json, "1")
         },
         test("Bank integration test") {
