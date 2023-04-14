@@ -69,7 +69,7 @@ object ApiSpec extends ZIOSpecDefault {
           //val deleteRoutes = testDeleteApi(bankDeleteEndpoint) _
 
           testRoutes("/ftr2/1000/1" , "100.00") && testRoutes("/ftr1/1000/"+124, "1") &&  testRoutes1("/ftr", ftr4.toJson, "2") &&
-          testRoutes2("/ftr", payload, "3")
+          testRoutes2("/ftrm", payload, "3")
           // deleteRoutes("/bank/" + bank.id + "/" + bank.company, "1") && testRoutes1("/bank", bankx.to)Json, "1")
         },
         test("Bank integration test") {

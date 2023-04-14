@@ -40,7 +40,6 @@ object LoginRoutes {
     result
   }
 
-  val invalidRequest = LoginRequest("InvalidUsername", "InvalidPassword")
 
   def appLogin = Http.collectZIO[Request] { case req@Method.POST -> !! / "users" / "login" =>
     for {

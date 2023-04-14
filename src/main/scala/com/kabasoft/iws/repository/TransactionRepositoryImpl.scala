@@ -47,10 +47,10 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
     if (models.isEmpty) ZIO.succeed(0) else
     for {
       nextTransId <- getLastTransid
-      _ <- ZIO.logInfo(s"Next transaction id is ${nextTransId} ${models}")
+      _ <- ZIO.logDebug(s"Next transaction id is ${nextTransId} ${models}")
        lines = models.map(l => l.copy(transid = nextTransId.getOrElse(-1L)))
        query = insertInto(transactionDetailsInsert)(transidx, laccountx, sidex, oaccountx, amountx, duedatex, ltextx, currencyx).values(lines.map(toTuple))
-      _        <- ZIO.logInfo(s"Query to insert FinancialsTransactionDetails  ${renderInsert(query)}")
+      _        <- ZIO.logDebug(s"Query to insert FinancialsTransactionDetails  ${renderInsert(query)}")
       inserted <- execute(query).provideAndLog(driverLayer)
     } yield inserted
   }
@@ -77,7 +77,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
   private def runInsert(model: FinancialsTransaction) = {
     val query = buildQuery(model)
     val result = for {
-      _ <- ZIO.logInfo(s"Query to insert Transaction is ${renderInsert(query)}")
+      _ <- ZIO.logDebug(s"Query to insert Transaction is ${renderInsert(query)}")
       transactionInserted <- execute(query).provideAndLog(driverLayer)
       insertedDetails <- buildDetailsQuery(model.lines)
     } yield (transactionInserted + insertedDetails)
@@ -95,7 +95,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 
   override def delete(id : Long, companyId: String): ZIO[Any, RepositoryError, Int] = {
     val deleteQuery = deleteFrom(transaction).where((id_ === id) && (company_ === companyId))
-    ZIO.logInfo(s"Delete  FinancialsTransactionDetails  ${renderDelete(deleteQuery)}")*>
+    ZIO.logDebug(s"Delete  FinancialsTransactionDetails  ${renderDelete(deleteQuery)}")*>
     execute(deleteQuery)
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getMessage))
@@ -212,7 +212,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
   } yield trans.copy(lines = lines_)
   def getById(id: Long, companyId: String): ZIO[Any, RepositoryError, FinancialsTransaction] = {
     val selectAll = SELECT2.where((company_ === companyId) && (id_ === id))
-    ZIO.logInfo(s"Query to execute getById ${id} is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute getById ${id} is ${renderRead(selectAll)}") *>
      // execute(selectAll.to[FinancialsTransaction](c => FinancialsTransaction.applyC(c)))
       execute(selectAll.to(x => {println(x); FinancialsTransaction.apply(x)}))
         .findFirstLong(driverLayer, id)
@@ -224,7 +224,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 
   override def getByModelIdX(modelId: Int, companyId: String): ZStream[Any, RepositoryError, FinancialsTransaction] = {
     val selectAll = SELECT2.where((modelid_ === modelId) && (company_ === companyId))
-    ZStream.fromZIO(ZIO.logInfo(s"Query to execute getByModelIdX modelid:  ${modelId}  companyId:  ${companyId}is ${renderRead(selectAll)}")) *>
+    ZStream.fromZIO(ZIO.logDebug(s"Query to execute getByModelIdX modelid:  ${modelId}  companyId:  ${companyId}is ${renderRead(selectAll)}")) *>
       execute(selectAll.to[FinancialsTransaction](c => FinancialsTransaction.applyC(c)))
         .provideDriver(driverLayer)
   }

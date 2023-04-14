@@ -17,7 +17,7 @@ object FinancialsEndpoint {
   private val ftrByModelIdAPI  = Endpoint.get("ftr"/ literal("model")/ string("company")/int("modelid")).out[List[FinancialsTransaction]].outError[RepositoryError](Status.InternalServerError)
   val ftrByTransIdAPI  = Endpoint.get("ftr1" / string("company")/ int("transid")).out[FinancialsTransaction].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI = Endpoint.delete("ftr" / string("company")/ int("transid")).out[Int].outError[RepositoryError](Status.InternalServerError)
-  val ftrModifyAPI     = Endpoint.post("ftr").in[FinancialsTransaction].out[Int].outError[RepositoryError](Status.InternalServerError)
+  val ftrModifyAPI     = Endpoint.post(literal("ftrm")).in[FinancialsTransaction].out[Int].outError[RepositoryError](Status.InternalServerError)
   private val ftrPostAPI     = Endpoint.get("ftr/post"/ string("company")/int("transid")).out[Int].outError[RepositoryError](Status.InternalServerError)
   private val ftrPost4PeriodAPI     = Endpoint.get("ftr/post"/ string("company")/ int("from") / int("to")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
