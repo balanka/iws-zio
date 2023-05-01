@@ -40,7 +40,37 @@ import zio.sql.ConnectionPool
 import zio.test._
 
 object ApiSpec extends ZIOSpecDefault {
-
+  val ZZ = """{
+             |    "id": 0,
+             |    "oid": 0,
+             |    "costcenter": "700",
+             |    "account": "077",
+             |    "transdate": "2023-03-28T18:07:00.000Z",
+             |    "enterdate": "2023-04-29T18:07:05.930Z",
+             |    "postingdate": "2023-04-29T18:07:05.930Z",
+             |    "period": 202304,
+             |    "posted": false,
+             |    "modelid": 112,
+             |    "company": "1000",
+             |    "text": "zzzz",
+             |    "typeJournal": 0,
+             |    "file_content": 0,
+             |    "lines": [
+             |        {
+             |            "account": "077",
+             |            "side": true,
+             |            "oaccount": "0670",
+             |            "duedate": "2023-03-28T18:07:05.000Z",
+             |            "amount": 10,
+             |            "currency":"EUR",
+             |            "text": "ddd",
+             |            "id":-1,
+             |            "transid": -1
+             |        }
+             |    ]
+             |}""".stripMargin
+  // val XX = """{"id":0,"oid":-1,"costcenter":"311","account":"1810","transdate":"2023-04-29T19:07:13.538079Z","enterdate":"2023-04-29T19:07:13.538079Z","postingdate":"2023-04-29T19:07:13.538079Z","period":202304,"posted":false,"modelid":114,"company":"1000","text":"comments","typeJournal":-1,"file_content":-1,"lines":[{"id":-4,"transid":0,"account":"1810","side":true,"oaccount":"1200","amount":119.0000,"duedate":"2023-04-29T19:07:13.537955Z","text":"terms","currency":"EUR"}]}"""
+  val FTR = """{"id":0,"oid":-1,"costcenter":"311","account":"1810","transdate":"2023-03-28T18:07:00.538079Z","enterdate":"2023-04-29T18:07:05.538079Z","postingdate":"2023-04-29T18:07:05.538079Z","period":202304,"posted":false,"modelid":114,"company":"1000","text":"comments","typeJournal":-1,"file_content":-1,"lines":[{"id":-4,"transid":0 "account":"1810","side":true,"oaccount":"1200","amount":10.0000,"duedate":"2023-03-28T18:07:05.538079Z","text":"ddd","currency":"EUR"}]}"""
     def spec = suite("APISpec")(
       suite("handler")(
         test("Account  integration test ") {
@@ -53,6 +83,16 @@ object ApiSpec extends ZIOSpecDefault {
             deleteRoutes("/acc/"+acc.id+"/"+acc.company, "1")&&
             postRoutes("/acc", accx.toJson, "1")
         },
+        test("financials integration test1") {
+
+          val testRoutes1 = testPostApi(ftrCreateEndpoint) _
+
+
+          //val deleteRoutes = testDeleteApi(bankDeleteEndpoint) _
+          testRoutes1("/ftr", ZZ, "2")
+          //testRoutes1("/ftr", ftr4.toJson, "2")
+          // deleteRoutes("/bank/" + bank.id + "/" + bank.company, "1") && testRoutes1("/bank", bankx.to)Json, "1")
+        },
         test("financials integration test") {
           val ftrByModelId = Endpoint.get("ftr1" / string("company") / int("modelid")).out[Int].outError[RepositoryError](Status.InternalServerError)
             .implement(p => ZIO.logInfo(s"Find  Transaction by modelId  ${p}") *>
@@ -61,14 +101,15 @@ object ApiSpec extends ZIOSpecDefault {
             .implement(p => ZIO.logInfo(s"Find  Transaction by TransId  ${p}") *>
               TransactionRepository.getByTransId((p._2.toLong, p._1)).mapBoth(e => RepositoryError(e.getMessage), _.total))
 
-          val testRoutes1 = testPutApi(ftrCreateEndpoint) _
+          val testRoutes1 = testPostApi(ftrCreateEndpoint) _
           val testRoutes = testApi(ftrByModelId ++ ftrByTransId ++ ftrModifyEndpoint) _
-          val testRoutes2 = testPostApi( ftrModifyEndpoint) _
+          val testRoutes2 = testPutApi( ftrModifyEndpoint) _
           val payload = ftr5.copy(lines = ftr5.lines.map(l=>l.copy (text="modified"))).toJson
 
           //val deleteRoutes = testDeleteApi(bankDeleteEndpoint) _
 
-          testRoutes("/ftr2/1000/1" , "100.00") && testRoutes("/ftr1/1000/"+124, "1") &&  testRoutes1("/ftr", ftr4.toJson, "2") &&
+          testRoutes1("/ftr", FTR, "2") && testRoutes("/ftr2/1000/1" , "100.00") && testRoutes("/ftr1/1000/"+124, "1") &&
+            testRoutes1("/ftr", ftr4.toJson, "2") &&
           testRoutes2("/ftrm", payload, "3")
           // deleteRoutes("/bank/" + bank.id + "/" + bank.company, "1") && testRoutes1("/bank", bankx.to)Json, "1")
         },

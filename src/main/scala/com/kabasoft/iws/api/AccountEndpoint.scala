@@ -20,7 +20,7 @@ object AccountEndpoint {
   val balanceAPI = Endpoint.get("balance" / string("company")/string("accId") / int("from") / int("to")).out[List[Account]]
     .outError[RepositoryError](Status.InternalServerError)
   val accByIdAPI = Endpoint.get("acc" / string("id")/ string("company")).out[Account].outError[RepositoryError](Status.InternalServerError)
-  val accModifyAPI     = Endpoint.post(literal("acc")/ string("company")).in[Account].out[Int].outError[RepositoryError](Status.InternalServerError)
+  val accModifyAPI     = Endpoint.put("acc").in[Account].out[Int].outError[RepositoryError](Status.InternalServerError)
   val deleteAPI = Endpoint.delete("acc" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
   val closePeriodAPI = Endpoint.get("balance" / string("accId") / int("from") / int("to")/ string("company")).out[Int]
     .outError[RepositoryError](Status.InternalServerError)
@@ -36,10 +36,10 @@ object AccountEndpoint {
   val closePeriodEndpoint = closePeriodAPI.implement { case (accId: String, from: Int, to: Int, company:String) =>
     AccountService.closePeriod(from, to, accId, company).mapError(e => RepositoryError(e.getMessage))}
   val accModifyEndpoint = accModifyAPI.implement(p => ZIO.logInfo(s"Modify account  ${p}") *>
-    AccountRepository.modify(p._2).mapError(e => RepositoryError(e.getMessage)))
+    AccountRepository.modify(p).mapError(e => RepositoryError(e.getMessage)))
   val accDeleteEndpoint = deleteAPI.implement { case (id,company) => AccountRepository.delete(id, company).mapError(e => RepositoryError(e.getMessage))}
 
-  val routes = accAllEndpoint ++ accByIdEndpoint ++ balanceEndpoint ++ closePeriodEndpoint ++ accCreateEndpoint ++ accDeleteEndpoint
+  val routes = accAllEndpoint ++ accByIdEndpoint ++ balanceEndpoint ++ closePeriodEndpoint ++ accCreateEndpoint ++ accDeleteEndpoint++accModifyEndpoint
 
   val appAcc = routes //.toApp @@ bearerAuth(jwtDecode(_).isDefined)
 

@@ -2,10 +2,11 @@ package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, FinancialsTransactionx}
-import zio._
+import zio.{ZIO, _}
 import zio.prelude.FlipOps
 import zio.sql.ConnectionPool
 import zio.stream._
+import scala.annotation.nowarn
 
 final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionRepository with TransactionTableDescription {
 
@@ -28,82 +29,59 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       type_journal_,
       file_content_
     )
-      .from(transaction)
+      .from(transactions)
 
   private val SELECT_LINE = select(lid_, transid, laccount_, side_, oaccount_, amount_, duedate_, ltext_, currency_).from(transactionDetails)
-  private val CURRVAL     = FunctionDef[String, Long](FunctionName("currval"))
+  //private val CURRVAL     = FunctionDef[String, Long](FunctionName("currval"))
   //private val LASTVAL     = FunctionDef[String, Long](FunctionName("lastval"))
 
-  private def getLastTransid: ZIO[Any, RepositoryError, Option[Long]] = {
-    val selectAll = select(CURRVAL("master_compta_id_seq"))
-    //val selectAll = select(LASTVAL("master_compta_id_seq"))
+//  private def getLastTransid: ZIO[Any, RepositoryError, Long] =
+//    execute(selectAll).findFirstLong(driverLayer, -4711L)
 
-    execute(selectAll).runHead.provideAndLog(driverLayer)
-
+  private def insertNewLines(models: List[FinancialsTransactionDetails], parentId:Long)= {
+    val lines = models.map(l => l.copy(transid = parentId))
+    val query = insertInto(transactionDetailsInsert)(transidx, laccountx, sidex, oaccountx, amountx, duedatex, ltextx, currencyx).values(lines.map(toTuple))
+    query
   }
 
+  private def buildInsertQuery(model: FinancialsTransaction)=
+    insertInto(transactionInsert)(
+      oidx,
+      costcenterx,
+      accountx,
+      transdatex,
+      enterdatex,
+      postingdatex,
+      periodx,
+      postedx,
+      modelidx,
+      companyx,
+      textx,
+      type_journalx,
+      file_contentx
+    ).values( toTupleC(model))
 
-  private def buildDetailsQuery(models: List[FinancialsTransactionDetails]) = {
-    if (models.isEmpty) ZIO.succeed(0) else
-    for {
-      nextTransId <- getLastTransid
-      _ <- ZIO.logDebug(s"Next transaction id is ${nextTransId} ${models}")
-       lines = models.map(l => l.copy(transid = nextTransId.getOrElse(-1L)))
-       query = insertInto(transactionDetailsInsert)(transidx, laccountx, sidex, oaccountx, amountx, duedatex, ltextx, currencyx).values(lines.map(toTuple))
-      _        <- ZIO.logDebug(s"Query to insert FinancialsTransactionDetails  ${renderInsert(query)}")
-      inserted <- execute(query).provideAndLog(driverLayer)
-    } yield inserted
+  @nowarn
+  override def create(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = {
+    val trans = for {
+      x <- buildInsertQuery(model).run
+      y <- insertNewLines(model.lines, -1L).run
+    } yield x+y
+      transact(trans).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
   }
-
-
-  private def buildQuery(model: FinancialsTransaction)=
-   insertInto(transactionInsert)(
-    oidx,
-    costcenterx,
-    accountx,
-    transdatex,
-    enterdatex,
-    postingdatex,
-    periodx,
-    postedx,
-    modelidx,
-    companyx,
-    textx,
-    type_journalx,
-    file_contentx
-  ).values( toTupleC(model))
-
-
-  private def runInsert(model: FinancialsTransaction) = {
-    val query = buildQuery(model)
-    val result = for {
-      _ <- ZIO.logDebug(s"Query to insert Transaction is ${renderInsert(query)}")
-      transactionInserted <- execute(query).provideAndLog(driverLayer)
-      insertedDetails <- buildDetailsQuery(model.lines)
-    } yield (transactionInserted + insertedDetails)
-    result
-  }
-  private def insert(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =
-    models.map(runInsert).flip.map(_.sum)
-
-  override def create(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int]     = insert(List(model))
-  override def create(model: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int]        = insert(model)
-
-  private def buildDeleteDetails(id_ :Long):Delete[com.kabasoft.iws.domain.FinancialsTransactionDetails]  =
-    deleteFrom(transactionDetails).where(lid_ === id_)
-
+  override def create(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int]        = models.map(create).flip.map(_.sum)
+  private def buildDeleteDetails(ids: List[Long]): Delete[FinancialsTransactionDetails] =
+    deleteFrom(transactionDetails).where(lid_ in ids)
 
   override def delete(id : Long, companyId: String): ZIO[Any, RepositoryError, Int] = {
-    val deleteQuery = deleteFrom(transaction).where((id_ === id) && (company_ === companyId))
+    val deleteQuery = deleteFrom(transactions).where((id_ === id) && (company_ === companyId))
     ZIO.logDebug(s"Delete  FinancialsTransactionDetails  ${renderDelete(deleteQuery)}")*>
-    execute(deleteQuery)
-      .provideLayer(driverLayer)
-      .mapError(e => RepositoryError(e.getMessage))
+      execute(deleteQuery)
+        .provideLayer(driverLayer)
+        .mapError(e => RepositoryError(e.getMessage))
   }
 
-  private def buildUpdateDetails(
-    details: FinancialsTransactionDetails
-  ): Update[FinancialsTransactionDetails]=
+  private def buildUpdateDetails(details: FinancialsTransactionDetails): ZIO[SqlTransaction, Exception, Int] =
     update(transactionDetails)
       .set(transid, details.transid)
       .set(laccount_, details.account)
@@ -112,10 +90,10 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       .set(duedate_, details.duedate)
       .set(ltext_, details.text)
       .set(currency_, details.currency)
-      .where(lid_ === details.id)
+      .where(lid_ === details.id).run
 
   private def build(trans: FinancialsTransaction):Update[FinancialsTransactionx]  =
-    update(transaction)
+    update(transactions)
       .set(oid_, trans.oid)
       .set(costcenter_, trans.costcenter)
       .set(account_, trans.account)
@@ -127,9 +105,11 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       .set(file_content_, trans.file_content)
       .where((id_ === trans.id) && (company_ === trans.company))
 
-  override def modify(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] = for{
-  nr <-  ZIO.foreach(models)(modify).map(_.sum)
+  override def modify(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] = for {
+    nr <-  ZIO.foreach(models)(modify).map(_.sum)
   } yield nr
+
+  @nowarn
   override def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = {
     def insertPredicate(line: FinancialsTransactionDetails) = line.id <= -1L
     def deletePredicate(line: FinancialsTransactionDetails) = line.transid == -2L
@@ -139,19 +119,14 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
     val newLines = splitted._1
     val deletedLineIds = splitted2._1.map(line => line.id)
     val oldLines = splitted._2
-    val detailsUpdate = oldLines.map(d => buildUpdateDetails(d))
     val update_       = build(model)
-    val result: ZIO[Any, RepositoryError, Int] = for {
-      insertedDetails <- buildDetailsQuery( newLines)
-      deletedDetails <-  executeBatchDelete(deletedLineIds.map(buildDeleteDetails))
-      .provideLayer(driverLayer).mapBoth(e => RepositoryError(e.getMessage), _.sum)
-      updatedDetails <- executeBatchUpdate(detailsUpdate)
-        .provideLayer(driverLayer).mapBoth(e => RepositoryError(e.getMessage), _.sum)
-      updatedTransactions <- execute(update_)
-              .provideLayer(driverLayer)
-              .mapError(e => RepositoryError(e.getMessage))
-    } yield updatedTransactions + insertedDetails+updatedDetails+deletedDetails
-    result
+    val result = for {
+      insertedDetails <- insertNewLines(newLines, model.id).run
+      deletedDetails <-  buildDeleteDetails(deletedLineIds).run
+      updatedDetails <-oldLines.filter(_.transid==model.id).map(buildUpdateDetails).flip
+      updatedTransactions <-update_.run
+     } yield insertedDetails+deletedDetails+updatedDetails.sum+updatedTransactions
+    transact(result).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
   }
 
   private[this] def list1(companyId: String): ZStream[Any, RepositoryError, FinancialsTransaction] = {
@@ -160,17 +135,12 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       execute(selectAll.to[FinancialsTransaction](c => FinancialsTransaction.applyC(c)))
         .provideDriver(driverLayer)
   }
-
   override def all(companyId: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
     trans <- list1(companyId).mapZIO(tr => getTransWithLines(tr.id, companyId)).runCollect.map(_.toList)
   } yield trans
 
-
-  private[this] def find4Period_(
-    fromPeriod: Int,
-    toPeriod: Int,
-    companyId: String
-  ): ZStream[Any, RepositoryError, FinancialsTransaction] = {
+  private[this] def find4Period_( fromPeriod: Int, toPeriod: Int, companyId: String
+                                ): ZStream[Any, RepositoryError, FinancialsTransaction] = {
     val selectAll = SELECT2
       .where((company_ === companyId) && (period_ >= fromPeriod) && (period_ <= toPeriod))
       .orderBy(account_.descending)
@@ -182,12 +152,12 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
         .provideDriver(driverLayer)
   }
   def find4Period(
-    fromPeriod: Int,
-    toPeriod: Int,
-    companyId: String
-  ): ZStream[Any, RepositoryError, FinancialsTransaction] = for {
+                   fromPeriod: Int,
+                   toPeriod: Int,
+                   companyId: String
+                 ): ZStream[Any, RepositoryError, FinancialsTransaction] = for {
     trans <- find4Period_(fromPeriod, toPeriod, companyId)
-               .mapZIO(tr => getTransWithLines(tr.id, tr.company))
+      .mapZIO(tr => getTransWithLines(tr.id, tr.company))
   } yield trans
 
   private[this] def getLineByTransId(id: Long): ZStream[Any, RepositoryError, FinancialsTransactionDetails] = {
@@ -213,12 +183,11 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
   def getById(id: Long, companyId: String): ZIO[Any, RepositoryError, FinancialsTransaction] = {
     val selectAll = SELECT2.where((company_ === companyId) && (id_ === id))
     ZIO.logDebug(s"Query to execute getById ${id} is ${renderRead(selectAll)}") *>
-     // execute(selectAll.to[FinancialsTransaction](c => FinancialsTransaction.applyC(c)))
-      execute(selectAll.to(x => {println(x); FinancialsTransaction.apply(x)}))
+      execute(selectAll.to(x => FinancialsTransaction.apply(x)))
         .findFirstLong(driverLayer, id)
   }
 
-  override def getByModelId(modelId:(Int, String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =for {
+  override def getByModelId(modelId:(Int, String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
     trans <- getByModelIdX(modelId._1,modelId._2).mapZIO(tr => getTransWithLines(tr.id, modelId._2)).runCollect.map(_.toList)
   }yield trans
 

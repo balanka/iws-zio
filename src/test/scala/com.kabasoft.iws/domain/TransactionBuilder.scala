@@ -36,7 +36,7 @@ object TransactionBuilder {
     , period, false, modelid, company, "comments"+modelid, -1,-1, List(line1, line2))
   val ftr2 = FinancialsTransaction(0, -1, costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
     , period, false, modelid2, company, "comments", -1, -1, List(line3))
-  val ftr4 = FinancialsTransaction(0, -1, costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
+  val ftr4 = FinancialsTransaction(-1, -1, costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
     , period, false, modelid2, company, "comments", -1, -1, List(line4))
   val ftr5 = FinancialsTransaction(1, -1, costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
     , period, false, modelid2, company, "comments", -1, -1, List(line5, line6))
