@@ -69,7 +69,8 @@ object LoginRoutes {
     val useropt   = r.find(_.userName.equals(loginRequest.userName))
     val user      = useropt.getOrElse(DummyUser)
     println(s"user >>>>>> ${user}")
-    println(s"password >>>>>> ${jwtEncode(loginRequest.password,1000000)}")
+    val pwd_ = jwtEncode(loginRequest.password,1000000)
+    println(s"password >>>>>> ${pwd_}")
     val content   = jwtDecode(user.hash).toList.head.content
     println(s"content >>>>>> $content")
     val pwd       = content.substring(1, content.length - 1).replaceAll("\"", "")

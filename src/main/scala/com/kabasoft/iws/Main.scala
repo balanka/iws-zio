@@ -39,7 +39,7 @@ object Main extends ZIOAppDefault {
     implicit val trace = Trace.empty
     ZLayer.succeed(
       //Config.default.binding("localhost", 8091)
-      Config.default.binding("mac-studio", 8091)
+      Config.default.binding("localhost", 8091)
 
     ) >>> Server.live
   }
@@ -50,7 +50,7 @@ object Main extends ZIOAppDefault {
       //anyMethod = false,
       allowedHeaders = AccessControlAllowHeaders.All,
       allowedOrigin = {
-        case origin @Origin.Value(_,host,_) if(host=="mac-studio" ||host=="localhost" || host=="127.0.0.1")=>Some(AccessControlAllowOrigin.Specific(origin))
+        case origin @Origin.Value(_,host,_) if(host=="iwsmacs-MacBook-Pro.local" ||host=="localhost" || host=="127.0.0.1")=>Some(AccessControlAllowOrigin.Specific(origin))
         case _ =>None
       },
       allowedMethods = AccessControlAllowMethods.Some(NonEmptyChunk(Method.GET, Method.POST,Method.PUT,Method.PATCH))

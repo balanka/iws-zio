@@ -169,10 +169,15 @@ create table if not exists periodic_account_balance
     constraint periodic_account_balance_pk
     primary key
     );
+/*
+ ALTER SEQUENCE public.master_compta_id_seq
+	START 5634
+	RESTART 5634;
+ */
 DROP SEQUENCE IF EXISTS master_compta_id_seq ;
 CREATE SEQUENCE master_compta_id_seq
     INCREMENT 1
-   MINVALUE 1
+   MINVALUE 1 --5633
    MAXVALUE 9223372036854775807
    START 2
    CACHE 1;

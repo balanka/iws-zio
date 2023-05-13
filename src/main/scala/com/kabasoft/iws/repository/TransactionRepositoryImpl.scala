@@ -64,10 +64,15 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
   @nowarn
   override def create(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = {
     val trans = for {
+      _<-ZIO.logInfo(s"Result createtransaaction  ${renderInsert(buildInsertQuery(model))} ")
       x <- buildInsertQuery(model).run
-      y <- insertNewLines(model.lines, -1L).run
-    } yield x+y
-      transact(trans).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
+
+    //  y <- insertNewLines(model.lines, -1L).run
+    } yield x//+y
+    val r = transact(trans)
+        .tap(tr => ZIO.logInfo(s"Result createtransaaction  ${tr} "))
+        .mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
+    r
   }
   override def create(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int]        = models.map(create).flip.map(_.sum)
   private def buildDeleteDetails(ids: List[Long]): Delete[FinancialsTransactionDetails] =
@@ -81,8 +86,8 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
         .mapError(e => RepositoryError(e.getMessage))
   }
 
-  private def buildUpdateDetails(details: FinancialsTransactionDetails): ZIO[SqlTransaction, Exception, Int] =
-    update(transactionDetails)
+  private def buildUpdateDetails(details: FinancialsTransactionDetails): ZIO[SqlTransaction, Exception, Int] = {
+    val updateSQL= update(transactionDetails)
       .set(transid, details.transid)
       .set(laccount_, details.account)
       .set(side_, details.side)
@@ -90,7 +95,10 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       .set(duedate_, details.duedate)
       .set(ltext_, details.text)
       .set(currency_, details.currency)
-      .where(lid_ === details.id).run
+      .where(lid_ === details.id)//.run
+    ZIO.logInfo(s"Delete  FinancialsTransactionDetails  ${renderUpdate(updateSQL)}")*>
+    updateSQL.run
+  }
 
   private def build(trans: FinancialsTransaction):Update[FinancialsTransactionx]  =
     update(transactions)
@@ -119,14 +127,20 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
     val newLines = splitted._1
     val deletedLineIds = splitted2._1.map(line => line.id)
     val oldLines = splitted._2
+    val oldLines2Update = oldLines.filter(_.transid==model.id)
     val update_       = build(model)
+
     val result = for {
-      insertedDetails <- insertNewLines(newLines, model.id).run
-      deletedDetails <-  buildDeleteDetails(deletedLineIds).run
-      updatedDetails <-oldLines.filter(_.transid==model.id).map(buildUpdateDetails).flip
-      updatedTransactions <-update_.run
-     } yield insertedDetails+deletedDetails+updatedDetails.sum+updatedTransactions
-    transact(result).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
+      insertedDetails <- ZIO.when(newLines.size > 0)(insertNewLines(newLines, model.id).run)
+      deletedDetails <- ZIO.when(deletedLineIds.size > 0)(buildDeleteDetails(deletedLineIds).run)
+      updatedDetails <- ZIO.when(oldLines2Update.size > 0)(oldLines2Update.map(buildUpdateDetails).flip.map(_.sum))
+      updatedTransactions <- update_.run
+    } yield insertedDetails.getOrElse(0) + deletedDetails.getOrElse(0) + updatedDetails.getOrElse(0) + updatedTransactions
+
+    def buildResult =  transact(result).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
+
+  ZIO.logInfo(s"SQL to execute modify is ${renderUpdate(update_)}")*>buildResult
+
   }
 
   private[this] def list1(companyId: String): ZStream[Any, RepositoryError, FinancialsTransaction] = {
