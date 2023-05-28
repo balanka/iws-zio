@@ -41,7 +41,7 @@ object LoginRoutes {
   }
 
 
-  def appLogin = Http.collectZIO[Request] { case req@Method.POST -> !! / "users" / "login" =>
+  def appLogin = Http.collectZIO[Request] { case req@Method.POST -> Root / "users" / "login" =>
     for {
       body <- req.body.asString
         .flatMap(request =>
