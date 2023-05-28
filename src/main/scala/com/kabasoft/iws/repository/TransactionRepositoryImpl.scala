@@ -66,9 +66,8 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
     val trans = for {
       _<-ZIO.logInfo(s"Result createtransaaction  ${renderInsert(buildInsertQuery(model))} ")
       x <- buildInsertQuery(model).run
-
-    //  y <- insertNewLines(model.lines, -1L).run
-    } yield x//+y
+      y <- insertNewLines(model.lines, model.id).run
+    } yield x+y
     val r = transact(trans)
         .tap(tr => ZIO.logInfo(s"Result createtransaaction  ${tr} "))
         .mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
