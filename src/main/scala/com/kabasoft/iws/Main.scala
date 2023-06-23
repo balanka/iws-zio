@@ -50,7 +50,8 @@ object Main extends ZIOAppDefault {
       //anyMethod = false,
       allowedHeaders = AccessControlAllowHeaders.All,
       allowedOrigin = {
-        case origin @Origin.Value(_,host,_) if(host=="iwsmacs-MacBook-Pro.local" ||host=="localhost" || host=="127.0.0.1")=>Some(AccessControlAllowOrigin.Specific(origin))
+        case origin @Origin.Value(_,host,_) if(host=="iwsmacs-MacBook-Pro.local" ||host=="Mac-Studio"||
+          host=="localhost" || host=="127.0.0.1")=>Some(AccessControlAllowOrigin.Specific(origin))
         case _ =>None
       },
       allowedMethods = AccessControlAllowMethods.Some(NonEmptyChunk(Method.GET, Method.POST,Method.PUT,Method.PATCH))
