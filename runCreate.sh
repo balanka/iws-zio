@@ -1,1 +1,1 @@
-curl -d"@createFtr.txt" -X POST http://mac-studio:8091/ftrm -H 'authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJleHAiOjE2ODM2MzIxMDIsImlhdCI6MTY4MjYzMjEwMix3dWR1d2FsaTJ4fQ.APdCcyxE17uwDSwJbBtjHMdrBKvDcaT8FpMWR9JsTnqfcpUKRC6W81R3-bZ0CTz1Z9ISRfZ02HzvcSGYk703Ow'
+curl -d"@createFtr.txt" -X POST http://mac-studio:8091/ftrm -H 'authorization: Bearer ..-'
