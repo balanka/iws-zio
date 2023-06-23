@@ -32,7 +32,7 @@ object AccountEndpoint {
     AccountRepository.create(List(account)).mapError(e => RepositoryError(e.getMessage)))
   val balanceEndpoint = balanceAPI.implement { case (company:String, accId: String, from: Int, to: Int) =>
     AccountService.getBalance(accId, from, to, company).mapError(e => RepositoryError(e.getMessage))}
-  val accByIdEndpoint = accByIdAPI.implement (p => AccountCache.getBy(p).mapError(e => RepositoryError(e.getMessage))
+  val accByIdEndpoint = accByIdAPI.implement (p => AccountCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val closePeriodEndpoint = closePeriodAPI.implement { case (accId: String, from: Int, to: Int, company:String) =>
     AccountService.closePeriod(from, to, accId, company).mapError(e => RepositoryError(e.getMessage))}
   val accModifyEndpoint = accModifyAPI.implement(p => ZIO.logInfo(s"Modify account  ${p}") *>

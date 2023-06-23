@@ -1,12 +1,14 @@
 package com.kabasoft.iws.api
 import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.repository.Schema.vatSchema
+import com.kabasoft.iws.repository.Schema.repositoryErrorSchema
 import com.kabasoft.iws.domain.Vat
-import com.kabasoft.iws.repository.Schema.{repositoryErrorSchema, vatSchema}
 import com.kabasoft.iws.repository._
 import zio.ZIO
-import zio.http.Status
+import zio.http.codec.HttpCodec._
 import zio.http.codec.HttpCodec.string
 import zio.http.endpoint.Endpoint
+import zio.http.Status
 
 object VatEndpoint {
 
