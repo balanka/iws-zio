@@ -1486,4 +1486,4 @@ final case class User_(
 object User_ {
   def apply(u: User): User_ = new User_(u.userName, u.firstName, u.lastName, u.hash, u.phone, u.email, u.department, u.menu, u.company, u.modelid)
 }
-final case class LoginRequest(userName: String, password: String)
+final case class LoginRequest(userName: String, password: String, company: String, language:String)
