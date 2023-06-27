@@ -659,6 +659,7 @@ final case class Module(
   name: String = "",
   description: String = "",
   path: String = "",
+  parent: String= "",
   enterdate: Instant = Instant.now(),
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now(),

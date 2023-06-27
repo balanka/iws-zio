@@ -13,10 +13,10 @@ final class ModuleRepositoryImpl(pool: ConnectionPool) extends ModuleRepository 
 
   val module = defineTable[Module]("module")
 
-  val (id, name, description, path, enterdate, changedate, postingdate, modelid, company) = module.columns
-  val SELECT                                                                              = select(id, name, description, path, enterdate, changedate, postingdate, modelid, company).from(module)
+  val (id, name, description, path, parent, enterdate, changedate, postingdate, modelid, company) = module.columns
+  val SELECT                                                                              = select(id, name, description, path, parent, enterdate, changedate, postingdate, modelid, company).from(module)
   override def create(c: Module): ZIO[Any, RepositoryError, Unit]                         = {
-    val query = insertInto(module)(id, name, description, path, enterdate, changedate, postingdate, modelid, company).values(Module.unapply(c).get)
+    val query = insertInto(module)(id, name, description, path, parent, enterdate, changedate, postingdate, modelid, company).values(Module.unapply(c).get)
 
     ZIO.logDebug(s"Query to insert Module is ${renderInsert(query)}") *>
       execute(query)
@@ -25,7 +25,7 @@ final class ModuleRepositoryImpl(pool: ConnectionPool) extends ModuleRepository 
   }
   override def create(models: List[Module]): ZIO[Any, RepositoryError, Int]               = {
     val data  = models.map(Module.unapply(_).get)
-    val query = insertInto(module)(id, name, description, path, enterdate, changedate, postingdate, modelid, company).values(data)
+    val query = insertInto(module)(id, name, description, path, parent,enterdate, changedate, postingdate, modelid, company).values(data)
 
     ZIO.logDebug(s"Query to insert Module is ${renderInsert(query)}") *>
       execute(query)
@@ -41,6 +41,7 @@ final class ModuleRepositoryImpl(pool: ConnectionPool) extends ModuleRepository 
       .set(name, model.name)
       .set(description, model.description)
       .set(path, model.path)
+      .set(parent, model.parent)
       .where((id === model.id) && (company === model.company))
     ZIO.logDebug(s"Query Update Module is ${renderUpdate(update_)}") *>
       execute(update_)

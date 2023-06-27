@@ -105,7 +105,8 @@ create table if not exists public.module
     enterdate   timestamp   default CURRENT_TIMESTAMP not null,
     company     varchar(50)                       not null,
     modelid     integer      default 6            not null,
-    path        varchar(255) default '/'::character varying
+    path        varchar(255) default '/'::character varying,
+    path        varchar(50) default ''::character varying
     );
 
 create table  bank
