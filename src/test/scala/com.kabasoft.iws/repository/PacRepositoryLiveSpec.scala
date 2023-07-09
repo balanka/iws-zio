@@ -29,7 +29,7 @@ object PacRepositoryLiveSpec extends ZIOSpecDefault {
           newPacs=pacs.filterNot(row.contains)
           nrCreatedRow <- PacRepository.create(newPacs)
 
-        } yield assertTrue(nrCreatedRow==1) && assertTrue(row.size==2)
+        } yield assertTrue(nrCreatedRow==1) && assertTrue(row.size==3)
       }
     ).provideLayerShared(testLayer.orDie) @@ sequential
 

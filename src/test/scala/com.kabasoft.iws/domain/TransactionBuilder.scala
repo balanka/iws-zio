@@ -4,6 +4,7 @@ import com.kabasoft.iws.domain.AccountBuilder.{accountId, faccountId, incaccount
 
 import java.math.{BigDecimal, RoundingMode}
 import java.time.Instant
+import scala.util.Random
 
 object TransactionBuilder {
   val company ="1000"
@@ -21,24 +22,28 @@ object TransactionBuilder {
   val terms = "terms"
   val currency = "EUR"
   val costCenter = "311"
+  val transid21 = new String(Random.alphanumeric.take(10).toArray)
+  val transid22 = new String(Random.alphanumeric.take(10).toArray)
+  val transid24 = new String(Random.alphanumeric.take(10).toArray)
+  val transid25 = new String(Random.alphanumeric.take(10).toArray)
 
-  val line1=  FinancialsTransactionDetails(-1, 0, faccountId, side, incaccountId1 , amount.subtract(vatAmount), Instant.now(), terms, currency)
-  val line2=  FinancialsTransactionDetails(-1, 0, faccountId, side, vataccountId, vatAmount, Instant.now(), terms, currency)
-  val line3 = FinancialsTransactionDetails(-3, 0, accountId, side, faccountId, amount.add(vatAmount) , Instant.now(), terms, currency)
-  val line4 = FinancialsTransactionDetails(-4, 0, accountId, side, faccountId, amount.add(vatAmount) , Instant.now(), terms, currency)
-  val line5 = FinancialsTransactionDetails(1, 0, faccountId, side, incaccountId1, amount.subtract(vatAmount) , Instant.now(), terms, currency)
-  val line6 = FinancialsTransactionDetails(1, 0, faccountId, side, vataccountId, vatAmount , Instant.now(), terms, currency)
+  val line1=  FinancialsTransactionDetails(-1, 0, transid21, faccountId, side, incaccountId1 , amount.subtract(vatAmount), Instant.now(), terms, currency)
+  val line2=  FinancialsTransactionDetails(-1, 0, transid21, faccountId, side, vataccountId, vatAmount, Instant.now(), terms, currency)
+  val line3 = FinancialsTransactionDetails(-3, 0, transid22, accountId, side, faccountId, amount.add(vatAmount) , Instant.now(), terms, currency)
+  val line4 = FinancialsTransactionDetails(-4, 0, transid24, accountId, side, faccountId, amount.add(vatAmount) , Instant.now(), terms, currency)
+  val line5 = FinancialsTransactionDetails(1, 0, transid25, faccountId, side, incaccountId1, amount.subtract(vatAmount) , Instant.now(), terms, currency)
+  val line6 = FinancialsTransactionDetails(1, 0, transid25, faccountId, side, vataccountId, vatAmount , Instant.now(), terms, currency)
 
 
 
 
-  val ftr1 = FinancialsTransaction(0,-1,costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
+  val ftr1 = FinancialsTransaction(0,-1, transid21, costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
     , period, false, modelid, company, "comments"+modelid, -1,-1, List(line1, line2))
-  val ftr2 = FinancialsTransaction(0, -1, costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
+  val ftr2 = FinancialsTransaction(0, -1, transid22, costCenter, accountId, Instant.now(), Instant.now().plusMillis(2L), Instant.now()
     , period, false, modelid2, company, "comments", -1, -1, List(line3))
-  val ftr4 = FinancialsTransaction(-1, -1, costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
+  val ftr4 = FinancialsTransaction(-1, -1, transid24, costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
     , period, false, modelid2, company, "comments", -1, -1, List(line4))
-  val ftr5 = FinancialsTransaction(1, -1, costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
+  val ftr5 = FinancialsTransaction(1, -1, transid25, costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
     , period, false, modelid2, company, "comments", -1, -1, List(line5, line6))
   val dtransactions = ftr1.toDerive()
   val pacs = PeriodicAccountBalance.create(ftr1).distinct

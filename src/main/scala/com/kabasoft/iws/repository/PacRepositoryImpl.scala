@@ -139,7 +139,7 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
   ): ZStream[Any, RepositoryError, PeriodicAccountBalance] = {
     val selectAll = getBalancesQuery(fromPeriod, toPeriod, companyId)
     ZStream.fromZIO(
-      ZIO.logDebug(s"Query to execute findBalance4Period is ${renderRead(selectAll)}")
+      ZIO.logInfo(s"Query to execute findBalance4Period is ${renderRead(selectAll)}")
     ) *>
       execute(selectAll.to(x => PeriodicAccountBalance.applyX(x)))
         .provideDriver(driverLayer)

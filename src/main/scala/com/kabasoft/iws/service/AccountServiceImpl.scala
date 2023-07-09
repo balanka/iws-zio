@@ -12,12 +12,9 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
       pacBalances <- pacRepo.getBalances4Period(fromPeriod, toPeriod, companyId).runCollect.map(_.toList)
       pacs        <- pacRepo.find4Period(period, period, companyId).runCollect.map(_.toList)
     } yield {
-      val accountsWithBalances    = pacBalances
-        .map(pac =>
-          accounts.find(acc => pac.account == acc.id)
-            map (_.copy(idebit = pac.idebit, debit = pac.debit, icredit = pac.icredit, credit = pac.credit))
-        )
-        .flatten
+      val accountsWithBalances    = pacBalances.flatMap(pac =>
+        accounts.find(acc => pac.account == acc.id)
+          map (_.copy(idebit = pac.idebit, debit = pac.debit, icredit = pac.icredit, credit = pac.credit)))
       val accountsWithoutBalances = accounts.filterNot(acc => accountsWithBalances.map(_.id).contains(acc.id))
       val all                     = accountsWithBalances ::: accountsWithoutBalances
       val account1                = Account.consolidate(accId, all, pacs)
@@ -43,8 +40,8 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
                         .map { case (_, v) => reduce(v, PeriodicAccountBalance.dummy) }
                         .filterNot(x => x.id == PeriodicAccountBalance.dummy.id)
                         .toList
-
-      filteredList = initpacList.filterNot(x => list.find(_.id == x.account).fold(false)(_ => true))
+      filteredList = initpacList//.filterNot(x => list.map(_.id ).contains(x.account))
+      //filteredList = initpacList//.filterNot(x => list.find(_.id == x.account).fold(false)(_ => true))
 
       pacList      = filteredList
                        .filterNot(x => x.dbalance == zeroAmount || x.cbalance == zeroAmount)

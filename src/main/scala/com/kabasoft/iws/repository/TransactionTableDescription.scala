@@ -24,6 +24,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
 
   val (
     oidx,
+    id2,
     costcenterx,
     accountx,
     transdatex,
@@ -41,6 +42,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
   val (
     id_,
     oid_,
+    id2_,
     costcenter_,
     account_,
     transdate_,
@@ -57,6 +59,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
   val (
     lid_,
     transid,
+    transid2,
     laccount_,
     side_,
     oaccount_,
@@ -68,6 +71,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
 
   val (
     transidx,
+    transid2x,
     laccountx,
     sidex,
     oaccountx,
@@ -81,6 +85,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
   def toTupleF(c: FinancialsTransaction) = (
     c.id,
     c.oid,
+    c.id2,
     c.costcenter,
     c.account,
     c.transdate,
@@ -97,6 +102,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
 
   def toTupleC(c: FinancialsTransaction) = (
     c.oid,
+    c.id2,
     c.costcenter,
     c.account,
     c.transdate,
@@ -113,6 +119,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
 
   def toTuple(c: FinancialsTransactionDetails) = (
     c.transid,
+    c.transid2,
     c.account,
     c.side,
     c.oaccount,
@@ -123,6 +130,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
 
   def toTupleC(c: FinancialsTransactionDetails) = (
     c.transid,
+    c.transid2,
     c.account,
     c.side,
     c.oaccount,

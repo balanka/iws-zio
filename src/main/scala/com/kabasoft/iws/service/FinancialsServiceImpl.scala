@@ -2,17 +2,11 @@ package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.common._
-import com.kabasoft.iws.domain.{
-  common,
-  FinancialsTransaction,
-  FinancialsTransactionDetails,
-  Journal,
-  PeriodicAccountBalance,
-  TPeriodicAccountBalance
-}
-import com.kabasoft.iws.repository.{ JournalRepository, PacRepository, TransactionRepository }
+import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, Journal, PeriodicAccountBalance, TPeriodicAccountBalance, common}
+import com.kabasoft.iws.repository.{JournalRepository, PacRepository, TransactionRepository}
 import zio._
 import zio.prelude.FlipOps
+
 
 import java.time.Instant
 
@@ -56,6 +50,7 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRe
     } yield nr
 
   override def post(id: Long, company: String): ZIO[Any, RepositoryError, Int] =
+    ZIO.logInfo(s" Posting transaction with id ${id} of company ${company}")*>
     ftrRepo
       .getByTransId((id, company))
       .flatMap(trans => postAllTransactions(List(trans), company).flatten)
@@ -65,26 +60,28 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRe
     for {
       pacs <- pacRepo.getByIds(buildPacIds(models), company)
       tpacs <- ZIO.foreach(pacs)(TPeriodicAccountBalance.apply)
-      xx = models.flatMap(PeriodicAccountBalance.create).filterNot(pacs.contains).groupBy(_.id) map { case (_, v) =>
-        common.reduce(v, PeriodicAccountBalance.dummy) // .copy(id = k)
+      _<- ZIO.foreachDiscard(pacs)(pac =>ZIO.logInfo(s"Id of pac FOUND ${pac.id}  ${company}"))
+      //newRecords     = PeriodicAccountBalance.create(model).filterNot(pacs.contains).distinct
+      newPacs_ = models.flatMap(PeriodicAccountBalance.create).filterNot(pacs.contains).distinct.groupBy(_.id) map { case (_, v) =>
+        common.reduce(v, PeriodicAccountBalance.dummy)
       }
-      newRecords <- ZIO.foreach(xx.toList)(TPeriodicAccountBalance.apply)
-      newPacs = updatePac(models, newRecords)
-      oldPacs = updatePac(models, tpacs)
-      newTPacs = newPacs.map(PeriodicAccountBalance.applyT).flip
-      oldTPacs = oldPacs.map(PeriodicAccountBalance.applyT).flip
+      _<- ZIO.foreachDiscard(newPacs_)(pac =>ZIO.logInfo(s"Ids of new pac CREATED ${pac.id}  ${company}"))
+      newRecords <- ZIO.foreach(newPacs_.toList)(TPeriodicAccountBalance.apply)
+      newTPacs = updatePac(models, newRecords.distinct)
+      oldTPacs = updatePac(models, tpacs)
+      newPacs = newTPacs.map(PeriodicAccountBalance.applyT).flip
+      oldPacs = oldTPacs.map(PeriodicAccountBalance.applyT).flip
 
-    } yield (newTPacs, oldTPacs)
+    } yield (newPacs, oldPacs)
   }
 
-  private[this] def postTransaction(transaction: FinancialsTransaction,  allPacs:(UIO[List[PeriodicAccountBalance]], UIO[List[PeriodicAccountBalance]]) )= {
+  private[this] def postTransaction(transaction: FinancialsTransaction,  allPacs:(UIO[List[PeriodicAccountBalance]], UIO[List[PeriodicAccountBalance]]) ): ZIO[Any, Nothing, (List[Journal],  List[PeriodicAccountBalance], List[PeriodicAccountBalance])] = {
     val model = transaction.copy(period = common.getPeriod(transaction.transdate))
     for {
        newPacs <-  allPacs._1
        oldPacs <-  allPacs._2
       journalEntries = makeJournal(model, newPacs ++ oldPacs)
-      transactions = model.copy(posted = true, postingdate = Instant.now())
-    } yield (journalEntries, List(transactions), newPacs, oldPacs)
+    } yield (journalEntries,  newPacs, oldPacs)
   }
 
   private[this] def postAllTransactions(models: List[FinancialsTransaction], company: String)=for {
@@ -92,7 +89,8 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRe
    //pacs = pacsx.flatten.distinct
    entries <- ZIO.foreach(models)(postTransaction(_,  pacs))
   }yield {
-  val (journals,transactions, newPacs, oldPacs) = entries.reduce((x,y) => (x._1++y._1,x._2++y._2, x._3++y._3,x._4++y._4))
+  val (journals, newPacs, oldPacs) = entries.reduce((x,y) => (x._1++y._1, x._2++y._2, x._3++y._3))
+    val transactions = models.map(ftr=>ftr.copy(posted=true, postingdate = Instant.now(), period=common.getPeriod(ftr.transdate)))
     persist(journals, transactions, newPacs, oldPacs)
   }
 
@@ -108,14 +106,16 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRe
                                   newPacs: List[PeriodicAccountBalance], oldPacs:List[PeriodicAccountBalance]) = for{
 
     pac_created <-  pacRepo.create(newPacs)
-    _           <- ZIO.logDebug(s" number of  pacs created  posted ${pac_created}")
+    _           <- ZIO.logInfo(s" number of  pacs created  posted ${pac_created}")
     pac_updated <- pacRepo.modify(oldPacs)
-    _           <- ZIO.logDebug(s" number of  pacs updated  posted ${pac_updated}")
+    _           <- ZIO.logInfo(s" number of  pacs updated  posted ${pac_updated}")
     journals_ <- journalRepo.create(journalEntries)
-    _          <- ZIO.logDebug(s"Created  ${journals_} journal entries")
+    _          <- ZIO.logInfo(s"Created  ${journals_} journal entries")
     trans = transactions.map(_.copy(posted = true, postingdate = Instant.now()))
-    trans_posted <- ftrRepo.modify(trans)
-    _            <- ZIO.logDebug(s" number of  pacs updated  posted ${pac_updated}")
+    _          <- ZIO.foreachDiscard(transactions)(trans =>ZIO.logInfo(s"Transaction posted  ${trans}"))
+
+    trans_posted <- ftrRepo.updatePostedField(trans)
+    _            <- ZIO.logInfo(s" number of  pacs updated  posted ${pac_updated}")
 
   }yield pac_created+ pac_updated+trans_posted+journals_
 
@@ -123,7 +123,7 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRe
       model.lines.flatMap( line => {
         val pacs = tpacs.filter(pac_ => pac_.id == buildPacId(model.getPeriod, line.account))
         val poacs = tpacs.filter(poac_ => poac_.id == buildPacId(model.getPeriod, line.oaccount))
-        TPeriodicAccountBalance.debitAndCreditAll(pacs, poacs, line.amount)
+        pacs.zip(poacs).map { case (pac, poac) => pac.transfer(poac, line.amount)}
         List(pacs, poacs)
       })
   ).flatten

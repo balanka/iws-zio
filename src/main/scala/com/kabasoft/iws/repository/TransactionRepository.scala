@@ -18,6 +18,8 @@ trait TransactionRepository {
   def find4Period(fromPeriod: Int, toPeriod: Int, company: String): ZStream[Any, RepositoryError, FinancialsTransaction]
   def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int]
   def modify(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int]
+   def updatePostedField(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int]
+  def updatePostedField(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int]
 }
 
 object TransactionRepository {
@@ -43,4 +45,9 @@ object TransactionRepository {
     ZIO.service[TransactionRepository] flatMap (_.modify(model))
   def modify(models: List[FinancialsTransaction]): ZIO[TransactionRepository, RepositoryError, Int] =
     ZIO.service[TransactionRepository] flatMap (_.modify(models))
+
+  def updatePostedField(model: FinancialsTransaction): ZIO[TransactionRepository, RepositoryError, Int] =
+    ZIO.service[TransactionRepository] flatMap (_.updatePostedField(model))
+   def updatePostedField(models: List[FinancialsTransaction]): ZIO[TransactionRepository, RepositoryError, Int]=
+     ZIO.service[TransactionRepository] flatMap (_.updatePostedField(models))
 }

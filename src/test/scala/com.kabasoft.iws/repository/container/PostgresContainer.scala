@@ -13,7 +13,7 @@ object PostgresContainer {
       ZIO.acquireRelease {
         ZIO.attemptBlocking {
           val c = new PostgreSQLContainer(
-            dockerImageNameOverride = Option("postgres:alpine").map(DockerImageName.parse)
+            dockerImageNameOverride = Option("postgres:12.3-alpine").map(DockerImageName.parse)
           ).configure { a =>
             a.withInitScript("init.sql")
             ()
