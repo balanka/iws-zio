@@ -1,6 +1,6 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.api.Protocol.{loginRequestDecoder, userEncoder}
+import com.kabasoft.iws.api.Protocol.{ loginRequestDecoder, userCodec}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain._
 import com.kabasoft.iws.domain.common.DummyUser
@@ -42,7 +42,9 @@ object LoginRoutes {
   def appLogin = Http.collectZIO[Request] {
     case req@Method.POST -> Root / "users" / "login" =>
       for {
+
         body <- req.body.asString
+          //.flatMap(request =>ZIO.logInfo(s" REQUEST: >>> ${request}")*>
           .flatMap(request =>
             ZIO
               .fromEither(request.fromJson[LoginRequest])
@@ -60,16 +62,22 @@ object LoginRoutes {
      // Response.json(user.toJson).addHeader(Header("authorization", token)).addHeader(Header("Origin", "localhost:3000"))
  // }
   private def checkLogin(loginRequest: LoginRequest): ZIO[UserRepository, RepositoryError, Response] = for {
+    _ <- ZIO.logInfo(s"checkLogin >>>>>>")
     r <- UserRepository.list(loginRequest.company).runCollect.map(_.toList)
+    user = r.find(_.userName.equals(loginRequest.userName)).getOrElse(DummyUser)
+    content   = jwtDecode(user.hash).toList.head.content.replace("{","").replace("}","")
+    _ <- ZIO.logInfo(s"user >>>>>> ${user}")
+    //_ <- ZIO.logInfo(s"pwd >>>>>> ${jwtEncode(loginRequest.password,1000000)}")
+    _ <- ZIO.logInfo(s"password >>>>>> ${content} >>>>>   ${content.substring(1, content.length - 1)}")
   } yield {
-    val useropt   = r.find(_.userName.equals(loginRequest.userName))
-    val user      = useropt.getOrElse(DummyUser)
-    println(s"user >>>>>> ${user}")
-    val pwd_ = jwtEncode(loginRequest.password,1000000)
-    println(s"pwd >>>>>> ${pwd_}")
-    val content   = jwtDecode(user.hash).toList.head.content
+//    val useropt   = r.find(_.userName.equals(loginRequest.userName))
+//    val user      = useropt.getOrElse(DummyUser)
+//    println(s"user >>>>>> ${user}")
+//    val pwd_ = jwtEncode(loginRequest.password,1000000)
+//    println(s"pwd >>>>>> ${pwd_}")
+//    val content   = jwtDecode(user.hash).toList.head.content
     println(s"content >>>>>> $content")
-    val pwd       = content.substring(1, content.length - 1).replaceAll("\"", "")
+    val pwd       = content//.substring(1, content.length - 1).replaceAll("\"", "")
     val pwdR      = loginRequest.password
     val usernameR = loginRequest.userName
     val username  = user.userName
@@ -77,9 +85,9 @@ object LoginRoutes {
     if (check) {
       val json = s"""{"${loginRequest.password}"}"""
       val token = jwtEncode(json, 1000000)
-      Response.json(user.toJson).addHeader(Custom("authorization", token)).addHeader(Custom("Origin", "http://localhost:3000"))
+      Response.json(user.toJson).addHeader(Custom("authorization", token))//.addHeader(Custom("Origin", "http://Mac-Studio.fritz.box:3000"))
+        .addHeader(Custom("Origin", "http://localhost:3000"))
         .addHeader(Custom("Access-Control-Allow-Origin", "*"))
-        //.addHeader(Custom("Access-Control-Allow-Origin", "http://localhost:3000"))
     } else {
       Response.text("Invalid  user name or password "
         + loginRequest.userName + "/"
