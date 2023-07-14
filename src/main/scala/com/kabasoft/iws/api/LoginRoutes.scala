@@ -44,7 +44,6 @@ object LoginRoutes {
       for {
 
         body <- req.body.asString
-          //.flatMap(request =>ZIO.logInfo(s" REQUEST: >>> ${request}")*>
           .flatMap(request =>
             ZIO
               .fromEither(request.fromJson[LoginRequest])
@@ -63,19 +62,15 @@ object LoginRoutes {
  // }
   private def checkLogin(loginRequest: LoginRequest): ZIO[UserRepository, RepositoryError, Response] = for {
     _ <- ZIO.logInfo(s"checkLogin >>>>>>")
-    r <- UserRepository.list(loginRequest.company).runCollect.map(_.toList)
+    //r <- UserRepository.list(loginRequest.company).runCollect.map(_.toList)
+    r <- UserRepository.list("1000").runCollect.map(_.toList)
     user = r.find(_.userName.equals(loginRequest.userName)).getOrElse(DummyUser)
     content   = jwtDecode(user.hash).toList.head.content.replace("{","").replace("}","")
     _ <- ZIO.logInfo(s"user >>>>>> ${user}")
     //_ <- ZIO.logInfo(s"pwd >>>>>> ${jwtEncode(loginRequest.password,1000000)}")
     _ <- ZIO.logInfo(s"password >>>>>> ${content} >>>>>   ${content.substring(1, content.length - 1)}")
   } yield {
-//    val useropt   = r.find(_.userName.equals(loginRequest.userName))
-//    val user      = useropt.getOrElse(DummyUser)
-//    println(s"user >>>>>> ${user}")
-//    val pwd_ = jwtEncode(loginRequest.password,1000000)
-//    println(s"pwd >>>>>> ${pwd_}")
-//    val content   = jwtDecode(user.hash).toList.head.content
+
     println(s"content >>>>>> $content")
     val pwd       = content//.substring(1, content.length - 1).replaceAll("\"", "")
     val pwdR      = loginRequest.password

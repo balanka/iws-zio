@@ -19,8 +19,8 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       id_,
       oid_,
       id2_,
-      account_,
       costcenter_,
+      account_,
       transdate_,
       enterdate_,
       postingdate_,
@@ -121,6 +121,8 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       .set(modelid_, trans.modelid)
       .set(company_, trans.company)
       .set(text_, trans.text)
+      .set(period_, trans.period)
+      .set(posted_, trans.posted)
       .set(type_journal_, trans.typeJournal)
       .set(file_content_, trans.file_content)
       .where((id_ === trans.id) && (company_ === trans.company))
@@ -158,6 +160,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
   override def updatePostedField(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = {
     val updateSQL = update(transactions).set(posted_, true).where((id_ === model.id) && (company_ === model.company))
     val result = for {
+      _<- ZIO.logDebug(s"Query to execute findAll is ${renderUpdate(updateSQL)}")
       m <- updateSQL.run
     } yield m
     transact(result).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
@@ -194,36 +197,17 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
   } yield trans
 
   private[this] def getLineByTransId(trans: FinancialsTransaction): ZStream[Any, RepositoryError, FinancialsTransactionDetails] = {
-    val selectAll = SELECT_LINE.where(transid === trans.id || transid2 === trans.id2)
-
-    ZStream.fromZIO(ZIO.logInfo(s"Query to execute getLineByTransId is ${renderRead(selectAll)}")) *>
+    //val selectAll = SELECT_LINE.where(transid === trans.id || transid2 === trans.id2)
+    val selectAll = SELECT_LINE.where(transid === trans.id)
+    ZStream.fromZIO(ZIO.logDebug(s"Query to execute getLineByTransId is ${renderRead(selectAll)}")) *>
       execute(selectAll.to(x => FinancialsTransactionDetails.apply(x)))
         .provideDriver(driverLayer)
-  }
-
-  private[this] def getAllLines( flag:Boolean): ZStream[Any, RepositoryError, FinancialsTransactionDetails] = {
-    if (flag) {
-      val selectAll = SELECT_LINE
-      ZStream.fromZIO(ZIO.logDebug(s"Query to execute getAllLines is ${renderRead(selectAll)}")) *>
-        execute(selectAll.to(x => FinancialsTransactionDetails.apply(x)))
-          .provideDriver(driverLayer)
-
-    } else {
-      ZStream.empty
-  }
   }
 
   private[this] def getTransWithLines(trans: FinancialsTransaction, companyId: String): ZIO[Any, RepositoryError, FinancialsTransaction] = for {
       trans  <- getByTransId_(trans.id, companyId)
       lines_ <- getLineByTransId(trans).runCollect.map(_.toList)
-      //alllines <-ZIO.when(lines_.isEmpty)(getAllLines(lines_.isEmpty).runCollect.map(_.toList))
-      alllines <- getAllLines(lines_.isEmpty).runCollect.map(_.toList)
-    all = if(lines_.nonEmpty) {
-      lines_
-    }else {
-      alllines.map(_.copy(transid = trans.id))
-    }
-    } yield trans.copy(lines = all.filter(_.transid==trans.id))
+    } yield trans.copy(lines = lines_)//.filter(_.transid==trans.id))
 
   private[this] def getByTransId_(id: Long, companyId: String): ZIO[Any, RepositoryError, FinancialsTransaction] = for {
     trans <- getById(id, companyId)

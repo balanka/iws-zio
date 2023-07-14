@@ -20,7 +20,7 @@ import com.kabasoft.iws.healthcheck.Healthcheck.expose
 import com.kabasoft.iws.repository._
 import com.kabasoft.iws.service._
 import zio._
-import zio.http.Header.{AccessControlAllowHeaders, AccessControlAllowMethods, AccessControlAllowOrigin, Origin}
+import zio.http.Header.{AccessControlAllowMethods, AccessControlAllowOrigin, Origin}
 import zio.http.HttpAppMiddleware.{bearerAuth, cors}
 
 import java.time.Clock
@@ -38,23 +38,18 @@ object Main extends ZIOAppDefault {
   private val serverLayer: ZLayer[Any, Throwable, Server] = {
     implicit val trace = Trace.empty
     ZLayer.succeed(
-      //Config.default.binding("localhost", 8091)
-      Config.default.binding("localhost", 8091)
-
+      Config.default.binding("mac-studio.fritz.box", 8091)
     ) >>> Server.live
   }
-
   val config: CorsConfig =
     CorsConfig(
-      //anyOrigin = true,
-      //anyMethod = false,
-      allowedHeaders = AccessControlAllowHeaders.All,
+
       allowedOrigin = {
-        case origin @Origin.Value(_,host,_) if(host=="iwsmacs-MacBook-Pro.local" ||host=="Mac-Studio"||
-          host=="localhost" || host=="127.0.0.1")=>Some(AccessControlAllowOrigin.Specific(origin))
-        case _ =>None
+        case origin @ Origin.Value(_, host, _) if (host == "iwsmacs-MacBook-Pro.local" || host == "mac-studio.fritz.box" ||
+          host == "localhost" || host == "127.0.0.1") => Some(AccessControlAllowOrigin.Specific(origin))
+        case _ => None
       },
-      allowedMethods = AccessControlAllowMethods.Some(NonEmptyChunk(Method.GET, Method.POST,Method.PUT,Method.PATCH))
+      allowedMethods = AccessControlAllowMethods(Method.GET, Method.POST, Method.PUT, Method.PATCH, Method.DELETE)
     )
 
   val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc ++ appBank  ++ appComp  ++ appFtr

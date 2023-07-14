@@ -47,6 +47,7 @@ object PacRepository {
     ZIO.service[PacRepository] flatMap (_.getBy(id, company))
   def getByIds(ids: List[String], company: String): ZIO[PacRepository, RepositoryError, List[PeriodicAccountBalance]]                      =
     ZIO.foreach(ids)(getBy(_, company)).map(_.filterNot(x => x.id == PeriodicAccountBalance.dummy.id))
+  //ZIO.service[PacRepository] flatMap (_.getByIds(ids, company))
   def getByModelId(modelid: Int, company: String): ZIO[PacRepository, RepositoryError, PeriodicAccountBalance]                             =
     ZIO.service[PacRepository] flatMap (_.getByModelId(modelid, company))
   def findBalance4Period(fromPeriod: Int, toPeriod: Int, company: String): ZStream[PacRepository, RepositoryError, PeriodicAccountBalance] =

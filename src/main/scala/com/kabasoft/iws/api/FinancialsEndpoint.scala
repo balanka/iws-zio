@@ -29,7 +29,7 @@ object FinancialsEndpoint {
   val ftrByTransIdEndpoint = ftrByTransIdAPI.implement( p =>  ZIO.logInfo(s"Get Transaction by id ${p}") *>
     FinancialsTransactionCache.getByTransId((p._2.toLong, p._1)).mapError(e => RepositoryError(e.getMessage)))
   private val ftrPostEndpoint = ftrPostAPI.implement(p =>  ZIO.logInfo(s"Post Transaction by id ${p}") *>
-    FinancialsService.post(p._2.toLong, p._1.toString()).mapError(e => RepositoryError(e.getMessage)))
+    FinancialsService.post(p._1.toLong, p._2).mapError(e => RepositoryError(e.getMessage)))
   private val ftrByModelIdEndpoint = ftrByModelIdAPI.implement(p => FinancialsTransactionCache.getByModelId((p._2,p._1)).mapError(e => RepositoryError(e.getMessage)))
   private val ftrPost4PeriodEndpoint = ftrPost4PeriodAPI.implement(p => FinancialsService.postTransaction4Period(p._2, p._3, p._1).mapError(e => RepositoryError(e.getMessage)))
   val ftrModifyEndpoint = ftrModifyAPI.implement(ftr => ZIO.logInfo(s"Modify Transaction  ${ftr}") *>
