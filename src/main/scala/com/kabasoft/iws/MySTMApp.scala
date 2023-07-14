@@ -40,10 +40,12 @@ object MySTMApp extends ZIOAppDefault {
     to   = TPeriodicAccountBalance("2", "Account2", 202201, idebit2, icredit2, debit2, credit2, "EUR", "1000")
 
     _ <- showBalance(from, to)
-    _ <- ZIO.logInfo(s"Before Transfering   \n credited Acct  ${from}  \n debited Acct ${to}")
+   // _ <- ZIO.logInfo(s"Before Transfering   \n credited Acct  ${from}  \n debited Acct ${to}")
     //_ <- ZIO.collectAllPar(Chunk.fill(4000000)(from.transfer(to, new BigDecimal(1))))
-    _ <- ZIO.collectAllPar(Chunk.fill(4)(from.transfer(to, new BigDecimal(1))))
+    _ <- TPeriodicAccountBalance.transfer(from, to, new BigDecimal(1))
+    //xx <- ZIO.collectAllPar(Chunk.fill(1)(from.transfer(from, to, new BigDecimal(1))))
     // _ <- ZIO.foreachPar((1 to 4000000).toList) { _ => from.transfer(to, new BigDecimal(1)) }
+    //_ <- ZIO.logInfo(s"After Transfering   \n credited Acct  ${xx._1} \n debited Acct  ${xx._2}")
     _ <- ZIO.logInfo(s"After Transfering   \n credited Acct  ${from} \n debited Acct  ${to}")
     _ <- showBalance(from, to)
   } yield ()
