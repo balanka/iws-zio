@@ -17,7 +17,7 @@ object FinancialsEndpoint {
   private val ftrByModelIdAPI  = Endpoint.get("ftr"/ literal("model")/ string("company")/int("modelid")).out[List[FinancialsTransaction]].outError[RepositoryError](Status.InternalServerError)
   val ftrByTransIdAPI  = Endpoint.get("ftr" / string("company")/ int("transid")).out[FinancialsTransaction].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI = Endpoint.delete("ftr" / string("company")/ int("transid")).out[Int].outError[RepositoryError](Status.InternalServerError)
-  val ftrModifyAPI     = Endpoint.put("ftr").in[FinancialsTransaction].out[Int].outError[RepositoryError](Status.InternalServerError)
+  val ftrModifyAPI     = Endpoint.put(literal("ftr")).in[FinancialsTransaction].out[Int].outError[RepositoryError](Status.InternalServerError)
   private val ftrPostAPI     = Endpoint.get("ftr"/literal("post")/ int("transid")/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
   private val ftrPost4PeriodAPI     = Endpoint.get("ftr/post"/ string("company")/ int("from") / int("to")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
@@ -36,8 +36,8 @@ object FinancialsEndpoint {
     TransactionRepository.modify(ftr).mapError(e => RepositoryError(e.getMessage)))
   private val ftrDeleteEndpoint = deleteAPI.implement(p => TransactionRepository.delete(p._2.toLong, p._1).mapError(e => RepositoryError(e.getMessage)))
 
-  val routes = ftrModifyEndpoint++ftrAllEndpoint ++ ftrByTransIdEndpoint ++ftrByModelIdEndpoint ++ ftrCreateEndpoint ++ftrDeleteEndpoint++
-               ftrPostEndpoint++ftrPost4PeriodEndpoint
+  val routes = ftrModifyEndpoint++ftrAllEndpoint  ++ftrByModelIdEndpoint ++ ftrCreateEndpoint ++ftrDeleteEndpoint++
+               ftrPostEndpoint++ftrPost4PeriodEndpoint++ ftrByTransIdEndpoint
 
   val appFtr = routes//.toApp //@@ bearerAuth(jwtDecode(_).isDefined)
 
