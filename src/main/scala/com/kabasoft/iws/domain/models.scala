@@ -1121,7 +1121,6 @@ object Customer                      {
 final case class FinancialsTransactionDetails(
   id: Long,
   transid: Long,
-  transid2: String,
   account: String,
   side: Boolean,
   oaccount: String,
@@ -1133,7 +1132,6 @@ final case class FinancialsTransactionDetails(
 
 final case class FinancialsTransactionDetails_(
   transid: Long,
-  transid2: String,
   account: String,
   side: Boolean,
   oaccount: String,
@@ -1144,12 +1142,12 @@ final case class FinancialsTransactionDetails_(
 )
 object FinancialsTransactionDetails_ {
   def apply(tr: FinancialsTransactionDetails): FinancialsTransactionDetails_ =
-    new FinancialsTransactionDetails_(tr.transid, tr.transid2, tr.account, tr.side, tr.oaccount, tr.amount, tr.duedate, tr.text, tr.currency)
+    new FinancialsTransactionDetails_(tr.transid,  tr.account, tr.side, tr.oaccount, tr.amount, tr.duedate, tr.text, tr.currency)
 }
 final case class FinancialsTransactionx(
   id: Long,
   oid: Long,
-  id2: String,
+  id1: Long,
   costcenter: String,
   account: String,
   transdate: Instant = Instant.now(),
@@ -1165,7 +1163,7 @@ final case class FinancialsTransactionx(
 )
 final case class FinancialsTransaction_(
   oid: Long,
-  id2: String,
+  id1: Long,
   costcenter: String,
   account: String,
   transdate: Instant = Instant.now(),
@@ -1182,7 +1180,7 @@ final case class FinancialsTransaction_(
 object FinancialsTransaction_        {
   def apply(tr: FinancialsTransaction): FinancialsTransaction_ = new FinancialsTransaction_(
     tr.oid,
-    tr.id2,
+    tr.id1,
     tr.costcenter,
     tr.account,
     tr.enterdate,
@@ -1200,7 +1198,7 @@ object FinancialsTransaction_        {
 final case class FinancialsTransaction(
   id: Long,
   oid: Long,
-  id2: String,
+  id1: Long,
   costcenter: String,
   account: String,
   transdate: Instant = Instant.now(),
@@ -1247,7 +1245,7 @@ final case class FinancialsTransaction(
 }
 object FinancialsTransactionDetails  {
   import FinancialsTransaction.FinancialsTransaction_Type2
-  val dummy                                                   = FinancialsTransactionDetails(0, 0, "", "", true, "", zeroAmount, Instant.now(), "", "EUR")
+  val dummy                                                   = FinancialsTransactionDetails(0, 0, "", true, "", zeroAmount, Instant.now(), "", "EUR")
   implicit val monoid: Identity[FinancialsTransactionDetails] =
     new Identity[FinancialsTransactionDetails] {
       def identity                                                                          = dummy
@@ -1255,10 +1253,10 @@ object FinancialsTransactionDetails  {
         m2.copy(amount = m2.amount.add(m1.amount))
     }
 
-  type FinancialsTransactionDetails_Type = (Long, Long, String, String, Boolean, String, BigDecimal, Instant, String, String)
+  type FinancialsTransactionDetails_Type = (Long, Long,  String, Boolean, String, BigDecimal, Instant, String, String)
   type FTX2                              = FinancialsTransaction_Type2
   def apply(tr: FinancialsTransactionDetails_Type): FinancialsTransactionDetails =
-    new FinancialsTransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10)
+    new FinancialsTransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9)
   //def apply(tr: FinancialsTransactionDetails.FTX2): FinancialsTransactionDetails =
   //  new FinancialsTransactionDetails(tr._15, tr._1, tr._16, tr._17, tr._18, tr._19, tr._20, tr._21, tr._22)
 
@@ -1267,7 +1265,7 @@ object FinancialsTransactionDetails  {
 }
 object FinancialsTransaction         {
   type FinancialsTransaction_Type =
-    (Long, Long, String, String, String, Instant, Instant, Instant, Int, Boolean, Int, String, String, Int, Int)
+    (Long, Long, Long, String, String, Instant, Instant, Instant, Int, Boolean, Int, String, String, Int, Int)
 
   type FinancialsTransaction_Type2 = (
     Long,
@@ -1316,7 +1314,7 @@ object FinancialsTransaction         {
   def apply(tr: FinancialsTransactionx): FinancialsTransaction = FinancialsTransaction(
     tr.id,
     tr.oid,
-    tr.id2,
+    tr.id1,
     tr.costcenter,
     tr.account,
     tr.transdate,

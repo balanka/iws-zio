@@ -42,8 +42,8 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
         val fromPPeriod = previousYear.toString.concat("01").toInt
         val toPPeriod = previousYear.toString.concat("12").toInt
         val amount = new BigDecimal("200.00").setScale(2, RoundingMode.HALF_UP)
-        val amount2 = new BigDecimal("550.00").setScale(2, RoundingMode.HALF_UP)
-        val creditAmount = new BigDecimal("350.00").setScale(2, RoundingMode.HALF_UP)
+        val amount2 = new BigDecimal("988.00").setScale(2, RoundingMode.HALF_UP)
+        val creditAmount = new BigDecimal("400.00").setScale(2, RoundingMode.HALF_UP)
         //val z = ZoneId.of( "Europe/Berlin" )
         //val month = ftr1.transdate.atZone(z).getMonthValue
         //val localDate:LocalDate = LocalDate.ofInstant(ftr1.transdate, z)
@@ -55,7 +55,7 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
           //oneRow     <- TransactionRepository.create(List(ftr1, ftr2, ftr3))
           oneRow     <- TransactionRepository.create(List(ftr1, ftr2))
           ftr        <-   TransactionRepository.all(companyId)
-          //postedRows <- FinancialsService.postAll(ftr.map(_.id), companyId)
+
           postedRows <- FinancialsService.postAll(ftr.map(_.id), companyId)
           oaccountEntry <- FinancialsService.journal(line1.oaccount, period, period, companyId).map(_.size)
           accountEntry <- FinancialsService.journal(line1.account, period, period, companyId).map(_.size)
@@ -65,8 +65,8 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
           balances4P     <-PacRepository.getBalances4Period(period, period, companyId).runCollect.map(_.toList)
           balance       <-AccountService.getBalance(paccountId0, fromPeriod, toPeriod, companyId).map(_.head)
         } yield {;
-          assertTrue(oneRow == 5, nrOfAccounts == 2, postedRows == 32, nrOfPacs == 1, accountEntry == 3,
-            oaccountEntry == 1, vatEntry == 1, balances4P.size == 4,
+          assertTrue(oneRow == 5, nrOfAccounts == 2, postedRows == 30, nrOfPacs == 1, accountEntry == 6,
+            oaccountEntry == 2, vatEntry == 2, balances4P.size == 4,
             balances4P.headOption.getOrElse(PeriodicAccountBalance.dummy).debit.equals(amount),
             balance.debit.equals(amount2), balance.credit.equals(creditAmount))
         }

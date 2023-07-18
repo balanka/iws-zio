@@ -43,7 +43,7 @@ object ApiSpec extends ZIOSpecDefault {
   val ZZ = """{
              |    "id": 0,
              |    "oid": 0,
-             |    "id2": '',
+             |    "id1": 0,
              |    "costcenter": "700",
              |    "account": "077",
              |    "transdate": "2023-03-28T18:07:00.000Z",
@@ -66,13 +66,12 @@ object ApiSpec extends ZIOSpecDefault {
              |            "currency":"EUR",
              |            "text": "ddd",
              |            "id":-1,
-             |            "transid2": '',
              |            "transid": -1
              |        }
              |    ]
              |}""".stripMargin
   // val XX = """{"id":0,"oid":-1,"costcenter":"311","account":"1810","transdate":"2023-04-29T19:07:13.538079Z","enterdate":"2023-04-29T19:07:13.538079Z","postingdate":"2023-04-29T19:07:13.538079Z","period":202304,"posted":false,"modelid":114,"company":"1000","text":"comments","typeJournal":-1,"file_content":-1,"lines":[{"id":-4,"transid":0,"account":"1810","side":true,"oaccount":"1200","amount":119.0000,"duedate":"2023-04-29T19:07:13.537955Z","text":"terms","currency":"EUR"}]}"""
-  val FTR = """{"id":0,"oid":-1, "id2": '',"costcenter":"311","account":"1810","transdate":"2023-03-28T18:07:00.538079Z","enterdate":"2023-04-29T18:07:05.538079Z","postingdate":"2023-04-29T18:07:05.538079Z","period":202304,"posted":false,"modelid":114,"company":"1000","text":"comments","typeJournal":-1,"file_content":-1,"lines":[{"id":-4,"transid":0, "transid2": '', "account":"1810","side":true,"oaccount":"1200","amount":10.000,"duedate":"2023-03-28T18:07:05.538079Z","text":"ddd","currency":"EUR"}]}"""
+  val FTR = """{"id":0,"oid":-1, "id1":-1,"costcenter":"311","account":"1810","transdate":"2023-03-28T18:07:00.538079Z","enterdate":"2023-04-29T18:07:05.538079Z","postingdate":"2023-04-29T18:07:05.538079Z","period":202304,"posted":false,"modelid":114,"company":"1000","text":"comments","typeJournal":-1,"file_content":-1,"lines":[{"id":-4,"transid":0,  "account":"1810","side":true,"oaccount":"1200","amount":10.000,"duedate":"2023-03-28T18:07:05.538079Z","text":"ddd","currency":"EUR"}]}"""
     def spec = suite("APISpec")(
       suite("handler")(
         test("Account  integration test ") {

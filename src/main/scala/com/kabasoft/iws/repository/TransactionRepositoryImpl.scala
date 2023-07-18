@@ -7,8 +7,10 @@ import zio.prelude.FlipOps
 import zio.sql.ConnectionPool
 import zio.stream._
 
+//import java.lang.System.nanoTime
 import scala.annotation.nowarn
-import scala.util.Random
+import java.time.Instant
+
 
 final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionRepository with TransactionTableDescription {
 
@@ -18,7 +20,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
     select(
       id_,
       oid_,
-      id2_,
+      id1_,
       costcenter_,
       account_,
       transdate_,
@@ -34,23 +36,17 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
     )
       .from(transactions)
 
-  private val SELECT_LINE = select(lid_, transid, transid2, laccount_, side_, oaccount_, amount_, duedate_, ltext_, currency_).from(transactionDetails)
-  //private val CURRVAL     = FunctionDef[String, Long](FunctionName("currval"))
-  //private val LASTVAL     = FunctionDef[String, Long](FunctionName("lastval"))
-
-//  private def getCurrentTransid: ZIO[Any, RepositoryError, Option[Long]] = {
-//    val selectAll = select(CURRVAL("master_compta_id_seq"))
-//    execute(selectAll).runHead.provideAndLog(driverLayer)
-//  }
+  private val SELECT_LINE = select(lid_, transid, laccount_, side_, oaccount_, amount_, duedate_, ltext_, currency_).from(transactionDetails)
 
   private def insertNewLines(models: List[FinancialsTransactionDetails])=
-   insertInto(transactionDetailsInsert)(transidx, transid2x, laccountx, sidex, oaccountx, amountx, duedatex, ltextx, currencyx).values(models.map(toTuple))
+   insertInto(transactionDetailsInsert)(transidx,  laccountx, sidex, oaccountx, amountx, duedatex, ltextx, currencyx)
+     .values(models.map(toTuple))
 
 
   private def buildInsertQuery(model: FinancialsTransaction)=
     insertInto(transactionInsert)(
       oidx,
-      id2,
+      id1,
       costcenterx,
       accountx,
       transdatex,
@@ -67,24 +63,27 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 
   @nowarn
   override def create(model_ : FinancialsTransaction): ZIO[Any, RepositoryError, Int] = {
-    //val transId = if(model_.id>0){
      if(model_.id>0){
-      model_.id
       modify(model_)
     }else{
       //model_.enterdate.getEpochSecond+model_.enterdate.getNano
-      val transid2x = new String(Random.alphanumeric.take(10).toArray)
-      val model = model_.copy(id2 = transid2x, lines = model_.lines.map(_.copy( transid2 = transid2x)))
-     // val model = model_.copy(id2 = transid2x, lines = model_.lines.map(_.copy(transid = transId, transid2 = transid2x)))
+       var time = Instant.now().getEpochSecond
+       time *= 1000000000L //convert to nanoseconds
+
+       //val transid1 =   nanoTime //& ~9223372036854251520L
+       val transid1 =  time & ~9223372036854251520L
+      val model = model_.copy(id1 = transid1, lines = model_.lines.map(_.copy( transid = transid1)))
+      val  insertNewLines_ = insertNewLines(model.lines)
       val trans = for {
-        _ <- ZIO.logInfo(s"Create transaction stmt   ${renderInsert(buildInsertQuery(model))} ")
         x <- buildInsertQuery(model).run
-        y <- insertNewLines(model.lines).run
-        _ <- ZIO.logInfo(s"Create line transaction stmt   ${renderInsert(insertNewLines(model.lines))} ")
+        _ <- ZIO.logInfo(s"Create transaction stmt   ${renderInsert(buildInsertQuery(model))} ")
+        y <- insertNewLines_.run
+        _ <- ZIO.logInfo(s"Create line transaction stmt   ${renderInsert(insertNewLines_)} ")
       } yield x + y
       val r = transact(trans)
         .tap(tr => ZIO.logInfo(s"Create transaction result ${tr} "))
-        .mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
+        .mapError(e => RepositoryError(e.toString))
+        .provideLayer(driverLayer)
       r
     }
 
@@ -211,8 +210,8 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
   } yield trans
 
   private[this] def getLineByTransId(trans: FinancialsTransaction): ZStream[Any, RepositoryError, FinancialsTransactionDetails] = {
-    //val selectAll = SELECT_LINE.where(transid === trans.id || transid2 === trans.id2)
-    val selectAll = SELECT_LINE.where(transid === trans.id)
+    //val selectAll = SELECT_LINE.where(transid === trans.id || transid1 === trans.id2)
+    val selectAll = SELECT_LINE.where(transid === trans.id1)
     ZStream.fromZIO(ZIO.logDebug(s"Query to execute getLineByTransId is ${renderRead(selectAll)}")) *>
       execute(selectAll.to(x => FinancialsTransactionDetails.apply(x)))
         .provideDriver(driverLayer)

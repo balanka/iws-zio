@@ -57,35 +57,37 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRe
       .flatMap(trans => postAllTransactions(List(trans), company))
 
   private[this] def prepare(transactions: List[FinancialsTransaction], company: String) = {
+   // val period = transactions.map(trans => common.getPeriod(trans.transdate))
     val models = transactions.map(trans =>trans.copy(period = common.getPeriod(trans.transdate)))
     val pacIds = buildPacIds(models)
     for {
 
       pacs <- pacRepo.getByIds(pacIds, company)
+      //pacs <- pacRepo.find4Period()
       //tpacs <- ZIO.foreach(pacs)(TPeriodicAccountBalance.apply)
       _<- ZIO.foreachDiscard(pacs)(pac =>ZIO.logInfo(s"Id of pac FOUND ${pac.id}  ${company}"))
       //newRecords     = PeriodicAccountBalance.create(model).filterNot(pacs.contains).distinct
-     // newPacs_ = models.flatMap(PeriodicAccountBalance.create).filterNot(pacs.contains).distinct.groupBy(_.id) map { case (_, v) =>
-      allPacs =  models.flatMap(TPeriodicAccountBalance.create)//.filterNot(pac=>pacs.map(_.id).contains(pac.id)).distinct//.groupBy(_.id) map { case (_, v) =>
-       // common.reduce(v, PeriodicAccountBalance.dummy)
-      //}
+      // newPacs_ = models.flatMap(PeriodicAccountBalance.create).filterNot(pacs.contains).distinct.groupBy(_.id) map { case (_, v) =>
+      allPacs =  models.flatMap(TPeriodicAccountBalance.create) //.groupBy(_.id) map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy)}
       _<- ZIO.foreachDiscard(allPacs)(pac =>ZIO.logInfo(s"Ids of new pac CREATED ${pac}"))
-      oldPacs1 = (allPacs++pacs).groupBy(_.id) map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy)}
+      allPacs1 = (allPacs++pacs).groupBy(_.id) map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy)}
       oldPacs = allPacs.filter(pac=>pacs.map(_.id).contains(pac.id))
       oldPacs_ = allPacs.intersect(pacs)
       intersect = oldPacs.toSet.intersect(pacs.toSet)
       oldPacsX = oldPacs.groupBy (_.id) map { case (_, v) =>
        common.reduce(v, PeriodicAccountBalance.dummy)
       }
-      newPacs_ = allPacs.diff(oldPacs)
+      newPacs_ = allPacs.toList.diff(oldPacs)
+      newPacsx = allPacs1.toList.diff(allPacs)
       _<- ZIO.logInfo(s" Pacs ${pacs}")
       _<- ZIO.logInfo(s" allPacs ${allPacs}")
-      _<- ZIO.logInfo(s" oldPacs1 ${oldPacs1}")
+      _<- ZIO.logInfo(s" allPacs1 ${allPacs1}")
       _<- ZIO.logInfo(s" oldPacsX ${oldPacsX}")
       _<- ZIO.logInfo(s"intersect oldPacs_ ${oldPacs_}")
       _<- ZIO.logInfo(s"intersect oldpacs ${intersect}")
       _<- ZIO.logInfo(s"Diff newPacs_ ${newPacs_}")
-      newPacs = allPacs.filterNot(pac=>oldPacs.map(_.id).contains(pac.id))
+      _<- ZIO.logInfo(s" newPacsx_ ${newPacsx}")
+      newPacs = allPacs1.filterNot(pac=>allPacs.map(_.id).contains(pac.id))
 
 
       //newTPacs = updatePac(models, newRecords.distinct)
@@ -94,7 +96,7 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRe
 //      newPacs = newTPacs.map(PeriodicAccountBalance.applyT).flip
 //      oldPacs = oldTPacs.map(PeriodicAccountBalance.applyT).flip
 
-    } yield (newPacs, oldPacs1.toList)
+    } yield (newPacs.toList, allPacs1.toList)
   }
 
   private[this] def postTransaction(transactions: List[FinancialsTransaction],  allPacs:(List[PeriodicAccountBalance], List[PeriodicAccountBalance]) ) =
