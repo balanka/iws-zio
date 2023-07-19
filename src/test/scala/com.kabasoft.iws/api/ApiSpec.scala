@@ -3,14 +3,12 @@ package com.kabasoft.iws.api
 import com.kabasoft.iws.api.AccountEndpoint.{accByIdEndpoint, accCreateEndpoint, accDeleteEndpoint}
 import com.kabasoft.iws.api.BankEndpoint.{bankByIdEndpoint, bankCreateEndpoint, bankDeleteEndpoint}
 import zio.json.EncoderOps
-import com.kabasoft.iws.repository.{AccountCache, AccountCacheImpl, AccountRepositoryImpl, BankCache, BankCacheImpl,
-  BankRepositoryImpl, CostcenterCache, CostcenterCacheImpl, CostcenterRepositoryImpl, CustomerCache,
-  CustomerCacheImpl, CustomerRepositoryImpl, ModuleCache, ModuleCacheImpl, ModuleRepositoryImpl, SupplierCache,
-  SupplierCacheImpl, SupplierRepositoryImpl, UserRepository, UserRepositoryImpl, VatCache, VatCacheImpl, VatRepositoryImpl}
+import com.kabasoft.iws.repository.{AccountCache, AccountCacheImpl, AccountRepositoryImpl, BankCache, BankCacheImpl, BankRepositoryImpl, CostcenterCache, CostcenterCacheImpl, CostcenterRepositoryImpl, CustomerCache, CustomerCacheImpl, CustomerRepositoryImpl, FinancialsTransactionCache, FinancialsTransactionCacheImpl, ModuleCache, ModuleCacheImpl, ModuleRepositoryImpl, SupplierCache, SupplierCacheImpl, SupplierRepositoryImpl, TransactionRepository, TransactionRepositoryImpl, UserRepository, UserRepositoryImpl, VatCache, VatCacheImpl, VatRepositoryImpl}
 import com.kabasoft.iws.api.CostcenterEndpoint.{ccByIdEndpoint, ccCreateEndpoint, ccDeleteEndpoint}
 import com.kabasoft.iws.api.Protocol._
 import com.kabasoft.iws.domain.BankBuilder.{bank, bankx}
 import com.kabasoft.iws.api.CustomerEndpoint.{custByIdEndpoint, custCreateEndpoint, custDeleteEndpoint}
+import com.kabasoft.iws.api.FinancialsEndpoint.{ftrCreateEndpoint, ftrModifyEndpoint}
 import com.kabasoft.iws.api.ModuleEndpoint.{moduleByIdEndpoint, moduleCreateEndpoint, moduleDeleteEndpoint}
 import com.kabasoft.iws.api.SupplierEndpoint.{supByIdEndpoint, supCreateEndpoint, supDeleteEndpoint}
 import com.kabasoft.iws.api.UserEndpoint.{userByUserNameEndpoint, userCreateEndpoint, userDeleteEndpoint}
@@ -28,20 +26,52 @@ import zio.http.{Body, Response}
 import com.kabasoft.iws.domain.CostcenterBuilder.cc
 import com.kabasoft.iws.domain.ModuleBuilder.m
 import com.kabasoft.iws.domain.SupplierBuilder.sup
+import com.kabasoft.iws.domain.TransactionBuilder.{ftr4, ftr5}
 import com.kabasoft.iws.domain.UserBuilder.user
 import com.kabasoft.iws.domain.VatBuilder.vat1
 import zio._
 import zio.http.endpoint.{Endpoint, Routes}
 import zio.http.codec.HttpCodec._
 import zio.http.endpoint.EndpointMiddleware.None
-import zio.http.model.Status
+import zio.http.Status
 import zio.http.{Request, URL}
 import zio.schema.DeriveSchema.gen
 import zio.sql.ConnectionPool
 import zio.test._
 
 object ApiSpec extends ZIOSpecDefault {
-
+  val ZZ = """{
+             |    "id": 0,
+             |    "oid": 0,
+             |    "id1": 0,
+             |    "costcenter": "700",
+             |    "account": "077",
+             |    "transdate": "2023-03-28T18:07:00.000Z",
+             |    "enterdate": "2023-04-29T18:07:05.930Z",
+             |    "postingdate": "2023-04-29T18:07:05.930Z",
+             |    "period": 202304,
+             |    "posted": false,
+             |    "modelid": 112,
+             |    "company": "1000",
+             |    "text": "zzzz",
+             |    "typeJournal": 0,
+             |    "file_content": 0,
+             |    "lines": [
+             |        {
+             |            "account": "077",
+             |            "side": true,
+             |            "oaccount": "0670",
+             |            "duedate": "2023-03-28T18:07:05.000Z",
+             |            "amount": 10,
+             |            "currency":"EUR",
+             |            "text": "ddd",
+             |            "id":-1,
+             |            "transid": -1
+             |        }
+             |    ]
+             |}""".stripMargin
+  // val XX = """{"id":0,"oid":-1,"costcenter":"311","account":"1810","transdate":"2023-04-29T19:07:13.538079Z","enterdate":"2023-04-29T19:07:13.538079Z","postingdate":"2023-04-29T19:07:13.538079Z","period":202304,"posted":false,"modelid":114,"company":"1000","text":"comments","typeJournal":-1,"file_content":-1,"lines":[{"id":-4,"transid":0,"account":"1810","side":true,"oaccount":"1200","amount":119.0000,"duedate":"2023-04-29T19:07:13.537955Z","text":"terms","currency":"EUR"}]}"""
+  val FTR = """{"id":0,"oid":-1, "id1":-1,"costcenter":"311","account":"1810","transdate":"2023-03-28T18:07:00.538079Z","enterdate":"2023-04-29T18:07:05.538079Z","postingdate":"2023-04-29T18:07:05.538079Z","period":202304,"posted":false,"modelid":114,"company":"1000","text":"comments","typeJournal":-1,"file_content":-1,"lines":[{"id":-4,"transid":0,  "account":"1810","side":true,"oaccount":"1200","amount":10.000,"duedate":"2023-03-28T18:07:05.538079Z","text":"ddd","currency":"EUR"}]}"""
     def spec = suite("APISpec")(
       suite("handler")(
         test("Account  integration test ") {
@@ -53,6 +83,39 @@ object ApiSpec extends ZIOSpecDefault {
             testRoutes("/acc/1000", "14") && testRoutes("/acc/"+acc.id+"/"+acc.company, acc.toJson)&&
             deleteRoutes("/acc/"+acc.id+"/"+acc.company, "1")&&
             postRoutes("/acc", accx.toJson, "1")
+        },
+       /* test("financials integration test1") {
+
+          val testRoutes1 = testPostApi(ftrCreateEndpoint) _
+
+
+          //val deleteRoutes = testDeleteApi(bankDeleteEndpoint) _
+          testRoutes1("/ftr", ZZ, "2")
+          //testRoutes1("/ftr", ftr4.toJson, "2")
+          // deleteRoutes("/bank/" + bank.id + "/" + bank.company, "1") && testRoutes1("/bank", bankx.to)Json, "1")
+        },
+
+        */
+        test("financials integration test") {
+          val ftrByModelId = Endpoint.get("ftr1" / string("company") / int("modelid")).out[Int].outError[RepositoryError](Status.InternalServerError)
+            .implement(p => ZIO.logInfo(s"Find  Transaction by modelId  ${p}") *>
+              FinancialsTransactionCache.getByModelId((p._2, p._1)).mapBoth(e => RepositoryError(e.getMessage), _.size))
+          val ftrByTransId = Endpoint.get("ftr2" / string("company") / int("transid")).out[BigDecimal].outError[RepositoryError](Status.InternalServerError)
+            .implement(p => ZIO.logInfo(s"Find  Transaction by TransId  ${p}") *>
+              TransactionRepository.getByTransId((p._2.toLong, p._1)).mapBoth(e => RepositoryError(e.getMessage), _.total))
+
+          val testRoutes1 = testPostApi(ftrCreateEndpoint) _
+          val testRoutes = testApi(ftrByModelId ++ ftrByTransId ++ ftrModifyEndpoint) _
+          val testRoutes2 = testPutApi( ftrModifyEndpoint) _
+          val payload = ftr5.copy(lines = ftr5.lines.map(l=>l.copy (text="modified"))).toJson
+
+          //val deleteRoutes = testDeleteApi(bankDeleteEndpoint) _
+
+          //testRoutes1("/ftr", FTR, "2") &&
+          testRoutes("/ftr2/1000/1" , "100.00") && testRoutes("/ftr1/1000/"+124, "1") &&
+          testRoutes1("/ftr", ftr4.toJson, "2") &&
+          testRoutes2("/ftr", payload, "1")
+          // deleteRoutes("/bank/" + bank.id + "/" + bank.company, "1") && testRoutes1("/bank", bankx.to)Json, "1")
         },
         test("Bank integration test") {
           val bankAll = Endpoint.get("bank"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
@@ -122,12 +185,13 @@ object ApiSpec extends ZIOSpecDefault {
         BankCacheImpl.live, CostcenterRepositoryImpl.live, CostcenterCacheImpl.live, CustomerRepositoryImpl.live,
         CustomerCacheImpl.live, SupplierRepositoryImpl.live, SupplierCacheImpl.live, VatRepositoryImpl.live, VatCacheImpl.live,
         ModuleRepositoryImpl.live, ModuleCacheImpl.live, UserRepositoryImpl.live, PostgresContainer.connectionPoolConfigLayer,
+        TransactionRepositoryImpl.live, FinancialsTransactionCacheImpl.live,
         PostgresContainer.createContainer)
     )
 
   def testApi[R, E](service: Routes[R, E, None])(
     url: String, expected: String): ZIO[R, Response, TestResult] = {
-    val request = Request.get(url = URL.fromString(url).toOption.get)
+    val request = Request.get(url = URL.decode(url).toOption.get)
     for {
       response <- service.toApp.runZIO(request).mapError(_.get)
       body <- response.body.asString.orDie
@@ -136,15 +200,24 @@ object ApiSpec extends ZIOSpecDefault {
 
   def testDeleteApi[R, E](service: Routes[R, E, None])(
     url: String, expected: String): ZIO[R, Response, TestResult] = {
-    val request = Request.delete(url = URL.fromString(url).toOption.get)
+    val request = Request.delete(url = URL.decode(url).toOption.get)
     for {
       response <- service.toApp.runZIO(request).mapError(_.get)
       body <- response.body.asString.orDie
     } yield assertTrue(body == expected)
   }
-  def testPostApi[R, E](routes:  Routes[R, E, None] )(
+
+  def testPostApi[R, E](routes: Routes[R, E, None])(
+    url: String, body: String, expected: String): ZIO[R, Response, TestResult] = {
+    val request = Request.post(Body.fromString(body), URL.decode(url).toOption.get)
+    for {
+      response <- routes.toApp.runZIO(request).mapError(_.get)
+      body <- response.body.asString.orDie
+    } yield assertTrue(body == expected)
+  }
+  def testPutApi[R, E](routes:  Routes[R, E, None] )(
     url: String, body:String, expected: String): ZIO[R, Response, TestResult] = {
-    val request = Request.post(Body.fromString(body), URL.fromString(url).toOption.get)
+    val request = Request.put(Body.fromString(body), URL.decode(url).toOption.get)
     for {
       response <- routes.toApp.runZIO(request).mapError(_.get)
       body <- response.body.asString.orDie

@@ -4,11 +4,9 @@ import com.kabasoft.iws.api.LoginRoutes.jwtDecode
 import com.kabasoft.iws.api.Protocol._
 import com.kabasoft.iws.domain.User
 import zio._
-import zio.http.model.Headers.accessControlAllowOrigin
-//import zio.http.model.Headers.accessControlAllowOrigin
-import zio.http.model.{Headers, Method}
-import zio.http.{Body, Client}
+import zio.http.{Body, Client, Header, Headers, Method}
 import zio.json.DecoderOps
+
 
 object AuthenticationClient extends ZIOAppDefault {
 
@@ -18,19 +16,19 @@ object AuthenticationClient extends ZIOAppDefault {
    * a protected route. Run AuthenticationServer before running this example.
    */
 
-  val url         = "http://localhost:8091"
+  val url         = "http://mac-studio:8091"
   // val data = s"""{"userName":"mady" ,"password":"wuduwali2x"}"""
   val data        = s"""{"userName":"bate2" ,"password":"wuduwali2x"}"""
   val defaultUser = User(-1, "NoUser", "", "", "", "", "", "")
 
   val program = for {
 
-    token <- Client.request(s"${url}/users/login", method = Method.POST, headers= accessControlAllowOrigin("*")
-        ,content = Body.fromString(data)).flatMap(_.body.asString)
-    _     <- ZIO.logInfo(s"token>> ${token}<<")
+    response <- Client.request(url =s"${url}/users/login", method = Method.POST
+        , headers= Headers.apply(zio.http.Header.AccessControlAllowHeaders.All)
+        , content = Body.fromString(data)).flatMap(_.body.asString)
+    _     <- ZIO.logInfo(s"token>> ${response}<<")
     // .flatMap(body =>
-    r     <- ZIO
-               .fromEither(token.fromJson[User])
+    r     <- ZIO.fromEither(response.fromJson[User])
                .mapError(e => new Throwable(e))
                .tapError(e => ZIO.logInfo(s"Unparseable body ${e}"))
                .either
@@ -48,7 +46,7 @@ object AuthenticationClient extends ZIOAppDefault {
 //     response7 <- Client.request(s"${url}/module/1000", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
 //     response8 <- Client.request(s"${url}/vat/1000", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
 //     response9 <- Client.request(s"${url}/user/1000", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
-     response10 <- Client.request(s"${url}/ftr/model/1000/114", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
+     response10 <- Client.request(s"${url}/ftr/model/1000/114", headers = Headers(Header.Authorization.Bearer(token))) //(r.getOrElse(defaultUser).hash))
      //response <- Client.request(s"${url}/pac/1000", headers = Headers.bearerAuthorizationHeader(r.getOrElse(defaultUser).hash))
  //   body     <- response0.body.asString
 //    body1     <- response1.body.asString
@@ -79,3 +77,4 @@ object AuthenticationClient extends ZIOAppDefault {
   override val run = program.provide(Client.default)
 
 }
+

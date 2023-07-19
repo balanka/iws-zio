@@ -9,7 +9,6 @@ import zio.{ ZLayer, _ }
 
 import java.nio.file.{ Files, Paths }
 import java.time.Instant
-
 final class BankStatementServiceImpl(
   bankStmtRepo: BankStatementRepository,
   ftrRepo: TransactionRepository,
@@ -19,7 +18,7 @@ final class BankStatementServiceImpl(
 ) extends BankStatementService {
 
   private[this] def sink: ZSink[Any, RepositoryError, BankStatement, RepositoryError, List[zio.ZIO[Any, RepositoryError, Int]]] =
-    ZSink.collectAll[BankStatement].map(_.toList.map(bankStmtRepo.modify(_)))
+    ZSink.collectAll[BankStatement].map(_.toList.map(bankStmtRepo.modify))
 
   override def postAll(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, Int] =
     for {
@@ -58,9 +57,11 @@ final class BankStatementServiceImpl(
       supplier.account
     }
 
+
   private[this] def buildTransactionFromBankStmt(bs: BankStatement, supplier: BusinessPartner, company: Company): FinancialsTransaction = {
     val date   = Instant.now()
     val period = common.getPeriod(Instant.now())
+
     val l      =
       FinancialsTransactionDetails(
         -1L,
@@ -77,6 +78,7 @@ final class BankStatementServiceImpl(
     val tr     = FinancialsTransaction(
       -1L,
       bs.id,
+      -1L,
       "100",
       supplier.account,
       bs.valuedate,

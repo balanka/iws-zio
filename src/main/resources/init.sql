@@ -105,7 +105,8 @@ create table if not exists public.module
     enterdate   timestamp   default CURRENT_TIMESTAMP not null,
     company     varchar(50)                       not null,
     modelid     integer      default 6            not null,
-    path        varchar(255) default '/'::character varying
+    path        varchar(255) default '/'::character varying,
+    parent        varchar(50) default ''::character varying
     );
 
 create table  bank
@@ -169,12 +170,17 @@ create table if not exists periodic_account_balance
     constraint periodic_account_balance_pk
     primary key
     );
+/*
+ ALTER SEQUENCE public.master_compta_id_seq
+	START 5634
+	RESTART 5634;
+ */
 DROP SEQUENCE IF EXISTS master_compta_id_seq ;
 CREATE SEQUENCE master_compta_id_seq
     INCREMENT 1
-   MINVALUE 1
+   MINVALUE 1 --5633
    MAXVALUE 9223372036854775807
-   START 1
+   START 2
    CACHE 1;
 
 create table if not exists master_compta
@@ -182,6 +188,7 @@ create table if not exists master_compta
     id           bigint  default nextval('master_compta_id_seq'::regclass) not null
     primary key,
     oid          bigint                            not null,
+    id1          bigint                            not null,
     costcenter   varchar(50)                       not null,
     account      varchar(50)                       not null,
     text   varchar(380) default ''::character varying,
@@ -349,6 +356,8 @@ insert into periodic_account_balance
 values
     (CONCAT(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'1200'), '1200', TO_NUMBER(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'99999999'),
      0, 1000, 0, 0,'1000' , 'EUR', 106),
+    (CONCAT(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'1601'), '1601', TO_NUMBER(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'99999999'),
+    0, 1000, 0, 0,'1000' , 'EUR', 106),
     (CONCAT(to_char( CURRENT_DATE, 'YYYY'),'001200'), '1200', TO_NUMBER(CONCAT(to_char( CURRENT_DATE, 'YYYY'),'00'),'99999999'),
      500, 0, 0, 0,'1000' , 'EUR', 106),
     (CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'1200'), '1200', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'),
@@ -417,8 +426,8 @@ values('300','Production','Production','800' ,'2018-01-01T10:00:00.00Z', '2018-0
       ('000','Dummy','Dummy','Dummy' ,'2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', 6,'1000' );
 
 
-insert into module (id, name, description,path,enterdate,changedate,postingdate, modelid, company)
-values('0000','Dummy','Dummy', '','2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z',300,'1000' );
+insert into module (id, name, description,path, parent, enterdate,changedate,postingdate, modelid, company)
+values('0000','Dummy','Dummy', '', '', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z',300,'1000' );
 
 insert into vat
 (id, name, description, percent, input_vat_account, output_vat_account, postingdate, changedate, enterdate,  company, modelid)
@@ -431,4 +440,15 @@ insert into users(user_name, first_name, last_name,  hash, email, phone, departm
 values('jdegoes011','John','dgoes', '$21a$10$0IZtq3wGiRQSMIuoIgNKrePjQfmGFRgkpnHwyY9RcbUhZxU9Ha1mCX', 'whatYourGrandma1Name@gmail.com'
       , '11-4711-0123','Admin', '1300,9,1120,3,14,1000,18,1,112,106,11,6,10', '1000',111),
       ('myUserName','myUserFirstName','myUserLastName', 'hash1', 'myEmail@email.com', '+49-1111-11100','Accountant', '1,10', '1000',111);
+
+
+INSERT INTO master_compta (id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content)
+VALUES (1, -1, 1, '300', '1600', '2023-04-08T14:46:44.173Z', '2023-04-08T15:07:28.685Z', '2023-04-08T15:07:28.685Z', 202304, false, 124, '1000', '', 0, 0);
+INSERT INTO details_compta (transid,  account, side, oaccount, amount, duedate, text, currency)
+VALUES (1,  '1200', true, '4400', 81.00, '2023-04-09T15:50:17.598252Z', 'terms', 'EUR' ),
+       (1,  '1200', true, '3806', 19.00, '2023-04-09T15:50:17.598270Z', 'terms', 'EUR');
+
+
+
+
 

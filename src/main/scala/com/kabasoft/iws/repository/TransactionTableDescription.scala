@@ -1,7 +1,6 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.{
-  DerivedTransaction,
   FinancialsTransaction,
   FinancialsTransactionDetails,
   FinancialsTransactionDetails_,
@@ -9,7 +8,6 @@ import com.kabasoft.iws.domain.{
   FinancialsTransactionx
 }
 import com.kabasoft.iws.repository.Schema.{
-  derivedTransactionSchema,
   transactionDetailsSchema,
   transactionDetails_Schema,
   transactionSchema_,
@@ -18,14 +16,15 @@ import com.kabasoft.iws.repository.Schema.{
 
 trait TransactionTableDescription extends IWSTableDescriptionPostgres {
 
-  val transaction           = defineTable[FinancialsTransactionx]("master_compta")
+  val transactions           = defineTable[FinancialsTransactionx]("master_compta")
   val transactionInsert     = defineTable[FinancialsTransaction_]("master_compta")
   val transactionDetails    = defineTable[FinancialsTransactionDetails]("details_compta")
-  val transactionDetails_   = defineTable[FinancialsTransactionDetails_]("details_compta")
-  val financialstransaction = defineTable[DerivedTransaction]("financialstransaction")
+  val transactionDetailsInsert   = defineTable[FinancialsTransactionDetails_]("details_compta")
+
 
   val (
     oidx,
+    id1,
     costcenterx,
     accountx,
     transdatex,
@@ -43,6 +42,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
   val (
     id_,
     oid_,
+    id1_,
     costcenter_,
     account_,
     transdate_,
@@ -55,7 +55,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     text_,
     type_journal_,
     file_content_
-  ) = transaction.columns
+  ) = transactions.columns
   val (
     lid_,
     transid,
@@ -68,8 +68,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     currency_ /*, terms_, postedx, comapnyx*/
   ) = transactionDetails.columns
 
-  val (
-    transidx,
+  val (transidx,
     laccountx,
     sidex,
     oaccountx,
@@ -77,32 +76,15 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     duedatex,
     ltextx,
     currencyx /*, terms_, postedx, comapnyx*/
-  ) = transactionDetails_.columns
+  ) = transactionDetailsInsert.columns
 
-  val (
-    id,
-    oid,
-    account,
-    transdate,
-    enterdate,
-    postingdate,
-    period,
-    posted,
-    modelid,
-    company,
-    text,
-    file,
-    lid,
-    side,
-    oaccount,
-    amount,
-    currency,
-    terms
-  ) = financialstransaction.columns
+
+
 
   def toTupleF(c: FinancialsTransaction) = (
     c.id,
     c.oid,
+    c.id1,
     c.costcenter,
     c.account,
     c.transdate,
@@ -119,6 +101,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
 
   def toTupleC(c: FinancialsTransaction) = (
     c.oid,
+    c.id1,
     c.costcenter,
     c.account,
     c.transdate,
@@ -133,11 +116,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     c.file_content
   )
 
-  def toTuple(c: FinancialsTransactionDetails) = FinancialsTransactionDetails.unapply(c).get
-
-  def toTuple(c: DerivedTransaction) = DerivedTransaction.unapply(c).get
-
-  def toTupleC(c: FinancialsTransactionDetails) = (
+  def toTuple(c: FinancialsTransactionDetails) = (
     c.transid,
     c.account,
     c.side,
@@ -145,6 +124,16 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     c.amount,
     c.duedate,
     c.text,
-    c.currency /*, terms_, postedx, comapnyx*/
-  )
+    c.currency)
+
+  def toTuple2(c: FinancialsTransactionDetails_) = (
+    c.transid,
+    c.account,
+    c.side,
+    c.oaccount,
+    c.amount,
+    c.duedate,
+    c.text,
+    c.currency)
+
 }

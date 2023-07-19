@@ -41,7 +41,7 @@ object AccountServiceLiveSpec extends ZIOSpecDefault {
         val toPeriod    =  previousYear.toString.concat("12").toInt
         for {
           nrOfAccounts       <-AccountService.closePeriod(fromPeriod, toPeriod, paccountId0, companyId)
-        } yield  assertTrue(nrOfAccounts == 1)
+        } yield  assertTrue(nrOfAccounts == 2)
       }
     ).provideLayerShared(testServiceLayer.orDie) @@ sequential
 }

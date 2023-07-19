@@ -170,7 +170,10 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
     modelid
   )
     .from(journals)
-  override def create(models: List[Journal]): ZIO[Any, RepositoryError, Int]       = {
+  override def create(models: List[Journal]): ZIO[Any, RepositoryError, Int]       =
+    if(models.isEmpty) {
+      ZIO.succeed(0)
+    } else{
     val data  = models.map(Journal_.apply).map(tuple2)
     val query = insertInto(journals_)(
       transidx,
