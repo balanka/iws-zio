@@ -80,7 +80,6 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
     val update_ = build(model)
     execute(update_)
       .provideLayer(driverLayer)
-      .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getMessage))
   }
 
