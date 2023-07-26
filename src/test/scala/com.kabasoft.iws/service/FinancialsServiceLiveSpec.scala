@@ -42,7 +42,7 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
         val fromPPeriod = previousYear.toString.concat("01").toInt
         val toPPeriod = previousYear.toString.concat("12").toInt
         val amount = new BigDecimal("200.00").setScale(2, RoundingMode.HALF_UP)
-        val amount2 = new BigDecimal("550.00").setScale(2, RoundingMode.HALF_UP)
+        val amount2 = new BigDecimal("1088.00").setScale(2, RoundingMode.HALF_UP)
         val creditAmount = new BigDecimal("481.00").setScale(2, RoundingMode.HALF_UP)
         //val z = ZoneId.of( "Europe/Berlin" )
         //val month = ftr1.transdate.atZone(z).getMonthValue
