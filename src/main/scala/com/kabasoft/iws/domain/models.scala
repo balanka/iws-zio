@@ -69,8 +69,13 @@ object common {
 
   implicit val pacMonoid: Identity[PeriodicAccountBalance] = new Identity[PeriodicAccountBalance] {
     def identity: PeriodicAccountBalance                                      = PeriodicAccountBalance.dummy
-    def combine(m1: => PeriodicAccountBalance, m2: => PeriodicAccountBalance) =
-      m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
+    def combine(m1: => PeriodicAccountBalance, m2: => PeriodicAccountBalance): PeriodicAccountBalance = {
+      if(m1.id==PeriodicAccountBalance.dummy.id){
+         m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
+       }else {
+        m1.idebiting(m2.idebit).icrediting(m2.icredit).debiting(m2.debit).crediting(m2.credit)
+      }
+    }
   }
   def getMonthAsString(month: Int): String                 =
     if (month <= 9) {
@@ -738,9 +743,9 @@ final case class TPeriodicAccountBalance(
 //      } yield ()
 //    }
 
-  def transfer1(from: TPeriodicAccountBalance,to: TPeriodicAccountBalance, amount: BigDecimal): UIO[Unit] =
+  def transfer(from: TPeriodicAccountBalance, amount: BigDecimal): UIO[Unit] =
     STM.atomically {
-      to.debit.update(_.add(amount)).*>(from.credit.update(_.add(amount)))
+      self.debit.update(_.add(amount)).*>(from.credit.update(_.add(amount)))
     }
 }
 object TPeriodicAccountBalance {
@@ -751,6 +756,22 @@ object TPeriodicAccountBalance {
     credit  <- TRef.makeCommit(pac.credit)
   } yield TPeriodicAccountBalance(pac.id, pac.account, pac.period, idebit, icredit, debit, credit, pac.currency, pac.company, pac.modelid)
 
+  def create(line: FinancialsTransactionDetails, period:Int, side:Boolean, company: String): UIO[TPeriodicAccountBalance] = {
+    val debitAmount = if (side) line.amount   else zeroAmount
+    val creditAmount = if (side) zeroAmount  else line.amount
+    TPeriodicAccountBalance.apply(PeriodicAccountBalance(
+        PeriodicAccountBalance.createId(period, line.account),
+        line.account,
+        period,
+        zeroAmount,
+        zeroAmount,
+        debitAmount,
+        creditAmount,
+        line.currency,
+        company,
+        PeriodicAccountBalance.MODELID
+      ))
+  }
 
   def create(model: FinancialsTransaction): List[PeriodicAccountBalance] =
     model.lines.flatMap { line: FinancialsTransactionDetails => //{
@@ -783,14 +804,20 @@ object TPeriodicAccountBalance {
     }
 
 
-  /*def debitAndCredit(pac: TPeriodicAccountBalance, poac: TPeriodicAccountBalance, amount: BigDecimal) = STM.atomically {
+  def debitAndCredit(pac: TPeriodicAccountBalance, poac: TPeriodicAccountBalance, amount: BigDecimal) = STM.atomically {
     pac.debit.get.flatMap(debit => pac.debit.set(debit.add(amount))) *>
       poac.credit.get.flatMap(credit => poac.credit.set(credit.add(amount)))
   }
 
-  def debitAndCreditAll(pacs: List[TPeriodicAccountBalance], poacs: List[TPeriodicAccountBalance], amount: BigDecimal) =
-    pacs.zip(poacs).map { case (pac, poac) => debitAndCredit(pac, poac, amount) }
-*/
+  def debitAndCreditAll(pacs: List[TPeriodicAccountBalance], poacs: List[TPeriodicAccountBalance], amount: BigDecimal): List[IO[Nothing, Unit]] =
+    pacs.zip(poacs).map { case (pac, poac) => /*debitAndCredit(pac, poac, amount)*/
+                                              transfer(poac, pac, amount)
+    }
+
+  def debitAndCreditAllX(pacs: List[PeriodicAccountBalance], poacs: List[PeriodicAccountBalance], amount: BigDecimal): List[PeriodicAccountBalance] =
+    pacs.zip(poacs).flatMap { case (pac, poac) => List(pac.debiting(amount), poac.crediting(amount))
+    }
+
   def transfer1(from: TPeriodicAccountBalance, to: TPeriodicAccountBalance, amount: BigDecimal): UIO[Unit] =
     STM.atomically {
       (from.credit.update(_.add(amount))) *>(to.debit.update(_.add(amount)))
@@ -856,7 +883,7 @@ object PeriodicAccountBalance {
 
   def createId(period: Int, accountId: String) = period.toString.concat(accountId)
   val dummy                                    =
-    PeriodicAccountBalance("", "", 0, zeroAmount, zeroAmount, zeroAmount, zeroAmount, "EUR", "1000")
+    PeriodicAccountBalance("-1", "", 0, zeroAmount, zeroAmount, zeroAmount, zeroAmount, "EUR", "1000")
 
   def create(accountId: String, period: Int, currency: String, company: String): PeriodicAccountBalance =
     PeriodicAccountBalance.apply(
@@ -880,9 +907,8 @@ object PeriodicAccountBalance {
           line.account,
           model.period,
           zeroAmount,
-          line.amount,
-          //init._2,
           zeroAmount,
+          line.amount,
           zeroAmount,
           line.currency,
           model.company,
@@ -896,8 +922,7 @@ object PeriodicAccountBalance {
           zeroAmount,
           zeroAmount,
           zeroAmount,
-          //zeroAmount,
-           line.amount,
+          line.amount,
           line.currency,
           model.company,
           PeriodicAccountBalance.MODELID
