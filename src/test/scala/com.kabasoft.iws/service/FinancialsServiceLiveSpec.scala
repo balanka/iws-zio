@@ -3,9 +3,8 @@ package com.kabasoft.iws.service
 import com.kabasoft.iws.domain.{PeriodicAccountBalance, common}
 import com.kabasoft.iws.domain.AccountBuilder.{companyId, paccountId0}
 import com.kabasoft.iws.domain.TransactionBuilder.{ftr1, ftr2, line1, line2}
-
 import com.kabasoft.iws.repository.container.PostgresContainer
-import com.kabasoft.iws.repository.{AccountRepository, AccountRepositoryImpl, JournalRepositoryImpl, PacRepository, PacRepositoryImpl, TransactionRepository, TransactionRepositoryImpl}
+import com.kabasoft.iws.repository.{AccountRepository, AccountRepositoryImpl, JournalRepositoryImpl, PacRepository, PacRepositoryImpl, PostTransactionRepositoryImpl, TransactionRepository, TransactionRepositoryImpl}
 import zio.ZLayer
 import zio.sql.ConnectionPool
 import zio.test.TestAspect._
@@ -24,6 +23,7 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
     JournalRepositoryImpl.live,
     TransactionRepositoryImpl.live,
     FinancialsServiceImpl.live,
+    PostTransactionRepositoryImpl.live,
     PostgresContainer.connectionPoolConfigLayer,
     ConnectionPool.live,
     PostgresContainer.createContainer
@@ -42,8 +42,8 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
         val fromPPeriod = previousYear.toString.concat("01").toInt
         val toPPeriod = previousYear.toString.concat("12").toInt
         val amount = new BigDecimal("200.00").setScale(2, RoundingMode.HALF_UP)
-        val amount2 = new BigDecimal("988.00").setScale(2, RoundingMode.HALF_UP)
-        val creditAmount = new BigDecimal("400.00").setScale(2, RoundingMode.HALF_UP)
+        val amount2 = new BigDecimal("550.00").setScale(2, RoundingMode.HALF_UP)
+        val creditAmount = new BigDecimal("481.00").setScale(2, RoundingMode.HALF_UP)
         //val z = ZoneId.of( "Europe/Berlin" )
         //val month = ftr1.transdate.atZone(z).getMonthValue
         //val localDate:LocalDate = LocalDate.ofInstant(ftr1.transdate, z)
@@ -64,9 +64,9 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
           nrOfPacs       <-PacRepository.find4Period(line1.account,period, period, companyId).runCollect.map(_.size)
           balances4P     <-PacRepository.getBalances4Period(period, period, companyId).runCollect.map(_.toList)
           balance       <-AccountService.getBalance(paccountId0, fromPeriod, toPeriod, companyId).map(_.head)
-        } yield {;
+        } yield {
           assertTrue(oneRow == 5, nrOfAccounts == 2, postedRows == 30, nrOfPacs == 1, accountEntry == 6,
-            oaccountEntry == 2, vatEntry == 2, balances4P.size == 4,
+            oaccountEntry == 2, vatEntry == 2, balances4P.size == 5,
             balances4P.headOption.getOrElse(PeriodicAccountBalance.dummy).debit.equals(amount),
             balance.debit.equals(amount2), balance.credit.equals(creditAmount))
         }

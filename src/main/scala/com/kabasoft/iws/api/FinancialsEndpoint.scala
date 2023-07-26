@@ -34,6 +34,7 @@ object FinancialsEndpoint {
   private val ftrPost4PeriodEndpoint = ftrPost4PeriodAPI.implement(p => FinancialsService.postTransaction4Period(p._2, p._3, p._1).mapError(e => RepositoryError(e.getMessage)))
   val ftrModifyEndpoint = ftrModifyAPI.implement(ftr => ZIO.logInfo(s"Modify Transaction  ${ftr}") *>
     TransactionRepository.modify(ftr).mapError(e => RepositoryError(e.getMessage)))
+  //PostTransactionRepository.modifyT(ftr).mapError(e => RepositoryError(e.getMessage)))
   private val ftrDeleteEndpoint = deleteAPI.implement(p => TransactionRepository.delete(p._2.toLong, p._1).mapError(e => RepositoryError(e.getMessage)))
 
   val routes = ftrModifyEndpoint++ftrAllEndpoint  ++ftrByModelIdEndpoint ++ ftrCreateEndpoint ++ftrDeleteEndpoint++
