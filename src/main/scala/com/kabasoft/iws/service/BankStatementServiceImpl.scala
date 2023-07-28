@@ -73,7 +73,6 @@ final class BankStatementServiceImpl(
         bs.valuedate,
         bs.purpose,
         bs.currency
-        // bs.company
       )
     val tr     = FinancialsTransaction(
       -1L,
