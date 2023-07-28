@@ -54,7 +54,7 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRe
       _ <- ZIO.logInfo(s" pacs ${pacs}")
       newRecords = PeriodicAccountBalance.create(model).filterNot(pac => pacs.map(_.id).contains(pac.id))
         .groupBy(_.id) map { case (_, v) =>
-        common.reduce(v, PeriodicAccountBalance.dummy) 
+        common.reduce(v, PeriodicAccountBalance.dummy)
       }
       _ <- ZIO.logInfo(s" newRecords ${newRecords}")
       oldPacs = updatePac(model, pacs)
