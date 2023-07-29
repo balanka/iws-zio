@@ -70,6 +70,7 @@ object ApiSpec extends ZIOSpecDefault {
              |        }
              |    ]
              |}""".stripMargin
+  val FTRX ="{\"id\":1,\"oid\":-1,\"id1\":1,\"costcenter\":\"311\",\"account\":\"1810\",\"transdate\":\"2023-07-29T07:56:14.555236Z\",\"enterdate\":\"2023-04-08T13:07:28.685Z\",\"postingdate\":\"2023-04-08T13:07:28.685Z\",\"period\":202307,\"posted\":false,\"modelid\":114,\"company\":\"1000\",\"text\":\"comments\",\"typeJournal\":-1,\"file_content\":0,\"lines\":[{\"id\":1,\"transid\":1,\"account\":\"1200\",\"side\":true,\"oaccount\":\"4400\",\"amount\":81.00,\"duedate\":\"2023-04-09T13:50:17.598252Z\",\"text\":\"terms\",\"currency\":\"EUR\"},{\"id\":2,\"transid\":1,\"account\":\"1200\",\"side\":true,\"oaccount\":\"3806\",\"amount\":19.00,\"duedate\":\"2023-04-09T13:50:17.598270Z\",\"text\":\"terms\",\"currency\":\"EUR\"}]}"
   // val XX = """{"id":0,"oid":-1,"costcenter":"311","account":"1810","transdate":"2023-04-29T19:07:13.538079Z","enterdate":"2023-04-29T19:07:13.538079Z","postingdate":"2023-04-29T19:07:13.538079Z","period":202304,"posted":false,"modelid":114,"company":"1000","text":"comments","typeJournal":-1,"file_content":-1,"lines":[{"id":-4,"transid":0,"account":"1810","side":true,"oaccount":"1200","amount":119.0000,"duedate":"2023-04-29T19:07:13.537955Z","text":"terms","currency":"EUR"}]}"""
   val FTR = """{"id":0,"oid":-1, "id1":-1,"costcenter":"311","account":"1810","transdate":"2023-03-28T18:07:00.538079Z","enterdate":"2023-04-29T18:07:05.538079Z","postingdate":"2023-04-29T18:07:05.538079Z","period":202304,"posted":false,"modelid":114,"company":"1000","text":"comments","typeJournal":-1,"file_content":-1,"lines":[{"id":-4,"transid":0,  "account":"1810","side":true,"oaccount":"1200","amount":10.000,"duedate":"2023-03-28T18:07:05.538079Z","text":"ddd","currency":"EUR"}]}"""
     def spec = suite("APISpec")(
@@ -114,7 +115,7 @@ object ApiSpec extends ZIOSpecDefault {
           //testRoutes1("/ftr", FTR, "2") &&
           testRoutes("/ftr2/1000/1" , "100.00") && testRoutes("/ftr1/1000/"+124, "1") &&
           testRoutes1("/ftr", ftr4.toJson, "2") &&
-          testRoutes2("/ftr", payload, "1")
+          testRoutes2("/ftr", payload, FTRX)
           // deleteRoutes("/bank/" + bank.id + "/" + bank.company, "1") && testRoutes1("/bank", bankx.to)Json, "1")
         },
         test("Bank integration test") {
