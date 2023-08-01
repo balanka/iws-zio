@@ -2,9 +2,11 @@ package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.common._
-import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, Journal, PeriodicAccountBalance,  common}
+import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, Journal, PeriodicAccountBalance, TPeriodicAccountBalance, common}
 import com.kabasoft.iws.repository.{JournalRepository, PacRepository, PostTransactionRepository, TransactionRepository}
 import zio._
+import zio.prelude.FlipOps
+import zio.stm.{STM, TRef}
 
 final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRepository, journalRepo: JournalRepository, repository4PostingTransaction:PostTransactionRepository) extends FinancialsService {
 
@@ -47,6 +49,13 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRe
         .getByTransId((id, company))
         .flatMap(trans => postTransaction(trans, company))
 
+  def inc(counter: Ref[Int], amount: Int) = for {
+    c <- counter.get
+    _ <- counter.set(c + amount)
+  } yield c
+
+  def deposit(accountBalance: TRef[Int], amount: Int): STM[Nothing, Unit] =
+    accountBalance.update(_ + amount)
   private[this] def postTransaction(transaction: FinancialsTransaction, company: String): ZIO[Any, RepositoryError, Int] = {
     val model = transaction.copy(period = common.getPeriod(transaction.transdate))
     for {
@@ -57,11 +66,17 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRe
         common.reduce(v, PeriodicAccountBalance.dummy)
       }
       _ <- ZIO.logInfo(s" newRecords ${newRecords}")
-      oldPacs = updatePac(model, pacs)
+      tpacs <- pacs.map(TPeriodicAccountBalance.apply).flip
+      _ <- ZIO.logInfo(s" tpacs ${tpacs}")
+      oldPacs <- updatePac(model, tpacs).map(e=>e.map(PeriodicAccountBalance.applyT))
+      _ <- ZIO.logInfo(s" tpacs ${tpacs}")
+     // oldPacs1 <-oldPacs
+     // oldPacs <-updatePac1()
       _ <- ZIO.logInfo(s" oldPacs ${oldPacs}")
-      journalEntries = makeJournal(model, newRecords.toList ++ oldPacs)
+     // journalEntries = makeJournalT(model, newRecords.toList, oldPacs.flip)
+      journalEntries <- makeJournalT(model, newRecords.toList, oldPacs)
       _ <- ZIO.logInfo(s" journalEntries ${journalEntries}")
-      post <- repository4PostingTransaction.post(List(model), newRecords.toList, oldPacs, journalEntries)
+      post <- repository4PostingTransaction.post(List(model), newRecords.toList, oldPacs.flip, journalEntries)
 
     } yield post
 
@@ -76,16 +91,45 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRe
     (pacIds ++ pacOids).distinct
   }
 
-  private def updatePac(model: FinancialsTransaction, pacs: List[PeriodicAccountBalance]): List[PeriodicAccountBalance] = {
-    val r0:List[PeriodicAccountBalance] = groupById(PeriodicAccountBalance.create(model))
-    val r:List[PeriodicAccountBalance] = r0.map { pac =>
-      pacs.find(_.id ==  pac.id).map(pac_ => pac_.copy(idebit = pac_.idebit.add(pac.idebit), debit = pac_.debit.add(pac.debit)
-                                                    , icredit = pac_.icredit.add(pac.icredit), credit = pac_.credit.add(pac.credit)))
-      .getOrElse(pac)
-    }.filterNot(_.id ==PeriodicAccountBalance.dummy.id)
-   val result =  if(pacs.isEmpty) r0 else groupById(r)
-    result
-  }
+//  private def updatePac1X(models: List[FinancialsTransaction], tpacs: List[TPeriodicAccountBalance]) =
+//    models.flatMap(model =>
+//      model.lines.flatMap(line => {
+//        val pacs = tpacs.filter(pac_ => pac_.id == buildPacId(model.getPeriod, line.account))
+//        val poacs = tpacs.filter(poac_ => poac_.id == buildPacId(model.getPeriod, line.oaccount))
+//        TPeriodicAccountBalance.debitAndCreditAll(pacs, poacs, line.amount)
+//        List(pacs, poacs)
+//      })
+//    ).flatten
+  private def updatePac(model: FinancialsTransaction, tpacs: List[TPeriodicAccountBalance]): ZIO[Any, Nothing, List[TPeriodicAccountBalance]] = {
+  val result = for{
+    //tpacs <- pacs.map(TPeriodicAccountBalance.apply).flip
+    newRecords<- groupById(PeriodicAccountBalance.create(model)).map(TPeriodicAccountBalance.apply).flip
+    newRecordsx:List[TPeriodicAccountBalance] =  newRecords
+    t<- newRecordsx.map ( pac =>transfer(pac, tpacs).as(pac)).flip
+    //tpacs.find(_.id ==  pac.id).map(pac_ => pac_.transferZ(pac, pac_))//.getOrElse(pac)
+    _ <- ZIO.logInfo(s" t ${t}")
+    _ <- ZIO.logInfo(s" newRecords ${newRecords}")
+
+
+
+    // _ <-ZIO.succeed(result1.map(e=> e._1.transferX(e._2, e._1,  e._3)))
+  }yield ( if(t.nonEmpty) t  else newRecords)
+  result
+}
+
+  private def transfer( pac:TPeriodicAccountBalance,  tpacs:List[TPeriodicAccountBalance]): ZIO[Any, Nothing, Option[Unit]] =
+    tpacs.find(_.id ==  pac.id).map(pac_ => pac_.transferZ(pac, pac_)).flip
+
+  //  private def updatePac1(model: FinancialsTransaction, pacs: List[PeriodicAccountBalance]): List[PeriodicAccountBalance] = {
+//    val r0:List[PeriodicAccountBalance] = groupById(PeriodicAccountBalance.create(model))
+//    val r:List[PeriodicAccountBalance] = r0.map { pac =>
+//      pacs.find(_.id ==  pac.id).map(pac_ => pac_.copy(idebit = pac_.idebit.add(pac.idebit), debit = pac_.debit.add(pac.debit)
+//                                                    , icredit = pac_.icredit.add(pac.icredit), credit = pac_.credit.add(pac.credit)))
+//      .getOrElse(pac)
+//    }.filterNot(_.id ==PeriodicAccountBalance.dummy.id)
+//   val result =  if(pacs.isEmpty) r0 else groupById(r)
+//    result
+//  }
 
 
   private def groupById(r: List[PeriodicAccountBalance]) = {
@@ -95,20 +139,36 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRe
     r0
   }
 
+
+
   def findOrBuildPac(pacId: String, period_ : Int, pacList: List[PeriodicAccountBalance]) =
     pacList.find(pac_ => pac_.id == pacId).getOrElse(PeriodicAccountBalance.dummy.copy(id = pacId, period = period_))
-  private def makeJournal(model: FinancialsTransaction, pacList: List[PeriodicAccountBalance]): List[Journal] = for {
-    journal <- model.lines.flatMap { line =>
-       val pacId  = buildPacId(model.getPeriod, line.account)
-       val poacId = buildPacId(model.getPeriod, line.oaccount)
-       val pac    = findOrBuildPac(pacId, model.getPeriod, pacList)
-       val poac   = findOrBuildPac(poacId, model.getPeriod, pacList)
-       val jou1   = buildJournalEntries(model, line, pac, line.account, line.oaccount, line.side)
-       val jou2   = buildJournalEntries(model, line, poac, line.oaccount, line.account, !line.side)
-       List(jou1, jou2)
-       }
-  } yield journal
+//  private def makeJournal(model: FinancialsTransaction, pacList: List[PeriodicAccountBalance]): List[Journal] = for {
+//    journal <- model.lines.flatMap { line =>
+//       val pacId  = buildPacId(model.getPeriod, line.account)
+//       val poacId = buildPacId(model.getPeriod, line.oaccount)
+//       val pac    = findOrBuildPac(pacId, model.getPeriod, pacList)
+//       val poac   = findOrBuildPac(poacId, model.getPeriod, pacList)
+//       val jou1   = buildJournalEntries(model, line, pac, line.account, line.oaccount, line.side)
+//       val jou2   = buildJournalEntries(model, line, poac, line.oaccount, line.account, !line.side)
+//       List(jou1, jou2)
+//       }
+//  } yield journal
 
+  private def makeJournalT(model: FinancialsTransaction,  pacListx: List[PeriodicAccountBalance], tpacList: List[UIO[PeriodicAccountBalance]]): ZIO[Any, Nothing, List[Journal]] = for {
+    pacList<-tpacList.flip
+    _ <- ZIO.logInfo(s" oldPacs ${pacList}")
+    _ <- ZIO.logInfo(s" pacListx ${pacListx}")
+    journal = model.lines.flatMap { line =>
+      val pacId = buildPacId(model.getPeriod, line.account)
+      val poacId = buildPacId(model.getPeriod, line.oaccount)
+      val pac = findOrBuildPac(pacId, model.getPeriod, pacList++pacListx)
+      val poac = findOrBuildPac(poacId, model.getPeriod, pacList++pacListx)
+      val jou1 = buildJournalEntries(model, line, pac, line.account, line.oaccount, line.side)
+      val jou2 = buildJournalEntries(model, line, poac, line.oaccount, line.account, !line.side)
+      List(jou1, jou2)
+    }
+  } yield journal
   private def buildJournalEntries(model: FinancialsTransaction, line: FinancialsTransactionDetails,
                                   pac: PeriodicAccountBalance, account: String, oaccount: String,side:Boolean) =
     Journal(

@@ -77,6 +77,7 @@ object common {
       }
     }
   }
+
   def getMonthAsString(month: Int): String                 =
     if (month <= 9) {
       "0".concat(month.toString)
@@ -698,41 +699,41 @@ final case class TPeriodicAccountBalance(
   modelid: Int = PeriodicAccountBalance.MODELID
 ) {
   self =>
-  def debiting(amount: BigDecimal) = //STM.atomically {
-    self.debit.get.flatMap(balance => self.debit.set(balance.add(amount)))
-  //}
-
-  def crediting(amount: BigDecimal) = //STM.atomically {
-    self.credit.get.flatMap(balance => self.credit.set(balance.add(amount)))
- // }
-
-  def idebiting(amount: BigDecimal) = //STM.atomically {
-    self.idebit.get.flatMap(balance => self.idebit.set(balance.add(amount)))
- // }
-
-  def icrediting(amount: BigDecimal) = //STM.atomically {
-    self.icredit.get.flatMap(balance => self.icredit.set(balance.add(amount)))
-  //}
-
-  def fdebit = for {
-    debitx  <- self.debit.get.commit
-    idebitx <- self.idebit.get.commit
-  } yield (debitx.add(idebitx))
-
-  def fcredit = for {
-    creditx  <- self.credit.get.commit
-    icreditx <- self.icredit.get.commit
-  } yield creditx.add(icreditx)
-
-  def dbalance = for {
-    fdebitx  <- self.fdebit
-    fcreditx <- self.fcredit
-  } yield fdebitx.subtract(fcreditx)
-
-  def cbalance = for {
-    fdebitx  <- self.fdebit
-    fcreditx <- self.fcredit
-  } yield fcreditx.subtract(fdebitx)
+//  def debiting(amount: BigDecimal) = //STM.atomically {
+//    self.debit.get.flatMap(balance => self.debit.set(balance.add(amount)))
+//  //}
+//
+//  def crediting(amount: BigDecimal) = //STM.atomically {
+//    self.credit.get.flatMap(balance => self.credit.set(balance.add(amount)))
+// // }
+//
+//  def idebiting(amount: BigDecimal) = //STM.atomically {
+//    self.idebit.get.flatMap(balance => self.idebit.set(balance.add(amount)))
+// // }
+//
+//  def icrediting(amount: BigDecimal) = //STM.atomically {
+//    self.icredit.get.flatMap(balance => self.icredit.set(balance.add(amount)))
+//  //}
+//
+//  def fdebit = for {
+//    debitx  <- self.debit.get.commit
+//    idebitx <- self.idebit.get.commit
+//  } yield (debitx.add(idebitx))
+//
+//  def fcredit = for {
+//    creditx  <- self.credit.get.commit
+//    icreditx <- self.icredit.get.commit
+//  } yield creditx.add(icreditx)
+//
+//  def dbalance = for {
+//    fdebitx  <- self.fdebit
+//    fcreditx <- self.fcredit
+//  } yield fdebitx.subtract(fcreditx)
+//
+//  def cbalance = for {
+//    fdebitx  <- self.fdebit
+//    fcreditx <- self.fcredit
+//  } yield fcreditx.subtract(fdebitx)
 
 
 //  def transfer(from: TPeriodicAccountBalance, amount: BigDecimal): IO[Nothing, Unit] =
@@ -742,13 +743,42 @@ final case class TPeriodicAccountBalance(
 //        _ <- deposit(self, amount)
 //      } yield ()
 //    }
+def transferX(from: TPeriodicAccountBalance, to: TPeriodicAccountBalance, amount: BigDecimal): IO[Nothing, Unit] = {
+  STM.atomically {
+    for {
+      _ <- from.credit.update(_.add(amount))
+      _ <- to.debit.update(_.add(amount))
+    } yield ()
+    //self.debit.update(_.add(amount)).*>(from.credit.update(_.add(amount)))
+  }
+  //List(from, to)
+}
+  def transferZ(from: TPeriodicAccountBalance, to: TPeriodicAccountBalance): ZIO[Any, Nothing, Unit] =
+    //STM.atomically {
+      for {
+        fidebit <- from.idebit.get.commit
+        ficredit <- from.icredit.get.commit
+        fdebit <- from.debit.get.commit
+        fcredit <- from.credit.get.commit
+        _ <- to.idebit.update(_.add(fidebit)).commit
+        _ <- to.icredit.update(_.add(ficredit)).commit
+        _ <- to.debit.update(_.add(fdebit)).commit
+        _ <- to.credit.update(_.add(fcredit)).commit
+      } yield ()
 
-  def transfer(from: TPeriodicAccountBalance, amount: BigDecimal): UIO[Unit] =
+    //}
+
+  def transfer(from: TPeriodicAccountBalance, amount: BigDecimal): IO[Nothing, Unit] =
     STM.atomically {
       self.debit.update(_.add(amount)).*>(from.credit.update(_.add(amount)))
-    }
+    }//.flatMap(x=>x.succeed).as(List(self, from))
 }
+
+
+
 object TPeriodicAccountBalance {
+
+  val dummy = apply(PeriodicAccountBalance.dummy)
   def apply(pac: PeriodicAccountBalance): UIO[TPeriodicAccountBalance] = for {
     idebit  <- TRef.makeCommit(pac.idebit)
     icredit <- TRef.makeCommit(pac.icredit)
@@ -809,10 +839,10 @@ object TPeriodicAccountBalance {
       poac.credit.get.flatMap(credit => poac.credit.set(credit.add(amount)))
   }
 
-  def debitAndCreditAll(pacs: List[TPeriodicAccountBalance], poacs: List[TPeriodicAccountBalance], amount: BigDecimal): List[IO[Nothing, Unit]] =
-    pacs.zip(poacs).map { case (pac, poac) => /*debitAndCredit(pac, poac, amount)*/
-                                              transfer(poac, pac, amount)
-    }
+//  def debitAndCreditAll(pacs: List[TPeriodicAccountBalance], poacs: List[TPeriodicAccountBalance], amount: BigDecimal): List[IO[Nothing, Unit]] =
+//    pacs.zip(poacs).map { case (pac, poac) => /*debitAndCredit(pac, poac, amount)*/
+//                                              transfer(poac, pac, amount)
+//    }
 
   def debitAndCreditAllX(pacs: List[PeriodicAccountBalance], poacs: List[PeriodicAccountBalance], amount: BigDecimal): List[PeriodicAccountBalance] =
     pacs.zip(poacs).flatMap { case (pac, poac) => List(pac.debiting(amount), poac.crediting(amount))
@@ -823,25 +853,34 @@ object TPeriodicAccountBalance {
       (from.credit.update(_.add(amount))) *>(to.debit.update(_.add(amount)))
     }
 
-  def withdraw(from: TPeriodicAccountBalance, amount: BigDecimal): USTM[Unit] =
-    from.crediting(amount)
+//  def withdraw(from: TPeriodicAccountBalance, amount: BigDecimal): USTM[Unit] =
+//    from.crediting(amount)
+//
+//  def deposit(to: TPeriodicAccountBalance, amount: BigDecimal): USTM[Unit] = {
+//    to.debiting(amount)
+//  }
 
-  def deposit(to: TPeriodicAccountBalance, amount: BigDecimal): USTM[Unit] = {
-    to.debiting(amount)
-  }
-
-  def transfer(
-                from: TPeriodicAccountBalance,
-                to: TPeriodicAccountBalance,
-                amount: BigDecimal
-              ): IO[Nothing, Unit] =
+//  def transfer(
+//                from: TPeriodicAccountBalance,
+//                to: TPeriodicAccountBalance,
+//                amount: BigDecimal
+//              ): IO[Nothing, Unit] =
+//    STM.atomically {
+//      for {
+//        _ <- withdraw(from, amount)
+//        _ <- deposit(to, amount)
+//      } yield ()
+//    }
+  def transferX(from: TPeriodicAccountBalance, to: TPeriodicAccountBalance, amount: BigDecimal)= {
     STM.atomically {
       for {
-        _ <- withdraw(from, amount)
-        _ <- deposit(to, amount)
+        _ <- from.credit.update(_.add(amount))
+        _ <- to.debit.update(_.add(amount))
       } yield ()
+      //self.debit.update(_.add(amount)).*>(from.credit.update(_.add(amount)))
     }
-
+   // List(from,to)
+  }
 }
 final case class PeriodicAccountBalance(
   id: String,
@@ -932,11 +971,11 @@ object PeriodicAccountBalance {
   def applyX(p: PAC_Type)                                                = PeriodicAccountBalance(p._1, p._2, p._3, p._4, p._5, p._6, p._7, p._8, p._9, p._10)
 
   def applyT(tpac: TPeriodicAccountBalance): ZIO[Any, Nothing, PeriodicAccountBalance] = for {
-    idebit  <- tpac.debit.get.commit
-    icredit <- tpac.debit.get.commit
+    idebit  <- tpac.idebit.get.commit
+    icredit <- tpac.icredit.get.commit
     debit   <- tpac.debit.get.commit
-    credit  <- tpac.debit.get.commit
-  } yield PeriodicAccountBalance(tpac.id, tpac.account, tpac.period, idebit, icredit, credit, debit, tpac.currency, tpac.company, tpac.modelid)
+    credit  <- tpac.credit.get.commit
+  } yield PeriodicAccountBalance(tpac.id, tpac.account, tpac.period, idebit, icredit, debit, credit, tpac.currency, tpac.company, tpac.modelid)
 }
 
 sealed trait BusinessPartner         {

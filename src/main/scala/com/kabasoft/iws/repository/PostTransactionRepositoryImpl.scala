@@ -116,15 +116,19 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
   }
 
   @nowarn
-  override  def post(models: List[FinancialsTransaction], pac2Insert:List[PeriodicAccountBalance], pac2update:List[PeriodicAccountBalance],
-                     journals:List[Journal]): ZIO[Any, RepositoryError, Int] =  {
-     val z = ZIO.when(models.nonEmpty)(updatePostedField4T(models))
+  override  def post(models: List[FinancialsTransaction], pac2Insert:List[PeriodicAccountBalance], pac2update:UIO[List[PeriodicAccountBalance]],
+                     journals:List[Journal]): ZIO[Any, RepositoryError, Int] =  for {
+    pac2updatex<-pac2update
+    _ <- ZIO.logDebug(s" New Pacs  to insert into DB ${pac2Insert}")
+    _ <- ZIO.logDebug(s" Old Pacs  to update in DB ${pac2updatex}")
+    _ <- ZIO.logDebug(s" Transaction posted  ${models}")
+     z = ZIO.when(models.nonEmpty)(updatePostedField4T(models))
              .zipWith(ZIO.when(pac2Insert.nonEmpty)(createPacs4T(pac2Insert)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0))
-             .zipWith(ZIO.when(pac2update.nonEmpty)(modifyPacs4T(pac2update)))((i1, i2)=>i1 +i2.getOrElse(0))
+             .zipWith(ZIO.when(pac2updatex.nonEmpty)(modifyPacs4T(pac2updatex)))((i1, i2)=>i1 +i2.getOrElse(0))
              .zipWith(ZIO.when(journals.nonEmpty)(createJ4T(journals)))((i1, i2)=>i1 +i2.getOrElse(0))
 
-   transact(z).mapError(e=>RepositoryError(e.getMessage)).provideLayer(driverLayer)
-  }
+    nr<-  transact(z).mapError(e=>RepositoryError(e.getMessage)).provideLayer(driverLayer)
+  }yield nr//transact(z).mapError(e=>RepositoryError(e.getMessage)).provideLayer(driverLayer)
 
   private def  updatePostedField4T(models: List[FinancialsTransaction]): ZIO[SqlTransaction, Exception, Int] = {
     val updateSQL = models.map(model =>
