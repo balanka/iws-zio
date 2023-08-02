@@ -52,18 +52,13 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRe
     val model = transaction.copy(period = common.getPeriod(transaction.transdate))
     for {
       pacs <- pacRepo.getByIds(buildPacIds(model), company)
-      _ <- ZIO.logInfo(s" pacs ${pacs}")
       newRecords = PeriodicAccountBalance.create(model).filterNot(pac => pacs.map(_.id).contains(pac.id))
         .groupBy(_.id) map { case (_, v) =>
         common.reduce(v, PeriodicAccountBalance.dummy)
       }
-      _ <- ZIO.logInfo(s" newRecords ${newRecords}")
       tpacs <- pacs.map(TPeriodicAccountBalance.apply).flip
-      _ <- ZIO.logInfo(s" tpacs ${tpacs}")
       oldPacs <- updatePac(model, tpacs).map(e=>e.map(PeriodicAccountBalance.applyT))
-      _ <- ZIO.logInfo(s" oldPacs ${oldPacs}")
       journalEntries <- makeJournal(model, newRecords.toList, oldPacs)
-      _ <- ZIO.logInfo(s" journalEntries ${journalEntries}")
       post <- repository4PostingTransaction.post(List(model), newRecords.toList, oldPacs.flip, journalEntries)
 
     } yield post
@@ -82,9 +77,8 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRe
   private def updatePac(model: FinancialsTransaction, tpacs: List[TPeriodicAccountBalance]): ZIO[Any, Nothing, List[TPeriodicAccountBalance]] = {
   val result = for{
     newRecords<- groupById(PeriodicAccountBalance.create(model)).map(TPeriodicAccountBalance.apply).flip
-    newRecordsx:List[TPeriodicAccountBalance] =  newRecords
-    t<- newRecordsx.map ( pac =>transfer(pac, tpacs).as(pac)).flip
-  }yield ( if(t.nonEmpty) t  else newRecords)
+             _<- newRecords.map ( pac =>transfer(pac, tpacs)).flip
+  }yield ( if(tpacs.nonEmpty) tpacs  else newRecords)
   result
 }
 

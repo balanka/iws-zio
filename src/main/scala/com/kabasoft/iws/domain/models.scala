@@ -754,19 +754,18 @@ def transferX(from: TPeriodicAccountBalance, to: TPeriodicAccountBalance, amount
   //List(from, to)
 }
   def transferZ(from: TPeriodicAccountBalance, to: TPeriodicAccountBalance): ZIO[Any, Nothing, Unit] =
-    //STM.atomically {
+    STM.atomically {
       for {
-        fidebit <- from.idebit.get.commit
-        ficredit <- from.icredit.get.commit
-        fdebit <- from.debit.get.commit
-        fcredit <- from.credit.get.commit
-        _ <- to.idebit.update(_.add(fidebit)).commit
-        _ <- to.icredit.update(_.add(ficredit)).commit
-        _ <- to.debit.update(_.add(fdebit)).commit
-        _ <- to.credit.update(_.add(fcredit)).commit
+        fidebit <- from.idebit.get
+        ficredit <- from.icredit.get
+        fdebit <- from.debit.get
+        fcredit <- from.credit.get
+        _ <- to.idebit.update(_.add(fidebit))
+        _ <- to.icredit.update(_.add(ficredit))
+        _ <- to.debit.update(_.add(fdebit))
+        _ <- to.credit.update(_.add(fcredit))
       } yield ()
-
-    //}
+    }
 
   def transfer(from: TPeriodicAccountBalance, amount: BigDecimal): IO[Nothing, Unit] =
     STM.atomically {
