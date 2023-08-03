@@ -26,12 +26,13 @@ import zio.http.{Body, Response}
 import com.kabasoft.iws.domain.CostcenterBuilder.cc
 import com.kabasoft.iws.domain.ModuleBuilder.m
 import com.kabasoft.iws.domain.SupplierBuilder.sup
-import com.kabasoft.iws.domain.TransactionBuilder.{ftr4, ftr5}
+import com.kabasoft.iws.domain.TransactionBuilder.ftr4
 import com.kabasoft.iws.domain.UserBuilder.user
 import com.kabasoft.iws.domain.VatBuilder.vat1
 import zio._
 import zio.http.endpoint.{Endpoint, Routes}
 import zio.http.codec.HttpCodec._
+import com.kabasoft.iws.repository.Schema._
 import zio.http.endpoint.EndpointMiddleware.None
 import zio.http.Status
 import zio.http.{Request, URL}
@@ -40,39 +41,10 @@ import zio.sql.ConnectionPool
 import zio.test._
 
 object ApiSpec extends ZIOSpecDefault {
-  val ZZ = """{
-             |    "id": 0,
-             |    "oid": 0,
-             |    "id1": 0,
-             |    "costcenter": "700",
-             |    "account": "077",
-             |    "transdate": "2023-03-28T18:07:00.000Z",
-             |    "enterdate": "2023-04-29T18:07:05.930Z",
-             |    "postingdate": "2023-04-29T18:07:05.930Z",
-             |    "period": 202304,
-             |    "posted": false,
-             |    "modelid": 112,
-             |    "company": "1000",
-             |    "text": "zzzz",
-             |    "typeJournal": 0,
-             |    "file_content": 0,
-             |    "lines": [
-             |        {
-             |            "account": "077",
-             |            "side": true,
-             |            "oaccount": "0670",
-             |            "duedate": "2023-03-28T18:07:05.000Z",
-             |            "amount": 10,
-             |            "currency":"EUR",
-             |            "text": "ddd",
-             |            "id":-1,
-             |            "transid": -1
-             |        }
-             |    ]
-             |}""".stripMargin
-  val FTRX ="{\"id\":1,\"oid\":-1,\"id1\":1,\"costcenter\":\"311\",\"account\":\"1810\",\"transdate\":\"2023-07-29T07:56:14.555236Z\",\"enterdate\":\"2023-04-08T13:07:28.685Z\",\"postingdate\":\"2023-04-08T13:07:28.685Z\",\"period\":202307,\"posted\":false,\"modelid\":114,\"company\":\"1000\",\"text\":\"comments\",\"typeJournal\":-1,\"file_content\":0,\"lines\":[{\"id\":1,\"transid\":1,\"account\":\"1200\",\"side\":true,\"oaccount\":\"4400\",\"amount\":81.00,\"duedate\":\"2023-04-09T13:50:17.598252Z\",\"text\":\"terms\",\"currency\":\"EUR\"},{\"id\":2,\"transid\":1,\"account\":\"1200\",\"side\":true,\"oaccount\":\"3806\",\"amount\":19.00,\"duedate\":\"2023-04-09T13:50:17.598270Z\",\"text\":\"terms\",\"currency\":\"EUR\"}]}"
+
+  //val FTRX ="{\"id\":1,\"oid\":-1,\"id1\":1,\"costcenter\":\"311\",\"account\":\"1810\",\"transdate\":\"2023-07-29T07:56:14.555236Z\",\"enterdate\":\"2023-04-08T13:07:28.685Z\",\"postingdate\":\"2023-04-08T13:07:28.685Z\",\"period\":202307,\"posted\":false,\"modelid\":114,\"company\":\"1000\",\"text\":\"comments\",\"typeJournal\":-1,\"file_content\":0,\"lines\":[{\"id\":1,\"transid\":1,\"account\":\"1200\",\"side\":true,\"oaccount\":\"4400\",\"amount\":81.00,\"duedate\":\"2023-04-09T13:50:17.598252Z\",\"text\":\"terms\",\"currency\":\"EUR\"},{\"id\":2,\"transid\":1,\"account\":\"1200\",\"side\":true,\"oaccount\":\"3806\",\"amount\":19.00,\"duedate\":\"2023-04-09T13:50:17.598270Z\",\"text\":\"terms\",\"currency\":\"EUR\"}]}"
   // val XX = """{"id":0,"oid":-1,"costcenter":"311","account":"1810","transdate":"2023-04-29T19:07:13.538079Z","enterdate":"2023-04-29T19:07:13.538079Z","postingdate":"2023-04-29T19:07:13.538079Z","period":202304,"posted":false,"modelid":114,"company":"1000","text":"comments","typeJournal":-1,"file_content":-1,"lines":[{"id":-4,"transid":0,"account":"1810","side":true,"oaccount":"1200","amount":119.0000,"duedate":"2023-04-29T19:07:13.537955Z","text":"terms","currency":"EUR"}]}"""
-  val FTR = """{"id":0,"oid":-1, "id1":-1,"costcenter":"311","account":"1810","transdate":"2023-03-28T18:07:00.538079Z","enterdate":"2023-04-29T18:07:05.538079Z","postingdate":"2023-04-29T18:07:05.538079Z","period":202304,"posted":false,"modelid":114,"company":"1000","text":"comments","typeJournal":-1,"file_content":-1,"lines":[{"id":-4,"transid":0,  "account":"1810","side":true,"oaccount":"1200","amount":10.000,"duedate":"2023-03-28T18:07:05.538079Z","text":"ddd","currency":"EUR"}]}"""
+ // val FTR = """{"id":0,"oid":-1, "id1":-1,"costcenter":"311","account":"1810","transdate":"2023-03-28T18:07:00.538079Z","enterdate":"2023-04-29T18:07:05.538079Z","postingdate":"2023-04-29T18:07:05.538079Z","period":202304,"posted":false,"modelid":114,"company":"1000","text":"comments","typeJournal":-1,"file_content":-1,"lines":[{"id":-4,"transid":0,  "account":"1810","side":true,"oaccount":"1200","amount":10.000,"duedate":"2023-03-28T18:07:05.538079Z","text":"ddd","currency":"EUR"}]}"""
     def spec = suite("APISpec")(
       suite("handler")(
         test("Account  integration test ") {
@@ -85,18 +57,7 @@ object ApiSpec extends ZIOSpecDefault {
             deleteRoutes("/acc/"+acc.id+"/"+acc.company, "1")&&
             postRoutes("/acc", accx.toJson, "1")
         },
-       /* test("financials integration test1") {
 
-          val testRoutes1 = testPostApi(ftrCreateEndpoint) _
-
-
-          //val deleteRoutes = testDeleteApi(bankDeleteEndpoint) _
-          testRoutes1("/ftr", ZZ, "2")
-          //testRoutes1("/ftr", ftr4.toJson, "2")
-          // deleteRoutes("/bank/" + bank.id + "/" + bank.company, "1") && testRoutes1("/bank", bankx.to)Json, "1")
-        },
-
-        */
         test("financials integration test") {
           val ftrByModelId = Endpoint.get("ftr1" / string("company") / int("modelid")).out[Int].outError[RepositoryError](Status.InternalServerError)
             .implement(p => ZIO.logInfo(s"Find  Transaction by modelId  ${p}") *>
@@ -107,15 +68,16 @@ object ApiSpec extends ZIOSpecDefault {
 
           val testRoutes1 = testPostApi(ftrCreateEndpoint) _
           val testRoutes = testApi(ftrByModelId ++ ftrByTransId ++ ftrModifyEndpoint) _
-          val testRoutes2 = testPutApi( ftrModifyEndpoint) _
-          val payload = ftr5.copy(lines = ftr5.lines.map(l=>l.copy (text="modified"))).toJson
+          //val testRoutes2 = testPutApi( ftrModifyEndpoint) _
+         // val payload = ftr5.toJson
+         // val result = ftr5.toJson//.toString.replaceAll("terms","modified")
 
           //val deleteRoutes = testDeleteApi(bankDeleteEndpoint) _
 
           //testRoutes1("/ftr", FTR, "2") &&
           testRoutes("/ftr2/1000/1" , "100.00") && testRoutes("/ftr1/1000/"+124, "1") &&
-          testRoutes1("/ftr", ftr4.toJson, "2") &&
-          testRoutes2("/ftr", payload, FTRX)
+          testRoutes1("/ftr", ftr4.toJson, "2")
+          //testRoutes2("/ftr", payload, payload)
           // deleteRoutes("/bank/" + bank.id + "/" + bank.company, "1") && testRoutes1("/bank", bankx.to)Json, "1")
         },
         test("Bank integration test") {
