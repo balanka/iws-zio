@@ -53,7 +53,7 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
 
         for {
           //oneRow     <- TransactionRepository.create(List(ftr1, ftr2, ftr3))
-          oneRow     <- TransactionRepository.create(List(ftr1, ftr2))
+          oneRow     <- TransactionRepository.create(List(ftr1, ftr2)).map(_.map(_.lines.size).sum+2)
           ftr        <-   TransactionRepository.all(companyId)
 
           postedRows <- FinancialsService.postAll(ftr.map(_.id), companyId)
@@ -65,7 +65,7 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
           balances4P     <-PacRepository.getBalances4Period(period, period, companyId).runCollect.map(_.toList)
           balance       <-AccountService.getBalance(paccountId0, fromPeriod, toPeriod, companyId).map(_.head)
         } yield {
-          assertTrue(oneRow == 5, nrOfAccounts == 2, postedRows == 33, nrOfPacs == 1, accountEntry == 6,
+          assertTrue(oneRow == 7, nrOfAccounts == 2, postedRows == 33, nrOfPacs == 1, accountEntry == 6,
             oaccountEntry == 2, vatEntry == 2, balances4P.size == 5,
             balances4P.headOption.getOrElse(PeriodicAccountBalance.dummy).debit.equals(amount),
             balance.debit.equals(amount2), balance.credit.equals(creditAmount))

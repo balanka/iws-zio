@@ -31,7 +31,7 @@ final class BankStatementServiceImpl(
                          .mapZIO(
                            buildTransactions(_, company)
                              .tap(tr => ZIO.logDebug(s"Transaction created  ${tr} "))
-                             .flatMap(ftrRepo.create)
+                             .flatMap( ftr=>ftrRepo.create2 (ftr))
                          )
                          .mapError(e => RepositoryError(e.getMessage))
                          .runCollect
