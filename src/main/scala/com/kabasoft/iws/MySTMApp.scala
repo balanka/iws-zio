@@ -42,7 +42,7 @@ object MySTMApp extends ZIOAppDefault {
     _ <- showBalance(from, to)
    // _ <- ZIO.logInfo(s"Before Transfering   \n credited Acct  ${from}  \n debited Acct ${to}")
     //_ <- ZIO.collectAllPar(Chunk.fill(4000000)(from.transfer(to, new BigDecimal(1))))
-    _ <- TPeriodicAccountBalance.transfer(from, to, new BigDecimal(1))
+    _ <- TPeriodicAccountBalance.transferX(from, to, new BigDecimal(1))
     //xx <- ZIO.collectAllPar(Chunk.fill(1)(from.transfer(from, to, new BigDecimal(1))))
     // _ <- ZIO.foreachPar((1 to 4000000).toList) { _ => from.transfer(to, new BigDecimal(1)) }
     //_ <- ZIO.logInfo(s"After Transfering   \n credited Acct  ${xx._1} \n debited Acct  ${xx._2}")
