@@ -9,12 +9,6 @@ import zio.prelude.FlipOps
 
 final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRepository, journalRepo: JournalRepository, repository4PostingTransaction:PostTransactionRepository) extends FinancialsService {
 
-  override def create(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] =
-    ftrRepo.create(model)
-
-  override def create(items: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =
-    ftrRepo.create(items)
-
   override def journal(accountId: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[Journal]] =
     for {
       queries <- journalRepo.find4Period(accountId, fromPeriod, toPeriod, company).runCollect.map(_.toList)

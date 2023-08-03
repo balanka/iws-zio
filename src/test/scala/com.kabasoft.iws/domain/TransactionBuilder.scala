@@ -25,7 +25,7 @@ object TransactionBuilder {
   val line1=  FinancialsTransactionDetails(-1, 0,  faccountId, side, incaccountId1 , amount.subtract(vatAmount), Instant.now(), terms, currency)
   val line2=  FinancialsTransactionDetails(-1, 0,  faccountId, side, vataccountId, vatAmount, Instant.now(), terms, currency)
   val line3 = FinancialsTransactionDetails(-3, 0,  accountId, side, faccountId, amount.add(vatAmount) , Instant.now(), terms, currency)
-  val line4 = FinancialsTransactionDetails(-4, 0,  accountId, side, faccountId, amount.add(vatAmount) , Instant.now(), terms, currency)
+  val line4 = FinancialsTransactionDetails(1, 0,  accountId, side, faccountId, amount.add(vatAmount) , Instant.now(), terms, currency)
   val line5 = FinancialsTransactionDetails(1, 1,  faccountId, side, incaccountId1, amount.subtract(vatAmount) , Instant.now(), terms, currency)
   val line6 = FinancialsTransactionDetails(2, 1,  faccountId, side, vataccountId, vatAmount , Instant.now(), terms, currency)
 
@@ -36,9 +36,9 @@ object TransactionBuilder {
     , period, false, modelid, company, "comments"+modelid, -1,-1, List(line1, line2))
   val ftr2 = FinancialsTransaction(0, -1, -1, costCenter, accountId, Instant.now(), Instant.now().plusMillis(2L), Instant.now()
     , period, false, modelid2, company, "comments", -1, -1, List(line3))
-  val ftr4 = FinancialsTransaction(-1, -1, -1, costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
-    , period, false, modelid2, company, "comments", -1, -1, List(line4))
-  val ftr5 = FinancialsTransaction(1, -1, 1, costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
+  val ftr4 = FinancialsTransaction(-1, -1, 1, costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
+    , period, false, modelid2, company, "comments", 0, 0, List(line4))
+  val ftr5 = FinancialsTransaction(-1, -1, 1, costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
     , period, false, modelid2, company, "comments", 0, 0, List(line5, line6))
   val dtransactions = ftr1.toDerive()
   val pacs = PeriodicAccountBalance.create(ftr1).distinct

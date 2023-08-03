@@ -12,7 +12,7 @@ import zio.http.Status
 
 object FinancialsEndpoint {
 
-  val ftrCreateAPI     = Endpoint.post(literal("ftr")).in[FinancialsTransaction].out[Int].outError[RepositoryError](Status.InternalServerError)
+  val ftrCreateAPI     = Endpoint.post(literal("ftr")).in[FinancialsTransaction].out[FinancialsTransaction].outError[RepositoryError](Status.InternalServerError)
   private val ftrAllAPI        = Endpoint.get("ftr" / string("company")).out[List[FinancialsTransaction]].outError[RepositoryError](Status.InternalServerError)
   private val ftrByModelIdAPI  = Endpoint.get("ftr"/ literal("model")/ string("company")/int("modelid")).out[List[FinancialsTransaction]].outError[RepositoryError](Status.InternalServerError)
   val ftrByTransIdAPI  = Endpoint.get("ftr" / string("company")/ int("transid")).out[FinancialsTransaction].outError[RepositoryError](Status.InternalServerError)
@@ -34,7 +34,7 @@ object FinancialsEndpoint {
   private val ftrByModelIdEndpoint = ftrByModelIdAPI.implement(p => FinancialsTransactionCache.getByModelId((p._2,p._1)).mapError(e => RepositoryError(e.getMessage)))
   private val ftrPost4PeriodEndpoint = ftrPost4PeriodAPI.implement(p => FinancialsService.postTransaction4Period(p._2, p._3, p._1).mapError(e => RepositoryError(e.getMessage)))
   val ftrModifyEndpoint = ftrModifyAPI.implement(ftr => ZIO.logInfo(s"Modify Transaction  ${ftr}") *>
-    TransactionRepository.modify(ftr).mapError(e => RepositoryError(e.getMessage))*>TransactionRepository.getByTransId((ftr.id, ftr.company)).mapError(e => RepositoryError(e.getMessage)))
+    TransactionRepository.modify(ftr).mapError(e => RepositoryError(e.getMessage))*>TransactionRepository.getByTransId1((ftr.id1, ftr.company)).mapError(e => RepositoryError(e.getMessage)))
   //PostTransactionRepository.modifyT(ftr).mapError(e => RepositoryError(e.getMessage)))
   private val ftrDeleteEndpoint = deleteAPI.implement(p => TransactionRepository.delete(p._2.toLong, p._1).mapError(e => RepositoryError(e.getMessage)))
 

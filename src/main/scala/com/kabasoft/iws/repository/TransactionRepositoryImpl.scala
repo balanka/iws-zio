@@ -61,30 +61,37 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
     ).values( toTupleC(model))
 
   @nowarn
-  override def create(model_ : FinancialsTransaction): ZIO[Any, RepositoryError, Int] = {
-    if (model_.id > 0) {
-      modify(model_)
+  override def create2(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = {
+    val insertNewLines_ = insertNewLines(model.lines)
+    val trans = for {
+      x <- buildInsertQuery(model).run
+      y <- insertNewLines_.run
+      _ <- ZIO.logInfo(s"Create transaction stmt       ${renderInsert(buildInsertQuery(model))} ") *>
+        ZIO.logInfo(s"Create line transaction stmt   ${renderInsert(insertNewLines_)} ")
+    } yield x + y
+    val r = transact(trans)
+      .tap(tr => ZIO.logInfo(s"Create transaction result ${tr} "))
+      .mapError(e => RepositoryError(e.toString))
+      .provideLayer(driverLayer)
+    r
+  }
+
+  @nowarn
+  override def create(ftr : FinancialsTransaction): ZIO[Any, RepositoryError, FinancialsTransaction] = {
+    if (ftr.id > 0) {
+      update(ftr)
     } else {
       var time = Instant.now().getEpochSecond
       time *= 1000000000L //convert to nanoseconds
-      val transid1 = time & ~9223372036854251520L
-      val model = model_.copy(id1 = transid1, lines = model_.lines.map(_.copy(transid = transid1)))
-      val insertNewLines_ = insertNewLines(model.lines)
-      val trans = for {
-        x <- buildInsertQuery(model).run
-        y <- insertNewLines_.run
-        _ <- ZIO.logInfo(s"Create transaction stmt       ${renderInsert(buildInsertQuery(model))} ") *>
-             ZIO.logInfo(s"Create line transaction stmt   ${renderInsert(insertNewLines_)} ")
-      } yield x + y
-      val r = transact(trans)
-        .tap(tr => ZIO.logInfo(s"Create transaction result ${tr} "))
-        .mapError(e => RepositoryError(e.toString))
-        .provideLayer(driverLayer)
-      r
+      val transid1x=time & ~9223372036854251520L
+      val model:FinancialsTransaction=ftr.copy(id1 = transid1x, lines = ftr.lines.map(_.copy(transid = transid1x)))
+      create2(model)*> getByTransId1(model.id1, model.company)
     }
-
   }
-  override def create(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int]        = models.map(create).flip.map(_.sum)
+
+  //override def create2(ftr: FinancialsTransaction, id1x: Long): ZIO[Any, RepositoryError, Int] = buildCreate(ftr)
+
+  override def create(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = models.map(create).flip//.map(_.sum)
   private def buildDeleteDetails(ids: List[Long]): Delete[FinancialsTransactionDetails] =
     deleteFrom(transactionDetails).where(lid_ in ids)
 
@@ -129,12 +136,12 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 
   @nowarn
   override def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = {
-    if (model.id<=0){
-      create(model)
-    }else {
+    if (model.id <= 0) {
+      create2(model)
+    } else {
       val newLines = model.lines.filter(_.id == -1L)
       val deletedLineIds = model.lines.filter(_.transid == -2L).map(line => line.id)
-      val oldLines2Update = model.lines.filter(l => l.transid == model.id && (l.id > 0L))
+      val oldLines2Update = model.lines.filter(_.id > 0L)
       val update_ = build(model)
 
       val result = for {
@@ -150,6 +157,16 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
         ZIO.logInfo(s"Update lines transaction update stmt ${oldLines2Update.map(buildUpdateDetails).map(renderUpdate)}") *>
         ZIO.logInfo(s"Delete lines transaction  stmt ${renderDelete(buildDeleteDetails(deletedLineIds))}") *>
         ZIO.logInfo(s"Modify transaction stmt ${renderUpdate(update_)}") *> buildResult
+    }
+  }
+
+  @nowarn
+  override def update(model: FinancialsTransaction): ZIO[Any, RepositoryError, FinancialsTransaction] = {
+    if (model.id<=0){
+      create(model)*>getByTransId(model.id, model.company)
+    }else {
+    modify(model) *>getByTransId(model.id, model.company)
+
     }
   }
 
@@ -217,13 +234,24 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
     trans  <- getById(id._1, id._2)
     lines_ <- getLineByTransId(trans).runCollect.map(_.toList)
   } yield trans.copy(lines = lines_)
+
+  override def getByTransId1(id: (Long, String)): ZIO[Any, RepositoryError, FinancialsTransaction] = for {
+    trans <- getById1(id._1, id._2)
+    lines_ <- getLineByTransId(trans).runCollect.map(_.toList)
+  } yield trans.copy(lines = lines_)
   def getById(id: Long, companyId: String): ZIO[Any, RepositoryError, FinancialsTransaction] = {
     val selectAll = SELECT2.where((company_ === companyId) && (id_ === id))
-    ZIO.logDebug(s"Query to execute getById ${id} is ${renderRead(selectAll)}") *>
+    ZIO.logInfo(s"Query to execute getById ${id} is ${renderRead(selectAll)}") *>
       execute(selectAll.to(x => FinancialsTransaction.apply(x)))
         .findFirstLong(driverLayer, id)
   }
 
+  def getById1(id: Long, companyId: String): ZIO[Any, RepositoryError, FinancialsTransaction] = {
+    val selectAll = SELECT2.where((company_ === companyId) && (id1_ === id))
+    ZIO.logInfo(s"Query to execute getById1 ${id} is ${renderRead(selectAll)}") *>
+      execute(selectAll.to(x => FinancialsTransaction.apply(x)))
+        .findFirstLong(driverLayer, id)
+  }
   override def getByModelId(modelId:(Int, String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
     trans <- getByModelIdX(modelId._1,modelId._2).mapZIO(tr => getTransWithLines(tr, modelId._2)).runCollect.map(_.toList)
   }yield trans
