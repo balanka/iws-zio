@@ -7,7 +7,6 @@ import zio.prelude.FlipOps
 import zio.sql.ConnectionPool
 import zio.stream._
 
-//import java.lang.System.nanoTime
 import scala.annotation.nowarn
 import java.time.Instant
 
@@ -63,22 +62,19 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 
   @nowarn
   override def create(model_ : FinancialsTransaction): ZIO[Any, RepositoryError, Int] = {
-     if(model_.id>0){
+    if (model_.id > 0) {
       modify(model_)
-    }else{
-      //model_.enterdate.getEpochSecond+model_.enterdate.getNano
-       var time = Instant.now().getEpochSecond
-       time *= 1000000000L //convert to nanoseconds
-
-       //val transid1 =   nanoTime //& ~9223372036854251520L
-       val transid1 =  time & ~9223372036854251520L
-      val model = model_.copy(id1 = transid1, lines = model_.lines.map(_.copy( transid = transid1)))
-      val  insertNewLines_ = insertNewLines(model.lines)
+    } else {
+      var time = Instant.now().getEpochSecond
+      time *= 1000000000L //convert to nanoseconds
+      val transid1 = time & ~9223372036854251520L
+      val model = model_.copy(id1 = transid1, lines = model_.lines.map(_.copy(transid = transid1)))
+      val insertNewLines_ = insertNewLines(model.lines)
       val trans = for {
         x <- buildInsertQuery(model).run
-        _ <- ZIO.logInfo(s"Create transaction stmt   ${renderInsert(buildInsertQuery(model))} ")
         y <- insertNewLines_.run
-        _ <- ZIO.logInfo(s"Create line transaction stmt   ${renderInsert(insertNewLines_)} ")
+        _ <- ZIO.logInfo(s"Create transaction stmt       ${renderInsert(buildInsertQuery(model))} ") *>
+             ZIO.logInfo(s"Create line transaction stmt   ${renderInsert(insertNewLines_)} ")
       } yield x + y
       val r = transact(trans)
         .tap(tr => ZIO.logInfo(s"Create transaction result ${tr} "))
@@ -100,7 +96,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
         .mapError(e => RepositoryError(e.getMessage))
   }
 
-  private def buildUpdateDetails_(details: FinancialsTransactionDetails): Update[FinancialsTransactionDetails] =
+  private def buildUpdateDetails(details: FinancialsTransactionDetails): Update[FinancialsTransactionDetails] =
     update(transactionDetails)
       .set(transid, details.transid)
       .set(laccount_, details.account)
@@ -111,12 +107,6 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       .set(ltext_, details.text)
       .set(currency_, details.currency)
       .where(lid_ === details.id)
-
-//  private def buildUpdateDetails(details: FinancialsTransactionDetails): ZIO[SqlTransaction, Exception, Int] = {
-//    val updateSQL= buildUpdateDetails_(details)
-//    ZIO.logInfo(s"Update  FinancialsTransactionDetails  ${renderUpdate(updateSQL)}")*>
-//    updateSQL.run
-//  }
 
   private def build(trans: FinancialsTransaction):Update[FinancialsTransactionx]  =
     update(transactions)
@@ -150,16 +140,14 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       val result = for {
         insertedDetails <- ZIO.when(newLines.nonEmpty)(insertNewLines(newLines).run)
         deletedDetails <- ZIO.when(deletedLineIds.nonEmpty)(buildDeleteDetails(deletedLineIds).run)
-        updatedDetails <- ZIO.when(oldLines2Update.nonEmpty)(oldLines2Update.map(d => buildUpdateDetails_(d).run).flip.map(_.sum))
-        //updatedDetails <- ZIO.when(oldLines2Update.nonEmpty)(oldLines2Update.map(d=>buildUpdateDetails(d).run).flip.map(_.sum))
-        //updatedDetails <- ZIO.when(oldLines2Update.nonEmpty)(oldLines2Update.map(buildUpdateDetails).flip)
+        updatedDetails <- ZIO.when(oldLines2Update.nonEmpty)(oldLines2Update.map(d => buildUpdateDetails(d).run).flip.map(_.sum))
         updatedTransactions <- update_.run
       } yield insertedDetails.getOrElse(0) + deletedDetails.getOrElse(0) + updatedDetails.getOrElse(0) + updatedTransactions
 
       def buildResult = transact(result).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
 
       ZIO.logInfo(s"New lines transaction insert stmt ${renderInsert(insertNewLines(newLines))}") *>
-        ZIO.logInfo(s"Update lines transaction update stmt ${oldLines2Update.map(buildUpdateDetails_).map(renderUpdate)}") *>
+        ZIO.logInfo(s"Update lines transaction update stmt ${oldLines2Update.map(buildUpdateDetails).map(renderUpdate)}") *>
         ZIO.logInfo(s"Delete lines transaction  stmt ${renderDelete(buildDeleteDetails(deletedLineIds))}") *>
         ZIO.logInfo(s"Modify transaction stmt ${renderUpdate(update_)}") *> buildResult
     }
@@ -210,7 +198,6 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
   } yield trans
 
   private[this] def getLineByTransId(trans: FinancialsTransaction): ZStream[Any, RepositoryError, FinancialsTransactionDetails] = {
-    //val selectAll = SELECT_LINE.where(transid === trans.id || transid1 === trans.id2)
     val selectAll = SELECT_LINE.where(transid === trans.id1)
     ZStream.fromZIO(ZIO.logDebug(s"Query to execute getLineByTransId is ${renderRead(selectAll)}")) *>
       execute(selectAll.to(x => FinancialsTransactionDetails.apply(x)))
