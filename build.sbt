@@ -12,7 +12,7 @@ val testcontainersScalaVersion = "0.40.11"
 val postgresql                 = "42.5.0"
 val JwtCoreVersion             = "9.1.1"
 val zioSchemaVersion           = "0.4.2"
-val zioCacheVersion           = "0.2.2"
+val zioCacheVersion           = "0.2.3"
 val zioQueryVersion           = "0.4.0"
 
 ThisBuild / resolvers +=
