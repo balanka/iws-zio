@@ -23,19 +23,23 @@ object FinancialsEndpoint {
 
 
   private val ftrAllEndpoint        = ftrAllAPI.implement(company => FinancialsTransactionCache.all(company).mapError(e => RepositoryError(e.getMessage)))
-  val ftrCreateEndpoint = ftrCreateAPI.implement(ftr =>
-    ZIO.logInfo(s"Create Transaction  ${ftr}") *>
+  val ftrCreateEndpoint = ftrCreateAPI.implement(ftr => ZIO.logInfo(s"Create Transaction  ${ftr}") *>
       TransactionRepository.create(ftr).mapError(e => RepositoryError(e.getMessage)))
+
   val ftrByTransIdEndpoint = ftrByTransIdAPI.implement( p =>  ZIO.logInfo(s"Get Transaction by id ${p}") *>
     TransactionRepository.getByTransId((p._2.toLong, p._1)).mapError(e => RepositoryError(e.getMessage)))
+
   private val ftrPostEndpoint = ftrPostAPI.implement(p =>  ZIO.logInfo(s"Post Transaction by id ${p}") *>
     FinancialsService.post(p._1.toLong, p._2).mapError(e => RepositoryError(e.getMessage))*>
     TransactionRepository.getByTransId((p._1.toLong, p._2)).mapError(e => RepositoryError(e.getMessage)))
+
   private val ftrByModelIdEndpoint = ftrByModelIdAPI.implement(p => FinancialsTransactionCache.getByModelId((p._2,p._1)).mapError(e => RepositoryError(e.getMessage)))
+
   private val ftrPost4PeriodEndpoint = ftrPost4PeriodAPI.implement(p => FinancialsService.postTransaction4Period(p._2, p._3, p._1).mapError(e => RepositoryError(e.getMessage)))
+
   val ftrModifyEndpoint = ftrModifyAPI.implement(ftr => ZIO.logInfo(s"Modify Transaction  ${ftr}") *>
-    TransactionRepository.modify(ftr).mapError(e => RepositoryError(e.getMessage))*>TransactionRepository.getByTransId1((ftr.id1, ftr.company)).mapError(e => RepositoryError(e.getMessage)))
-  //PostTransactionRepository.modifyT(ftr).mapError(e => RepositoryError(e.getMessage)))
+    TransactionRepository.update(ftr).mapError(e => RepositoryError(e.getMessage)))
+
   private val ftrDeleteEndpoint = deleteAPI.implement(p => TransactionRepository.delete(p._2.toLong, p._1).mapError(e => RepositoryError(e.getMessage)))
 
   val routes = ftrModifyEndpoint++ftrAllEndpoint  ++ftrByModelIdEndpoint ++ ftrCreateEndpoint ++ftrDeleteEndpoint++

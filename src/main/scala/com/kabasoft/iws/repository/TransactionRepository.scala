@@ -55,6 +55,8 @@ object TransactionRepository {
   def modify(models: List[FinancialsTransaction]): ZIO[TransactionRepository, RepositoryError, Int] =
     ZIO.service[TransactionRepository] flatMap (_.modify(models))
 
+  def update(model: FinancialsTransaction): ZIO[TransactionRepository, RepositoryError, FinancialsTransaction] =
+    ZIO.service[TransactionRepository] flatMap (_.update(model))
   def updatePostedField(model: FinancialsTransaction): ZIO[TransactionRepository, RepositoryError, Int] =
     ZIO.service[TransactionRepository] flatMap (_.updatePostedField(model))
    def updatePostedField(models: List[FinancialsTransaction]): ZIO[TransactionRepository, RepositoryError, Int]=

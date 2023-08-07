@@ -3,12 +3,15 @@ package com.kabasoft.iws.api
 import com.kabasoft.iws.api.AccountEndpoint.{accByIdEndpoint, accCreateEndpoint, accDeleteEndpoint}
 import com.kabasoft.iws.api.BankEndpoint.{bankByIdEndpoint, bankCreateEndpoint, bankDeleteEndpoint}
 import zio.json.EncoderOps
-import com.kabasoft.iws.repository.{AccountCache, AccountCacheImpl, AccountRepositoryImpl, BankCache, BankCacheImpl, BankRepositoryImpl, CostcenterCache, CostcenterCacheImpl, CostcenterRepositoryImpl, CustomerCache, CustomerCacheImpl, CustomerRepositoryImpl, FinancialsTransactionCache, FinancialsTransactionCacheImpl, ModuleCache, ModuleCacheImpl, ModuleRepositoryImpl, SupplierCache, SupplierCacheImpl, SupplierRepositoryImpl, TransactionRepository, TransactionRepositoryImpl, UserRepository, UserRepositoryImpl, VatCache, VatCacheImpl, VatRepositoryImpl}
+import com.kabasoft.iws.repository.{AccountCache, AccountCacheImpl, AccountRepositoryImpl, BankCache, BankCacheImpl,
+  BankRepositoryImpl, CostcenterCache, CostcenterCacheImpl, CostcenterRepositoryImpl, CustomerCache, CustomerCacheImpl,
+  CustomerRepositoryImpl, FinancialsTransactionCache, FinancialsTransactionCacheImpl, ModuleCache, ModuleCacheImpl,
+  ModuleRepositoryImpl, SupplierCache, SupplierCacheImpl, SupplierRepositoryImpl, TransactionRepository,
+  TransactionRepositoryImpl, UserRepository, UserRepositoryImpl, VatCache, VatCacheImpl, VatRepositoryImpl}
 import com.kabasoft.iws.api.CostcenterEndpoint.{ccByIdEndpoint, ccCreateEndpoint, ccDeleteEndpoint}
 import com.kabasoft.iws.api.Protocol._
 import com.kabasoft.iws.domain.BankBuilder.{bank, bankx}
 import com.kabasoft.iws.api.CustomerEndpoint.{custByIdEndpoint, custCreateEndpoint, custDeleteEndpoint}
-//import com.kabasoft.iws.api.FinancialsEndpoint.{ftrCreateEndpoint, ftrModifyEndpoint}
 import com.kabasoft.iws.api.FinancialsEndpoint.ftrModifyEndpoint
 import com.kabasoft.iws.api.ModuleEndpoint.{moduleByIdEndpoint, moduleCreateEndpoint, moduleDeleteEndpoint}
 import com.kabasoft.iws.api.SupplierEndpoint.{supByIdEndpoint, supCreateEndpoint, supDeleteEndpoint}
@@ -27,7 +30,6 @@ import zio.http.{Body, Response}
 import com.kabasoft.iws.domain.CostcenterBuilder.cc
 import com.kabasoft.iws.domain.ModuleBuilder.m
 import com.kabasoft.iws.domain.SupplierBuilder.sup
-//import com.kabasoft.iws.domain.TransactionBuilder.ftr4
 import com.kabasoft.iws.domain.UserBuilder.user
 import com.kabasoft.iws.domain.VatBuilder.vat1
 import zio._
@@ -43,9 +45,6 @@ import zio.test._
 
 object ApiSpec extends ZIOSpecDefault {
 
-  //val FTRX ="{\"id\":1,\"oid\":-1,\"id1\":1,\"costcenter\":\"311\",\"account\":\"1810\",\"transdate\":\"2023-07-29T07:56:14.555236Z\",\"enterdate\":\"2023-04-08T13:07:28.685Z\",\"postingdate\":\"2023-04-08T13:07:28.685Z\",\"period\":202307,\"posted\":false,\"modelid\":114,\"company\":\"1000\",\"text\":\"comments\",\"typeJournal\":-1,\"file_content\":0,\"lines\":[{\"id\":1,\"transid\":1,\"account\":\"1200\",\"side\":true,\"oaccount\":\"4400\",\"amount\":81.00,\"duedate\":\"2023-04-09T13:50:17.598252Z\",\"text\":\"terms\",\"currency\":\"EUR\"},{\"id\":2,\"transid\":1,\"account\":\"1200\",\"side\":true,\"oaccount\":\"3806\",\"amount\":19.00,\"duedate\":\"2023-04-09T13:50:17.598270Z\",\"text\":\"terms\",\"currency\":\"EUR\"}]}"
-  // val XX = """{"id":0,"oid":-1,"costcenter":"311","account":"1810","transdate":"2023-04-29T19:07:13.538079Z","enterdate":"2023-04-29T19:07:13.538079Z","postingdate":"2023-04-29T19:07:13.538079Z","period":202304,"posted":false,"modelid":114,"company":"1000","text":"comments","typeJournal":-1,"file_content":-1,"lines":[{"id":-4,"transid":0,"account":"1810","side":true,"oaccount":"1200","amount":119.0000,"duedate":"2023-04-29T19:07:13.537955Z","text":"terms","currency":"EUR"}]}"""
- // val FTR = """{"id":0,"oid":-1, "id1":-1,"costcenter":"311","account":"1810","transdate":"2023-03-28T18:07:00.538079Z","enterdate":"2023-04-29T18:07:05.538079Z","postingdate":"2023-04-29T18:07:05.538079Z","period":202304,"posted":false,"modelid":114,"company":"1000","text":"comments","typeJournal":-1,"file_content":-1,"lines":[{"id":-4,"transid":0,  "account":"1810","side":true,"oaccount":"1200","amount":10.000,"duedate":"2023-03-28T18:07:05.538079Z","text":"ddd","currency":"EUR"}]}"""
     def spec = suite("APISpec")(
       suite("handler")(
         test("Account  integration test ") {

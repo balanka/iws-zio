@@ -89,8 +89,6 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
     }
   }
 
-  //override def create2(ftr: FinancialsTransaction, id1x: Long): ZIO[Any, RepositoryError, Int] = buildCreate(ftr)
-
   override def create(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = models.map(create).flip//.map(_.sum)
   private def buildDeleteDetails(ids: List[Long]): Delete[FinancialsTransactionDetails] =
     deleteFrom(transactionDetails).where(lid_ in ids)
@@ -115,9 +113,11 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       .set(currency_, details.currency)
       .where(lid_ === details.id)
 
-  private def build(trans: FinancialsTransaction):Update[FinancialsTransactionx]  =
+  private def build(trans: FinancialsTransaction):Update[FinancialsTransactionx]  = {
+    val transid1= if(trans.id>0) trans.id else trans.id1
     update(transactions)
       .set(oid_, trans.oid)
+      .set(id1_, transid1)
       .set(costcenter_, trans.costcenter)
       .set(account_, trans.account)
       .set(transdate_, trans.transdate)
@@ -129,6 +129,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       .set(type_journal_, trans.typeJournal)
       .set(file_content_, trans.file_content)
       .where((id_ === trans.id) && (company_ === trans.company))
+  }
 
   override def modify(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] = for {
     nr <-  ZIO.foreach(models)(modify).map(_.sum)
@@ -139,9 +140,9 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
     if (model.id <= 0) {
       create2(model)
     } else {
-      val newLines = model.lines.filter(_.id == -1L)
+      val newLines = model.lines.filter(_.id == -1L).map(l=>l.copy(transid = model.id))
       val deletedLineIds = model.lines.filter(_.transid == -2L).map(line => line.id)
-      val oldLines2Update = model.lines.filter(_.id > 0L)
+      val oldLines2Update = model.lines.filter(_.id > 0L).map(l=>l.copy(transid = model.id))
       val update_ = build(model)
 
       val result = for {
@@ -163,7 +164,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
   @nowarn
   override def update(model: FinancialsTransaction): ZIO[Any, RepositoryError, FinancialsTransaction] = {
     if (model.id<=0){
-      create(model)*>getByTransId(model.id, model.company)
+      create(model)
     }else {
     modify(model) *>getByTransId(model.id, model.company)
 
@@ -241,14 +242,14 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
   } yield trans.copy(lines = lines_)
   def getById(id: Long, companyId: String): ZIO[Any, RepositoryError, FinancialsTransaction] = {
     val selectAll = SELECT2.where((company_ === companyId) && (id_ === id))
-    ZIO.logInfo(s"Query to execute getById ${id} is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute getById ${id} is ${renderRead(selectAll)}") *>
       execute(selectAll.to(x => FinancialsTransaction.apply(x)))
         .findFirstLong(driverLayer, id)
   }
 
   def getById1(id: Long, companyId: String): ZIO[Any, RepositoryError, FinancialsTransaction] = {
     val selectAll = SELECT2.where((company_ === companyId) && (id1_ === id))
-    ZIO.logInfo(s"Query to execute getById1 ${id} is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute getById1 ${id} is ${renderRead(selectAll)}") *>
       execute(selectAll.to(x => FinancialsTransaction.apply(x)))
         .findFirstLong(driverLayer, id)
   }
