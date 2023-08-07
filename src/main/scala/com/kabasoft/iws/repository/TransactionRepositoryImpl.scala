@@ -140,9 +140,9 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
     if (model.id <= 0) {
       create2(model)
     } else {
-      val newLines = model.lines.filter(_.id == -1L)
+      val newLines = model.lines.filter(_.id == -1L).map(l=>l.copy(transid = model.id))
       val deletedLineIds = model.lines.filter(_.transid == -2L).map(line => line.id)
-      val oldLines2Update = model.lines.filter(_.id > 0L)
+      val oldLines2Update = model.lines.filter(_.id > 0L).map(l=>l.copy(transid = model.id))
       val update_ = build(model)
 
       val result = for {
@@ -164,7 +164,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
   @nowarn
   override def update(model: FinancialsTransaction): ZIO[Any, RepositoryError, FinancialsTransaction] = {
     if (model.id<=0){
-      create(model)*>getByTransId(model.id, model.company)
+      create(model)
     }else {
     modify(model) *>getByTransId(model.id, model.company)
 
