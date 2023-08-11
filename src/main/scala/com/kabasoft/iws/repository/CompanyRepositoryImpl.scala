@@ -78,9 +78,9 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
     c.incomeStmtAcc,
     c.modelid
   )
-//
-  override def create(c: Company): ZIO[Any, RepositoryError, Unit]           = {
-    val query = insertInto(company)(
+
+  private def buildInsertQuery(companies: List[Company]) =
+    insertInto(company)(
       id,
       name,
       street,
@@ -100,41 +100,32 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
       balanceSheetAcc,
       incomeStmtAcc,
       modelid
-    ).values(toTuple(c))
+    ).values(companies.map(toTuple))
+
+  override def create2(c: Company): ZIO[Any, RepositoryError, Unit]           = {
+    val query = buildInsertQuery(List(c))
 
     ZIO.logDebug(s"Query to insert Company is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
         .unit
   }
-  override def create(models: List[Company]): ZIO[Any, RepositoryError, Int] = {
-    val data  = models.map(toTuple(_))
-    val query = insertInto(company)(
-      id,
-      name,
-      street,
-      zip,
-      city,
-      state,
-      country,
-      email,
-      partner,
-      phone,
-      bankAcc,
-      iban,
-      taxCode,
-      vatCode,
-      currency,
-      locale,
-      balanceSheetAcc,
-      incomeStmtAcc,
-      modelid
-    ).values(data)
-
+  override def create2(models: List[Company]): ZIO[Any, RepositoryError, Int] = {
+   val query = buildInsertQuery(models)
     ZIO.logDebug(s"Query to insert Company is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
   }
+
+  override def create(c: Company): ZIO[Any, RepositoryError, Company] =
+    create2(c) *> getBy((c.id))
+
+  override def create(models: List[Company]): ZIO[Any, RepositoryError, List[Company]] =
+    if (models.isEmpty) {
+      ZIO.succeed(List.empty[Company])
+    } else {
+      create2(models) *> getBy(models.map(_.id))
+    }
   override def delete(item: String): ZIO[Any, RepositoryError, Int]          =
     execute(deleteFrom(company).where((id === item)))
       .provideLayer(driverLayer)
@@ -191,33 +182,18 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
       .provideDriver(driverLayer)
   }
   override def getBy(Id: String): ZIO[Any, RepositoryError, Company] = {
-    val selectAll =
-      select(
-        id,
-        name,
-        street,
-        zip,
-        city,
-        state,
-        country,
-        email,
-        partner,
-        phone,
-        bankAcc,
-        iban,
-        taxCode,
-        vatCode,
-        currency,
-        locale,
-        balanceSheetAcc,
-        incomeStmtAcc,
-        modelid
-      ).from(company) // .where(id === Id)
-
-    // ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
-    execute(selectAll.to((Company.apply _).tupled))
-      // execute(selectAll.to[Company](c => Company(c)))
+    execute(SELECT.where(id===Id).to((Company.apply _).tupled))
       .findFirst(driverLayer, Id)
+  }
+
+  def getBy(ids: List[String]): ZIO[Any, RepositoryError, List[Company]] = for {
+    vats <- getBy_(ids).runCollect.map(_.toList)
+  } yield vats
+
+  def getBy_(ids: List[String]): ZStream[Any, RepositoryError, Company] = {
+    val selectAll = SELECT.where( id  in ids)
+    execute(selectAll.to((Company.apply _).tupled))
+      .provideDriver(driverLayer)
   }
 
 }

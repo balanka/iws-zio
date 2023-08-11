@@ -13,13 +13,13 @@ import zio.http.Status
 
 object SupplierEndpoint {
 
-  val supCreateAPI      = Endpoint.post("sup").in[Supplier].out[Int].outError[RepositoryError](Status.InternalServerError)
+  val supCreateAPI      = Endpoint.post("sup").in[Supplier].out[Supplier].outError[RepositoryError](Status.InternalServerError)
   val supAllAPI         = Endpoint.get("sup"/ string("company")).out[List[Supplier]].outError[RepositoryError](Status.InternalServerError)
   val supByIdAPI        = Endpoint.get("sup" / string("id")/ string("company")).out[Supplier].outError[RepositoryError](Status.InternalServerError)
   val supModifyAPI     = Endpoint.put("sup").in[Supplier].out[Supplier].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI = Endpoint.delete("sup" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
-  val supCreateEndpoint      = supCreateAPI.implement(sup => SupplierRepository.create(List(sup)).mapError(e => RepositoryError(e.getMessage)))
+  val supCreateEndpoint      = supCreateAPI.implement(sup => SupplierRepository.create(sup).mapError(e => RepositoryError(e.getMessage)))
   val supAllEndpoint         = supAllAPI.implement(company => SupplierCache.all(company).mapError(e => RepositoryError(e.getMessage)))
   val supByIdEndpoint        = supByIdAPI.implement( p => SupplierCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val supModifyEndpoint = supModifyAPI.implement(p => ZIO.logInfo(s"Modify supplier  ${p}") *>

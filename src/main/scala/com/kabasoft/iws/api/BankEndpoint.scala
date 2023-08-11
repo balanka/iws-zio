@@ -12,7 +12,7 @@ import zio.http.Status
 
 object BankEndpoint {
 
-  val bankCreateAPI     = Endpoint.post("bank").in[Bank].out[Int].outError[RepositoryError](Status.InternalServerError)
+  val bankCreateAPI     = Endpoint.post("bank").in[Bank].out[Bank].outError[RepositoryError](Status.InternalServerError)
   val bankAllAPI        = Endpoint.get("bank" / string("company")).out[List[Bank]].outError[RepositoryError](Status.InternalServerError)
   val bankByIdAPI       = Endpoint.get("bank" / string("id")/ string("company")).out[Bank].outError[RepositoryError](Status.InternalServerError)
   val bankModifyAPI     = Endpoint.put(literal("bank")).in[Bank].out[Bank].outError[RepositoryError](Status.InternalServerError)
@@ -21,7 +21,7 @@ object BankEndpoint {
   private val bankAllEndpoint        = bankAllAPI.implement(company => BankCache.all(company).mapError(e => RepositoryError(e.getMessage)))
   val bankCreateEndpoint = bankCreateAPI.implement(bank =>
     ZIO.logDebug(s"Insert bank  ${bank}") *>
-    BankRepository.create(List(bank)).mapError(e => RepositoryError(e.getMessage)))
+    BankRepository.create(bank).mapError(e => RepositoryError(e.getMessage)))
   val bankByIdEndpoint = bankByIdAPI.implement( p => BankCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val bankModifyEndpoint = bankModifyAPI.implement(p => ZIO.logInfo(s"Modify bank  ${p}") *>
     BankRepository.modify(p).mapError(e => RepositoryError(e.getMessage)) *>

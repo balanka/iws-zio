@@ -17,6 +17,9 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
   def whereClause(Idx: String, companyId: String) =
     List(id === Idx, company === companyId).fold(Expr.literal(true))(_ && _)
 
+  def whereClause(Ids: List[String], companyId: String) =
+    List(company === companyId, id in Ids).fold(Expr.literal(true))(_ && _)
+
   val SELECT_BANK_ACCOUNT = select(iban_, bic, owner, company_, modelid_).from(bankAccount)
 
   val (
@@ -107,8 +110,8 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     c.postingdate
   )
 
-  override def create(c: Supplier): ZIO[Any, RepositoryError, Unit]                    = {
-    val query = insertInto(supplier)(
+  private def buildInsertQuery(c: Supplier) =
+    insertInto(supplier)(
       id,
       name,
       description,
@@ -130,14 +133,8 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
       postingdate
     ).values(toTuple(c))
 
-    ZIO.logDebug(s"Query to insert Supplier is ${renderInsert(query)}") *>
-      execute(query)
-        .provideAndLog(driverLayer)
-        .unit
-  }
-  override def create(models: List[Supplier]): ZIO[Any, RepositoryError, Int]          = {
-    val data  = models.map(toTuple(_))
-    val query = insertInto(supplier)(
+  private def buildInsertQuery(suppliers: List[Supplier]) =
+    insertInto(supplier)(
       id,
       name,
       description,
@@ -157,22 +154,38 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
       enterdate,
       changedate,
       postingdate
-    ).values(data)
+    ).values(suppliers.map(toTuple))
+  override def create2(c: Supplier): ZIO[Any, RepositoryError, Unit]                    = {
+    val query = buildInsertQuery(c)
+    ZIO.logDebug(s"Query to insert Supplier is ${renderInsert(query)}") *>
+      execute(query)
+        .provideAndLog(driverLayer)
+        .unit
+  }
 
+  override def create2(models: List[Supplier]): ZIO[Any, RepositoryError, Int] = {
+    val query = buildInsertQuery(models)
     ZIO.logDebug(s"Query to insert Supplier is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
   }
+
+  override def create(c: Supplier): ZIO[Any, RepositoryError, Supplier] =
+    create2(c) *> getBy((c.id, c.company))
+  override def create(models: List[Supplier]): ZIO[Any, RepositoryError, List[Supplier]] =
+    if (models.isEmpty) {
+      ZIO.succeed(List.empty[Supplier])
+    } else {
+      create2(models) *> getBy(models.map(_.id), models.head.company)
+    }
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
-    val delete_ = deleteFrom(supplier).where(company === companyId && id === item)
+    val delete_ = deleteFrom(supplier).where(whereClause(item, companyId))
     ZIO.logDebug(s"Delete supplier is ${renderDelete(delete_)}") *>
       execute(delete_)
         .provideLayer(driverLayer)
         .mapError(e => RepositoryError(e.getMessage))
   }
-//    execute(deleteFrom(supplier).where(whereClause(item, companyId)))
-//      .provideLayer(driverLayer)
-//      .mapError(e => RepositoryError(e.getMessage))
+
 
   override def modify(model: Supplier): ZIO[Any, RepositoryError, Int] = {
     val update_ = update(supplier)
@@ -209,6 +222,16 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
         .findFirst(driverLayer, id._1)
   }
 
+  def getBy(ids: List[String], company: String): ZIO[Any, RepositoryError, List[Supplier]] = for {
+    customers <- getBy_(ids, company).runCollect.map(_.toList)
+    bankAccounts_ <- listBankAccount(company).runCollect.map(_.toList)
+  } yield customers.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
+
+  def getBy_(ids: List[String], company: String): ZStream[Any, RepositoryError, Supplier] = {
+    val selectAll = SELECT.where(whereClause(ids, company))
+    execute(selectAll.to[Supplier](c => Supplier.apply(c)))
+      .provideDriver(driverLayer)
+  }
   override def getByIban(iban: String, companyId: String): ZIO[Any, RepositoryError, Supplier]    = {
     val selectAll = SELECT2.where((iban_ === iban) && (company === companyId))
 

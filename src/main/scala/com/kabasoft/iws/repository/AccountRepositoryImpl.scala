@@ -75,8 +75,10 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
     List(id === Id, company === companyId)
       .fold(Expr.literal(true))(_ && _)
 
-  override def create(c: Account): ZIO[Any, RepositoryError, Unit]                     = {
-    val query = insertInto(account)(
+  def whereClause(Ids: List[String], companyId: String) =
+    List(company === companyId, id in Ids).fold(Expr.literal(true))(_ && _)
+  private def buildInsertQuery(accounts: List[Account]) =
+    insertInto(account)(
       id,
       name,
       description,
@@ -93,40 +95,32 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
       icredit,
       debit,
       credit
-    ).values(tuple2(c))
+    ).values(accounts.map(tuple2))
 
+  override def create(c: Account): ZIO[Any, RepositoryError, Account] =
+    create2(c)*>getBy((c.id, c.company))
+  override def create(c: List[Account]): ZIO[Any, RepositoryError, List[Account]] =
+    if(c.isEmpty) {
+      ZIO.succeed(List.empty[Account])
+    }else {
+      create2(c) *> getBy(c.map(_.id), c.head.company)
+    }
+
+  override def create2(models: List[Account]): ZIO[Any, RepositoryError, Int] = {
+    val query = buildInsertQuery(models)
     ZIO.logDebug(s"Query to insert Account is ${renderInsert(query)}") *>
+      execute(query)
+        .provideAndLog(driverLayer)
+  }
+  override def create2(c: Account): ZIO[Any, RepositoryError, Unit]                     = {
+    val query = buildInsertQuery(List(c))
       execute(query)
         .provideAndLog(driverLayer)
         .unit
   }
-  override def create(models: List[Account]): ZIO[Any, RepositoryError, Int]           = {
-    val data  = models.map(tuple2(_))
-    val query = insertInto(account)(
-      id,
-      name,
-      description,
-      enterdate,
-      changedate,
-      postingdate,
-      company,
-      modelid,
-      accountid,
-      isDebit,
-      balancesheet,
-      currency,
-      idebit,
-      icredit,
-      debit,
-      credit
-    ).values(data)
 
-    ZIO.logDebug(s"Query to insert Account is ${renderInsert(query)}") *>
-      execute(query)
-        .provideAndLog(driverLayer)
-  }
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
-    val delete_ = deleteFrom(account).where(company === companyId && id === item)
+    val delete_ = deleteFrom(account).where(whereClause(item, companyId))
     ZIO.logDebug(s"Delete Account is ${renderDelete(delete_)}") *>
     execute(delete_)
       .provideLayer(driverLayer)
@@ -173,11 +167,21 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
         .provideDriver(driverLayer)
 
   override def getBy(Id: (String,  String)): ZIO[Any, RepositoryError, Account]          = {
-    val selectAll = SELECT.where((id === Id._1) && (company === Id._2))
+    val selectAll = SELECT.where(whereClause(Id._1, Id._2))
 
     ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to(c => (Account.apply(c))))
         .findFirst(driverLayer, Id._1)
+  }
+
+  def getBy(ids: List[String], company: String): ZIO[Any, RepositoryError, List[Account]] = for {
+    accounts <- getBy_(ids, company).runCollect.map(_.toList)
+  } yield accounts
+
+  def getBy_(ids: List[String], company: String): ZStream[Any, RepositoryError, Account] = {
+    val selectAll = SELECT.where(whereClause(ids, company))
+    execute(selectAll.to[Account](c => Account.apply(c)))
+      .provideDriver(driverLayer)
   }
 
   def getByModelId(id: (Int,  String)): ZIO[Any, RepositoryError, List[Account]]= for {
@@ -201,10 +205,5 @@ object AccountRepositoryImpl {
   val live: ZLayer[ConnectionPool, RepositoryError, AccountRepository] =
     ZLayer.fromFunction(new AccountRepositoryImpl(_))
 
-//  val  cachex: ZIO[ConnectionPool , RepositoryError, Cache[String, RepositoryError, List[Account]]] = Cache.make(
-//    capacity = 100,
-//    timeToLive = Duration.Infinity,
-//    lookup = Lookup((key: String) => AccountRepository.all(key))
-//  ).provideSomeLayer(live)
 
 }

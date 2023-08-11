@@ -15,6 +15,10 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
   val bankAccount                             = defineTable[BankAccount]("bankaccount")
   val (iban_, bic, owner, company_, modelid_) = bankAccount.columns
 
+
+  def whereClause(Ids: List[String], companyId: String) =
+    List(company === companyId, id  in Ids).fold(Expr.literal(true))(_ && _)
+
   def whereClause(Idx: String, companyId: String) =
     List(company === companyId, id === Idx ).fold(Expr.literal(true))(_ && _)
 
@@ -105,62 +109,57 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     c.changedate,
     c.postingdate
   )
-  override def create(c: Customer): ZIO[Any, RepositoryError, Unit]                  = {
-    val query = insertInto(customer)(
-      id,
-      name,
-      description,
-      street,
-      zip,
-      city,
-      state,
-      country,
-      phone,
-      email,
-      account,
-      oaccount,
-      iban,
-      vatcode,
-      company,
-      modelid,
-      enterdate,
-      changedate,
-      postingdate
-    ).values(toTuple(c))
 
+  private def buildInsertQuery(customers: List[Customer]) =
+    insertInto(customer)(
+    id,
+    name,
+    description,
+    street,
+    zip,
+    city,
+    state,
+    country,
+    phone,
+    email,
+    account,
+    oaccount,
+    iban,
+    vatcode,
+    company,
+    modelid,
+    enterdate,
+    changedate,
+    postingdate
+  ).values(customers.map(toTuple))
+
+
+  override def create2(c: Customer): ZIO[Any, RepositoryError, Unit]                  = {
+    val query = buildInsertQuery(List(c))
     ZIO.logDebug(s"Query to insert Customer is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
         .unit
   }
-  override def create(models: List[Customer]): ZIO[Any, RepositoryError, Int]        = {
-    val data  = models.map(toTuple(_)) // Customer.unapply(_).get)
-    val query = insertInto(customer)(
-      id,
-      name,
-      description,
-      street,
-      zip,
-      city,
-      state,
-      country,
-      phone,
-      email,
-      account,
-      oaccount,
-      iban,
-      vatcode,
-      company,
-      modelid,
-      enterdate,
-      changedate,
-      postingdate
-    ).values(data)
 
+  override def create(c: Customer): ZIO[Any, RepositoryError, Customer] =
+    create2(c) *>getBy((c.id, c.company))
+
+  override def create2(models: List[Customer]): ZIO[Any, RepositoryError, Int]        = {
+    val query = buildInsertQuery(models)
     ZIO.logDebug(s"Query to insert CustomerXX is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
   }
+
+  override def create(models: List[Customer]): ZIO[Any, RepositoryError, List[Customer]]        =
+    if(models.isEmpty){
+      ZIO.succeed(List.empty[Customer])
+    }  else {
+    create2(models)*>getBy(models.map(_.id), models.head.company)
+  }
+
+
   override def delete(id: String, companyId: String): ZIO[Any, RepositoryError, Int] =
     execute(deleteFrom(customer).where(whereClause(id, companyId)))
       .provideLayer(driverLayer)
@@ -200,6 +199,16 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
         .findFirst(driverLayer, id._1)
   }
 
+  def getBy(ids: List[String], company: String): ZIO[Any, RepositoryError, List[Customer]] = for {
+    customers <- getBy_(ids, company).runCollect.map(_.toList)
+    bankAccounts_ <- listBankAccount(company).runCollect.map(_.toList)
+  }yield customers.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
+  def getBy_(ids: List[String], company:String): ZStream[Any, RepositoryError, Customer] = {
+    val selectAll = SELECT.where(whereClause(ids, company))
+    //ZIO.logDebug(s"Query to execute getBy is ${renderRead(selectAll)}") *>
+      execute(selectAll.to[Customer](c => Customer.apply(c)))
+        .provideDriver(driverLayer)
+  }
   override def getByIban(Iban: String, companyId: String): ZIO[Any, RepositoryError, Customer]        = {
     val selectAll = SELECT2.where((iban_ === Iban) && (company === companyId))
 

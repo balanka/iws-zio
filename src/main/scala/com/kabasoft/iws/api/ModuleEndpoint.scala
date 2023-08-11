@@ -13,13 +13,13 @@ import zio.http.Status
 
 object ModuleEndpoint {
 
-  val moduleCreateAPI      = Endpoint.post("module").in[Module].out[Int].outError[RepositoryError](Status.InternalServerError)
+  val moduleCreateAPI      = Endpoint.post("module").in[Module].out[Module].outError[RepositoryError](Status.InternalServerError)
   val moduleAllAPI         = Endpoint.get("module"/ string("company")).out[List[Module]].outError[RepositoryError](Status.InternalServerError)
   val moduleByIdAPI        = Endpoint.get("module" / string("id")/ string("company")).out[Module].outError[RepositoryError](Status.InternalServerError)
   val moduleModifyAPI     = Endpoint.post("module").in[Module].out[Module].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI    = Endpoint.delete("module" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
-  val moduleCreateEndpoint   = moduleCreateAPI.implement(m => ModuleRepository.create(List(m)).mapError(e => RepositoryError(e.getMessage)))
+  val moduleCreateEndpoint   = moduleCreateAPI.implement(m => ModuleRepository.create(m).mapError(e => RepositoryError(e.getMessage)))
   val moduleAllEndpoint      = moduleAllAPI.implement(company => ModuleCache.all(company).mapError(e => RepositoryError(e.getMessage)))
   val moduleByIdEndpoint     = moduleByIdAPI.implement(p => ModuleCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val moduleModifyEndpoint = moduleModifyAPI.implement(p => ZIO.logInfo(s"Modify module  ${p}") *>

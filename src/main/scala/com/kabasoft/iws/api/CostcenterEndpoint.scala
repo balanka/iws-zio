@@ -14,13 +14,13 @@ import zio.http.Status
 
 object CostcenterEndpoint {
 
-  val ccCreateAPI          = Endpoint.post("cc").in[Costcenter].out[Int].outError[RepositoryError](Status.InternalServerError)
+  val ccCreateAPI          = Endpoint.post("cc").in[Costcenter].out[Costcenter].outError[RepositoryError](Status.InternalServerError)
   val ccAllAPI          = Endpoint.get("cc"/ string("company")).out[List[Costcenter]].outError[RepositoryError](Status.InternalServerError)
   val ccByIdAPI         = Endpoint.get("cc" /string("id")/ string("company")).out[Costcenter].outError[RepositoryError](Status.InternalServerError)
   val ccModifyAPI     = Endpoint.put("cc").in[Costcenter].out[Costcenter].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI = Endpoint.delete("cc" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
-  val ccCreateEndpoint       = ccCreateAPI.implement(cc => CostcenterRepository.create(List(cc)).mapError(e => RepositoryError(e.getMessage)))
+  val ccCreateEndpoint       = ccCreateAPI.implement(cc => CostcenterRepository.create(cc).mapError(e => RepositoryError(e.getMessage)))
   val ccAllEndpoint          = ccAllAPI.implement(company => CostcenterCache.all(company).mapError(e => RepositoryError(e.getMessage)))
   val ccByIdEndpoint         = ccByIdAPI.implement(p => CostcenterCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val ccModifyEndpoint       = ccModifyAPI.implement(p => ZIO.logInfo(s"Modify costcenter  ${p}") *>
