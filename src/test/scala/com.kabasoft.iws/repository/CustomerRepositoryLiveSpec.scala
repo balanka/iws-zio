@@ -23,7 +23,7 @@ val newName = "New CustomerName"
     suite("Customer repository test with postgres test container")(
       test("insert two new customers, modify one and look it up by id") {
         for {
-          oneRow <- CustomerRepository.create(customers)
+          oneRow <- CustomerRepository.create2(customers)
          // customers <- CustomerRepository.all(companyId)
           stmt <- CustomerRepository.getBy((customerId3, companyId))
           updated <- CustomerRepository.modify(stmt.copy(name = newName))

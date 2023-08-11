@@ -34,7 +34,7 @@ object UserRepositoryLiveSpec extends ZIOSpecDefault {
     suite("User repository test with postgres test container")(
       test("insert two new users and select them") {
         for {
-          oneRow <- UserRepository.create(users)
+          oneRow <- UserRepository.create2(users)
           count <- UserRepository.list(company).runCount
         } yield assertTrue(count==4L)  && assertTrue(oneRow==2)
       },

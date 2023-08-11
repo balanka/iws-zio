@@ -24,7 +24,7 @@ val newName = "New Supplier name"
     suite("Supplier repository test with postgres test container")(
       test("insert two new supplier, modify one and look it up by id") {
         for {
-          oneRow <- SupplierRepository.create(suppliers)
+          oneRow <- SupplierRepository.create2(suppliers)
           count <- SupplierRepository.list(companyId).runCount
           stmt <- SupplierRepository.getBy((supplierId1, companyId))
           updated <- SupplierRepository.modify(stmt.copy(name = newName))

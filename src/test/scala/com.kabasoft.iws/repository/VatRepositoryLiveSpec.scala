@@ -40,7 +40,7 @@ object VatRepositoryLiveSpec extends ZIOSpecDefault {
       },
       test("insert two new vats") {
         for {
-          oneRow <- VatRepository.create(vats)
+          oneRow <- VatRepository.create2(vats)
           count <- VatRepository.list(company).runCount
         } yield assertTrue(oneRow==2) && assertTrue(count==4L)
       },

@@ -31,7 +31,7 @@ object BankRepositoryLiveSpec extends ZIOSpecDefault {
     suite("Bank repository test with postgres test container")(
       test("insert two new banks") {
         for {
-          oneRow <- BankRepository.create(banks)
+          oneRow <- BankRepository.create2(banks)
           count <- BankRepository.list(company).runCount
         } yield assertTrue(oneRow == 2) && assertTrue(count == 4L)
       },

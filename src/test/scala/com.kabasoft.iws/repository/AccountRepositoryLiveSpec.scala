@@ -36,7 +36,7 @@ object AccountRepositoryLiveSpec extends ZIOSpecDefault {
       },
       test("insert two new accounts") {
         for {
-          oneRow <- AccountRepository.create(accounts)
+          oneRow <- AccountRepository.create2(accounts)
           list <- AccountRepository.list(companyId).runCollect.map(_.toList)
           count <- AccountRepository.list(companyId).runCount
         } yield assertTrue(oneRow == 2) && assertTrue(count ==16)&& assertTrue(list.size == 16)
