@@ -669,7 +669,7 @@ final case class Module(
   enterdate: Instant = Instant.now(),
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now(),
-  modelid: Int = 300,
+  modelid: Int = 400,
   company: String
 )
 final case class Vat(
@@ -683,7 +683,7 @@ final case class Vat(
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now(),
   company: String,
-  modelid: Int = 6
+  modelid: Int = 14
 )
 
 final case class TPeriodicAccountBalance(
