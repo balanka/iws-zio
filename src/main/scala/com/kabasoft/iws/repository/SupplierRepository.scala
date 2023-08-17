@@ -21,7 +21,7 @@ trait SupplierRepository {
   def getByModelId(modelid: (Int,  String)): ZIO[Any, RepositoryError, List[Supplier]]
   def getByModelIdStream(modelid: Int, company: String): ZStream[Any, RepositoryError, Supplier]
   def modify(model: Supplier): ZIO[Any, RepositoryError, Int]
-
+  def update(model: Supplier): ZIO[Any, RepositoryError, Supplier]
 }
 object SupplierRepository {
 
@@ -55,5 +55,8 @@ object SupplierRepository {
     ZStream.service[SupplierRepository] flatMap (_.getByModelIdStream(modelid, company))
   def modify(model: Supplier): ZIO[SupplierRepository, RepositoryError, Int]                          =
     ZIO.service[SupplierRepository] flatMap (_.modify(model))
+
+  def update(model: Supplier): ZIO[SupplierRepository, RepositoryError, Supplier] =
+    ZIO.service[SupplierRepository] flatMap (_.update(model))
 
 }

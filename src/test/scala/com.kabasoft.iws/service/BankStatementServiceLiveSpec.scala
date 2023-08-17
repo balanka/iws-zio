@@ -28,9 +28,9 @@ object BankStatementServiceLiveSpec extends ZIOSpecDefault {
     suite("Bank statement service  test with postgres test container")(
       test("create,ge all bank stmt  and post all bank statement"){
         for {
-          created <- BankStatementRepository.create(BankStatementBuilder.bs)
+          created <- BankStatementRepository.create2(BankStatementBuilder.bs)
           bs <- BankStatementRepository.list( companyId).runCollect.map(_.toList)
-          postedBS <- BankStatementService.postAll(bs.map(_.id), companyId)
+          postedBS <- BankStatementService.post(bs.map(_.id), companyId).map(_.size)
         } yield  assertTrue(created == 2) && assertTrue(postedBS == 8)
      }
     ).provideLayerShared(testServiceLayer.orDie) @@ sequential

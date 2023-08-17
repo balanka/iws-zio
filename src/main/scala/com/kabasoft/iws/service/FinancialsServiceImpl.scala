@@ -47,9 +47,7 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRe
     for {
       pacs <- pacRepo.getByIds(buildPacIds(model), company)
       newRecords = PeriodicAccountBalance.create(model).filterNot(pac => pacs.map(_.id).contains(pac.id))
-        .groupBy(_.id) map { case (_, v) =>
-        common.reduce(v, PeriodicAccountBalance.dummy)
-      }
+        .groupBy(_.id) map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy)}
       tpacs <- pacs.map(TPeriodicAccountBalance.apply).flip
       oldPacs <- updatePac(model, tpacs).map(e=>e.map(PeriodicAccountBalance.applyT))
       journalEntries <- makeJournal(model, newRecords.toList, oldPacs)

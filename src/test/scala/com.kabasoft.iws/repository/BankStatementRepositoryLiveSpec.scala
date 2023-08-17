@@ -25,7 +25,7 @@ object BankStatementRepositoryLiveSpec extends ZIOSpecDefault {
       },
       test("insert two new bankstatements") {
         for {
-          oneRow <- BankStatementRepository.create(bs)
+          oneRow <- BankStatementRepository.create2(bs)
           count <- BankStatementRepository.list(company).runCount
         } yield assertTrue(oneRow == 2) && assertTrue(count == 4L)
       },

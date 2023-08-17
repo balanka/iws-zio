@@ -2,12 +2,13 @@ package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.common.zeroAmount
-import com.kabasoft.iws.domain.{ common, BankStatement, BusinessPartner, Company, FinancialsTransaction, FinancialsTransactionDetails, Supplier }
-import com.kabasoft.iws.repository.{ BankStatementRepository, CompanyRepository, CustomerRepository, SupplierRepository, TransactionRepository }
+import com.kabasoft.iws.domain.{BankStatement, BusinessPartner, Company, FinancialsTransaction, FinancialsTransactionDetails, Supplier, common}
+import com.kabasoft.iws.repository.{BankStatementRepository, CompanyRepository, CustomerRepository, SupplierRepository, TransactionRepository}
+import zio.prelude.FlipOps
 import zio.stream._
-import zio.{ ZLayer, _ }
+import zio.{ZLayer, _}
 
-import java.nio.file.{ Files, Paths }
+import java.nio.file.{Files, Paths}
 import java.time.Instant
 final class BankStatementServiceImpl(
   bankStmtRepo: BankStatementRepository,
@@ -17,44 +18,40 @@ final class BankStatementServiceImpl(
   companyRepo: CompanyRepository
 ) extends BankStatementService {
 
-  private[this] def sink: ZSink[Any, RepositoryError, BankStatement, RepositoryError, List[zio.ZIO[Any, RepositoryError, Int]]] =
-    ZSink.collectAll[BankStatement].map(_.toList.map(bankStmtRepo.modify))
-
-  override def postAll(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, Int] =
+  override def post(id: Long, companyId:String): ZIO[Any, RepositoryError, BankStatement] =
+    post(List(id), companyId)*> bankStmtRepo.getById(id)
+  override def post(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =
     for {
-      company       <- ZIO.logDebug(s"Query parameters ids ${ids}  with companyId ${companyId}") *>
-                         companyRepo.getBy(companyId)
-      nrTransaction <- bankStmtRepo
-                         .listByIds(ids, companyId)
-                         .map(bs => bs.copy(posted = true))
-                         .tapSink(sink)
-                         .mapZIO(
-                           buildTransactions(_, company)
-                             .tap(tr => ZIO.logDebug(s"Transaction created  ${tr} "))
-                             .flatMap( ftr=>ftrRepo.create2 (ftr))
-                         )
-                         .mapError(e => RepositoryError(e.getMessage))
-                         .runCollect
-                         .map(_.toList.sum)
+      company <- ZIO.logInfo(s"get company by id  ${companyId}  ") *> companyRepo.getBy(companyId)
+      bankStmt <-ZIO.logInfo(s"get bankStmt by ids  ${ids}  ") *> bankStmtRepo.getById(ids).runCollect.map(_.toList)
+      ftr     <-ZIO.succeed(bankStmt.map(bankStmtRepo.update)) *>
+              ZIO.logInfo(s"updated bankStmt  ${bankStmt}  ") *>buildTransactions(bankStmt, company)
+      created <-ZIO.logInfo(s"created transactions  ${ftr}  ") *>ftrRepo.create(ftr)
+      _ <-  ZIO.logInfo(s"Transaction posted ${created}  ")
+    } yield created
 
-    } yield nrTransaction
-
-  def buildTransactions(bs: BankStatement, company: Company): ZIO[Any, RepositoryError, FinancialsTransaction] =
-    if (bs.amount.compareTo(zeroAmount) >= 0) {
-      customerRepo
-        .getByIban(bs.accountno, bs.company)
-        .map(s => buildTransactionFromBankStmt(bs, s, company))
+  private def buildTransactions(bs: List[BankStatement], company: Company): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = bs.map(stmt=>
+    (if (stmt.amount.compareTo(zeroAmount) >= 0) {
+      customerRepo.getByIban(stmt.accountno, stmt.company)
     } else {
-      supplierRepo
-        .getByIban(bs.accountno, bs.company)
-        .map(s => buildTransactionFromBankStmt(bs, s, company))
-    }
+      supplierRepo.getByIban(stmt.accountno, stmt.company)
+    }).map(s => buildTransactionFromBankStmt(stmt, s, company))
+  ).flip
 
-  private[this] def getAccountOrOaccout(supplier: BusinessPartner) =
-    if (supplier.modelid == Supplier.MODELID) {
-      supplier.oaccount
+//  private def buildTransactionsx(stmt: BankStatement, company: Company): ZIO[Any, RepositoryError, FinancialsTransaction] = {
+//    (if (stmt.amount.compareTo(zeroAmount) >= 0) {
+//      customerRepo.getByIban(stmt.accountno, stmt.company)
+//    } else {
+//      supplierRepo.getByIban(stmt.accountno, stmt.company)
+//    }).map(s => buildTransactionFromBankStmt(stmt, s, company))
+//  }
+
+
+  private[this] def getAccountOrOaccout(partner: BusinessPartner) =
+    if (partner.modelid == Supplier.MODELID) {
+      partner.oaccount
     } else {
-      supplier.account
+      partner.account
     }
 
 
@@ -116,7 +113,7 @@ final class BankStatementServiceImpl(
             .mapError(e => RepositoryError(e.getMessage))
             .runCollect
             .map(_.toList)
-    nr <- bankStmtRepo.create(bs)
+    nr <- bankStmtRepo.create2(bs)
   } yield nr
 }
 

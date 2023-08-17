@@ -13,6 +13,27 @@ import scala.annotation.tailrec
 import java.math.{BigDecimal, RoundingMode}
 //import com.kabasoft.iws.domain.FinancialsTransaction.DerivedTransaction_Type
 
+final case class Company_(
+                          id: String,
+                          name: String,
+                          street: String,
+                          zip: String,
+                          city: String,
+                          state: String,
+                          country: String,
+                          email: String,
+                          partner: String,
+                          phone: String,
+                          bankAcc: String,
+                          iban: String,
+                          taxCode: String,
+                          vatCode: String,
+                          currency: String,
+                          locale: String,
+                          balanceSheetAcc: String,
+                          incomeStmtAcc: String,
+                          modelid: Int
+                        )
 final case class Company(
   id: String,
   name: String,
@@ -32,8 +53,35 @@ final case class Company(
   locale: String,
   balanceSheetAcc: String,
   incomeStmtAcc: String,
-  modelid: Int
+  modelid: Int,
+ bankaccounts: List[BankAccount] = List.empty[BankAccount]
 )
+object Company{
+  val MODEL_ID=10;
+  type TYPE=(
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+     Int
+  )
+  def apply(c:TYPE):Company = Company(c._1, c._2,c._3,c._4,c._5,c._6,c._7,c._8,c._9,c._10
+    ,c._11,c._12,c._13,c._14,c._15, c._16,c._17,c._18,c._19,List.empty[BankAccount])
+}
 sealed trait AppError extends Throwable
 
 object AppError {
@@ -1020,6 +1068,27 @@ final case class Supplier_(
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now()
 )
+object Supplier_ {
+  def apply(c:Supplier):Supplier_ = Supplier_(c.id,
+    c.name,
+    c.description,
+    c.street,
+    c.zip,
+    c.city,
+    c.state,
+    c.country,
+    c.phone,
+    c.email,
+    c.account,
+    c.oaccount,
+    c.iban,
+    c.vatcode,
+    c.company,
+    c.modelid,
+    c.enterdate,
+    c.changedate,
+    c.postingdate)
+}
 final case class Supplier(
   id: String,
   name: String,

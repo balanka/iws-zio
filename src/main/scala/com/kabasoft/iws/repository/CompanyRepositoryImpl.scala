@@ -1,8 +1,8 @@
 package com.kabasoft.iws.repository
 
-import com.kabasoft.iws.repository.Schema.companySchema
+import com.kabasoft.iws.repository.Schema.{ bankAccountSchema,company_Schema}
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.Company
+import com.kabasoft.iws.domain.{BankAccount, Company, Company_}
 import zio._
 import zio.stream._
 import zio.sql.ConnectionPool
@@ -11,7 +11,10 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
 
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
 
-  val company = defineTable[Company]("company")
+  private val company = defineTable[Company_]("company")
+  private val bankAccount = defineTable[BankAccount]("bankaccount")
+  val (iban_, bic, owner, company_, modelid_) = bankAccount.columns
+  private  val SELECT_BANK_ACCOUNT = select(iban_, bic, owner, company_, modelid_).from(bankAccount)
 
   val (
     id,
@@ -141,15 +144,18 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
         .mapError(e => RepositoryError(e.getMessage))
   }
 
-  override def all: ZIO[Any, RepositoryError, List[Company]] =
-    list.runCollect.map(_.toList)
-  /* for {
+  override def all: ZIO[Any, RepositoryError, List[Company]] = for{
+    //list.runCollect.map(_.toList)
     companies <- list.runCollect.map(_.toList)
-    bankAccounts_ <- listBankAccount(companyId).runCollect.map(_.toList)
-  } yield companies.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
+    //bankAccounts_ <- listBankAccount().runCollect.map(_.toList)
+  } yield companies//.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
 
-   */
 
+  def listBankAccount(): ZStream[Any, RepositoryError, BankAccount] = {
+    val selectAll = SELECT_BANK_ACCOUNT
+    execute(selectAll.to((BankAccount.apply _).tupled))
+      .provideDriver(driverLayer)
+  }
   override def list: ZStream[Any, RepositoryError, Company]          = {
     val selectAll =
       select(
@@ -174,15 +180,14 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
         modelid
       ).from(company) // .where(id === companyId)
 
-    /* ZStream.fromZIO(
+     ZStream.fromZIO(
       ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")
     ) *>
-     */
-    execute(selectAll.to((Company.apply _).tupled))
+    execute(selectAll.to[Company](c => Company.apply(c)))
       .provideDriver(driverLayer)
   }
   override def getBy(Id: String): ZIO[Any, RepositoryError, Company] = {
-    execute(SELECT.where(id===Id).to((Company.apply _).tupled))
+    execute(SELECT.where(id===Id).to[Company](c => Company.apply(c)))
       .findFirst(driverLayer, Id)
   }
 
@@ -192,7 +197,7 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
 
   def getBy_(ids: List[String]): ZStream[Any, RepositoryError, Company] = {
     val selectAll = SELECT.where( id  in ids)
-    execute(selectAll.to((Company.apply _).tupled))
+    execute(selectAll.to[Company](c => Company.apply(c)))
       .provideDriver(driverLayer)
   }
 

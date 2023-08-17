@@ -7,7 +7,6 @@ import zio.stream._
 
 trait TransactionRepository {
   def create(model: FinancialsTransaction): ZIO[Any, RepositoryError, FinancialsTransaction]
-  def create2(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int]
   def create(item: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]]
   def delete(item: Long, company: String): ZIO[Any, RepositoryError, Int]
   def delete(ids: List[Long], company: String): ZIO[Any, RepositoryError, List[Int]] =
@@ -29,8 +28,6 @@ object TransactionRepository {
 
   def create(model: FinancialsTransaction): ZIO[TransactionRepository, RepositoryError, FinancialsTransaction] =
     ZIO.service[TransactionRepository] flatMap (_.create(model))
-  def create2(model: FinancialsTransaction): ZIO[TransactionRepository, RepositoryError, Int]                      =
-    ZIO.service[TransactionRepository] flatMap (_.create2(model))
   def create(models: List[FinancialsTransaction]): ZIO[TransactionRepository, RepositoryError, List[FinancialsTransaction]]              =
    ZIO.service[TransactionRepository] flatMap (_.create(models))
   def delete(id: Long, company: String): ZIO[TransactionRepository, RepositoryError, Int]                         =

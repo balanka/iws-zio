@@ -17,7 +17,7 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
   val pac = defineTable[PeriodicAccountBalance]("periodic_account_balance")
   val journals_ = defineTable[Journal_]("journal")
   val (id_pac, account_pac, period_pac, idebit_pac, icredit_pac, debit_pac, credit_pac, currency_pac, company_pac, modelid_pac) = pac.columns
-  val (
+  private val (
     transid_j,
     oid_j,
     account_j,

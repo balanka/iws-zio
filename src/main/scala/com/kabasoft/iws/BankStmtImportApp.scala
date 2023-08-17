@@ -12,7 +12,7 @@ object BankStmtImportApp extends ZIOAppDefault {
   val HEADER    = "Auftragskonto"
   val CHAR      = "\""
   val EXTENSION = ".CSV"
-  val PATH      = "/Users/iwsmac/Downloads/import/bankStatement/43006329/"
+  val PATH      = "/Users/iwsmac/Downloads/import/bankStatement/43006329/202305/"
   val COMPANY   = "1000"
 
   def run = (for {

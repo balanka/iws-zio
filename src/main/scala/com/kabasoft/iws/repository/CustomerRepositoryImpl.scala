@@ -13,7 +13,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
 
   val customer                                = defineTable[Customer_]("customer")
   val bankAccount                             = defineTable[BankAccount]("bankaccount")
-  val (iban_, bic, owner, company_, modelid_) = bankAccount.columns
+  val (id_, bic, owner, company_, modelid_) = bankAccount.columns
 
 
   def whereClause(Ids: List[String], companyId: String) =
@@ -22,7 +22,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
   def whereClause(Idx: String, companyId: String) =
     List(company === companyId, id === Idx ).fold(Expr.literal(true))(_ && _)
 
-  val SELECT_BANK_ACCOUNT = select(iban_, bic, owner, company_, modelid_).from(bankAccount)
+  val SELECT_BANK_ACCOUNT = select(id_, bic, owner, company_, modelid_).from(bankAccount)
   val (
     id,
     name,
@@ -79,7 +79,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     email,
     account,
     oaccount,
-    iban_,
+    id_,
     vatcode,
     company,
     modelid,
@@ -210,7 +210,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
         .provideDriver(driverLayer)
   }
   override def getByIban(Iban: String, companyId: String): ZIO[Any, RepositoryError, Customer]        = {
-    val selectAll = SELECT2.where((iban_ === Iban) && (company === companyId))
+    val selectAll = SELECT2.where((id_ === Iban) && (company === companyId))
 
     ZIO.logDebug(s"Query to execute getByIban is ${renderRead(selectAll)}") *>
       execute(selectAll.to[Customer](c => Customer.apply(c)))
