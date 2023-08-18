@@ -537,7 +537,7 @@ final case class BankStatement_(
   companyIban: String,
   posted: Boolean = false,
   modelid: Int = 18,
-  period: Int = common.getPeriod(Instant.now())
+  period: Int //= common.getPeriod(Instant.now())
 )
 object BankStatement_ {
   def apply(bs: BankStatement): BankStatement_ = new BankStatement_(
@@ -576,9 +576,10 @@ final case class BankStatement(
   companyIban: String,
   posted: Boolean = false,
   modelid: Int = 18,
-  period: Int = common.getPeriod(Instant.now())
+  period: Int //= common.getPeriod(Instant.now())
 )
 object BankStatement  {
+  val MODELID         = 18
   val CENTURY         = "20"
   val COMPANY         = "1000"
   val COMPANY_IBAN    = "DE47480501610043006329"
@@ -656,6 +657,8 @@ object BankStatement  {
     val amount      = new BigDecimal(NUMBER_FORMAT.parse(amount_).toString)
     val currency    = values(9)
     val info        = values(10)
+    val posted      = false
+    val period      = common.getPeriod(valuedate)
     val bs          = BankStatement(
       bid,
       companyIban,
@@ -670,7 +673,10 @@ object BankStatement  {
       currency,
       info,
       COMPANY,
-      companyIban
+      companyIban,
+      posted,
+      MODELID,
+      period
     )
      println ("BankStatement>>"+bs)
     bs

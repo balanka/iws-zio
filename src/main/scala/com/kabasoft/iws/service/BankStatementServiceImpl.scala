@@ -17,8 +17,9 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
                                       companyRepo: CompanyRepository
 ) extends BankStatementService {
 
-  override def post(id: Long, companyId:String): ZIO[Any, RepositoryError, BankStatement] =
-    post(List(id), companyId)*> bankStmtRepo.getById(id)
+  override def post(id: Long, companyId: String): ZIO[Any, RepositoryError, BankStatement] =
+    post(List(id), companyId) *> bankStmtRepo.getById(id)
+
   override def post(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =
     for {
       company <- ZIO.logInfo(s"get company by id  ${companyId}  ") *> companyRepo.getBy(companyId)
@@ -29,7 +30,7 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
       _ <- ZIO.logInfo(s"Transaction posted ${created}  ")
     } yield created
 
-  private def buildTransactions(bs: List[BankStatement], company: Company): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = bs.map(stmt=>
+  private def buildTransactions(bs: List[BankStatement], company: Company): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = bs.map(stmt =>
     (if (stmt.amount.compareTo(zeroAmount) >= 0) {
       customerRepo.getByIban(stmt.accountno, stmt.company)
     } else {
@@ -47,10 +48,10 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
 
 
   private[this] def buildTransactionFromBankStmt(bs: BankStatement, supplier: BusinessPartner, company: Company): FinancialsTransaction = {
-    val date   = Instant.now()
+    val date = Instant.now()
     val period = common.getPeriod(Instant.now())
 
-    val l      =
+    val l =
       FinancialsTransactionDetails(
         -1L,
         -1L,
@@ -62,7 +63,7 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
         bs.purpose,
         bs.currency
       )
-    val tr     = FinancialsTransaction(
+    val tr = FinancialsTransaction(
       -1L,
       bs.id,
       -1L,
@@ -84,31 +85,32 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
   }
 
   override def importBankStmt(
-    path: String,
-    header: String,
-    char: String,
-    extension: String,
-    company: String,
-    buildFn: String => BankStatement = BankStatement.from
-  ): ZIO[Any, RepositoryError, Int] = for {
-    bs <- ZStream
-            .fromJavaStream(Files.walk(Paths.get(path)))
-            .filter(p => !Files.isDirectory(p) && p.toString.endsWith(extension))
-            .flatMap { files =>
-              ZStream
-                .fromPath(files)
-                .via(ZPipeline.utfDecode >>> ZPipeline.splitLines)
-               //.via(ZPipeline.utfDecode)
-                .tap(e=>ZIO.logInfo(s"Element ${e}"))
-                .filterNot(p => p.replaceAll(char, "").startsWith(header))
-                .map(p => buildFn(p.replaceAll(char, "")))
-            } // >>>ZSink.fromZIO(bankStmtRepo.create(_))
-            .mapError(e =>  RepositoryError(e.getMessage))
-            .runCollect
-            .map(_.toList)
-    nr<-ZIO.logInfo(s"BS>>>>>>> ${bs}")*>
-      bankStmtRepo.create2(bs)
-  } yield nr
+                               path: String,
+                               header: String,
+                               char: String,
+                               extension: String,
+                               company: String,
+                               buildFn: String => BankStatement = BankStatement.from
+                             ): ZIO[Any, RepositoryError, Int] = {
+    for {
+      bs <- ZStream
+        .fromJavaStream(Files.walk(Paths.get(path)))
+        .filter(p => !Files.isDirectory(p) && p.toString.endsWith(extension))
+        .flatMap { files =>
+          ZStream
+            .fromPath(files)
+            .via(ZPipeline.utf8Decode >>> ZPipeline.splitLines)
+            .tap(e => ZIO.logInfo(s"Element ${e}"))
+            .filterNot(p => p.replaceAll(char, "").startsWith(header))
+            .map(p => buildFn(p.replaceAll(char, "")))
+        } // >>>ZSink.fromZIO(bankStmtRepo.create(_))
+        .mapError(e => RepositoryError(e.getMessage))
+        .runCollect
+        .map(_.toList)
+      //nr <- ZIO.logInfo(s"BS>>>>>>> ${bs}") *> bankStmtRepo.create2(bs)
+      nr <-    bankStmtRepo.create2(bs)
+    } yield nr
+  }
 }
 
 object BankStatementServiceImpl {
