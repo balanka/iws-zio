@@ -1,11 +1,14 @@
 package com.kabasoft.iws.repository
 
-import com.kabasoft.iws.repository.Schema.{ bankAccountSchema, customer_Schema }
+import com.kabasoft.iws.repository.Schema.{bankAccountSchema, customer_Schema}
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{ BankAccount, Customer, Customer_ }
+import com.kabasoft.iws.domain.{BankAccount, Customer, Customer_}
 import zio._
+import zio.prelude.FlipOps
 import zio.sql.ConnectionPool
 import zio.stream._
+
+import scala.annotation.nowarn
 
 final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerRepository with IWSTableDescriptionPostgres {
 
@@ -110,6 +113,16 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     c.postingdate
   )
 
+  private def buildInsertBankAccount(ba: List[BankAccount]) =
+    insertInto(bankAccount)(id_, bic, owner, company_, modelid_).values(ba.map(BankAccount.unapply(_).get))
+
+  private def buildUpdateBankAccount(model: BankAccount): Update[BankAccount] =
+    update(bankAccount)
+      .set(bic, model.bic)
+      .set(owner, model.owner)
+      .set(company_, model.company)
+      .where(id_ === model.id)
+
   private def buildInsertQuery(customers: List[Customer]) =
     insertInto(customer)(
     id,
@@ -142,15 +155,18 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
         .unit
   }
 
-  override def create(c: Customer): ZIO[Any, RepositoryError, Customer] =
-    create2(c) *>getBy((c.id, c.company))
+  private def buildDeleteBankAccount(ids : List[String]): List[Delete[BankAccount]] =
+    ids.map(id=>deleteFrom(bankAccount).where(id_ === id))
 
   override def create2(models: List[Customer]): ZIO[Any, RepositoryError, Int]        = {
     val query = buildInsertQuery(models)
-    ZIO.logDebug(s"Query to insert CustomerXX is ${renderInsert(query)}") *>
+    ZIO.logDebug(s"Query to insert Customer is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
   }
+
+  override def create(c: Customer): ZIO[Any, RepositoryError, Customer] =
+    create2(c) *> getBy((c.id, c.company))
 
   override def create(models: List[Customer]): ZIO[Any, RepositoryError, List[Customer]]        =
     if(models.isEmpty){
@@ -160,20 +176,58 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
   }
 
 
-  override def delete(id: String, companyId: String): ZIO[Any, RepositoryError, Int] =
-    execute(deleteFrom(customer).where(whereClause(id, companyId)))
+  override def delete(id: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
+    val delete_ = deleteFrom(customer).where(whereClause(id, companyId))
+    ZIO.logDebug(s"Delete customer is ${renderDelete(delete_)}") *>
+    execute(delete_)
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getMessage))
+  }
 
-  override def modify(model: Customer): ZIO[Any, RepositoryError, Int] = {
-    val update_ = update(customer)
+  def splitBankAccounts(s: Customer, persistentBankAccounts: List[BankAccount], flag: Boolean): List[BankAccount] =
+    for {
+      bankAccounts <- if (flag) s.bankaccounts.filter(ba => persistentBankAccounts.map(_.id).contains(ba.id))
+      else s.bankaccounts.filterNot(ba => persistentBankAccounts.map(_.id).contains(ba.id))
+    } yield bankAccounts
+
+  private def buildUpdate(model: Customer_): Update[Customer_] =
+    update(customer)
       .set(name, model.name)
       .set(description, model.description)
+      .set(street, model.street)
+      .set(zip, model.zip)
+      .set(city, model.city)
+      .set(state, model.state)
+      .set(country, model.country)
+      .set(phone, model.phone)
+      .set(email, model.email)
+      .set(account, model.account)
+      .set(oaccount, model.oaccount)
+      .set(vatcode, model.vatcode)
       .where(whereClause(model.id, model.company))
-    ZIO.logDebug(s"Query Update Customer is ${renderUpdate(update_)}") *>
-      execute(update_)
-        .provideLayer(driverLayer)
-        .mapError(e => RepositoryError(e.getMessage))
+
+
+  @nowarn
+  override def modify(model: Customer): ZIO[Any, RepositoryError, Int] = {
+    val result = for {
+      persistentBankAccounts <- getBankAccounts4Customer(model.id, model.company)
+      oldBankAccounts = splitBankAccounts(model, persistentBankAccounts, true)
+      newBankAccounts = splitBankAccounts(model, persistentBankAccounts, false)
+      deleteBankAccounts = model.bankaccounts.filter(_.modelid == -1).map(_.id)
+      update_ = buildUpdate(Customer_(model))
+      insertedBankAccounts <- ZIO.when(newBankAccounts.nonEmpty)(buildInsertBankAccount(newBankAccounts).run)<*
+        ZIO.logInfo(s"New bank accounts insert stmt ${renderInsert(buildInsertBankAccount(newBankAccounts))}")
+      updatedBankAccounts <- ZIO.when(oldBankAccounts.nonEmpty)(oldBankAccounts.map(ba => buildUpdateBankAccount(ba).run).flip.map(_.sum))<*
+        ZIO.logInfo(s"bank accounts to update ${renderUpdate(update_)}")
+      deletedBankAccounts <- ZIO.when(deleteBankAccounts.nonEmpty)(buildDeleteBankAccount(deleteBankAccounts).map(_.run).flip.map(_.sum))<*
+        ZIO.logInfo(s"bank accounts to delete ${buildDeleteBankAccount(deleteBankAccounts).map(renderDelete)}")
+      updated <- update_.run
+//      _ <- ZIO.logInfo(s"New bank accounts insert stmt ${renderInsert(buildInsertBankAccount(newBankAccounts))}")
+//      _ <- ZIO.logInfo(s"bank accounts to update ${renderUpdate(update_)}")
+//      _ <- ZIO.logInfo(s"bank accounts to delete ${renderDelete(buildDeleteBankAccount(deleteBankAccounts.map(_.id)))}")
+
+    } yield insertedBankAccounts.getOrElse(0) + updatedBankAccounts.getOrElse(0) + deletedBankAccounts.getOrElse(0) + updated
+    transact(result).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
   }
 
   def listBankAccount(companyId: String): ZStream[Any, RepositoryError, BankAccount] = {
@@ -181,6 +235,13 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     execute(selectAll.to((BankAccount.apply _).tupled))
       .provideDriver(driverLayer)
   }
+
+  def getBankAccounts4Customer(Id: String, companyId: String): ZIO[Any, RepositoryError, List[BankAccount]] = {
+    val selectAll = SELECT_BANK_ACCOUNT.where((owner === Id) && (company_ === companyId))
+    execute(selectAll.to((BankAccount.apply _).tupled))
+      .provideDriver(driverLayer).runCollect.map(_.toList)
+  }
+
   override def all(companyId: String): ZIO[Any, RepositoryError, List[Customer]]     = for {
     customers     <- list(companyId).runCollect.map(_.toList)
     bankAccounts_ <- listBankAccount(companyId).runCollect.map(_.toList)

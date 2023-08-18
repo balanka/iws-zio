@@ -76,8 +76,6 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       file_contentx
     ).values( toTupleC(model))
 
-
-
   @nowarn
   def create2(transactions: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] = {
     val models = transactions.zipWithIndex.map{ case (ftr, i) =>
@@ -138,7 +136,6 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
     create2(models) *>
       getByTransId1x(models.map(m => m.id), models.head.company)
   }
-
 
   private def buildDeleteDetails(ids: List[Long]): Delete[FinancialsTransactionDetails] =
     deleteFrom(transactionDetails).where(lid_ in ids)
@@ -238,7 +235,6 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
         .provideDriver(driverLayer)
   }
   override def all(companyId: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
-    //trans <- list1(companyId).mapZIO(tr => getTransWithLines(tr, companyId)).runCollect.map(_.toList)
     trans <- list1(companyId).mapZIO(tr => withLines(tr)).runCollect.map(_.toList)
   } yield trans
 
@@ -284,7 +280,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
     lines_ <- getLineByTransId(trans).runCollect.map(_.toList)
   } yield trans.copy(lines = lines_)
 
-   def getByTransId1x(id: (List[Long], String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
+   private def getByTransId1x(id: (List[Long], String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
     transactions <- getByIds(id._1, id._2)
     trans <-transactions.map(withLines).flip
    } yield trans
@@ -311,10 +307,6 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
         .provideDriver(driverLayer)
         .runCollect.map(_.toList)
   }
-//  override def getByTransIds(id: List[Long], companyId: String): ZStream[Any, RepositoryError, FinancialsTransaction] = for {
-//    trans <- getByIds(id, companyId).runCollect.map(_.toList)
-//    lines_ <- trans.map(getLineByTransId)//.runCollect.map(_.toList)
-//  } yield trans.map(_.copy(lines = lines_.runCollect)
 
   def getById1(id: Long, companyId: String): ZIO[Any, RepositoryError, FinancialsTransaction] = {
     val selectAll = SELECT2.where((company_ === companyId) && (id1_ === id))

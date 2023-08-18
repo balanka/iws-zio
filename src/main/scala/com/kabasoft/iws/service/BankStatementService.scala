@@ -6,17 +6,15 @@ import zio.ZIO
 
 trait BankStatementService {
 
-  def importBankStmt(
-    path: String,
-    header: String,
-    char: String,
-    extension: String,
-    company: String,
-    buildFn: String => BankStatement
+  def importBankStmt( path: String,
+                      header: String,
+                      char: String,
+                      extension: String,
+                      company: String,
+                      buildFn: String => BankStatement
   ): ZIO[Any, RepositoryError, Int]
   def post(id: Long, companyId:String): ZIO[Any, RepositoryError, BankStatement]
   def post(ids: List[Long], companyId:String): ZIO[Any, RepositoryError, List[FinancialsTransaction]]
-//  def postAll(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, Int]
 
 }
 object BankStatementService {
@@ -25,16 +23,12 @@ object BankStatementService {
     ZIO.service[BankStatementService].flatMap(_.post(id, companyId))
   def post(ids: List[Long], companyId:String): ZIO[BankStatementService, RepositoryError, List[FinancialsTransaction]] =
     ZIO.service[BankStatementService].flatMap(_.post(ids, companyId))
-//  def postAll(ids: List[Long], companyId: String): ZIO[BankStatementService, RepositoryError, Int] =
-//    ZIO.service[BankStatementService].flatMap(_.postAll(ids, companyId))
-
-  def importBankStmt(
-    path: String,
-    header: String,
-    char: String,
-    extension: String,
-    company: String,
-    buildFn: String => BankStatement
+  def importBankStmt( path: String,
+                      header: String,
+                      char: String,
+                      extension: String,
+                      company: String,
+                      buildFn: String => BankStatement
   ): ZIO[BankStatementService, RepositoryError, Int] =
     ZIO.service[BankStatementService].flatMap(_.importBankStmt(path, header, char, extension, company, buildFn))
 }

@@ -178,11 +178,6 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
         .mapError(e => RepositoryError(e.getMessage))
   }
 
-  def getGeletedBankAccounts(s: Supplier, persistentBankAccounts: List[BankAccount], flag: Boolean): List[BankAccount] =
-    for {
-      bankAccounts <- if (flag) persistentBankAccounts.filterNot(ba => s.bankaccounts.map(_.id).contains(ba.id))
-      else List.empty[BankAccount]
-    } yield bankAccounts
    def  splitBankAccounts(s:Supplier, persistentBankAccounts: List[BankAccount], flag:Boolean): List[BankAccount] =
      for {
        bankAccounts <- if(flag) s.bankaccounts.filter(ba => persistentBankAccounts.map(_.id).contains(ba.id))
@@ -210,10 +205,10 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
   @nowarn
   override def modify(model: Supplier): ZIO[Any, RepositoryError, Int] = {
     val result = for {
-      x <- getBankAccounts4Supplier(model.id, model.company)
-      oldBankAccounts = splitBankAccounts(model, x, true)
-      newBankAccounts = splitBankAccounts(model, x, false)
-      deleteBankAccounts = getGeletedBankAccounts(model, x, true)
+      persistentBankAccounts <- getBankAccounts4Supplier(model.id, model.company)
+      oldBankAccounts = splitBankAccounts(model, persistentBankAccounts, true)
+      newBankAccounts = splitBankAccounts(model, persistentBankAccounts, false)
+      deleteBankAccounts = model.bankaccounts.filter(_.modelid == -1)
       update_ = buildUpdate(Supplier_(model))
       insertedBankAccounts <- ZIO.when(newBankAccounts.nonEmpty)(buildInsertBankAccount(newBankAccounts).run)
       updatedBankAccounts <- ZIO.when(oldBankAccounts.nonEmpty)(oldBankAccounts.map(ba => buildUpdateBankAccount(ba).run).flip.map(_.sum))
@@ -229,7 +224,7 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
   def listBankAccount(companyId: String): ZStream[Any, RepositoryError, BankAccount] = {
     val selectAll = SELECT_BANK_ACCOUNT.where(company_ === companyId)
     execute(selectAll.to((BankAccount.apply _).tupled))
-      .provideDriver(driverLayer)//.runCollect.map(_.toList)
+      .provideDriver(driverLayer)
   }
 
   def getBankAccounts4Supplier(Id:String, companyId: String): ZIO[Any, RepositoryError, List[BankAccount]] = {

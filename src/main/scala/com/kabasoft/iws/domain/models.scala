@@ -1179,6 +1179,27 @@ final case class Customer_(
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now()
 )
+object Customer_ {
+  def apply(c:Customer):Customer_ = Customer_(c.id,
+    c.name,
+    c.description,
+    c.street,
+    c.zip,
+    c.city,
+    c.state,
+    c.country,
+    c.phone,
+    c.email,
+    c.account,
+    c.oaccount,
+    c.iban,
+    c.vatcode,
+    c.company,
+    c.modelid,
+    c.enterdate,
+    c.changedate,
+    c.postingdate)
+}
 final case class Customer(
   id: String,
   name: String,

@@ -10,12 +10,11 @@ import zio.{ZLayer, _}
 
 import java.nio.file.{Files, Paths}
 import java.time.Instant
-final class BankStatementServiceImpl(
-  bankStmtRepo: BankStatementRepository,
-  ftrRepo: TransactionRepository,
-  customerRepo: CustomerRepository,
-  supplierRepo: SupplierRepository,
-  companyRepo: CompanyRepository
+final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
+                                      ftrRepo: TransactionRepository,
+                                      customerRepo: CustomerRepository,
+                                      supplierRepo: SupplierRepository,
+                                      companyRepo: CompanyRepository
 ) extends BankStatementService {
 
   override def post(id: Long, companyId:String): ZIO[Any, RepositoryError, BankStatement] =
@@ -23,11 +22,11 @@ final class BankStatementServiceImpl(
   override def post(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =
     for {
       company <- ZIO.logInfo(s"get company by id  ${companyId}  ") *> companyRepo.getBy(companyId)
-      bankStmt <-ZIO.logInfo(s"get bankStmt by ids  ${ids}  ") *> bankStmtRepo.getById(ids).runCollect.map(_.toList)
-      ftr     <-ZIO.succeed(bankStmt.map(bankStmtRepo.update)) *>
-              ZIO.logInfo(s"updated bankStmt  ${bankStmt}  ") *>buildTransactions(bankStmt, company)
-      created <-ZIO.logInfo(s"created transactions  ${ftr}  ") *>ftrRepo.create(ftr)
-      _ <-  ZIO.logInfo(s"Transaction posted ${created}  ")
+      bankStmt <- ZIO.logInfo(s"get bankStmt by ids  ${ids}  ") *> bankStmtRepo.getById(ids).runCollect.map(_.toList)
+      ftr <- ZIO.succeed(bankStmt.map(bankStmtRepo.update)) *>
+        ZIO.logInfo(s"updated bankStmt  ${bankStmt}  ") *> buildTransactions(bankStmt, company)
+      created <- ZIO.logInfo(s"created transactions  ${ftr}  ") *> ftrRepo.create(ftr)
+      _ <- ZIO.logInfo(s"Transaction posted ${created}  ")
     } yield created
 
   private def buildTransactions(bs: List[BankStatement], company: Company): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = bs.map(stmt=>
@@ -37,14 +36,6 @@ final class BankStatementServiceImpl(
       supplierRepo.getByIban(stmt.accountno, stmt.company)
     }).map(s => buildTransactionFromBankStmt(stmt, s, company))
   ).flip
-
-//  private def buildTransactionsx(stmt: BankStatement, company: Company): ZIO[Any, RepositoryError, FinancialsTransaction] = {
-//    (if (stmt.amount.compareTo(zeroAmount) >= 0) {
-//      customerRepo.getByIban(stmt.accountno, stmt.company)
-//    } else {
-//      supplierRepo.getByIban(stmt.accountno, stmt.company)
-//    }).map(s => buildTransactionFromBankStmt(stmt, s, company))
-//  }
 
 
   private[this] def getAccountOrOaccout(partner: BusinessPartner) =
