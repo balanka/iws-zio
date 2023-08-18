@@ -86,6 +86,7 @@ object Main extends ZIOAppDefault {
           VatRepositoryImpl.live,
           VatCacheImpl.live,
           JournalRepositoryImpl.live,
+          BankStatementServiceImpl.live,
           FinancialsServiceImpl.live,
           PostTransactionRepositoryImpl.live
         )
