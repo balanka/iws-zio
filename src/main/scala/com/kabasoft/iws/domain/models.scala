@@ -536,7 +536,8 @@ final case class BankStatement_(
   company: String,
   companyIban: String,
   posted: Boolean = false,
-  modelid: Int = 18
+  modelid: Int = 18,
+  period: Int = common.getPeriod(Instant.now())
 )
 object BankStatement_ {
   def apply(bs: BankStatement): BankStatement_ = new BankStatement_(
@@ -554,7 +555,8 @@ object BankStatement_ {
     bs.company,
     bs.companyIban,
     bs.posted,
-    bs.modelid
+    bs.modelid,
+    bs.period
   )
 }
 final case class BankStatement(
@@ -573,7 +575,8 @@ final case class BankStatement(
   company: String,
   companyIban: String,
   posted: Boolean = false,
-  modelid: Int = 18
+  modelid: Int = 18,
+  period: Int = common.getPeriod(Instant.now())
 )
 object BankStatement  {
   val CENTURY         = "20"
@@ -600,24 +603,7 @@ object BankStatement  {
     String,
     String,
     Boolean,
-    Int
-  )
-
-  type BS_Type2 = (
-    String,
-    Instant,
-    Instant,
-    String,
-    String,
-    String,
-    String,
-    String,
-    BigDecimal,
-    String,
-    String,
-    String,
-    String,
-    Boolean,
+    Int,
     Int
   )
 
@@ -637,27 +623,10 @@ object BankStatement  {
     bs._13,
     bs._14,
     bs._15,
-    bs._16
+    bs._16,
+    bs._17
   )
 
-  def apply2(bs: BS_Type2): BankStatement    = BankStatement(
-    -1L,
-    bs._1,
-    bs._2,
-    bs._3,
-    bs._4,
-    bs._5,
-    bs._6,
-    bs._7,
-    bs._8,
-    bs._9,
-    bs._10,
-    bs._11,
-    bs._12,
-    bs._13,
-    bs._14,
-    bs._15
-  )
   def fullDate(partialDate: String): Instant = {
     val index    = partialDate.lastIndexOf(".")
     val pYear    = partialDate.substring(index + 1)
@@ -703,7 +672,7 @@ object BankStatement  {
       COMPANY,
       companyIban
     )
-    // println ("BankStatement>>"+bs)
+     println ("BankStatement>>"+bs)
     bs
   }
 

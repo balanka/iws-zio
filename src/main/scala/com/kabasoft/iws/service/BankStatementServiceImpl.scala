@@ -98,13 +98,16 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
               ZStream
                 .fromPath(files)
                 .via(ZPipeline.utfDecode >>> ZPipeline.splitLines)
+               //.via(ZPipeline.utfDecode)
+                .tap(e=>ZIO.logInfo(s"Element ${e}"))
                 .filterNot(p => p.replaceAll(char, "").startsWith(header))
                 .map(p => buildFn(p.replaceAll(char, "")))
             } // >>>ZSink.fromZIO(bankStmtRepo.create(_))
-            .mapError(e => RepositoryError(e.getMessage))
+            .mapError(e =>  RepositoryError(e.getMessage))
             .runCollect
             .map(_.toList)
-    nr <- bankStmtRepo.create2(bs)
+    nr<-ZIO.logInfo(s"BS>>>>>>> ${bs}")*>
+      bankStmtRepo.create2(bs)
   } yield nr
 }
 

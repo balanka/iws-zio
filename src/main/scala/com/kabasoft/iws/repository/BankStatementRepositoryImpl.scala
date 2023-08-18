@@ -1,6 +1,6 @@
 package com.kabasoft.iws.repository
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{ BankStatement, BankStatement_ }
+import com.kabasoft.iws.domain.{BankStatement, BankStatement_, common}
 import zio._
 import zio.sql.ConnectionPool
 import zio.stream._
@@ -26,7 +26,8 @@ final class BankStatementRepositoryImpl(pool: ConnectionPool) extends BankStatem
     company,
     companyIban,
     posted,
-    modelid
+    modelid,
+    period
   ).from(bankStatements)
 
   private def buildInsertQuery(bs: List[BankStatement]) =
@@ -45,7 +46,8 @@ final class BankStatementRepositoryImpl(pool: ConnectionPool) extends BankStatem
       company_,
       companyIban_,
       posted_,
-      modelid_
+      modelid_,
+      period_
     ).values(bs.map(BankStatement_.apply).map(toTuple2))
 
   private def  buildInsertQuery(bs: BankStatement) =
@@ -64,7 +66,8 @@ final class BankStatementRepositoryImpl(pool: ConnectionPool) extends BankStatem
       company_,
       companyIban_,
       posted_,
-      modelid_
+      modelid_,
+      period_
     ).values(toTuple2(BankStatement_(bs)))
   override def create(bs: BankStatement): ZIO[Any, RepositoryError, BankStatement]              =
     create2(bs)*>getById(bs.id)
@@ -97,6 +100,7 @@ final class BankStatementRepositoryImpl(pool: ConnectionPool) extends BankStatem
       .set(bankCode, model.bankCode)
       .set(posted, model.posted)
       .set(info, model.info)
+      .set(period, common.getPeriod(model.valuedate))
       .where((id === model.id) && (company === model.company))
     ZIO.logInfo(s"Query Update bankStatement is ${renderUpdate(update_)}") *>
       execute(update_)

@@ -23,7 +23,8 @@ trait BankStatementTableDescription extends IWSTableDescriptionPostgres {
     company,
     companyIban,
     posted,
-    modelid
+    modelid,
+    period
   ) = bankStatements.columns
 
   val (
@@ -41,7 +42,8 @@ trait BankStatementTableDescription extends IWSTableDescriptionPostgres {
     company_,
     companyIban_,
     posted_,
-    modelid_
+    modelid_,
+    period_
   ) = bankStatementInsert.columns
 
   def toTuple2(c: BankStatement_) = (
@@ -59,7 +61,8 @@ trait BankStatementTableDescription extends IWSTableDescriptionPostgres {
     c.company,
     c.companyIban,
     c.posted,
-    c.modelid
+    c.modelid,
+    c.period
   )
 
 }
