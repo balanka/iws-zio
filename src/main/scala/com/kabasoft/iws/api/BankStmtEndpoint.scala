@@ -2,7 +2,7 @@ package com.kabasoft.iws.api
 import com.kabasoft.iws.domain.AppError.RepositoryError
 //import com.kabasoft.iws.repository.Schema.{bankStatementsSchema, repositoryErrorSchema, transactionDetailsSchema}
 import com.kabasoft.iws.repository.Schema._
-import com.kabasoft.iws.domain.{BankStatement, FinancialsTransaction}
+import com.kabasoft.iws.domain.BankStatement
 import com.kabasoft.iws.repository._
 import com.kabasoft.iws.service.BankStatementService
 import zio.ZIO
@@ -18,7 +18,7 @@ object BankStmtEndpoint {
   private val allAPI         = Endpoint.get("bs"/ string("company")).out[List[BankStatement]].outError[RepositoryError](Status.InternalServerError)
   private val byIdAPI        = Endpoint.get("bs" / string("id")/ string("company")).out[BankStatement].outError[RepositoryError](Status.InternalServerError)
   val bsModifyAPI     = Endpoint.put("bs").in[BankStatement].out[BankStatement].outError[RepositoryError](Status.InternalServerError)
-  private val bsPostAPI     = Endpoint.get("bs"/literal("post")/string("company")/ string("transid") ).out[List[FinancialsTransaction]].outError[RepositoryError](Status.InternalServerError)
+  private val bsPostAPI     = Endpoint.get("bs"/literal("post")/string("company")/ string("transid") ).out[List[BankStatement]].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI      = Endpoint.get("bs" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
    val createBanktmtEndpoint    = createAPI.implement(bs => BankStatementRepository.create2(List(bs)).mapError(e => RepositoryError(e.getMessage)))

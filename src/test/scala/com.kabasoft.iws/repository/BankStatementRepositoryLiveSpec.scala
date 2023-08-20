@@ -11,6 +11,7 @@ object BankStatementRepositoryLiveSpec extends ZIOSpecDefault {
 
   val testLayer = ZLayer.make[BankStatementRepository](
     BankStatementRepositoryImpl.live,
+    TransactionRepositoryImpl.live,
     PostgresContainer.connectionPoolConfigLayer,
     ConnectionPool.live,
     PostgresContainer.createContainer

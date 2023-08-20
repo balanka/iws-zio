@@ -1,18 +1,10 @@
 package com.kabasoft.iws.repository
 
-import com.kabasoft.iws.domain.{
-  FinancialsTransaction,
-  FinancialsTransactionDetails,
-  FinancialsTransactionDetails_,
-  FinancialsTransaction_,
-  FinancialsTransactionx
-}
-import com.kabasoft.iws.repository.Schema.{
-  transactionDetailsSchema,
-  transactionDetails_Schema,
-  transactionSchema_,
-  transactionSchemax
-}
+import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, FinancialsTransactionDetails_, FinancialsTransaction_, FinancialsTransactionx}
+import com.kabasoft.iws.repository.Schema.{transactionDetailsSchema, transactionDetails_Schema, transactionSchema_, transactionSchemax}
+import zio.ZIO
+
+import java.time.Instant
 
 trait TransactionTableDescription extends IWSTableDescriptionPostgres {
 
@@ -30,10 +22,10 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     transdatex,
     enterdatex,
     postingdatex,
-    periodx,
-    postedx,
-    modelidx,
-    companyx,
+    periodx_,
+    postedx_,
+    modelidx_,
+    companyx_,
     textx,
     type_journalx,
     file_contentx
@@ -75,7 +67,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     amountx,
     duedatex,
     ltextx,
-    currencyx /*, terms_, postedx, comapnyx*/
+    currencyx__ /*, terms_, postedx, comapnyx*/
   ) = transactionDetailsInsert.columns
 
 
@@ -135,5 +127,50 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     c.duedate,
     c.text,
     c.currency)
+
+   def buildInsertNewLines(models: List[FinancialsTransactionDetails]): Insert[FinancialsTransactionDetails_, (Long, TableName, Boolean, TableName, java.math.BigDecimal, Instant, TableName, TableName)] =
+    insertInto(transactionDetailsInsert)(transidx, laccountx, sidex, oaccountx, amountx, duedatex, ltextx, currencyx__)
+      .values(models.map(toTuple))
+
+   def buildInsertQuery(models: List[FinancialsTransaction]) =
+    insertInto(transactionInsert)(
+      oidx,
+      id1,
+      costcenterx,
+      accountx,
+      transdatex,
+      enterdatex,
+      postingdatex,
+      periodx_,
+      postedx_,
+      modelidx_,
+      companyx_,
+      textx,
+      type_journalx,
+      file_contentx
+    ).values(models.map(toTupleC))
+
+  private def newCreate(): Long = {
+    var time = Instant.now().getEpochSecond
+    time *= 1000000000L //convert to nanoseconds
+    val transid1x = time & ~9223372036854251520L
+    transid1x
+  }
+  def create2s(transactions: List[FinancialsTransaction]): ZIO[SqlTransaction, Exception, Int] = {
+    val models = transactions.zipWithIndex.map { case (ftr, i) =>
+      val transid1 = newCreate()
+      ftr.copy(id1 = transid1 + i.toLong, lines = ftr.lines.map(_.copy(transid = transid1 + i.toLong)))
+    }
+    val allLines = models.flatMap(_.lines)
+    val insertNewLines_ = buildInsertNewLines(allLines)
+    val result = for {
+      _ <- ZIO.logInfo(s"Create transaction stmt models      ${models}")
+      x <- buildInsertQuery(models).run
+      y <- insertNewLines_.run
+      _ <- ZIO.logInfo(s"Create transaction stmt       ${renderInsert(buildInsertQuery(models))} ") *>
+        ZIO.logInfo(s"Create line transaction stmt   ${renderInsert(insertNewLines_)} ")
+    } yield x + y
+    result
+  }
 
 }

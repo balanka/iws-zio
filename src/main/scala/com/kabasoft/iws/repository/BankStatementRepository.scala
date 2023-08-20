@@ -1,7 +1,7 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.BankStatement
+import com.kabasoft.iws.domain.{BankStatement, FinancialsTransaction}
 import zio._
 import zio.stream._
 
@@ -28,6 +28,7 @@ trait BankStatementRepository {
   def getByModelId(modelid: Int, company: String): ZIO[Any, RepositoryError, BankStatement]
   def modify(model: BS): ZIO[Any, RepositoryError, Int]
   def update(model: BankStatement): ZIO[Any, RepositoryError, BankStatement]
+  def post(bs: List[BankStatement], transactions:List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int]
 
 }
 
@@ -70,4 +71,7 @@ object BankStatementRepository {
 
   def update(model: BS): ZIO[BSRepository, RepositoryError, BS] =
     ZIO.service[BSRepository] flatMap (_.update(model))
+
+  def post(bs: List[BankStatement], transactions:List[FinancialsTransaction]): ZIO[BSRepository, RepositoryError, Int] =
+    ZIO.service[BSRepository] flatMap (_.post(bs, transactions))
 }

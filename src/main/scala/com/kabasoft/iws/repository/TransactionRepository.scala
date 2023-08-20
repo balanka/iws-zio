@@ -22,6 +22,7 @@ trait TransactionRepository {
   def update(model: FinancialsTransaction): ZIO[Any, RepositoryError, FinancialsTransaction]
    def updatePostedField(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int]
   def updatePostedField(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int]
+
 }
 
 object TransactionRepository {

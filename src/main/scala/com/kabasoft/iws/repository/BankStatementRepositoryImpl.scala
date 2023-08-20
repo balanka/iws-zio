@@ -1,12 +1,17 @@
 package com.kabasoft.iws.repository
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{BankStatement, BankStatement_, common}
+import com.kabasoft.iws.domain.{BankStatement, BankStatement_, FinancialsTransaction, common}
 import zio._
+import zio.prelude.FlipOps
 import zio.sql.ConnectionPool
 import zio.stream._
 
-final class BankStatementRepositoryImpl(pool: ConnectionPool) extends BankStatementRepository with BankStatementTableDescription {
+import java.time.Instant
+import scala.annotation.nowarn
 
+final class BankStatementRepositoryImpl(pool: ConnectionPool) extends BankStatementRepository with BankStatementTableDescription
+with TransactionTableDescription {
+type TYPE = (TableName, Instant, Instant, TableName, TableName, TableName, TableName, TableName, java.math.BigDecimal, TableName, TableName, TableName, TableName, Boolean, Int, Int)
   lazy val driverLayer = ZLayer
     .make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
 
@@ -30,49 +35,30 @@ final class BankStatementRepositoryImpl(pool: ConnectionPool) extends BankStatem
     period
   ).from(bankStatements)
 
-  private def buildInsertQuery(bs: List[BankStatement]) =
+  //private def buildInsertQuery(bs: BankStatement): Insert[BankStatement_,  TYPE]  = buildInsertQuery(List(bs))
+  private def  buildInsertQueryBS(bs: List[BankStatement]) =
     insertInto(bankStatementInsert)(
-      depositor_,
-      postingdate_,
-      valuedate_,
-      postingtext_,
-      purpose_,
-      beneficiary_,
-      accountno_,
-      bankCode_,
-      amount_,
-      currency_,
-      info_,
-      company_,
-      companyIban_,
-      posted_,
-      modelid_,
-      period_
+      depositor_bs,
+      postingdatex_bs,
+      valuedatex_bs,
+      postingtextx_bs,
+      purposex_bs,
+      beneficiaryx_bs,
+      accountnox_bs,
+      bankCodex_bs,
+      amountx_bs,
+      currencyx_bs,
+      infox_bs,
+      companyx_bs,
+      companyIbanx_bs,
+      postedx_bs,
+      modelidx_bs,
+      periodx_bs
     ).values(bs.map(BankStatement_.apply).map(toTuple2))
-
-  private def  buildInsertQuery(bs: BankStatement) =
-    insertInto(bankStatementInsert)(
-      depositor_,
-      postingdate_,
-      valuedate_,
-      postingtext_,
-      purpose_,
-      beneficiary_,
-      accountno_,
-      bankCode_,
-      amount_,
-      currency_,
-      info_,
-      company_,
-      companyIban_,
-      posted_,
-      modelid_,
-      period_
-    ).values(toTuple2(BankStatement_(bs)))
   override def create(bs: BankStatement): ZIO[Any, RepositoryError, BankStatement]              =
     create2(bs)*>getById(bs.id)
   override def create2(bs: BankStatement): ZIO[Any, RepositoryError, Unit]              = {
-    val query = buildInsertQuery(bs)
+    val query = buildInsertQueryBS(List(bs))
     ZIO.logDebug(s"Query to insert BankStatement is ${renderInsert(query)}") *>
       execute(query).provideAndLog(driverLayer).unit
   }
@@ -81,10 +67,11 @@ final class BankStatementRepositoryImpl(pool: ConnectionPool) extends BankStatem
     create2(models)*>getById(models.map(_.id)).runCollect.map(_.toList)
   }
   override def create2(models: List[BankStatement]): ZIO[Any, RepositoryError, Int]     = {
-    val query = buildInsertQuery(models)
+    val query = buildInsertQueryBS(models)
     ZIO.logDebug(s"Query to insert BankStatement is ${renderInsert(query)}") *>
       execute(query).provideAndLog(driverLayer)
   }
+
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
     val delete_ = deleteFrom(bankStatements).where((company === companyId) && id === item.toLong)
     ZIO.logDebug(s"Delete Bank is ${renderDelete(delete_)}") *>
@@ -92,6 +79,13 @@ final class BankStatementRepositoryImpl(pool: ConnectionPool) extends BankStatem
         .provideLayer(driverLayer)
         .mapError(e => RepositoryError(e.getMessage))
   }
+
+  private def buildUpdate(model:BankStatement): Update[BS] =
+    update(bankStatements)
+      .set(posted, true)
+      .set(period, common.getPeriod(model.valuedate))
+      .where((id === model.id) && (company === model.company))
+
 
   override def modify(model: BankStatement): ZIO[Any, RepositoryError, Int] = {
     val update_ = update(bankStatements)
@@ -107,6 +101,8 @@ final class BankStatementRepositoryImpl(pool: ConnectionPool) extends BankStatem
         .provideLayer(driverLayer)
         .mapError(e => RepositoryError(e.getMessage))
   }
+
+
 
   override def update(model: BankStatement): ZIO[Any, RepositoryError, BankStatement] =
     if (model.id <= 0) {
@@ -149,9 +145,25 @@ final class BankStatementRepositoryImpl(pool: ConnectionPool) extends BankStatem
       execute(selectAll.to(BankStatement.apply )).findFirstInt(driverLayer, modelId)
   }
 
+  @nowarn
+  override def post(bs: List[BankStatement], transactions:List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] = {
+    val updateSQL = bs.map(buildUpdate)
+    val result = for {
+      posted <- ZIO.logInfo(s"Update stmt bank statement  ${updateSQL.map(renderUpdate)}  ") *>updateSQL.map(_.run).flip.map(_.sum)
+      created <- ZIO.logInfo(s"Posted bank statement  ${posted}  ") *> create2s(transactions)
+      _<- ZIO.logInfo(s"Created transactions  ${posted}  ")
+    } yield posted+created
+    transact(result)
+      .mapError(e => RepositoryError(e.toString))
+      .provideLayer(driverLayer)
+  }
+
+
+
 }
 
 object BankStatementRepositoryImpl {
-  val live: ZLayer[ConnectionPool, Throwable, BankStatementRepository] =
+  val live: ZLayer[ConnectionPool with TransactionRepository, Throwable, BankStatementRepository] =
     ZLayer.fromFunction(new BankStatementRepositoryImpl(_))
+  //ZLayer.fromFunction(new BankStatementRepositoryImpl(_))
 }

@@ -1,7 +1,7 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{BankStatement, FinancialsTransaction}
+import com.kabasoft.iws.domain.BankStatement
 import zio.ZIO
 
 trait BankStatementService {
@@ -14,14 +14,14 @@ trait BankStatementService {
                       buildFn: String => BankStatement
   ): ZIO[Any, RepositoryError, Int]
   def post(id: Long, companyId:String): ZIO[Any, RepositoryError, BankStatement]
-  def post(ids: List[Long], companyId:String): ZIO[Any, RepositoryError, List[FinancialsTransaction]]
+  def post(ids: List[Long], companyId:String): ZIO[Any, RepositoryError, List[BankStatement]]
 
 }
 object BankStatementService {
 
   def post(id: Long, companyId:String): ZIO[BankStatementService, RepositoryError, BankStatement] =
     ZIO.service[BankStatementService].flatMap(_.post(id, companyId))
-  def post(ids: List[Long], companyId:String): ZIO[BankStatementService, RepositoryError, List[FinancialsTransaction]] =
+  def post(ids: List[Long], companyId:String): ZIO[BankStatementService, RepositoryError, List[BankStatement]] =
     ZIO.service[BankStatementService].flatMap(_.post(ids, companyId))
   def importBankStmt( path: String,
                       header: String,

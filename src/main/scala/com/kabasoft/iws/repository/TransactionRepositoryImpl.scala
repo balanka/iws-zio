@@ -1,15 +1,12 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, FinancialsTransactionDetails_, FinancialsTransactionx}
+import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, FinancialsTransactionx}
 import zio.{ZIO, _}
 import zio.prelude.FlipOps
 import zio.sql.ConnectionPool
 import zio.stream._
-
 import scala.annotation.nowarn
-import java.time.Instant
-
 
 final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionRepository with TransactionTableDescription {
 
@@ -37,80 +34,28 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 
   private val SELECT_LINE = select(lid_, transid, laccount_, side_, oaccount_, amount_, duedate_, ltext_, currency_).from(transactionDetails)
 
-  private def buildInsertNewLines(models: List[FinancialsTransactionDetails]): Insert[FinancialsTransactionDetails_, (Long, TableName, Boolean, TableName, java.math.BigDecimal, Instant, TableName, TableName)] =
-   insertInto(transactionDetailsInsert)(transidx,  laccountx, sidex, oaccountx, amountx, duedatex, ltextx, currencyx)
-     .values(models.map(toTuple))
-
-  private def buildInsertQuery(models: List[FinancialsTransaction]) =
-    insertInto(transactionInsert)(
-      oidx,
-      id1,
-      costcenterx,
-      accountx,
-      transdatex,
-      enterdatex,
-      postingdatex,
-      periodx,
-      postedx,
-      modelidx,
-      companyx,
-      textx,
-      type_journalx,
-      file_contentx
-    ).values(models.map(toTupleC))
-  private def buildInsertQuery(model: FinancialsTransaction)=
-    insertInto(transactionInsert)(
-      oidx,
-      id1,
-      costcenterx,
-      accountx,
-      transdatex,
-      enterdatex,
-      postingdatex,
-      periodx,
-      postedx,
-      modelidx,
-      companyx,
-      textx,
-      type_journalx,
-      file_contentx
-    ).values( toTupleC(model))
 
   @nowarn
-  def create2(transactions: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] = {
-    val models = transactions.zipWithIndex.map{ case (ftr, i) =>
-      val transid1 = newCreate()
-      ftr.copy(id1 = transid1 + i.toLong, lines = ftr.lines.map(_.copy(transid = transid1+ i.toLong)))
-    }
-    val allLines = models.flatMap(_.lines)
-    val insertNewLines_ = buildInsertNewLines(allLines)
-     val result = for {
-       _ <- ZIO.logInfo(s"Create transaction stmt models      ${models}")
-      x <- buildInsertQuery(models).run
-      y <- insertNewLines_.run
-      _ <- ZIO.logInfo(s"Create transaction stmt       ${renderInsert(buildInsertQuery(models))} ") *>
-        ZIO.logInfo(s"Create line transaction stmt   ${renderInsert(insertNewLines_)} ")
-    } yield x + y
-    transact(result)
+  def create2(transactions: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =
+    transact(create2s(transactions))
       .mapError(e => RepositoryError(e.toString))
       .provideLayer(driverLayer)
-  }
 
-  def create2_(trans : FinancialsTransaction): ZIO[SqlTransaction, Exception, Int] = {
-    val transid1 = newCreate()
-     val model = trans.copy(id1 = transid1, lines = trans.lines.map(_.copy(transid = transid1)))
-    val insertNewLines_ = buildInsertNewLines(model.lines)
-    for {
-      x <- buildInsertQuery(model).run
-      y <- insertNewLines_.run
-      _ <- ZIO.logDebug(s"Create transaction stmt       ${renderInsert(buildInsertQuery(model))} ") *>
-        ZIO.logInfo(s"Create line transaction stmt   ${renderInsert(insertNewLines_)} ")
-    } yield x + y
-  }
+//  def create2_(trans : FinancialsTransaction): ZIO[SqlTransaction, Exception, Int] = {
+//    val transid1 = newCreate()
+//     val model = trans.copy(id1 = transid1, lines = trans.lines.map(_.copy(transid = transid1)))
+//    val insertNewLines_ = buildInsertNewLines(model.lines)
+//    for {
+//      x <- buildInsertQuery(model).run
+//      y <- insertNewLines_.run
+//      _ <- ZIO.logDebug(s"Create transaction stmt       ${renderInsert(buildInsertQuery(model))} ") *>
+//        ZIO.logInfo(s"Create line transaction stmt   ${renderInsert(insertNewLines_)} ")
+//    } yield x + y
+//  }
 
   @nowarn
    def create2(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] =
-    transact(create2_(model))
+    transact(create2s(List(model)))
           .tap(tr => ZIO.logInfo(s"Create transaction result ${tr} "))
           .mapError(e => RepositoryError(e.toString))
           .provideLayer(driverLayer)
@@ -124,12 +69,6 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       create2(ftr) *> getByTransId1(ftr.id1, ftr.company)
     }
 
-  private def newCreate(): Long = {
-    var time = Instant.now().getEpochSecond
-    time *= 1000000000L //convert to nanoseconds
-    val transid1x = time & ~9223372036854251520L
-    transid1x
-  }
 
   @nowarn
   override def create(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = {
@@ -261,7 +200,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 
   private[this] def getLineByTransId(trans: FinancialsTransaction): ZStream[Any, RepositoryError, FinancialsTransactionDetails] = {
     val selectAll = SELECT_LINE.where(transid === trans.id1)
-    ZStream.fromZIO(ZIO.logInfo(s"Query to execute getLineByTransId1 is ${renderRead(selectAll)}")) *>
+    ZStream.fromZIO(ZIO.logDebug(s"Query to execute getLineByTransId1 is ${renderRead(selectAll)}")) *>
       execute(selectAll.to(x => FinancialsTransactionDetails.apply(x)))
         .provideDriver(driverLayer)
   }
