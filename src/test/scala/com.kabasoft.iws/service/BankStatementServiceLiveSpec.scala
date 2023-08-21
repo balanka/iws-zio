@@ -3,7 +3,7 @@ package com.kabasoft.iws.service
 import com.kabasoft.iws.domain.AccountBuilder.companyId
 import com.kabasoft.iws.domain.BankStatementBuilder
 import com.kabasoft.iws.repository.container.PostgresContainer
-import com.kabasoft.iws.repository.{BankStatementRepository, BankStatementRepositoryImpl, CompanyRepository, CompanyRepositoryImpl, CustomerRepository, CustomerRepositoryImpl, SupplierRepository, SupplierRepositoryImpl, TransactionRepository, TransactionRepositoryImpl}
+import com.kabasoft.iws.repository.{BankStatementRepository, BankStatementRepositoryImpl, CompanyRepository, CompanyRepositoryImpl, CustomerRepository, CustomerRepositoryImpl, SupplierRepository, SupplierRepositoryImpl, TransactionRepository, TransactionRepositoryImpl, VatRepositoryImpl}
 import zio.ZLayer
 import zio.sql.ConnectionPool
 import zio.test.TestAspect._
@@ -17,6 +17,7 @@ object BankStatementServiceLiveSpec extends ZIOSpecDefault {
     SupplierRepositoryImpl.live,
     CompanyRepositoryImpl.live,
     TransactionRepositoryImpl.live,
+    VatRepositoryImpl.live,
     BankStatementRepositoryImpl.live,
     BankStatementServiceImpl.live,
     PostgresContainer.connectionPoolConfigLayer,

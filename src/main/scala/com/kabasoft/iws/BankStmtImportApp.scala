@@ -28,6 +28,7 @@ object BankStmtImportApp extends ZIOAppDefault {
       TransactionRepositoryImpl.live,
       CustomerRepositoryImpl.live,
       SupplierRepositoryImpl.live,
+      VatRepositoryImpl.live,
       CompanyRepositoryImpl.live
     )
 }

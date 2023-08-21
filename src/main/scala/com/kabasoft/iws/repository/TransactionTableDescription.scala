@@ -128,11 +128,11 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     c.text,
     c.currency)
 
-   def buildInsertNewLines(models: List[FinancialsTransactionDetails]): Insert[FinancialsTransactionDetails_, (Long, TableName, Boolean, TableName, java.math.BigDecimal, Instant, TableName, TableName)] =
+   def buildInsertNewLines(models: List[FinancialsTransactionDetails]): Insert[FinancialsTransactionDetails_, (Long, String, Boolean, String, java.math.BigDecimal, Instant, String, String)] =
     insertInto(transactionDetailsInsert)(transidx, laccountx, sidex, oaccountx, amountx, duedatex, ltextx, currencyx__)
       .values(models.map(toTuple))
 
-   def buildInsertQuery(models: List[FinancialsTransaction]) =
+   def buildInsertQuery(models: List[FinancialsTransaction]): Insert[FinancialsTransaction_, (Long, Long, String, String, Instant, Instant, Instant, Int, Boolean, Int, String, String, Int, Int)] =
     insertInto(transactionInsert)(
       oidx,
       id1,
@@ -158,8 +158,8 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
   }
   def create2s(transactions: List[FinancialsTransaction]): ZIO[SqlTransaction, Exception, Int] = {
     val models = transactions.zipWithIndex.map { case (ftr, i) =>
-      val transid1 = newCreate()
-      ftr.copy(id1 = transid1 + i.toLong, lines = ftr.lines.map(_.copy(transid = transid1 + i.toLong)))
+      val idx = newCreate()+i.toLong
+      ftr.copy(id1 = idx  , lines = ftr.lines.map(_.copy(transid = idx )))
     }
     val allLines = models.flatMap(_.lines)
     val insertNewLines_ = buildInsertNewLines(allLines)
