@@ -79,7 +79,8 @@ CREATE TABLE bankstatement(
                               company     varchar(50),
                               company_iban varchar(50),
                               posted      boolean,
-                              modelid     integer);
+                              modelid     integer,
+                              period int4 NULL);
 
 create table if not exists public.costcenter
 (
@@ -318,6 +319,143 @@ create table if not exists users
     company    varchar(20) default '1000'::character varying     not null,
     modelid    integer     default 111
     );
+
+drop table  if  exists Userrole;
+create table if not exists Userrole
+(
+    id     integer not null primary key,
+    name   varchar(255) not null,
+    description     varchar(255)  not null,
+    transdate    timestamp default CURRENT_DATE not null,
+    enterdate    timestamp default CURRENT_DATE not null,
+    postingdate  timestamp default CURRENT_DATE not null,
+    company varchar(50)  not null,
+    modelid integer      default 121
+    );
+
+drop table  if  exists Permission;
+create table if not exists Permission
+(
+    id     integer not null primary key,
+    name   varchar(255) not null,
+    description     varchar(255)  not null,
+    transdate    timestamp default CURRENT_DATE not null,
+    enterdate    timestamp default CURRENT_DATE not null,
+    postingdate  timestamp default CURRENT_DATE not null,
+    short varchar(10)  not null,
+    company varchar(50)  not null,
+    modelid integer      default 141
+    );
+drop table  if  exists userRight;
+create table if not exists userRight
+(
+    moduleid     integer not null,
+    roleid     integer not null,
+    short   varchar(50) not null,
+    company varchar(50)  not null,
+    modelid integer      default 131
+    PRIMARY KEY(moduleid, roleid, short)
+    );
+
+insert into Userrole (id,  name, description, company, modelid) values
+                     (-1, 'devops', 'DevOps', '1000', 121),
+                     (1, 'admin', 'Administrator', '1000', 121),
+                     (2, 'dev', 'Developer', '1000', 121),
+                     (3, 'acc', 'Accountant', '1000', 121),
+                     (4, 'acc_senior', 'Senior Accountant', '1000', 121),
+                     (5, 'acc_assist', 'Accountant assistant', '1000', 121),
+                     (6, 'logistic', 'Logistic', '1000', 121),
+                     (7, 'logistic_senior', 'Senior Logistic', '1000', 121),
+                     (8, 'logistic_assist', 'Logistic assistant', '1000', 121);
+
+
+insert into Permission (id,  name, description, short, company, modelid) values
+                                                                             (1, 'CREATE', 'create an instance module', '+', '1000', 141),
+                                                                             (2, 'READ', 'Access, Read and display a module', 'r', '1000',141),
+                                                                             (3, 'WRITE', 'Access, Read and display and modify a module', 'w', '1000', 141),
+                                                                             (4, 'DELETE', 'Access, Read and display, modify and delete a module', '-', '1000', 141),
+                                                                             (5, 'POST', 'Access, Read and display and post a transaction', 'p', '1000', 141),
+                                                                             (6, 'REPORT', 'Access, Read and display and print a report', 't', '1000', 141);
+
+insert into userRight (moduleid,  roleid, short, company, modelid) values
+                      (1, 1, '+', 1000, 131),
+                      (1, 1, 'r', 1000, 131),
+                      (1, 1, 'w', 1000, 131),
+                      (3, 1, '+', 1000, 131),
+                      (3, 1, 'r', 1000, 131),
+                      (3, 1, 'w', 1000, 131),
+                      (6, 1, '+', 1000, 131),
+                      (6, 1, 'r', 1000, 131),
+                      (6, 1, 'w', 1000, 131),
+                      (9, 1, '+', 1000, 131),
+                      (9, 1, 'r', 1000, 131),
+                      (9, 1, 'w', 1000, 131),
+                      (10, 1, '+', 1000, 131),
+                      (10, 1, 'r', 1000, 131),
+                      (10, 1, 'w', 1000, 131),
+                      (11, 1, '+', 1000, 131),
+                      (11, 1, 'r', 1000, 131),
+                      (11, 1, 'w', 1000, 131),
+                      (14, 1, '+', 1000, 131),
+                      (14, 1, 'r', 1000, 131),
+                      (14, 1, 'w', 1000, 131),
+                      (18, 1, '+', 1000, 131),
+                      (18, 1, 'r', 1000, 131),
+                      (18, 1, 'w', 1000, 131),
+                      (20, 1, 'r', 1000, 131),
+                      (30, 1, 'r', 1000, 131),
+                      (106, 1, 'r', 1000, 131),
+                      (106, 1, 'w', 1000, 131),
+                      (106, 1, 't', 1000, 131),
+                      (111, 1, '+', 1000, 131),
+                      (111, 1, 'r', 1000, 131),
+                      (111, 1, 'w', 1000, 131),
+                      (400, 1, 'r', 1000, 131),
+                      (1010, 1, 'r', 1000, 131),
+                      (1300, 1, 'r', 1000, 131),
+                      (10012, 1, 'r', 1000, 131),
+                      (11111, 1, 'r', 1000, 131),
+                      (1, 2, '+', 1000, 131),
+                      (1, 2, 'r', 1000, 131),
+                      (1, 2, 'w', 1000, 131),
+                      (3, 2, '+', 1000, 131),
+                      (3, 2, 'r', 1000, 131),
+                      (3, 2, 'w', 1000, 131),
+                      (6, 2, '+', 1000, 131),
+                      (6, 2, 'r', 1000, 131),
+                      (6, 2, 'w', 1000, 131),
+                      (9, 2, '+', 1000, 131),
+                      (9, 2, 'r', 1000, 131),
+                      (9, 2, 'w', 1000, 131),
+                      (10, 2, '+', 1000, 131),
+                      (10, 2, 'r', 1000, 131),
+                      (10, 2, 'w', 1000, 131),
+                      (11, 2, '+', 1000, 131),
+                      (11, 2, 'r', 1000, 131),
+                      (11, 2, 'w', 1000, 131),
+                      (14, 2, '+', 1000, 131),
+                      (14, 2, 'r', 1000, 131),
+                      (14, 2, 'w', 1000, 131),
+                      (18, 2, '+', 1000, 131),
+                      (18, 2, 'r', 1000, 131),
+                      (18, 2, 'w', 1000, 131),
+                      (20, 2, 'r', 1000, 131),
+                      (30, 2, 'r', 1000, 131),
+                      (106, 2, 'r', 1000, 131),
+                      (106, 2, 'w', 1000, 131),
+                      (106, 2, 't', 1000, 131),
+                      (111, 2, '+', 1000, 131),
+                      (111, 2, 'r', 1000, 131),
+                      (111, 2, 'w', 1000, 131),
+                      (400, 2, 'r', 1000, 131),
+                      (1010, 2, 'r', 1000, 131),
+                      (1300, 2, 'r', 1000, 131),
+                      (10012, 2, 'r', 1000, 131),
+                      (11111, 2, 'r', 1000, 131);
+
+
+
+
 insert into company (id, name, street, zip, city, state, country, email, partner, phone, bank_acc, iban, tax_code, vat_code, currency, locale, balance_sheet_acc, income_stmt_acc, modelid)
 values ('1000', 'ABC GmbH', 'Word stree1 0','49110','FF', 'DE','Deutschland', 'info@mail.com','John', '+001-00000'
        ,'1810','DE', 'XXX/XXXX/XXXX','v5','EUR',  'de_DE', '9900', '9800', 10);
