@@ -12,6 +12,8 @@ import com.kabasoft.iws.api.ModuleEndpoint.appModule
 import com.kabasoft.iws.api.SupplierEndpoint.appSup
 import com.kabasoft.iws.api.CustomerEndpoint.appCust
 import com.kabasoft.iws.api.FinancialsEndpoint.appFtr
+import com.kabasoft.iws.api.PermissionEndpoint.appPerm
+import com.kabasoft.iws.api.RoleEndpoint.appRole
 import com.kabasoft.iws.api.UserEndpoint.appUser
 import com.kabasoft.iws.api.VatEndpoint.appVat
 import com.kabasoft.iws.config.DbConfig
@@ -28,6 +30,7 @@ import zio.http.internal.middlewares.Cors.CorsConfig
 import zio.http.{Method, Server}
 import zio.http.Server.Config
 import zio.sql.ConnectionPool
+
 import scala.annotation.nowarn
 
 
@@ -53,7 +56,7 @@ object Main extends ZIOAppDefault {
     )
 
   val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc ++ appBank  ++ appComp  ++ appFtr
-     ++ appBankStmt ++  appUser ++ appPac ++ appJournal ++ appCC ++ appBankStmt ++expose)//.toApp.withDefaultErrorResponse @@ bearerAuth(jwtDecode(_).isDefined)
+     ++ appBankStmt ++  appUser ++ appPac ++ appJournal ++ appCC ++ appBankStmt ++appPerm ++ appRole ++expose)//.toApp.withDefaultErrorResponse @@ bearerAuth(jwtDecode(_).isDefined)
 
   @nowarn val run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
     ZIO.logInfo(s"Starting http server") *> // @@//@@ LogKeys.portKey(port)
@@ -78,6 +81,10 @@ object Main extends ZIOAppDefault {
           BankCacheImpl.live,
           ModuleRepositoryImpl.live,
           ModuleCacheImpl.live,
+          RoleRepositoryImpl.live,
+          RoleCacheImpl.live,
+          PermissionRepositoryImpl.live,
+          PermissionCacheImpl.live,
           BankStatementRepositoryImpl.live,
           FinancialsTransactionCacheImpl.live,
           TransactionRepositoryImpl.live,

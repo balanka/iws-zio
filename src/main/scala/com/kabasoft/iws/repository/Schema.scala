@@ -19,6 +19,8 @@ object Schema {
   implicit val journalSchema             = DeriveSchema.gen[Journal]
   implicit val journal_Schema            = DeriveSchema.gen[Journal_]
   implicit val moduleSchema              = DeriveSchema.gen[Module]
+  implicit val permissionSchema          = DeriveSchema.gen[Permission]
+  implicit val roleSchema               = DeriveSchema.gen[UserRole]
   implicit val pacSchema                 = DeriveSchema.gen[PeriodicAccountBalance]
   implicit val supplierschema            = DeriveSchema.gen[Supplier]
   implicit val supplier_Schema           = DeriveSchema.gen[Supplier_]
@@ -32,6 +34,6 @@ object Schema {
   implicit val userSchema                = DeriveSchema.gen[User]
   implicit val userSchema_               = DeriveSchema.gen[User_]
   implicit val vatSchema                 = DeriveSchema.gen[Vat]
-  implicit val loginRequestSchema                 = DeriveSchema.gen[LoginRequest]
+  implicit val loginRequestSchema        = DeriveSchema.gen[LoginRequest]
 
 }

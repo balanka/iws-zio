@@ -1688,3 +1688,16 @@ object User_ {
   def apply(u: User): User_ = new User_(u.userName, u.firstName, u.lastName, u.hash, u.phone, u.email, u.department, u.menu, u.company, u.modelid)
 }
 final case class LoginRequest(userName: String, password: String, company: String, language:String)
+final case class UserRole (id:Int,  name:String, description:String,
+                           transdate: Instant,
+                           postingdate: Instant,
+                           enterdate: Instant,
+                           modelid:Int = 121,
+                           company:String )
+final case class  UserRight (moduleid:Int,  roleid:Int, short:String, company:String, modelid:Int = 131)
+final case class  Permission (id:Int,  name:String, description:String,
+                              transdate: Instant,
+                              postingdate: Instant,
+                              enterdate: Instant,
+                              modelid:Int =141,
+                              company:String )
