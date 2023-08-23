@@ -319,7 +319,6 @@ create table if not exists users
     company    varchar(20) default '1000'::character varying     not null,
     modelid    integer     default 111
     );
-
 drop table  if  exists Userrole;
 create table if not exists Userrole
 (
@@ -356,6 +355,28 @@ create table if not exists userRight
     modelid integer      default 131
     PRIMARY KEY(moduleid, roleid, short)
     );
+drop table  if  exists fmodule;
+create table if not exists fmodule
+(
+    id     integer not null primary key,
+    name   varchar(255) not null,
+    description     varchar(255)  not null,
+    transdate    timestamp default CURRENT_DATE not null,
+    enterdate    timestamp default CURRENT_DATE not null,
+    postingdate  timestamp default CURRENT_DATE not null,
+    account varchar(50)  not null,
+    is_debit boolean,
+    company varchar(50)  not null,
+    modelid integer  not null
+    );
+
+insert into fmodule (id,  name, description, account, is_debit, company, modelid) values
+                   (112, 'Payables', 'Payables/Supplier invoices', '1810', false, '1000', 112),
+                   (114, 'Payment', 'Payment', '1810', false, '1000', 114),
+                   (122, 'Receivables', 'Receivables/Customer invoices', '1810', false, '1000', 122),
+                   (124, 'Settlement', 'Settlement', '1810', false, '1000', 124),
+                   (134, 'General ledger', 'General ledger', '1810', false, '1000', 134);
+
 
 insert into Userrole (id,  name, description, company, modelid) values
                      (-1, 'devops', 'DevOps', '1000', 121),

@@ -1013,7 +1013,7 @@ sealed trait BusinessPartner         {
   def email: String
   def account: String
   def oaccount: String
-  def iban: String
+  //def iban: String
   def vatcode: String
   def company: String
   def modelid: Int
@@ -1035,7 +1035,7 @@ final case class Supplier_(
   email: String,
   account: String,
   oaccount: String,
-  iban: String,
+  //iban: String,
   vatcode: String,
   company: String,
   modelid: Int = Supplier.MODELID,
@@ -1056,7 +1056,7 @@ object Supplier_ {
     c.email,
     c.account,
     c.oaccount,
-    c.iban,
+    //c.iban,
     c.vatcode,
     c.company,
     c.modelid,
@@ -1077,7 +1077,7 @@ final case class Supplier(
   email: String,
   account: String,
   oaccount: String,
-  iban: String,
+  //iban: String,
   vatcode: String,
   company: String,
   modelid: Int = Supplier.MODELID,
@@ -1101,7 +1101,7 @@ object Supplier                      {
     String,
     String,
     String,
-    String,
+    //String,
     String,
     String,
     Int,
@@ -1129,7 +1129,7 @@ object Supplier                      {
       c._16,
       c._17,
       c._18,
-      c._19,
+      //c._19,
       List.empty[BankAccount]
     )
 }
@@ -1146,7 +1146,7 @@ final case class Customer_(
   email: String,
   account: String,
   oaccount: String,
-  iban: String,
+  //iban: String,
   vatcode: String,
   company: String,
   modelid: Int = Customer.MODELID,
@@ -1167,7 +1167,7 @@ object Customer_ {
     c.email,
     c.account,
     c.oaccount,
-    c.iban,
+    //c.iban,
     c.vatcode,
     c.company,
     c.modelid,
@@ -1188,7 +1188,7 @@ final case class Customer(
   email: String,
   account: String,
   oaccount: String,
-  iban: String,
+  //iban: String,
   vatcode: String,
   company: String,
   modelid: Int = Customer.MODELID,
@@ -1212,7 +1212,7 @@ object Customer                      {
     String,
     String,
     String,
-    String,
+    //String,
     String,
     String,
     Int,
@@ -1241,7 +1241,7 @@ object Customer                      {
       c._16,
       c._17,
       c._18,
-      c._19,
+      //c._19,
       List.empty[BankAccount]
     )
 }
@@ -1700,4 +1700,13 @@ final case class  Permission (id:Int,  name:String, description:String,
                               postingdate: Instant,
                               enterdate: Instant,
                               modelid:Int =141,
+                              company:String )
+
+final case class  Fmodule (id:Int,  name:String, description:String,
+                              transdate: Instant,
+                              postingdate: Instant,
+                              enterdate: Instant,
+                              account:String,
+                              isDebit:Boolean,
+                              modelid:Int =151,
                               company:String )

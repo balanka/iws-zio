@@ -39,7 +39,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     email,
     account,
     oaccount,
-    iban,
+    //iban,
     vatcode,
     company,
     modelid,
@@ -61,7 +61,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     email,
     account,
     oaccount,
-    iban,
+    //iban,
     vatcode,
     company,
     modelid,
@@ -82,7 +82,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     email,
     account,
     oaccount,
-    id_,
+    //id_,
     vatcode,
     company,
     modelid,
@@ -104,7 +104,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     c.email,
     c.account,
     c.oaccount,
-    c.iban,
+    //c.iban,
     c.vatcode,
     c.company,
     c.modelid,
@@ -137,7 +137,7 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     email,
     account,
     oaccount,
-    iban,
+    //iban,
     vatcode,
     company,
     modelid,
@@ -222,10 +222,6 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
       deletedBankAccounts <- ZIO.when(deleteBankAccounts.nonEmpty)(buildDeleteBankAccount(deleteBankAccounts).map(_.run).flip.map(_.sum))<*
         ZIO.logInfo(s"bank accounts to delete ${buildDeleteBankAccount(deleteBankAccounts).map(renderDelete)}")
       updated <- update_.run
-//      _ <- ZIO.logInfo(s"New bank accounts insert stmt ${renderInsert(buildInsertBankAccount(newBankAccounts))}")
-//      _ <- ZIO.logInfo(s"bank accounts to update ${renderUpdate(update_)}")
-//      _ <- ZIO.logInfo(s"bank accounts to delete ${renderDelete(buildDeleteBankAccount(deleteBankAccounts.map(_.id)))}")
-
     } yield insertedBankAccounts.getOrElse(0) + updatedBankAccounts.getOrElse(0) + deletedBankAccounts.getOrElse(0) + updated
     transact(result).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
   }

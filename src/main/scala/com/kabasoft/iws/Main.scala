@@ -11,6 +11,7 @@ import com.kabasoft.iws.api.CompanyEndpoint.appComp
 import com.kabasoft.iws.api.ModuleEndpoint.appModule
 import com.kabasoft.iws.api.SupplierEndpoint.appSup
 import com.kabasoft.iws.api.CustomerEndpoint.appCust
+import com.kabasoft.iws.api.FModuleEndpoint.appFModule
 import com.kabasoft.iws.api.FinancialsEndpoint.appFtr
 import com.kabasoft.iws.api.PermissionEndpoint.appPerm
 import com.kabasoft.iws.api.RoleEndpoint.appRole
@@ -55,7 +56,7 @@ object Main extends ZIOAppDefault {
       allowedMethods = AccessControlAllowMethods(Method.GET, Method.POST, Method.PUT, Method.PATCH, Method.DELETE)
     )
 
-  val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc ++ appBank  ++ appComp  ++ appFtr
+  val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc ++ appBank  ++ appComp  ++ appFtr ++ appFModule
      ++ appBankStmt ++  appUser ++ appPac ++ appJournal ++ appCC ++ appBankStmt ++appPerm ++ appRole ++expose)//.toApp.withDefaultErrorResponse @@ bearerAuth(jwtDecode(_).isDefined)
 
   @nowarn val run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
@@ -81,6 +82,8 @@ object Main extends ZIOAppDefault {
           BankCacheImpl.live,
           ModuleRepositoryImpl.live,
           ModuleCacheImpl.live,
+          FModuleRepositoryImpl.live,
+          FModuleCacheImpl.live,
           RoleRepositoryImpl.live,
           RoleCacheImpl.live,
           PermissionRepositoryImpl.live,
