@@ -93,7 +93,7 @@ final class VatRepositoryImpl(pool: ConnectionPool) extends VatRepository with I
   override def all(companyId: String): ZIO[Any, RepositoryError, List[Vat]]                  =
     list(companyId).runCollect.map(_.toList)
   override def list(companyId: String): ZStream[Any, RepositoryError, Vat]                   = {
-    val selectAll = SELECT
+    val selectAll = SELECT.where(company === companyId)
 
     ZStream.fromZIO(
       ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")

@@ -161,8 +161,8 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
 
   override def list(companyId: String): ZStream[Any, RepositoryError, Account] =
     ZStream.fromZIO(ZIO.logDebug(s"Query to execute findAll is ${renderRead(SELECT)}")) *>
-      execute(SELECT.to { c =>
-        val x = Account.apply(c); map :+ (x); x
+      execute(SELECT.where(company === companyId)
+        .to { c =>val x = Account.apply(c); map :+ (x); x
       })
         .provideDriver(driverLayer)
 

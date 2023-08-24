@@ -38,7 +38,6 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     email,
     account,
     oaccount,
-    //iban,
     vatcode,
     company,
     modelid,
@@ -60,7 +59,6 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     email,
     account,
     oaccount,
-    //iban,
     vatcode,
     company,
     modelid,
@@ -82,7 +80,6 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     email,
     account,
     oaccount,
-    //id_,
     vatcode,
     company,
     modelid,
@@ -239,7 +236,7 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
   } yield suppliers.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
 
   override def list(companyId: String): ZStream[Any, RepositoryError, Supplier]          = {
-    val selectAll = SELECT
+    val selectAll = SELECT.where(company === companyId)
     execute(selectAll.to[Supplier](c => Supplier.apply(c)))
       .provideDriver(driverLayer)
   }

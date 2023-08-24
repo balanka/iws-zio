@@ -114,7 +114,7 @@ type TYPE = (TableName, Instant, Instant, TableName, TableName, TableName, Table
   override def all(companyId: String): ZIO[Any, RepositoryError, List[BankStatement]] =
     list(companyId).runCollect.map(_.toList)
   override def list(companyId: String): ZStream[Any, RepositoryError, BankStatement]  = {
-    val selectAll = SELECT
+    val selectAll = SELECT.where(company === companyId)
     ZStream.fromZIO(
       ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")
     ) *> execute(selectAll.to(BankStatement.apply )).provideDriver(driverLayer)

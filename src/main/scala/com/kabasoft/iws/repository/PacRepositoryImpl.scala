@@ -110,7 +110,7 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
     }
 
   override def list(companyId: String): ZStream[Any, RepositoryError, PeriodicAccountBalance] = {
-    val selectAll = SELECT
+    val selectAll = SELECT.where(company === companyId)
     ZStream.fromZIO(
       ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")
     ) *>
