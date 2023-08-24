@@ -50,7 +50,7 @@ final class PermissionRepositoryImpl(pool: ConnectionPool) extends PermissionRep
   }
   override def delete(id: Int, companyId: String): ZIO[Any, RepositoryError, Int] = {
     val delete_ = deleteFrom(permission).where(whereClause (id, companyId))
-    ZIO.logInfo(s"Delete Permission is ${renderDelete(delete_)}") *>
+    ZIO.logDebug(s"Delete Permission is ${renderDelete(delete_)}") *>
       execute(delete_)
         .provideLayer(driverLayer)
         .mapError(e => RepositoryError(e.getMessage))
@@ -75,7 +75,7 @@ final class PermissionRepositoryImpl(pool: ConnectionPool) extends PermissionRep
   override def list(companyId: String): ZStream[Any, RepositoryError, Permission]                   = {
     val selectAll = SELECT.where(company === companyId)
     ZStream.fromZIO(
-      ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")
+      ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")
     ) *>
       execute(selectAll.to((Permission.apply _).tupled))
         .provideDriver(driverLayer)

@@ -51,7 +51,7 @@ final class FModuleRepositoryImpl(pool: ConnectionPool) extends FModuleRepositor
   }
   override def delete(id: Int, companyId: String): ZIO[Any, RepositoryError, Int] = {
     val delete_ = deleteFrom(fmodule).where(whereClause (id, companyId))
-    ZIO.logInfo(s"Delete Bank is ${renderDelete(delete_)}") *>
+    ZIO.logDebug(s"Delete Bank is ${renderDelete(delete_)}") *>
       execute(delete_)
         .provideLayer(driverLayer)
         .mapError(e => RepositoryError(e.getMessage))
