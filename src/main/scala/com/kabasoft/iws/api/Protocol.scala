@@ -2,9 +2,7 @@ package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Account, Bank, BankAccount, BankStatement, Company, Costcenter, Customer,
-  DerivedTransaction, FinancialsTransaction, FinancialsTransactionDetails, Fmodule, Journal, LoginRequest,
-  PeriodicAccountBalance, Permission, Role, Supplier, User, UserRole, Vat}
+import com.kabasoft.iws.domain.{Account, Bank, BankAccount, BankStatement, Company, Costcenter, Customer, DerivedTransaction, FinancialsTransaction, FinancialsTransactionDetails, Fmodule, Journal, LoginRequest, PeriodicAccountBalance, Permission, Role, Supplier, User, UserRight, User_, Vat}
 import zio.json._
 
 object Protocol {
@@ -16,11 +14,14 @@ object Protocol {
   implicit val moduleCodec: JsonCodec[domain.Module] = DeriveJsonCodec.gen[domain.Module]
   implicit val supplierCodec: JsonCodec[Supplier] = DeriveJsonCodec.gen[Supplier]
   implicit val suppliersDecoder: JsonDecoder[List[Supplier]] = DeriveJsonDecoder.gen[List[Supplier]]
-
-  implicit lazy val accountCodec: JsonCodec[Account] = DeriveJsonCodec.gen[Account]
-  implicit val userCodec: JsonCodec[User] = DeriveJsonCodec.gen[User]
+  //implicit val userRightCodec: JsonCodec[UserRight] = DeriveJsonCodec.gen[UserRight]
   implicit val roleCodec: JsonCodec[Role] = DeriveJsonCodec.gen[Role]
-  implicit val userRoleCodec: JsonCodec[UserRole] = DeriveJsonCodec.gen[UserRole]
+  implicit lazy val accountCodec: JsonCodec[Account] = DeriveJsonCodec.gen[Account]
+
+  implicit lazy val user_Codec: JsonCodec[User_] = DeriveJsonCodec.gen[User_]
+  implicit lazy val userCodec: JsonCodec[User] = DeriveJsonCodec.gen[User]
+  implicit lazy val userRightCodec: JsonCodec[UserRight] = DeriveJsonCodec.gen[UserRight]
+  //implicit lazy val userRoleCodec: JsonCodec[Role] = DeriveJsonCodec.gen[Role]
   implicit val fmoduleCodec: JsonCodec[Fmodule] = DeriveJsonCodec.gen[Fmodule]
   implicit val loginRequestEncoder: JsonEncoder[LoginRequest] = DeriveJsonEncoder.gen[LoginRequest]
   implicit val loginRequestDecoder: JsonDecoder[LoginRequest] = DeriveJsonDecoder.gen[LoginRequest]
