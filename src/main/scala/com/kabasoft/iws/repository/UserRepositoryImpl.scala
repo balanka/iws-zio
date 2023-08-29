@@ -1,23 +1,31 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{ User, User_ }
+import com.kabasoft.iws.domain.{Role, Role_, User, UserRight, UserRole, User_, Userx}
 import zio._
-import com.kabasoft.iws.repository.Schema.{ userSchema, userSchema_ }
+import com.kabasoft.iws.repository.Schema.{role_Schema, userSchema_, userSchemax, userRoleSchema, userRightSchema}
 import zio.sql.ConnectionPool
 import zio.stream._
 
 final class UserRepositoryImpl(pool: ConnectionPool) extends UserRepository with IWSTableDescriptionPostgres {
 
-  val users  = defineTable[User]("users")
-  val users_ = defineTable[User_]("users")
+  val usersx  = defineTable[Userx]("users")
+  val users = defineTable[User_]("users")
+  val roles = defineTable[Role_]("role")
+  val userRole = defineTable[UserRole]("user_role")
+  val userRight = defineTable[UserRight]("user_right")
 
-  val (id, userName, firstName, lastName, hash, phone, email, department, menu, company, modelid)       = users.columns
-  val (userName_, firstName_, lastName_, hash_, phone_, email_, department_, menu_, company_, modelid_) = users_.columns
+  val (id, userName, firstName, lastName, hash, phone, email, department, menu, company, modelid)       = usersx.columns
+  val (userName_, firstName_, lastName_, hash_, phone_, email_, department_, menu_, company_, modelid_) = users.columns
+  val (role_id,  role_name, role_description, transdate, postingdate, enterdate, role_modelid, role_company) = roles.columns
+  val (userid, roleid,  company_r, modelid_r) = userRole.columns
+  val (moduleid_rt,  roleid_rt, short, company_rt, modelid_rt) = userRight.columns
 
   lazy val driverLayer                                                            = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
-  val SELECT                                                                      = select(id, userName, firstName, lastName, hash, phone, email, department, menu, company, modelid).from(users)
-
+  val SELECT                                                                      = select(id, userName, firstName, lastName, hash, phone, email, department, menu, company, modelid).from(usersx)
+  val SELECT_ROLE = select(role_id,  role_name, role_description, transdate, postingdate, enterdate, role_modelid, role_company).from(roles)
+  val SELECT_USER_ROLE = select(userid, roleid,  company_r, modelid_r).from(userRole)
+  val SELECT_USER_RIGHT = select(moduleid_rt,  roleid_rt, short, company_rt, modelid_rt).from(userRight)
   def whereClause(Id: Int, companyId: String) =
     List(id === Id, company === companyId)
       .fold(Expr.literal(true))(_ && _)
@@ -34,19 +42,19 @@ final class UserRepositoryImpl(pool: ConnectionPool) extends UserRepository with
       create2(models) *> getBy(models.map(_.id), models.head.company)
     }
   override def create2(c: User): ZIO[Any, RepositoryError, Unit]                   = {
-    val query = insertInto(users_)(userName_, firstName_, lastName_, hash_, phone_, email_, department_, menu_, company_, modelid_).values(toTuple(c))
+    val query = insertInto(users)(userName_, firstName_, lastName_, hash_, phone_, email_, department_, menu_, company_, modelid_).values(toTuple(c))
 
     ZIO.logDebug(s"Query to insert User is ${renderInsert(query)}") *>
       execute(query).provideAndLog(driverLayer).unit
   }
   override def create2(models: List[User]): ZIO[Any, RepositoryError, Int]         = {
     val data  = models.map(u => (u.userName, u.firstName, u.lastName, u.hash, u.phone, u.email, u.department, u.menu, u.company, u.modelid))
-    val query = insertInto(users_)(userName_, firstName_, lastName_, hash_, phone_, email_, department_, menu_, company_, modelid_).values(data)
+    val query = insertInto(users)(userName_, firstName_, lastName_, hash_, phone_, email_, department_, menu_, company_, modelid_).values(data)
     ZIO.logDebug(s"Query to insert Vat is ${renderInsert(query)}") *>
       execute(query).provideAndLog(driverLayer)
   }
   override def delete(Id: Int, companyId: String): ZIO[Any, RepositoryError, Int] =
-    execute(deleteFrom(users).where(whereClause(Id,  companyId)))
+    execute(deleteFrom(usersx).where(whereClause(Id,  companyId)))
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getMessage))
 
@@ -65,7 +73,8 @@ final class UserRepositoryImpl(pool: ConnectionPool) extends UserRepository with
   }
 
   private def build(model: User) =
-    update(users)
+    update(usersx)
+      .set(userName, model.userName)
       .set(firstName, model.firstName)
       .set(lastName, model.lastName)
       .set(email, model.email)
@@ -75,22 +84,53 @@ final class UserRepositoryImpl(pool: ConnectionPool) extends UserRepository with
       .set(menu, model.menu)
       .where(whereClause(model.id, model.company))
 
-  override def all(companyId: String): ZIO[Any, RepositoryError, List[User]] =
-    list(companyId).runCollect.map(_.toList)
+  //override def all(companyId: String): ZIO[Any, RepositoryError, List[User]] =
+   // list(companyId).runCollect.map(_.toList)
 
+  override def all(companyId: String): ZIO[Any, RepositoryError, List[User]] = for {
+    users_ <- list(companyId).runCollect.map(_.toList)
+    user_roles <- listUserRoles(companyId).runCollect.map(_.toList)
+    roles_ <- listRoles(companyId).runCollect.map(_.toList)
+    user_rights <- listUserRight(companyId).runCollect.map(_.toList)
+  } yield {
+    val  rolesx: List[Role] = roles_.map( r=>r.copy(rights = user_rights.filter(rt => rt.roleid == r.id)))
+    val users  = users_.map(u => u.copy(roles = rolesx.filter(r=> user_roles.find(ur=>(ur.roleid == r.id)).map(r=>r.userid).contains(r.id))))
+    //val usersx = users.map(u => u.copy(menu = u.menu.concat(u.roles.map(r => r.rights.map(rt => rt.short).reduce((a, b) => a.concat(",").concat(b))).reduce((a, b) => a.concat(",").concat(b)))))
+    val usersx = users.map(u => u.copy(rights = u.roles.flatMap(_.rights)))
+
+      usersx
+  }
   override def list(companyId: String): ZStream[Any, RepositoryError, User]                    = {
     val selectAll = SELECT.where(company === companyId)
 
     ZStream.fromZIO(
       ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")
     ) *>
-      execute(selectAll.to((User.apply _).tupled)).provideDriver(driverLayer)
+      execute(selectAll.to[User](c => User.apply(c))).provideDriver(driverLayer)
+  }
+
+  def listRoles(companyId: String): ZStream[Any, RepositoryError, Role] = {
+    val selectAll = SELECT_ROLE.where((role_company === companyId))
+    execute(selectAll.to[Role](c => Role.apply(c)))
+    //execute(selectAll.to((Role.apply _).tupled))
+      .provideDriver(driverLayer)
+  }
+  def listUserRoles(companyId: String): ZStream[Any, RepositoryError, UserRole] = {
+    val selectAll = SELECT_USER_ROLE.where(company_r === companyId)
+    execute(selectAll.to((UserRole.apply _).tupled))
+      .provideDriver(driverLayer)
+  }
+
+  def listUserRight(companyId: String): ZStream[Any, RepositoryError, UserRight] = {
+    val selectAll = SELECT_USER_RIGHT.where(company_rt === companyId)
+    execute(selectAll.to((UserRight.apply _).tupled))
+      .provideDriver(driverLayer)
   }
   override def getByUserName(name: String, companyId: String): ZIO[Any, RepositoryError, User] = {
     val selectAll = SELECT.where((userName === name) && (company === companyId))
 
     ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
-      execute(selectAll.to((User.apply _).tupled))
+      execute(selectAll.to[User](c => User.apply(c)))
         .findFirst(driverLayer, name)
   }
 
@@ -98,7 +138,7 @@ final class UserRepositoryImpl(pool: ConnectionPool) extends UserRepository with
     val selectAll = SELECT.where((id === userId) && (company === companyId))
 
     ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
-      execute(selectAll.to((User.apply _).tupled))
+    execute(selectAll.to[User](c => User.apply(c)))
         .findFirstInt(driverLayer, userId)
   }
 
@@ -108,17 +148,17 @@ final class UserRepositoryImpl(pool: ConnectionPool) extends UserRepository with
 
   def getBy_(ids: List[Int], company: String): ZStream[Any, RepositoryError, User] = {
     val selectAll = SELECT.where(whereClause(ids, company))
-    execute(selectAll.to((User.apply _).tupled))
+    execute(selectAll.to[User](c => User.apply(c)))
       .provideDriver(driverLayer)
   }
   override def getByModelId(modelId: Int, companyId: String): ZIO[Any, RepositoryError, User] = {
     val selectAll = SELECT.where((modelid === modelId) && (company === companyId))
 
     ZIO.logDebug(s"Query to execute getByModelId is ${renderRead(selectAll)}") *>
-      execute(selectAll.to((User.apply _).tupled))
+      execute(selectAll.to[User](c => User.apply(c)))
         .findFirstInt(driverLayer, modelId)
   }
-  def toTuple(c: User)                                                                        = (c.userName, c.firstName, c.lastName, c.hash, c.phone, c.email, c.department, c.menu, c.company, c.modelid)
+  def toTuple(c: User)                                                                        = ( c.userName, c.firstName, c.lastName, c.hash, c.phone, c.email, c.department, c.menu, c.company, c.modelid)
 
 }
 

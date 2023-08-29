@@ -722,50 +722,7 @@ final case class TPeriodicAccountBalance(
   modelid: Int = PeriodicAccountBalance.MODELID
 ) {
   self =>
-//  def debiting(amount: BigDecimal) = //STM.atomically {
-//    self.debit.get.flatMap(balance => self.debit.set(balance.add(amount)))
-//  //}
-//
-//  def crediting(amount: BigDecimal) = //STM.atomically {
-//    self.credit.get.flatMap(balance => self.credit.set(balance.add(amount)))
-// // }
-//
-//  def idebiting(amount: BigDecimal) = //STM.atomically {
-//    self.idebit.get.flatMap(balance => self.idebit.set(balance.add(amount)))
-// // }
-//
-//  def icrediting(amount: BigDecimal) = //STM.atomically {
-//    self.icredit.get.flatMap(balance => self.icredit.set(balance.add(amount)))
-//  //}
-//
-//  def fdebit = for {
-//    debitx  <- self.debit.get.commit
-//    idebitx <- self.idebit.get.commit
-//  } yield (debitx.add(idebitx))
-//
-//  def fcredit = for {
-//    creditx  <- self.credit.get.commit
-//    icreditx <- self.icredit.get.commit
-//  } yield creditx.add(icreditx)
-//
-//  def dbalance = for {
-//    fdebitx  <- self.fdebit
-//    fcreditx <- self.fcredit
-//  } yield fdebitx.subtract(fcreditx)
-//
-//  def cbalance = for {
-//    fdebitx  <- self.fdebit
-//    fcreditx <- self.fcredit
-//  } yield fcreditx.subtract(fdebitx)
 
-
-//  def transfer(from: TPeriodicAccountBalance, amount: BigDecimal): IO[Nothing, Unit] =
-//    STM.atomically {
-//      for {
-//        _ <- withdraw(from, amount)
-//        _ <- deposit(self, amount)
-//      } yield ()
-//    }
 def transferX(from: TPeriodicAccountBalance, to: TPeriodicAccountBalance, amount: BigDecimal): IO[Nothing, Unit] = {
   STM.atomically {
     for {
@@ -837,7 +794,6 @@ object TPeriodicAccountBalance {
         zeroAmount,
         line.currency,
         model.company,
-
         PeriodicAccountBalance.MODELID
       )
       val credited = PeriodicAccountBalance(
@@ -850,50 +806,12 @@ object TPeriodicAccountBalance {
         line.amount,
         line.currency,
         model.company,
-        PeriodicAccountBalance.MODELID
-      )
+        PeriodicAccountBalance.MODELID)
       List(debited, credited)
     }
 
 
-  def debitAndCredit(pac: TPeriodicAccountBalance, poac: TPeriodicAccountBalance, amount: BigDecimal) = STM.atomically {
-    pac.debit.get.flatMap(debit => pac.debit.set(debit.add(amount))) *>
-      poac.credit.get.flatMap(credit => poac.credit.set(credit.add(amount)))
-  }
-
-//  def debitAndCreditAll(pacs: List[TPeriodicAccountBalance], poacs: List[TPeriodicAccountBalance], amount: BigDecimal): List[IO[Nothing, Unit]] =
-//    pacs.zip(poacs).map { case (pac, poac) => /*debitAndCredit(pac, poac, amount)*/
-//                                              transfer(poac, pac, amount)
-//    }
-
-  def debitAndCreditAllX(pacs: List[PeriodicAccountBalance], poacs: List[PeriodicAccountBalance], amount: BigDecimal): List[PeriodicAccountBalance] =
-    pacs.zip(poacs).flatMap { case (pac, poac) => List(pac.debiting(amount), poac.crediting(amount))
-    }
-
-  def transfer1(from: TPeriodicAccountBalance, to: TPeriodicAccountBalance, amount: BigDecimal): UIO[Unit] =
-    STM.atomically {
-      (from.credit.update(_.add(amount))) *>(to.debit.update(_.add(amount)))
-    }
-
-//  def withdraw(from: TPeriodicAccountBalance, amount: BigDecimal): USTM[Unit] =
-//    from.crediting(amount)
-//
-//  def deposit(to: TPeriodicAccountBalance, amount: BigDecimal): USTM[Unit] = {
-//    to.debiting(amount)
-//  }
-
-//  def transfer(
-//                from: TPeriodicAccountBalance,
-//                to: TPeriodicAccountBalance,
-//                amount: BigDecimal
-//              ): IO[Nothing, Unit] =
-//    STM.atomically {
-//      for {
-//        _ <- withdraw(from, amount)
-//        _ <- deposit(to, amount)
-//      } yield ()
-//    }
-  def transferX(from: TPeriodicAccountBalance, to: TPeriodicAccountBalance, amount: BigDecimal)= {
+  def transferX(from: TPeriodicAccountBalance, to: TPeriodicAccountBalance, amount: BigDecimal): IO[Nothing, Unit] = {
     STM.atomically {
       for {
         _ <- from.credit.update(_.add(amount))
@@ -1385,11 +1303,7 @@ object FinancialsTransactionDetails  {
   type FTX2                              = FinancialsTransaction_Type2
   def apply(tr: FinancialsTransactionDetails_Type): FinancialsTransactionDetails =
     new FinancialsTransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9)
-  //def apply(tr: FinancialsTransactionDetails.FTX2): FinancialsTransactionDetails =
-  //  new FinancialsTransactionDetails(tr._15, tr._1, tr._16, tr._17, tr._18, tr._19, tr._20, tr._21, tr._22)
 
-//  def apply(x: DerivedTransaction_Type): FinancialsTransactionDetails =
-//    new FinancialsTransactionDetails(x._13, x._1, x._3, x._14, x._15, x._16, x._4, x._18, x._17)
 }
 object FinancialsTransaction         {
   type FinancialsTransaction_Type =
@@ -1419,26 +1333,7 @@ object FinancialsTransaction         {
     String,
     String
   )
-  type DerivedTransaction_Type     = (
-    Long,
-    Long,
-    String,
-    Instant,
-    Instant,
-    Instant,
-    Int,
-    Boolean,
-    Int,
-    String,
-    String,
-    Int,
-    Long,
-    Boolean,
-    String,
-    BigDecimal,
-    String,
-    String
-  )
+
   def apply(tr: FinancialsTransactionx): FinancialsTransaction = FinancialsTransaction(
     tr.id,
     tr.oid,
@@ -1480,75 +1375,6 @@ object FinancialsTransaction         {
       Nil
     )
 
-//  def applyD(transactions: List[DerivedTransaction_Type]): List[FinancialsTransaction]           =
-//    transactions
-//      .groupBy(rc => (rc._1, rc._2, rc._3, rc._4, rc._5, rc._6, rc._7, rc._8, rc._9, rc._10, rc._11, rc._12))
-//      .map { case (k, v) =>
-//        new FinancialsTransaction(k._1, k._2, k._3, k._4, k._5, k._6, k._7, k._8, k._9, k._10, k._11, k._12)
-//          .copy(lines = v.filter(p => p._13 != -1).map(FinancialsTransactionDetails.apply))
-//      }
-//      .toList
-//  def applyL(transactions: List[FinancialsTransactionDetails.FTX2]): List[FinancialsTransaction] =
-//    transactions
-//      .groupBy(rc => (rc._1, rc._2, rc._3, rc._4, rc._5, rc._6, rc._7, rc._8, rc._9, rc._10, rc._11, rc._12, rc._13, rc._14))
-//      .map { case (k, v) =>
-//        new FinancialsTransaction(
-//          k._1,
-//          k._2,
-//          k._3,
-//          k._4,
-//          k._5,
-//          k._6,
-//          k._7,
-//          k._8,
-//          k._9,
-//          k._10,
-//          k._11,
-//          k._12,
-//          k._13,
-//          k._14
-//        )
-//          .copy(lines = v.filter(p => p._15 != -1).map(FinancialsTransactionDetails.apply))
-//      }
-//      .toList
-
-//  def apply(x: FinancialsTransactionDetails.FTX2) =
-//    new FinancialsTransaction(x._1, x._2, x._3, x._4, x._5, x._6, x._7, x._8, x._9, x._10, x._11, x._12, x._13, x._14)
-//      .copy(lines = List(FinancialsTransactionDetails.apply(x)))
-
-//  def apply1(x: DerivedTransaction) =
-//    new FinancialsTransaction(
-//      x.id,
-//      x.oid,
-//      "",
-//      x.oaccount,
-//      x.account,
-//      x.transdate,
-//      x.enterdate,
-//      x.postingdate,
-//      x.period,
-//      x.posted,
-//      x.modelid,
-//      x.company,
-//      x.text,
-//      x.file,
-//      0
-//    )
-//      .copy(lines =
-//        List(
-//          FinancialsTransactionDetails(
-//            x.lid,
-//            x.id,
-//            x.account,
-//            x.side,
-//            x.oaccount,
-//            x.amount,
-//            x.transdate,
-//            x.terms,
-//            x.currency
-//          )
-//        )
-//      )
 }
 final case class DerivedTransaction(
   id: Long,
@@ -1641,22 +1467,22 @@ final case class Journal(
   modelid: Int
 )
 
-final case class Role(roleRepr: String)
+//final case class Role(roleRepr: String)
 
-object Role extends Enumeration { // SimpleAuthEnum[Role, String] {
-  val Admin: Role      = Role("Admin")
-  val DevOps: Role     = Role("DevOps")
-  val Dev: Role        = Role("Developer")
-  val Customer: Role   = Role("Customer")
-  val Supplier: Role   = Role("Supplier")
-  val Logistics: Role  = Role("Logistics")
-  val Accountant: Role = Role("Accountant")
-  val Tester: Role     = Role("Tester")
-
-  // override val values: AuthGroup[Role] = AuthGroup(Admin, Customer, Accountant, Tester)
-
-  def getRepr(t: Role): String = t.roleRepr
-}
+//object Role extends Enumeration { // SimpleAuthEnum[Role, String] {
+//  val Admin: Role      = Role("Admin")
+//  val DevOps: Role     = Role("DevOps")
+//  val Dev: Role        = Role("Developer")
+//  val Customer: Role   = Role("Customer")
+//  val Supplier: Role   = Role("Supplier")
+//  val Logistics: Role  = Role("Logistics")
+//  val Accountant: Role = Role("Accountant")
+//  val Tester: Role     = Role("Tester")
+//
+//  // override val values: AuthGroup[Role] = AuthGroup(Admin, Customer, Accountant, Tester)
+//
+//  def getRepr(t: Role): String = t.roleRepr
+//}
 
 final case class User(
   id: Int,
@@ -1669,9 +1495,27 @@ final case class User(
   department: String, // Role,
   menu: String = "",
   company: String = "1000",
-  modelid: Int = 111
+  modelid: Int = 111,
+  roles:List[Role] = List.empty[Role],
+  rights:List[UserRight]=List.empty[UserRight]
 )
-
+final case class Userx(
+                       id: Int,
+                       userName: String,
+                       firstName: String,
+                       lastName: String,
+                       hash: String,
+                       phone: String,
+                       email: String,
+                       department: String,
+                       menu: String = "",
+                       company: String = "1000",
+                       modelid: Int = 111
+                     )
+object User {
+  type TYPE = (Int, String, String, String, String, String, String, String, String, String, Int)
+  def apply(u: TYPE): User = new User( u._1, u._2,u._3,u._4,u._5,u._6,u._7,u._8,u._9, u._10, u._11)
+}
 final case class User_(
   userName: String,
   firstName: String,
@@ -1685,16 +1529,30 @@ final case class User_(
   modelid: Int = 111
 )
 object User_ {
-  def apply(u: User): User_ = new User_(u.userName, u.firstName, u.lastName, u.hash, u.phone, u.email, u.department, u.menu, u.company, u.modelid)
+  def apply(u: User): User_ = new User_( u.userName, u.firstName, u.lastName, u.hash, u.phone, u.email, u.department, u.menu, u.company, u.modelid)
 }
 final case class LoginRequest(userName: String, password: String, company: String, language:String)
-final case class UserRole (id:Int,  name:String, description:String,
-                           transdate: Instant,
-                           postingdate: Instant,
-                           enterdate: Instant,
-                           modelid:Int = 121,
-                           company:String )
+final case class Role(id:Int, name:String, description:String,
+                      transdate: Instant,
+                      postingdate: Instant,
+                      enterdate: Instant,
+                      modelid:Int = 121,
+                      company:String,
+                      rights:List[UserRight]=List.empty[UserRight]
+                          )
+final case class Role_(id:Int, name:String, description:String,
+                       transdate: Instant,
+                       postingdate: Instant,
+                       enterdate: Instant,
+                       modelid:Int = 121,
+                       company:String)
+object Role {
+
+  type TYPE = (Int, String, String, Instant, Instant, Instant, Int, String)
+  def apply(c:TYPE):Role = Role(c._1, c._2, c._3, c._4, c._5, c._6, c._7, c._8, List.empty[UserRight])
+}
 final case class  UserRight (moduleid:Int,  roleid:Int, short:String, company:String, modelid:Int = 131)
+final case class  UserRole (userid:Int,  roleid:Int, company:String, modelid:Int = 161)
 final case class  Permission (id:Int,  name:String, description:String,
                               transdate: Instant,
                               postingdate: Instant,
