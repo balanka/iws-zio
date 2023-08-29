@@ -319,8 +319,8 @@ create table if not exists users
     company    varchar(20) default '1000'::character varying     not null,
     modelid    integer     default 111
     );
-drop table  if  exists Userrole;
-create table if not exists Userrole
+drop table  if  exists role;
+create table if not exists role
 (
     id     integer not null primary key,
     name   varchar(255) not null,
@@ -345,15 +345,25 @@ create table if not exists Permission
     company varchar(50)  not null,
     modelid integer      default 141
     );
-drop table  if  exists userRight;
-create table if not exists userRight
+drop table  if  exists user_right;
+create table if not exists user_right
 (
     moduleid     integer not null,
     roleid     integer not null,
     short   varchar(50) not null,
     company varchar(50)  not null,
-    modelid integer      default 131
+    modelid integer      default 131,
     PRIMARY KEY(moduleid, roleid, short)
+    );
+
+drop table  if  exists user_role;
+create table if not exists user_role
+(
+    userid     integer not null,
+    roleid     integer not null,
+    company varchar(50)  not null,
+    modelid integer      default 161,
+    PRIMARY KEY(userid, roleid, company)
     );
 drop table  if  exists fmodule;
 create table if not exists fmodule
@@ -378,7 +388,7 @@ insert into fmodule (id,  name, description, account, is_debit, company, modelid
                    (134, 'General ledger', 'General ledger', '1810', false, '1000', 134);
 
 
-insert into Userrole (id,  name, description, company, modelid) values
+insert into role (id,  name, description, company, modelid) values
                      (-1, 'devops', 'DevOps', '1000', 121),
                      (1, 'admin', 'Administrator', '1000', 121),
                      (2, 'dev', 'Developer', '1000', 121),
@@ -389,6 +399,15 @@ insert into Userrole (id,  name, description, company, modelid) values
                      (7, 'logistic_senior', 'Senior Logistic', '1000', 121),
                      (8, 'logistic_assist', 'Logistic assistant', '1000', 121);
 
+insert into user_role (userid,  roleid,  company, modelid) values
+                      (1, -1,  1000, 161),
+                      (1, 1,  1000, 161),
+                      (1, 2,  1000, 161),
+                      (2, 1,  1000, 161),
+                      (2, 2,  1000, 161),
+                      (4, 1,  1000, 161),
+                      (4, 2,  1000, 161);
+
 
 insert into Permission (id,  name, description, short, company, modelid) values
                                                                              (1, 'CREATE', 'create an instance module', '+', '1000', 141),
@@ -398,7 +417,7 @@ insert into Permission (id,  name, description, short, company, modelid) values
                                                                              (5, 'POST', 'Access, Read and display and post a transaction', 'p', '1000', 141),
                                                                              (6, 'REPORT', 'Access, Read and display and print a report', 't', '1000', 141);
 
-insert into userRight (moduleid,  roleid, short, company, modelid) values
+insert into user_right (moduleid,  roleid, short, company, modelid) values
                       (1, 1, '+', 1000, 131),
                       (1, 1, 'r', 1000, 131),
                       (1, 1, 'w', 1000, 131),
@@ -434,6 +453,7 @@ insert into userRight (moduleid,  roleid, short, company, modelid) values
                       (400, 1, 'r', 1000, 131),
                       (1010, 1, 'r', 1000, 131),
                       (1300, 1, 'r', 1000, 131),
+                      (10002, 1, 'r', 1000, 131),
                       (10012, 1, 'r', 1000, 131),
                       (11111, 1, 'r', 1000, 131),
                       (1, 2, '+', 1000, 131),
@@ -471,6 +491,7 @@ insert into userRight (moduleid,  roleid, short, company, modelid) values
                       (400, 2, 'r', 1000, 131),
                       (1010, 2, 'r', 1000, 131),
                       (1300, 2, 'r', 1000, 131),
+                      (10002, 2, 'r', 1000, 131),
                       (10012, 2, 'r', 1000, 131),
                       (11111, 2, 'r', 1000, 131);
 
