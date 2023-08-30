@@ -26,7 +26,6 @@ object Schema {
   implicit val userRightSchema           = DeriveSchema.gen[UserRight]
   implicit val fmoduleSchema             = DeriveSchema.gen[Fmodule]
   implicit val pacSchema                 = DeriveSchema.gen[PeriodicAccountBalance]
-  //implicit val pacSchema_                 = DeriveSchema.gen[PeriodicAccountBalance_]
   implicit val supplierschema            = DeriveSchema.gen[Supplier]
   implicit val supplier_Schema           = DeriveSchema.gen[Supplier_]
   implicit val transactionSchema         = DeriveSchema.gen[FinancialsTransaction]

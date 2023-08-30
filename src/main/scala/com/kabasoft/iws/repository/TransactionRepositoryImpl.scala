@@ -41,17 +41,6 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       .mapError(e => RepositoryError(e.toString))
       .provideLayer(driverLayer)
 
-//  def create2_(trans : FinancialsTransaction): ZIO[SqlTransaction, Exception, Int] = {
-//    val transid1 = newCreate()
-//     val model = trans.copy(id1 = transid1, lines = trans.lines.map(_.copy(transid = transid1)))
-//    val insertNewLines_ = buildInsertNewLines(model.lines)
-//    for {
-//      x <- buildInsertQuery(model).run
-//      y <- insertNewLines_.run
-//      _ <- ZIO.logDebug(s"Create transaction stmt       ${renderInsert(buildInsertQuery(model))} ") *>
-//        ZIO.logInfo(s"Create line transaction stmt   ${renderInsert(insertNewLines_)} ")
-//    } yield x + y
-//  }
 
   @nowarn
    def create2(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] =
@@ -91,7 +80,9 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
     update(transactionDetails)
       .set(transid, details.transid)
       .set(laccount_, details.account)
+      .set(accountName_, details.accountName)
       .set(oaccount_, details.oaccount)
+      .set(oaccountName_, details.oaccountName)
       .set(side_, details.side)
       .set(amount_, details.amount)
       .set(duedate_, details.duedate)
