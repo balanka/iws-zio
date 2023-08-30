@@ -70,7 +70,6 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
         execute(query).provideAndLog(driverLayer)
     }
 
-
   def modify(model: PeriodicAccountBalance): ZIO[Any, RepositoryError, Int] = {
     val update_ = build(model)
     execute(update_)
@@ -78,19 +77,14 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
       .mapError(e => RepositoryError(e.getMessage))
   }
 
-  private def build(model: PeriodicAccountBalance) = {
-    val query =
+  private def build(model: PeriodicAccountBalance) =
       update(pac)
         .set(idebit, model.idebit)
         .set(debit, model.debit)
         .set(icredit, model.icredit)
         .set(credit, model.credit)
-        //.set(currency, model.currency)
-        //.set(company, model.company)
         .where(whereClause(model.id, model.company))
-    ZIO.logDebug(s"Query to update PeriodicAccountBalance is <<<<<<<<<<<<<${renderUpdate(query)}")
-    query
-  }
+
 
   def modify(models: List[PeriodicAccountBalance]): ZIO[Any, RepositoryError, Int] =
     if (models.isEmpty) {
@@ -123,7 +117,6 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
         .findFirst(driverLayer, id, PeriodicAccountBalance.dummy)
   }
 
-  /*
   private def getByIds_(ids: List[String], companyId: String): ZStream[Any, RepositoryError, PeriodicAccountBalance] = {
     val selectAll = SELECT.where((id in ids) && (company === companyId))
     ZStream.fromZIO(
@@ -133,8 +126,7 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
   }
   override def getByIds(ids: List[String], companyId: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]] =
     getByIds_(ids, companyId).runCollect.map(_.toList)
-*/
-
+  
   override def getByModelId(modelId: Int, companyId: String): ZIO[Any, RepositoryError, PeriodicAccountBalance] = {
     val selectAll = SELECT.where((modelid === modelId) && (company === companyId))
 

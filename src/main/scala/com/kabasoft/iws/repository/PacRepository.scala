@@ -11,9 +11,7 @@ trait PacRepository {
   def all(companyId: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]]
   def list(company: String): ZStream[Any, RepositoryError, PeriodicAccountBalance]
   def getBy(id: String, company: String): IO[RepositoryError, PeriodicAccountBalance]
-  def getByIds(ids: List[String], company: String): IO[RepositoryError, List[PeriodicAccountBalance]] =
-    ZIO.foreach(ids)(getBy(_, company)).map(_.filterNot(x => x.id == PeriodicAccountBalance.dummy.id))
-
+  def getByIds(ids: List[String], company: String): IO[RepositoryError, List[PeriodicAccountBalance]]
   def getByModelId(modelid: Int, company: String): IO[RepositoryError, PeriodicAccountBalance]
   def findBalance4Period(fromPeriod: Int, toPeriod: Int, company: String): ZStream[Any, RepositoryError, PeriodicAccountBalance]
   def find4Period(fromPeriod: Int, toPeriod: Int, company: String): ZStream[Any, RepositoryError, PeriodicAccountBalance]
@@ -33,20 +31,15 @@ object PacRepository {
     ZStream.service[PacRepository] flatMap (_.list(company))
   def getBy(id: String, company: String): ZIO[PacRepository, RepositoryError, PeriodicAccountBalance]                                      =
     ZIO.serviceWithZIO[PacRepository](_.getBy(id, company))
-  def getByIds(ids: List[String], company: String): ZIO[PacRepository, RepositoryError, List[PeriodicAccountBalance]]                      =
-    ZIO.foreach(ids)(getBy(_, company)).map(_.filterNot(x => x.id == PeriodicAccountBalance.dummy.id))
+  def getByIds(ids: List[String], companyId: String): ZIO[PacRepository, RepositoryError, List[PeriodicAccountBalance]]                    =
+    ZIO.serviceWithZIO[PacRepository](_.getByIds(ids, companyId))
   def getByModelId(modelid: Int, company: String): ZIO[PacRepository, RepositoryError, PeriodicAccountBalance]                             =
     ZIO.serviceWithZIO[PacRepository](_.getByModelId(modelid, company))
   def findBalance4Period(fromPeriod: Int, toPeriod: Int, company: String): ZStream[PacRepository, RepositoryError, PeriodicAccountBalance] =
     ZStream.service[PacRepository] flatMap (_.findBalance4Period(fromPeriod, toPeriod, company))
   def find4Period(fromPeriod: Int, toPeriod: Int, company: String): ZStream[PacRepository, RepositoryError, PeriodicAccountBalance]        =
     ZStream.service[PacRepository] flatMap (_.find4Period(fromPeriod, toPeriod, company))
-  def find4Period(
-    accountId: String,
-    fromPeriod: Int,
-    toPeriod: Int,
-    company: String
-  ): ZStream[PacRepository, RepositoryError, PeriodicAccountBalance] =
+  def find4Period(accountId: String, fromPeriod: Int, toPeriod: Int, company: String): ZStream[PacRepository, RepositoryError, PeriodicAccountBalance] =
     ZStream.service[PacRepository] flatMap (_.find4Period(accountId, fromPeriod, toPeriod, company))
   def getBalances4Period(fromPeriod: Int, toPeriod: Int, company: String): ZStream[PacRepository, RepositoryError, PeriodicAccountBalance] =
     ZStream.service[PacRepository] flatMap (_.getBalances4Period(fromPeriod, toPeriod, company))
