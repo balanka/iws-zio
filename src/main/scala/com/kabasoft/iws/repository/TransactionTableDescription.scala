@@ -57,7 +57,9 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     amount_,
     duedate_,
     ltext_,
-    currency_ /*, terms_, postedx, comapnyx*/
+    currency_,
+    accountName_,
+    oaccountName_
   ) = transactionDetails.columns
 
   val (transidx,
@@ -67,7 +69,9 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     amountx,
     duedatex,
     ltextx,
-    currencyx__ /*, terms_, postedx, comapnyx*/
+    currencyx__,
+  accountNamex,
+  oaccountNamex
   ) = transactionDetailsInsert.columns
 
 
@@ -116,7 +120,10 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     c.amount,
     c.duedate,
     c.text,
-    c.currency)
+    c.currency,
+    c.accountName,
+    c.oaccountName
+  )
 
   def toTuple2(c: FinancialsTransactionDetails_) = (
     c.transid,
@@ -126,10 +133,12 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     c.amount,
     c.duedate,
     c.text,
-    c.currency)
+    c.currency,
+    c.accountName,
+    c.oaccountName)
 
-   def buildInsertNewLines(models: List[FinancialsTransactionDetails]): Insert[FinancialsTransactionDetails_, (Long, String, Boolean, String, java.math.BigDecimal, Instant, String, String)] =
-    insertInto(transactionDetailsInsert)(transidx, laccountx, sidex, oaccountx, amountx, duedatex, ltextx, currencyx__)
+   def buildInsertNewLines(models: List[FinancialsTransactionDetails]): Insert[FinancialsTransactionDetails_, (Long, String, Boolean, String, java.math.BigDecimal, Instant, String, String, String, String)] =
+    insertInto(transactionDetailsInsert)(transidx, laccountx, sidex, oaccountx, amountx, duedatex, ltextx, currencyx__, accountNamex, oaccountNamex)
       .values(models.map(toTuple))
 
    def buildInsertQuery(models: List[FinancialsTransaction]): Insert[FinancialsTransaction_, (Long, Long, String, String, Instant, Instant, Instant, Int, Boolean, Int, String, String, Int, Int)] =

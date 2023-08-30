@@ -11,7 +11,7 @@ import java.time.format.DateTimeFormatter
 import scala.collection.immutable.{::, Nil}
 import scala.annotation.tailrec
 import java.math.{BigDecimal, RoundingMode}
-//import com.kabasoft.iws.domain.FinancialsTransaction.DerivedTransaction_Type
+
 
 final case class Company_(
                           id: String,
@@ -719,6 +719,7 @@ final case class TPeriodicAccountBalance(
   credit: TRef[BigDecimal],
   currency: String,
   company: String,
+  name: String,
   modelid: Int = PeriodicAccountBalance.MODELID
 ) {
   self =>
@@ -763,24 +764,25 @@ object TPeriodicAccountBalance {
     icredit <- TRef.makeCommit(pac.icredit)
     debit   <- TRef.makeCommit(pac.debit)
     credit  <- TRef.makeCommit(pac.credit)
-  } yield TPeriodicAccountBalance(pac.id, pac.account, pac.period, idebit, icredit, debit, credit, pac.currency, pac.company, pac.modelid)
+  } yield TPeriodicAccountBalance(pac.id, pac.account, pac.period, idebit, icredit, debit, credit, pac.currency, pac.company, pac.name, pac.modelid)
 
-  def create(line: FinancialsTransactionDetails, period:Int, side:Boolean, company: String): UIO[TPeriodicAccountBalance] = {
-    val debitAmount = if (side) line.amount   else zeroAmount
-    val creditAmount = if (side) zeroAmount  else line.amount
-    TPeriodicAccountBalance.apply(PeriodicAccountBalance(
-        PeriodicAccountBalance.createId(period, line.account),
-        line.account,
-        period,
-        zeroAmount,
-        zeroAmount,
-        debitAmount,
-        creditAmount,
-        line.currency,
-        company,
-        PeriodicAccountBalance.MODELID
-      ))
-  }
+//  def create(line: FinancialsTransactionDetails, period:Int, side:Boolean, company: String): UIO[TPeriodicAccountBalance] = {
+//    val debitAmount = if (side) line.amount   else zeroAmount
+//    val creditAmount = if (side) zeroAmount  else line.amount
+//    TPeriodicAccountBalance.apply(PeriodicAccountBalance(
+//        PeriodicAccountBalance.createId(period, line.account),
+//        line.account,
+//        period,
+//        zeroAmount,
+//        zeroAmount,
+//        debitAmount,
+//        creditAmount,
+//        line.currency,
+//        company,
+//        line.accountName,
+//        PeriodicAccountBalance.MODELID
+//      ))
+//  }
 
   def create(model: FinancialsTransaction): List[PeriodicAccountBalance] =
     model.lines.flatMap { line: FinancialsTransactionDetails => //{
@@ -794,6 +796,7 @@ object TPeriodicAccountBalance {
         zeroAmount,
         line.currency,
         model.company,
+        line.accountName,
         PeriodicAccountBalance.MODELID
       )
       val credited = PeriodicAccountBalance(
@@ -806,6 +809,7 @@ object TPeriodicAccountBalance {
         line.amount,
         line.currency,
         model.company,
+        line.oaccountName,
         PeriodicAccountBalance.MODELID)
       List(debited, credited)
     }
@@ -822,6 +826,26 @@ object TPeriodicAccountBalance {
    // List(from,to)
   }
 }
+final case class PeriodicAccountBalance_(
+                                         id: String,
+                                         account: String,
+                                         period: Int,
+                                         idebit: BigDecimal,
+                                         icredit: BigDecimal,
+                                         debit: BigDecimal,
+                                         credit: BigDecimal,
+                                         currency: String,
+                                         company: String,
+                                         name: String,
+                                         modelid: Int = PeriodicAccountBalance.MODELID
+
+                                       )
+
+object PeriodicAccountBalance_{
+  private type PAC_Type = (String, String, Int, BigDecimal, BigDecimal, BigDecimal, BigDecimal, String, String, String, Int )
+  def applyX(p: PAC_Type):PeriodicAccountBalance_ = PeriodicAccountBalance_(p._1, p._2, p._3, p._4, p._5, p._6, p._7, p._8, p._9, p._10, p._11)
+}
+//id, account, period, idebit, icredit, debit, credit, currency, company, name, modelid
 final case class PeriodicAccountBalance(
   id: String,
   account: String,
@@ -832,8 +856,8 @@ final case class PeriodicAccountBalance(
   credit: BigDecimal,
   currency: String,
   company: String,
-  modelid: Int = PeriodicAccountBalance.MODELID
-) {
+  name: String,
+  modelid: Int = PeriodicAccountBalance.MODELID) {
   def debiting(amount: BigDecimal)         = copy(debit = debit.add(amount))
   def crediting(amount: BigDecimal)        = copy(credit = credit.add(amount))
   def idebiting(amount: BigDecimal)        = copy(idebit = idebit.add(amount))
@@ -852,19 +876,14 @@ final case class PeriodicAccountBalance(
 
 object PeriodicAccountBalance {
 
-  type PAC_Type = (String, String, Int, BigDecimal, BigDecimal, BigDecimal, BigDecimal, String, String, Int)
+  private type PAC_Type = (String, String, Int, BigDecimal, BigDecimal, BigDecimal, BigDecimal, String, String, String, Int)
 
   val MODELID                                   = 106
-  def init(paccs: List[PeriodicAccountBalance]) =
-    paccs.foreach(
-      _.copy(idebit = zeroAmount, debit = zeroAmount, icredit = zeroAmount, credit = zeroAmount)
-    )
-
   def createId(period: Int, accountId: String) = period.toString.concat(accountId)
   val dummy                                    =
-    PeriodicAccountBalance("-1", "", 0, zeroAmount, zeroAmount, zeroAmount, zeroAmount, "EUR", "1000")
+    PeriodicAccountBalance("-1", "", 0, zeroAmount, zeroAmount, zeroAmount, zeroAmount, "EUR", "1000", "")
 
-  def create(accountId: String, period: Int, currency: String, company: String): PeriodicAccountBalance =
+  def create(accountId: String, period: Int, currency: String, company: String, name: String): PeriodicAccountBalance =
     PeriodicAccountBalance.apply(
       PeriodicAccountBalance.createId(period, accountId),
       accountId,
@@ -873,8 +892,9 @@ object PeriodicAccountBalance {
       zeroAmount,
       zeroAmount,
       zeroAmount,
-      company,
       currency,
+      company,
+      name,
       PeriodicAccountBalance.MODELID
     )
 
@@ -891,7 +911,7 @@ object PeriodicAccountBalance {
           zeroAmount,
           line.currency,
           model.company,
-
+          line.accountName,
           PeriodicAccountBalance.MODELID
         ),
         PeriodicAccountBalance.apply(
@@ -904,18 +924,19 @@ object PeriodicAccountBalance {
           line.amount,
           line.currency,
           model.company,
+          line.oaccountName,
           PeriodicAccountBalance.MODELID
         )
       )
     }
-  def applyX(p: PAC_Type)                                                = PeriodicAccountBalance(p._1, p._2, p._3, p._4, p._5, p._6, p._7, p._8, p._9, p._10)
+  def applyX(p: PAC_Type)                                                = PeriodicAccountBalance(p._1, p._2, p._3, p._4, p._5, p._6, p._7, p._8, p._9, p._10, p._11)
 
   def applyT(tpac: TPeriodicAccountBalance): ZIO[Any, Nothing, PeriodicAccountBalance] = for {
     idebit  <- tpac.idebit.get.commit
     icredit <- tpac.icredit.get.commit
     debit   <- tpac.debit.get.commit
     credit  <- tpac.credit.get.commit
-  } yield PeriodicAccountBalance(tpac.id, tpac.account, tpac.period, idebit, icredit, debit, credit, tpac.currency, tpac.company, tpac.modelid)
+  } yield PeriodicAccountBalance(tpac.id, tpac.account, tpac.period, idebit, icredit, debit, credit, tpac.currency, tpac.company, tpac.name, tpac.modelid)
 }
 
 sealed trait BusinessPartner         {
@@ -1173,7 +1194,9 @@ final case class FinancialsTransactionDetails(
   amount: BigDecimal,
   duedate: Instant = Instant.now(),
   text: String,
-  currency: String
+  currency: String,
+  accountName: String,
+  oaccountName: String
 )
 
 final case class FinancialsTransactionDetails_(
@@ -1184,11 +1207,13 @@ final case class FinancialsTransactionDetails_(
   amount: BigDecimal,
   duedate: Instant = Instant.now(),
   text: String,
-  currency: String
+  currency: String,
+  accountName: String,
+  oaccountName: String
 )
 object FinancialsTransactionDetails_ {
   def apply(tr: FinancialsTransactionDetails): FinancialsTransactionDetails_ =
-    new FinancialsTransactionDetails_(tr.transid,  tr.account, tr.side, tr.oaccount, tr.amount, tr.duedate, tr.text, tr.currency)
+    new FinancialsTransactionDetails_(tr.transid,  tr.account, tr.side, tr.oaccount, tr.amount, tr.duedate, tr.text, tr.currency, tr.accountName, tr.oaccountName)
 }
 final case class FinancialsTransactionx(
   id: Long,
@@ -1290,8 +1315,8 @@ final case class FinancialsTransaction(
 
 }
 object FinancialsTransactionDetails  {
-  import FinancialsTransaction.FinancialsTransaction_Type2
-  val dummy                                                   = FinancialsTransactionDetails(0, 0, "", true, "", zeroAmount, Instant.now(), "", "EUR")
+
+  val dummy                                                   = FinancialsTransactionDetails(0, 0, "", true, "", zeroAmount, Instant.now(), "", "EUR", "", "")
   implicit val monoid: Identity[FinancialsTransactionDetails] =
     new Identity[FinancialsTransactionDetails] {
       def identity                                                                          = dummy
@@ -1299,40 +1324,16 @@ object FinancialsTransactionDetails  {
         m2.copy(amount = m2.amount.add(m1.amount))
     }
 
-  type FinancialsTransactionDetails_Type = (Long, Long,  String, Boolean, String, BigDecimal, Instant, String, String)
-  type FTX2                              = FinancialsTransaction_Type2
+  type FinancialsTransactionDetails_Type = (Long, Long,  String, Boolean, String, BigDecimal, Instant, String, String, String, String)
+
   def apply(tr: FinancialsTransactionDetails_Type): FinancialsTransactionDetails =
-    new FinancialsTransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9)
+    new FinancialsTransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11)
 
 }
 object FinancialsTransaction         {
   type FinancialsTransaction_Type =
     (Long, Long, Long, String, String, Instant, Instant, Instant, Int, Boolean, Int, String, String, Int, Int)
 
-  type FinancialsTransaction_Type2 = (
-    Long,
-    Long,
-    String,
-    String,
-    Instant,
-    Instant,
-    Instant,
-    Int,
-    Boolean,
-    Int,
-    String,
-    String,
-    Int,
-    Int,
-    Long,
-    String,
-    Boolean,
-    String,
-    BigDecimal,
-    Instant,
-    String,
-    String
-  )
 
   def apply(tr: FinancialsTransactionx): FinancialsTransaction = FinancialsTransaction(
     tr.id,

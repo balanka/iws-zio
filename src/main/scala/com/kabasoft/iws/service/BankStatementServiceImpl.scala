@@ -2,8 +2,8 @@ package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.common.zeroAmount
-import com.kabasoft.iws.domain.{BankStatement, BusinessPartner, Company, FinancialsTransaction, FinancialsTransactionDetails, Vat, common}
-import com.kabasoft.iws.repository.{BankStatementRepository, CompanyRepository, CustomerRepository, SupplierRepository, TransactionRepository, VatRepository}
+import com.kabasoft.iws.domain.{Account, BankStatement, BusinessPartner, Company, FinancialsTransaction, FinancialsTransactionDetails, Vat, common}
+import com.kabasoft.iws.repository.{AccountRepository, BankStatementRepository, CompanyRepository, CustomerRepository, SupplierRepository, TransactionRepository, VatRepository}
 import zio.prelude.FlipOps
 import zio.stream._
 import zio.{ZLayer, _}
@@ -15,6 +15,7 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
                                       customerRepo: CustomerRepository,
                                       supplierRepo: SupplierRepository,
                                       companyRepo: CompanyRepository,
+                                      accountRepo: AccountRepository,
                                       vatRepo: VatRepository
 ) extends BankStatementService {
 
@@ -23,10 +24,11 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
 
   private def call(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, Int] =
     for {
+      accounts <- ZIO.logInfo(s"get company by id  ${companyId}  ") *>accountRepo.all(companyId)
       company <- ZIO.logInfo(s"get company by id  ${companyId}  ") *> companyRepo.getBy(companyId)
       bankStmt <- ZIO.logInfo(s"get bankStmt by ids  ${ids}  ") *> bankStmtRepo.getById(ids).runCollect.map(_.toList)
       vat <- vatRepo.all(company.id)
-      transactions <- ZIO.logInfo(s"Got bankStmt  ${bankStmt}  ") *> buildTransactions(bankStmt, vat, company)
+      transactions <- ZIO.logInfo(s"Got bankStmt  ${bankStmt}  ") *> buildTransactions(bankStmt, vat, company, accounts)
       posted <- ZIO.logInfo(s"Created transactions  ${transactions}  ") *> bankStmtRepo.post(bankStmt, transactions.flatten)
       _ <- ZIO.logInfo(s"Transaction posted ${posted}  ")
     } yield posted
@@ -35,13 +37,13 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
     call(ids, companyId) *> bankStmtRepo.getById(ids).runCollect.map(_.toList)
   }
 
-  private def buildTransactions(bs: List[BankStatement], vats:List[Vat], company: Company): ZIO[Any, RepositoryError, List[List[FinancialsTransaction]]] = bs.map(stmt =>
+  private def buildTransactions(bs: List[BankStatement], vats:List[Vat], company: Company, accounts:List[Account]): ZIO[Any, RepositoryError, List[List[FinancialsTransaction]]] = bs.map(stmt =>
     (if (stmt.amount.compareTo(zeroAmount) >= 0) {
       customerRepo.getByIban(stmt.accountno, stmt.company)
     } else {
       supplierRepo.getByIban(stmt.accountno, stmt.company)
     }).map(s => {
-      List(buildPaymentSettlement(stmt, s, company), buildTrans(stmt, s, vats.find(_.id == s.vatcode)))
+      List(buildPaymentSettlement(stmt, s, company, accounts), buildTrans(stmt, s, vats.find(_.id == s.vatcode), accounts))
     })
   ).flip
   private def  getX (optVat:Option[Vat], bs: BankStatement): Option[(String, BigDecimal)] =
@@ -52,7 +54,7 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
           .setScale(2, RoundingMode.HALF_UP)
      (vatAccount, netAmount)
   })
-  private def buildTrans(bs: BankStatement, partner: BusinessPartner, optVat: Option[Vat]): FinancialsTransaction = {
+  private def buildTrans(bs: BankStatement, partner: BusinessPartner, optVat: Option[Vat], accounts:List[Account]): FinancialsTransaction = {
 
     val modelid = if (bs.amount.compareTo(zeroAmount) >= 0) 122 else 112
 
@@ -62,31 +64,35 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
         val vatAccount = vatAccountAndNetAmount._1
         val netAmount = vatAccountAndNetAmount._2
         val vatAmount = bs.amount.abs().subtract(netAmount.abs()).setScale(2, RoundingMode.HALF_UP)
-        val netLine = buildDetails(partner.oaccount, partner.account, netAmount)
+        val oaccountName = accounts.find(_.id == partner.oaccount).fold(s"OAccount with id ${partner.oaccount} not found!!!")(_.name)
+        val accountName = accounts.find(_.id == partner.account).fold(s"Account with id ${partner.account} not found!!!")(_.name)
+        val vatAccountName = accounts.find(_.id == vatAccount).fold(s"Account with id ${partner.account} not found!!!")(_.name)
+        val netLine = buildDetails(partner.oaccount, oaccountName, partner.account, accountName, netAmount)
         if (vatAmount.abs().compareTo(zeroAmount) > 0) {
-          val vatLine = buildDetails(vatAccount, partner.account, vatAmount)
+          val vatLine = buildDetails(vatAccount, vatAccountName, partner.account, accountName, vatAmount)
           List(netLine, vatLine)
         } else List(netLine)
       }).getOrElse(emptyLines)
       lines
     }
 
-    def buildDetails(account: String, oaccount: String, amount: BigDecimal): FinancialsTransactionDetails =
+    def buildDetails(account: String, accountName:String, oaccount: String, oaccountName:String, amount: BigDecimal): FinancialsTransactionDetails =
       if (bs.amount.compareTo(zeroAmount) < 0) {
-        FinancialsTransactionDetails(-1L, -1L, account, true, oaccount, amount.abs(), bs.valuedate, bs.purpose, bs.currency)
+        FinancialsTransactionDetails(-1L, -1L, account, true, oaccount, amount.abs(), bs.valuedate, bs.purpose, bs.currency, accountName, oaccountName)
       } else {
-        FinancialsTransactionDetails(-1L, -1L, oaccount, true, account, amount.abs(), bs.valuedate, bs.purpose, bs.currency)
+        FinancialsTransactionDetails(-1L, -1L, oaccount, true, account, amount.abs(), bs.valuedate, bs.purpose, bs.currency, oaccountName, accountName)
       }
-
     buildTransaction(bs, partner, modelid, buildLines())
 
   }
-  private[this] def buildPaymentSettlement(bs: BankStatement, partner: BusinessPartner, company: Company): FinancialsTransaction = {
+  private[this] def buildPaymentSettlement(bs: BankStatement, partner: BusinessPartner, company: Company, accounts:List[Account]): FinancialsTransaction = {
+    val bankAccountName = accounts.find(_.id == company.bankAcc).fold(s"Bank account with id ${company.bankAcc} not found!!!")(_.name)
+    val accountName = accounts.find(_.id == partner.account).fold(s"Account with id ${partner.account} not found!!!")(_.name)
     val modelid = if (bs.amount.compareTo(zeroAmount) >= 0) 124 else 114
     val line = if(modelid ==114) {
-      FinancialsTransactionDetails(-1L, -1L, partner.account , true, company.bankAcc, bs.amount.abs(), bs.valuedate, bs.purpose, bs.currency)
+      FinancialsTransactionDetails(-1L, -1L, partner.account , true, company.bankAcc, bs.amount.abs(), bs.valuedate, bs.purpose, bs.currency, accountName, bankAccountName)
     } else {
-      FinancialsTransactionDetails(-1L, -1L, company.bankAcc,  true, partner.account, bs.amount.abs(), bs.valuedate, bs.purpose, bs.currency)
+      FinancialsTransactionDetails(-1L, -1L, company.bankAcc,  true, partner.account, bs.amount.abs(), bs.valuedate, bs.purpose, bs.currency, bankAccountName, accountName)
     }
     buildTransaction(bs, partner, modelid, List(line))
   }
@@ -144,8 +150,8 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
 
 object BankStatementServiceImpl {
   val live: ZLayer[
-    BankStatementRepository with TransactionRepository with CustomerRepository with SupplierRepository with CompanyRepository with VatRepository,
+    BankStatementRepository with TransactionRepository with CustomerRepository with SupplierRepository with CompanyRepository with VatRepository with AccountRepository,
     RepositoryError,
     BankStatementService
-  ] = ZLayer.fromFunction(new BankStatementServiceImpl(_, _, _, _, _))
+  ] = ZLayer.fromFunction(new BankStatementServiceImpl(_, _, _, _, _, _))
 }

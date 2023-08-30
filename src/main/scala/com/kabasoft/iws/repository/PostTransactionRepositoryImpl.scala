@@ -16,7 +16,7 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
   val pac = defineTable[PeriodicAccountBalance]("periodic_account_balance")
   val journals_ = defineTable[Journal_]("journal")
-  val (id_pac, account_pac, period_pac, idebit_pac, icredit_pac, debit_pac, credit_pac, currency_pac, company_pac, modelid_pac) = pac.columns
+  val (id_pac, account_pac, period_pac, idebit_pac, icredit_pac, debit_pac, credit_pac, currency_pac, company_pac, name_pac, modelid_pac) = pac.columns
   private val (
     transid_j,
     oid_j,
@@ -67,7 +67,7 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
 
   private def createPacs4T(models_ : List[PeriodicAccountBalance]): ZIO[SqlTransaction, Exception, Int] = {
         insertInto(pac)(id_pac, account_pac, period_pac, idebit_pac, icredit_pac, debit_pac, credit_pac,
-          currency_pac, company_pac, modelid_pac).values(models_.map(c => PeriodicAccountBalance.unapply(c).get)).run
+          currency_pac, company_pac, name_pac, modelid_pac).values(models_.map(c => PeriodicAccountBalance.unapply(c).get)).run
     }
 
   private def createJ4T(journals: List[Journal]): ZIO[SqlTransaction, Exception, Int] = {

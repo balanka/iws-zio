@@ -32,7 +32,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
     )
       .from(transactions)
 
-  private val SELECT_LINE = select(lid_, transid, laccount_, side_, oaccount_, amount_, duedate_, ltext_, currency_).from(transactionDetails)
+  private val SELECT_LINE = select(lid_, transid, laccount_, side_, oaccount_, amount_, duedate_, ltext_, currency_, accountName_, oaccountName_).from(transactionDetails)
 
 
   @nowarn
