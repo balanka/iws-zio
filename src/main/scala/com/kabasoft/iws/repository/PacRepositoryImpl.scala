@@ -126,7 +126,7 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
   }
   override def getByIds(ids: List[String], companyId: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]] =
     getByIds_(ids, companyId).runCollect.map(_.toList)
-  
+
   override def getByModelId(modelId: Int, companyId: String): ZIO[Any, RepositoryError, PeriodicAccountBalance] = {
     val selectAll = SELECT.where((modelid === modelId) && (company === companyId))
 

@@ -647,7 +647,6 @@ object BankStatement  {
     val date1       = if (date1_.trim.nonEmpty) date1_ else date2
     val postingdate = fullDate(date1)
     val valuedate   = fullDate(date2)
-    // val depositor = values(3)
     val postingtext = values(3)
     val purpose     = values(4)
     val beneficiary = values(5)
@@ -766,24 +765,6 @@ object TPeriodicAccountBalance {
     credit  <- TRef.makeCommit(pac.credit)
   } yield TPeriodicAccountBalance(pac.id, pac.account, pac.period, idebit, icredit, debit, credit, pac.currency, pac.company, pac.name, pac.modelid)
 
-//  def create(line: FinancialsTransactionDetails, period:Int, side:Boolean, company: String): UIO[TPeriodicAccountBalance] = {
-//    val debitAmount = if (side) line.amount   else zeroAmount
-//    val creditAmount = if (side) zeroAmount  else line.amount
-//    TPeriodicAccountBalance.apply(PeriodicAccountBalance(
-//        PeriodicAccountBalance.createId(period, line.account),
-//        line.account,
-//        period,
-//        zeroAmount,
-//        zeroAmount,
-//        debitAmount,
-//        creditAmount,
-//        line.currency,
-//        company,
-//        line.accountName,
-//        PeriodicAccountBalance.MODELID
-//      ))
-//  }
-
   def create(model: FinancialsTransaction): List[PeriodicAccountBalance] =
     model.lines.flatMap { line: FinancialsTransactionDetails => //{
       val debited = PeriodicAccountBalance(
@@ -837,15 +818,8 @@ final case class PeriodicAccountBalance_(
                                          currency: String,
                                          company: String,
                                          name: String,
-                                         modelid: Int = PeriodicAccountBalance.MODELID
+                                         modelid: Int = PeriodicAccountBalance.MODELID)
 
-                                       )
-
-object PeriodicAccountBalance_{
-  private type PAC_Type = (String, String, Int, BigDecimal, BigDecimal, BigDecimal, BigDecimal, String, String, String, Int )
-  def applyX(p: PAC_Type):PeriodicAccountBalance_ = PeriodicAccountBalance_(p._1, p._2, p._3, p._4, p._5, p._6, p._7, p._8, p._9, p._10, p._11)
-}
-//id, account, period, idebit, icredit, debit, credit, currency, company, name, modelid
 final case class PeriodicAccountBalance(
   id: String,
   account: String,
