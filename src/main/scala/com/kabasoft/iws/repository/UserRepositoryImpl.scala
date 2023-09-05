@@ -3,7 +3,8 @@ package com.kabasoft.iws.repository
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{Role, Role_, User, UserRight, UserRole, User_, Userx}
 import zio._
-import com.kabasoft.iws.repository.Schema.{role_Schema, userSchema_, userSchemax, userRoleSchema, userRightSchema}
+import com.kabasoft.iws.repository.Schema.{role_Schema, userRightSchema, userRoleSchema, userSchema_, userSchemax}
+
 import zio.sql.ConnectionPool
 import zio.stream._
 
@@ -90,15 +91,21 @@ final class UserRepositoryImpl(pool: ConnectionPool) extends UserRepository with
   override def all(companyId: String): ZIO[Any, RepositoryError, List[User]] = for {
     users_ <- list(companyId).runCollect.map(_.toList)
     user_roles <- listUserRoles(companyId).runCollect.map(_.toList)
+    _ <-ZIO.logInfo(s"listUserRoles is ${user_roles}")
+    _ <-ZIO.foreachDiscard(users_)(u => ZIO.logInfo(s"user_role is ${ u.copy(rights = u.roles.flatMap(_.rights))}"))
     roles_ <- listRoles(companyId).runCollect.map(_.toList)
+    _ <-ZIO.logInfo(s"Roles is ${roles_}")
     user_rights <- listUserRight(companyId).runCollect.map(_.toList)
+    _ <-ZIO.logInfo(s"user_rights is ${user_rights}")
+    _ <-ZIO.foreachDiscard(roles_)(r => ZIO.logInfo(s"user_role is ${r.copy(rights = user_rights.filter(rt => rt.roleid == r.id))}"))
+    //_<-ZIO.foreachDiscard(users_)(u => ZIO.logInfo(s"users is ${u.copy( roles =roles_.filter(r=>user_roles.filter(ur=>(ur.roleid==r.id) &&(ur.userid ==u.id)).map()
+    //  rights = u.roles.flatMap(ur=>user_rights.filter(rt => (rt.roleid == ur.id))}"))
   } yield {
     val  rolesx: List[Role] = roles_.map( r=>r.copy(rights = user_rights.filter(rt => rt.roleid == r.id)))
-    val users  = users_.map(u => u.copy(roles = rolesx.filter(r=> user_roles.find(ur=>(ur.roleid == r.id)).map(r=>r.userid).contains(r.id))))
-    //val usersx = users.map(u => u.copy(menu = u.menu.concat(u.roles.map(r => r.rights.map(rt => rt.short).reduce((a, b) => a.concat(",").concat(b))).reduce((a, b) => a.concat(",").concat(b)))))
-    val usersx = users.map(u => u.copy(rights = u.roles.flatMap(_.rights)))
-
-      usersx
+    val roles= rolesx.filter(r=> user_roles.filter(ur=>(ur.roleid == r.id)).map(ur=>ur.roleid).contains(r.id))
+    val users  = users_.map(u => u.copy(roles = roles)).map(u=>  u.copy(rights = u.roles.flatMap(_.rights)))
+    //val usersx = users.map(u => u.copy(rights = u.roles.flatMap(_.rights)))
+      users
   }
   override def list(companyId: String): ZStream[Any, RepositoryError, User]                    = {
     val selectAll = SELECT.where(company === companyId)

@@ -11,8 +11,6 @@ import java.time.format.DateTimeFormatter
 import scala.collection.immutable.{::, Nil}
 import scala.annotation.tailrec
 import java.math.{BigDecimal, RoundingMode}
-
-
 final case class Company_(
                           id: String,
                           name: String,
@@ -199,10 +197,10 @@ final case class Account(
   postingdate: Instant = Instant.now(),
   company: String,
   modelid: Int = 9,
-  account: String = "",
+  account: String,
   isDebit: Boolean,
   balancesheet: Boolean,
-  currency: String = "EUR ",
+  currency: String,
   idebit: BigDecimal = zeroAmount,
   icredit: BigDecimal = zeroAmount,
   debit: BigDecimal = zeroAmount,
@@ -238,20 +236,6 @@ final case class Account(
   def filterAddSubAccounts(accSet: Set[Account]): Account =
     copy(subAccounts = accSet.filter(_.account == id).map(_.filterAddSubAccounts(accSet)))
 
-  def updateBalanceP(accounts: Ref[Set[Account]]): UIO[List[Account]] = {
-    val r = accounts.get
-    r.flatMap(all =>
-      { println("all" + all); all.find(_.id == account) } match {
-        case Some(parent) =>
-          val updated = parent.updateBalance(this)
-          val old     = all.filterNot(_.id == id)
-          accounts.set(old + updated)
-          val w       = updated.updateBalanceP(accounts)
-          w
-        case None         => ZIO.succeed(List(this))
-      }
-    )
-  }
 
   def updateBalance(acc: Account): Account =
     idebiting(acc.idebit)
@@ -464,32 +448,23 @@ object Account {
   }
 
 }
-final case class BaseData(
-  id: String,
-  name: String,
-  description: String,
-  modelId: Int = 19,
-  isDebit: Boolean,
-  balancesheet: Boolean,
-  idebit: BigDecimal,
-  icredit: BigDecimal,
-  debit: BigDecimal,
-  credit: BigDecimal,
-  currency: String,
-  company: String
-) {
-  def debiting(amount: BigDecimal)   = copy(debit = debit.add(amount))
-  def crediting(amount: BigDecimal)  = copy(credit = credit.add(amount))
-  def idebiting(amount: BigDecimal)  = copy(idebit = idebit.add(amount))
-  def icrediting(amount: BigDecimal) = copy(icredit = icredit.add(amount))
-  def fdebit                         = debit.add(idebit)
-  def fcredit                        = credit.add(icredit)
-  def dbalance                       = fdebit.subtract(fcredit)
-  def cbalance                       = fcredit.subtract(fdebit)
-  def balance                        = if (isDebit) dbalance else cbalance
 
-}
-
+final case class Asset (id: String,
+                        name: String,
+                        description: String,
+                        enterdate: Instant = Instant.now(),
+                        changedate: Instant = Instant.now(),
+                        postingdate: Instant = Instant.now(),
+                        company: String,
+                        modelid: Int = 19,
+                        account: String,
+                        oaccount: String,
+                        depMethod:Int,
+                        rate: BigDecimal,
+                        lifeSpan:Int,
+                        scrapValue: BigDecimal = zeroAmount,
+                        frequency:Int,
+                        currency: String = "EUR ")
 sealed trait IWS {
   def id: String
 }

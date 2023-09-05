@@ -7,6 +7,7 @@ import zio.schema.DeriveSchema
 object Schema {
   implicit val accountSchema             = DeriveSchema.gen[Account]
   implicit lazy val account_schema       = DeriveSchema.gen[Account_]
+  implicit val assetSchema                = DeriveSchema.gen[Asset]
   implicit val bankSchema                = DeriveSchema.gen[Bank]
   implicit val bankStatementsSchema      = DeriveSchema.gen[BankStatement]
   implicit val bankStatementsSchema_     = DeriveSchema.gen[BankStatement_]

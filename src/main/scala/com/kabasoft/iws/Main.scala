@@ -1,6 +1,7 @@
 package com.kabasoft.iws
 
 import com.kabasoft.iws.api.AccountEndpoint.appAcc
+import com.kabasoft.iws.api.AssetEndpoint.appAsset
 import com.kabasoft.iws.api.JournalEndpoint.appJournal
 import com.kabasoft.iws.api.LoginRoutes.{appLogin, jwtDecode}
 import com.kabasoft.iws.api.BankStmtEndpoint.appBankStmt
@@ -57,7 +58,7 @@ object Main extends ZIOAppDefault {
     )
 
   val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc ++ appBank  ++ appComp  ++ appFtr ++ appFModule
-     ++ appBankStmt ++  appUser ++ appPac ++ appJournal ++ appCC ++ appBankStmt ++appPerm ++ appRole ++expose)//.toApp.withDefaultErrorResponse @@ bearerAuth(jwtDecode(_).isDefined)
+     ++ appBankStmt ++  appUser ++ appPac ++ appJournal ++ appCC ++ appBankStmt ++appPerm ++ appRole ++ appAsset ++expose)//.toApp.withDefaultErrorResponse @@ bearerAuth(jwtDecode(_).isDefined)
 
   @nowarn val run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
     ZIO.logInfo(s"Starting http server") *> // @@//@@ LogKeys.portKey(port)
@@ -68,6 +69,8 @@ object Main extends ZIOAppDefault {
           connectionPoolConfig,
           DbConfig.layer,
           ConnectionPool.live,
+          AssetCacheImpl.live,
+          AssetRepositoryImpl.live,
           AccountServiceImpl.live,
           AccountCacheImpl.live,
           AccountRepositoryImpl.live,

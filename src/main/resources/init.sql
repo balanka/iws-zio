@@ -380,6 +380,33 @@ create table if not exists fmodule
     modelid integer  not null
     );
 
+drop table  if  exists asset;
+create table if not exists asset
+(
+    id  varchar(50) not null primary key,
+    name         varchar(255) not null,
+    description  varchar(255),
+    transdate    timestamp default CURRENT_DATE not null,
+    enterdate    timestamp default CURRENT_DATE not null,
+    postingdate  timestamp default CURRENT_DATE not null,
+    company    varchar(50) not null,
+    modelId      int not null ,
+    account      varchar(50),
+    oaccount     varchar(50),
+    scrap_value   numeric(12, 2),
+    life_span     int,
+    dep_method int,
+    rate         decimal(5, 2),
+    frequency    int,
+    currency     varchar(50) not null
+    );
+insert into asset(id,  name, description, transdate, enterdate, postingdate, company, modelid, account, oaccount, scrap_value, life_span, dep_method, rate, frequency, currency) values
+('1804', 'BMW-220D', 'BMW-220D', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '1000', 19, '0520', '6222', 1.0, 5, 2, 0.30, 12, 'EUR'),
+('IWS-01', 'IWS', 'Integriertes Finanzbuchhaltungssystem', '2019-04-11 00:00:00','2019-04-11 00:00:00', '2019-04-11 00:00:00', '1000', 19, '0135', '6222', 1.0, 5, 2, 1.0, 12, 'EUR'),
+('MACB001', 'MacBook Pro 2017', 'MacBook Pro 2017', '2019-03-15 00:00:00', '2019-03-15 00:00:00','2019-03-15 00:00:00', '1000', 19, '0651', '4830', 1.0, 3, 2, 1.0, 12, 'EUR' ),
+('MACB002', 'MackBookPro 2019', 'MackBookPro 2019', '2019-08-09 15:53:37', '2019-08-09 15:53:37', '2019-08-09 15:53:37', '1000', 19, '0652', '4830', 1.0, 3, 2, 1.0, 12, 'EUR'),
+('MACB003', 'MackBookPro 2019-2', 'MackBookPro 2019-2', '2019-11-25 12:32:00', '2019-11-25 12:32:00', '2019-11-25 12:32:00', '1000', 19, '0653', '4830', 1.0, 3, 2, 1.0, 12, 'EUR');
+
 insert into fmodule (id,  name, description, account, is_debit, company, modelid) values
                    (112, 'Payables', 'Payables/Supplier invoices', '1810', false, '1000', 112),
                    (114, 'Payment', 'Payment', '1810', false, '1000', 114),

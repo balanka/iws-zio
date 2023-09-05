@@ -1,7 +1,6 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.repository.Schema.accountSchema
-import com.kabasoft.iws.repository.Schema.repositoryErrorSchema
+import com.kabasoft.iws.repository.Schema.{accountSchema, repositoryErrorSchema}
 import com.kabasoft.iws.domain.Account
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.service.AccountService
@@ -28,7 +27,7 @@ object AccountEndpoint {
 
   private val accAllEndpoint = accAllAPI.implement(company => AccountCache.all(company).mapError(e => RepositoryError(e.getMessage)))
   val accCreateEndpoint = accCreateAPI.implement(account =>
-    ZIO.logDebug(s"Insert Account  ${account}") *>
+    ZIO.logInfo(s"Insert Account  ${account}") *>
     AccountRepository.create(account).mapError(e => RepositoryError(e.getMessage)))
   val balanceEndpoint = balanceAPI.implement { case (company:String, accId: String, from: Int, to: Int) =>
     AccountService.getBalance(accId, from, to, company).mapError(e => RepositoryError(e.getMessage))}
