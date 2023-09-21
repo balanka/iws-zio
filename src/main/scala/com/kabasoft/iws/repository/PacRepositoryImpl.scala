@@ -4,6 +4,7 @@ import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.common.zeroAmount
 import com.kabasoft.iws.domain.PeriodicAccountBalance
 import zio._
+import zio.prelude.FlipOps
 import com.kabasoft.iws.repository.Schema.pacSchema
 import zio.sql.ConnectionPool
 import zio.stream._
@@ -112,20 +113,13 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
   override def getBy(id: String, companyId: String): ZIO[Any, RepositoryError, PeriodicAccountBalance] = {
     val selectAll = SELECT.where(whereClause(id, companyId))
 
-    ZIO.logInfo(s"Query to execute findBy is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to((PeriodicAccountBalance.apply _).tupled))
         .findFirst(driverLayer, id, PeriodicAccountBalance.dummy)
   }
 
-  private def getByIds_(ids: List[String], companyId: String): ZStream[Any, RepositoryError, PeriodicAccountBalance] = {
-    val selectAll = SELECT.where((id in ids) && (company === companyId))
-    ZStream.fromZIO(
-    ZIO.logDebug(s"Query to execute getByIds_ is ${renderRead(selectAll)}")) *>
-      execute(selectAll.to((PeriodicAccountBalance.apply _).tupled))
-        .provideDriver(driverLayer)
-  }
   override def getByIds(ids: List[String], companyId: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]] =
-    getByIds_(ids, companyId).runCollect.map(_.toList)
+    ids.map(id =>getBy(id, companyId)).flip
 
   override def getByModelId(modelId: Int, companyId: String): ZIO[Any, RepositoryError, PeriodicAccountBalance] = {
     val selectAll = SELECT.where((modelid === modelId) && (company === companyId))
@@ -142,7 +136,7 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
                         ): ZStream[Any, RepositoryError, PeriodicAccountBalance] = {
     val selectAll = getBalancesQuery(fromPeriod, toPeriod, companyId)
     ZStream.fromZIO(
-      ZIO.logInfo(s"Query to execute findBalance4Period is ${renderRead(selectAll)}")
+      ZIO.logDebug(s"Query to execute findBalance4Period is ${renderRead(selectAll)}")
     ) *>
       execute(selectAll.to(x => PeriodicAccountBalance.applyX(x)))
         .provideDriver(driverLayer)

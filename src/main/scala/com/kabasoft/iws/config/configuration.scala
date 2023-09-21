@@ -10,15 +10,15 @@ import zio.sql.ConnectionPoolConfig
 
 import java.util.Properties
 
-final case class ServerConfig(port: Int)
+final case class ServerConfig(host:String, port: Int)
 
 object ServerConfig {
 
   private val serverConfigDescription = nested("server-config") {
-    int("port").default(8090)
+   string("host").default("localhost").zip(int("port").default(8091))
   }.to[ServerConfig]
 
-  val layer = ZLayer(
+  val layer: ZLayer[Any, Throwable, ServerConfig] = ZLayer(
     ZIO
       .attempt(
         TypesafeConfigSource.fromTypesafeConfig(
@@ -46,7 +46,7 @@ object DbConfig {
 
   val dbConfigDescriptor = nested("db-config")(descriptor[DbConfig])
 
-  val layer = ZLayer(
+  val layer: ZLayer[Any, Throwable, DbConfig]  = ZLayer(
     ZIO
       .attempt(
         TypesafeConfigSource.fromTypesafeConfig(

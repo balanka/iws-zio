@@ -26,7 +26,7 @@ object AccountBuilder {
   val accountRecvId = "1215"
   val pvataccountId = "3800"
   val vataccountId = "3806"
-  val vataccountName = "MWst 19%"
+  val vataccountName = "MWst 19"
   val oaccountId2 = "4714"
   val faccountId = "1200"
   val faccountName = "Forderung"

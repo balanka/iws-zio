@@ -64,12 +64,16 @@ object LoginRoutes {
     val usernameR = loginRequest.userName
     val username  = user.userName
     val check     = (usernameR == username) & (pwdR == pwd)
+    val env = System.getenv()
+    val webUrl     =if (env.keySet().contains("IWS_WEB_URL")) env.get("IWS_WEB_URL") else "http://localhost:3000"
+    println(s"webUrl >>>>>> $webUrl")
     if (check) {
       val json = s"""{"${loginRequest.password}"}"""
       val token = jwtEncode(json, 1000000)
       Response.json(user.toJson).addHeader(Custom("authorization", token))
-        .addHeader(Custom("Origin", "http://localhost:3000"))
         .addHeader(Custom("Access-Control-Allow-Origin", "*"))
+        .addHeader(Custom("Origin", webUrl))
+
     } else {
       Response.text("Invalid  user name or password "
         + loginRequest.userName + "/"

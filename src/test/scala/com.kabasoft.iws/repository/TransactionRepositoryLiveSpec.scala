@@ -21,8 +21,9 @@ object TransactionRepositoryLiveSpec extends ZIOSpecDefault {
     suite("Transaction repository test with postgres test container")(
       test("insert a  transactions, modify, gets a transaction by transId and count the Nr all transactions ") {
         val terms ="changed text"
+        val list =List(ftr1,ftr2)
         for {
-          oneRow <- TransactionRepository.create(List(ftr1,ftr2)).map(_.map(_.lines.size).sum+2)
+          oneRow <- TransactionRepository.create(list).map(_.map(_.lines.size).sum+2)
           all <- TransactionRepository.all(companyId)
           ftr <- TransactionRepository.getByTransId((all(0).id, companyId))
           count <- TransactionRepository.all(companyId).map(_.size)

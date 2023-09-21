@@ -1,11 +1,12 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, FinancialsTransactionx}
+import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, FinancialsTransactionx, common}
 import zio.{ZIO, _}
 import zio.prelude.FlipOps
 import zio.sql.ConnectionPool
 import zio.stream._
+
 import scala.annotation.nowarn
 
 final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionRepository with TransactionTableDescription {
@@ -101,7 +102,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       .set(modelid_, trans.modelid)
       .set(company_, trans.company)
       .set(text_, trans.text)
-      .set(period_, trans.period)
+      .set(period_, common.getPeriod(trans.transdate))
       .set(posted_, trans.posted)
       .set(type_journal_, trans.typeJournal)
       .set(file_content_, trans.file_content)
@@ -226,7 +227,8 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
   def getById(id: Long, companyId: String): ZIO[Any, RepositoryError, FinancialsTransaction] = {
     val selectAll = SELECT2.where((company_ === companyId) && (id_ === id))
     ZIO.logDebug(s"Query to execute getById ${id} is ${renderRead(selectAll)}") *>
-      execute(selectAll.to(x => FinancialsTransaction.apply(x)))
+      execute(selectAll.to[FinancialsTransaction](c => FinancialsTransaction.applyC(c)))
+     // execute(selectAll.to(x => FinancialsTransaction.apply(x)))
         .findFirstLong(driverLayer, id)
   }
 
@@ -240,7 +242,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 
   def getById1(id: Long, companyId: String): ZIO[Any, RepositoryError, FinancialsTransaction] = {
     val selectAll = SELECT2.where((company_ === companyId) && (id1_ === id))
-    ZIO.logInfo(s"Query to execute getById1 ${id} is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute getById1 ${id} is ${renderRead(selectAll)}") *>
       execute(selectAll.to(x => FinancialsTransaction.apply(x)))
         .findFirstLong(driverLayer, id)
   }

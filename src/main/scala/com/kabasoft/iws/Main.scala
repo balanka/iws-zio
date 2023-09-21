@@ -39,10 +39,10 @@ import java.lang.System
 object Main extends ZIOAppDefault {
 
   implicit val clock: Clock = Clock.systemUTC
-  val env1 = System.getenv()
+  val env = System.getenv()
 
-  val hostName = if (env1.keySet().contains("IWS_API_HOST")) env1.get("IWS_API_HOST") else "0.0.0.0"
-  val port = if (env1.keySet().contains("IWS_API_PORT")) env1.get("IWS_API_PORT").toInt else 8080
+  val hostName = if (env.keySet().contains("IWS_API_HOST")) env.get("IWS_API_HOST") else "0.0.0.0"
+  val port = if (env.keySet().contains("IWS_API_PORT")) env.get("IWS_API_PORT").toInt else 8080
   println("hostName>>>" + hostName)
   println("hostport>>>" + port)
   private val serverLayer: ZLayer[Any, Throwable, Server] = {

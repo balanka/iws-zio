@@ -70,7 +70,7 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
           currency_pac, company_pac, name_pac, modelid_pac).values(models_.map(c => PeriodicAccountBalance.unapply(c).get)).run
     }
 
-  private def createJ4T(journals: List[Journal]): ZIO[SqlTransaction, Exception, Int] = {
+  private def buildJ4T(journal: Journal) = {
     insertInto(journals_)(
       transid_j,
       oid_j,
@@ -92,9 +92,9 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
       year_j,
       company_j,
       modelid_j
-    )
-      .values(journals.map(tuple2)).run
+    ).values(tuple2(journal)).run
   }
+  private def createJ4T(journals: List[Journal]): ZIO[SqlTransaction, Exception, Int] = journals.map(buildJ4T).flip.map(_.sum)
   private def modifyPacs4T(models: List[PeriodicAccountBalance]) = models.map(buildPac4T).map(_.run).flip.map(_.sum)
 
   private def buildPac4T(model: PeriodicAccountBalance): Update[PeriodicAccountBalance] =
