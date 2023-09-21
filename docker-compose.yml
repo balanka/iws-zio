@@ -1,16 +1,45 @@
 # run with "docker compose up -d"
-version: '3.7'
-
+version: "3.8"
 services:
-  postgres:
-    image: postgres:latest
+  api:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile.srv
+    network_mode: bridge
+    ports:
+     - "8091:8080"
+    environment:
+      - IWS_API_HOST=0.0.0.0
+      - IWS_API_PORT=8080
+      - IWS_WEB_URL=http://0.0.0.0:3000
+    volumes:
+      - ./iws-data:/Users/iwsmac/datax
+    links:
+      - db
+    #extra_hosts:
+    #  - "host.docker.internal:host-gateway"
+  db:
+    image: postgres:latest #15.1-alpine
     restart: always
     volumes:
-      - ./postgres-data:/var/lib/postgresql/data
-      - ./src/main/resources/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./postgres-data:/Users/iwsmac/datax
+      - ./sql/create_tables.sql:/docker-entrypoint-initdb.d
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=zio-sql-example-db
+      - POSTGRES_PASSWORD=iws123
+      - POSTGRES_DB=iwsN
+      #- PGDATA=/Users/iwsmac/datax
+    #hostname: "192.168.1.6"
+    network_mode: bridge
     ports:
-      - "5435:5432"
+      - "5432:5432"
+    #networks:
+    #  - iws-zio_iws-network
+    #  my-dhcp-eth0-6d6da6:
+    #    ipv4_address: 192.168.1.8
+networks:
+    iws-network:
+      driver: bridge
+#      external: true
+#      name: my-dhcp-eth0-6d6da6
