@@ -4,6 +4,7 @@ import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{Account, Account_}
 import com.kabasoft.iws.repository.Schema.account_schema
 import zio._
+import zio.prelude.FlipOps
 import zio.sql.ConnectionPool
 import zio.stream._
 
@@ -174,15 +175,17 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
         .findFirst(driverLayer, Id._1)
   }
 
-  def getBy(ids: List[String], company: String): ZIO[Any, RepositoryError, List[Account]] = for {
-    accounts <- getBy_(ids, company).runCollect.map(_.toList)
-  } yield accounts
+  override def getBy(ids: List[String], company: String): ZIO[Any, RepositoryError, List[Account]] =
+    ids.map(id=>getBy((id, company))).flip
+//    for {
+//    accounts <- getBy_(ids, company).runCollect.map(_.toList)
+//  } yield accounts
 
-  def getBy_(ids: List[String], company: String): ZStream[Any, RepositoryError, Account] = {
-    val selectAll = SELECT.where(whereClause(ids, company))
-    execute(selectAll.to[Account](c => Account.apply(c)))
-      .provideDriver(driverLayer)
-  }
+//  def getBy_(ids: List[String], company: String): ZStream[Any, RepositoryError, Account] = {
+//    val selectAll = SELECT.where(whereClause(ids, company))
+//    execute(selectAll.to[Account](c => Account.apply(c)))
+//      .provideDriver(driverLayer)
+//  }
 
   def getByModelId(id: (Int,  String)): ZIO[Any, RepositoryError, List[Account]]= for {
     accounts <- getByModelIdStream(id._1, id._2).runCollect.map(_.toList)

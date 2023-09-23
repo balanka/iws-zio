@@ -17,7 +17,7 @@ trait AccountRepository {
   def list(company: String): ZStream[Any, RepositoryError, Account]
   def all(companyId: String): ZIO[Any, RepositoryError, List[Account]]
   def getBy(id: (String,String)): ZIO[Any, RepositoryError, Account]
-
+  def getBy(ids: List[String], company: String): ZIO[Any, RepositoryError, List[Account]]
   def getByModelId(id: (Int,  String)): ZIO[Any, RepositoryError, List[Account]]
   def getByModelIdStream(modelid: Int, company: String): ZStream[Any, RepositoryError, Account]
   def modify(model: Account): ZIO[Any, RepositoryError, Int]
@@ -46,17 +46,19 @@ object AccountRepository {
     ZStream.service[AccountRepository] flatMap (_.list(company))
 
   def all(companyId: String): ZIO[AccountRepository, RepositoryError, List[Account]] =
-    ZIO.service[AccountRepository] flatMap (_.all(companyId))
+    ZIO.serviceWithZIO[AccountRepository](_.all(companyId))
   def getBy(id: (String,String)): ZIO[AccountRepository, RepositoryError, Account] =
-    ZIO.service[AccountRepository] flatMap (_.getBy(id))
+    ZIO.serviceWithZIO[AccountRepository](_.getBy(id))
 
+  def getBy(ids: List[String], companyId: String): ZIO[AccountRepository, RepositoryError, List[Account]] =
+    ZIO.serviceWithZIO[AccountRepository](_.getBy(ids, companyId))
   def getByModelId(id: (Int,  String)): ZIO[AccountRepository, RepositoryError, List[Account]] =
-    ZIO.service[AccountRepository] flatMap (_.getByModelId(id))
+    ZIO.serviceWithZIO[AccountRepository](_.getByModelId(id))
   def getByModelIdStream(modelid: Int, company: String): ZStream[AccountRepository, RepositoryError, Account] =
     ZStream.service[AccountRepository] flatMap (_.getByModelIdStream(modelid, company))
 
   def modify(model: Account): ZIO[AccountRepository, RepositoryError, Int] =
-    ZIO.service[AccountRepository] flatMap (_.modify(model))
+    ZIO.serviceWithZIO[AccountRepository](_.modify(model))
 
   def modify(models: List[Account]): ZIO[AccountRepository, RepositoryError, Int] =
     ZIO.service[AccountRepository] flatMap (_.modify(models))

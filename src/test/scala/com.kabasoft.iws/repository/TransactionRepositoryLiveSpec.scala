@@ -10,7 +10,8 @@ import zio.test._
 
 object TransactionRepositoryLiveSpec extends ZIOSpecDefault {
 
-  val testLayer = ZLayer.make[TransactionRepository](
+  val testLayer = ZLayer.make[TransactionRepository with AccountRepository](
+    AccountRepositoryImpl.live,
     TransactionRepositoryImpl.live,
     PostgresContainer.connectionPoolConfigLayer,
     ConnectionPool.live,

@@ -48,7 +48,7 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
   ).flip
   private def  getX (optVat:Option[Vat], bs: BankStatement): Option[(String, BigDecimal)] =
     optVat.map(vat => {
-    val vatAccount = if (bs.amount.compareTo(zeroAmount) >= 0) vat.inputVatAccount else vat.outputVatAccount
+    val vatAccount = if (bs.amount.compareTo(zeroAmount) >= 0) vat.outputVatAccount  else vat.inputVatAccount
       val x = (1/(1+vat.percent.floatValue())).toString
       val netAmount = bs.amount.multiply(new BigDecimal(x).setScale(6, RoundingMode.HALF_UP))
           .setScale(2, RoundingMode.HALF_UP)

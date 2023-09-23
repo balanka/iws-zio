@@ -9,7 +9,7 @@ import zio.stream._
 import java.time.Instant
 import scala.annotation.nowarn
 
-final class BankStatementRepositoryImpl(pool: ConnectionPool) extends BankStatementRepository with BankStatementTableDescription
+final class BankStatementRepositoryImpl(pool: ConnectionPool, accRepo: AccountRepository ) extends BankStatementRepository with BankStatementTableDescription
 with TransactionTableDescription {
 type TYPE = (TableName, Instant, Instant, TableName, TableName, TableName, TableName, TableName, java.math.BigDecimal, TableName, TableName, TableName, TableName, Boolean, Int, Int)
   lazy val driverLayer = ZLayer
@@ -148,9 +148,12 @@ type TYPE = (TableName, Instant, Instant, TableName, TableName, TableName, Table
   @nowarn
   override def post(bs: List[BankStatement], transactions:List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] = {
     val updateSQL = bs.map(buildUpdate)
+    var company:String =null
+    val ids = transactions.flatMap(tr=>{ company = tr.company; tr.lines.map(_.account)})++transactions.flatMap(tr=>tr.lines.map(_.oaccount))
     val result = for {
+      accounts        <-  accRepo.getBy(ids, company)
       posted <- ZIO.logInfo(s"Update stmt bank statement  ${updateSQL.map(renderUpdate)}  ") *>updateSQL.map(_.run).flip.map(_.sum)
-      created <- ZIO.logInfo(s"Posted bank statement  ${posted}  ") *> create2s(transactions)
+      created <- ZIO.logInfo(s"Posted bank statement  ${posted}  ") *> create2s(transactions, accounts)
       _<- ZIO.logInfo(s"Created transactions  ${posted}  ")
     } yield posted+created
     transact(result)
@@ -163,7 +166,6 @@ type TYPE = (TableName, Instant, Instant, TableName, TableName, TableName, Table
 }
 
 object BankStatementRepositoryImpl {
-  val live: ZLayer[ConnectionPool with TransactionRepository, Throwable, BankStatementRepository] =
-    ZLayer.fromFunction(new BankStatementRepositoryImpl(_))
-  //ZLayer.fromFunction(new BankStatementRepositoryImpl(_))
+  val live: ZLayer[ConnectionPool with TransactionRepository with AccountRepository, Throwable, BankStatementRepository] =
+    ZLayer.fromFunction(new BankStatementRepositoryImpl(_, _))
 }

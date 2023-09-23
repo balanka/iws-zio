@@ -1,7 +1,7 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, FinancialsTransactionx, common}
+import com.kabasoft.iws.domain.{Account, FinancialsTransaction, FinancialsTransactionDetails, FinancialsTransactionx, common}
 import zio.{ZIO, _}
 import zio.prelude.FlipOps
 import zio.sql.ConnectionPool
@@ -9,7 +9,7 @@ import zio.stream._
 
 import scala.annotation.nowarn
 
-final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionRepository with TransactionTableDescription {
+final class TransactionRepositoryImpl(pool: ConnectionPool, accRepo: AccountRepository) extends TransactionRepository with TransactionTableDescription {
 
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
 
@@ -37,18 +37,25 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 
 
   @nowarn
-  def create2(transactions: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =
-    transact(create2s(transactions))
+  def create2(transactions: List[FinancialsTransaction], accounts:List[Account]): ZIO[Any, RepositoryError, Int] =
+    transact(create2s(transactions, accounts))
       .mapError(e => RepositoryError(e.toString))
       .provideLayer(driverLayer)
 
 
-  @nowarn
-   def create2(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] =
-    transact(create2s(List(model)))
-          .tap(tr => ZIO.logInfo(s"Create transaction result ${tr} "))
-          .mapError(e => RepositoryError(e.toString))
-          .provideLayer(driverLayer)
+
+//  @nowarn
+//   def create2(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = {
+//    val ids = model.lines.map(_.account) ++ model.lines.map(_.oaccount)
+//    val nr = for {
+//      accounts <- accRepo.getBy(ids, model.company)
+//    } yield
+//      transact(create2s(List(model), accounts))
+//        .tap(tr => ZIO.logInfo(s"Create transaction result ${tr} "))
+//        .mapError(e => RepositoryError(e.toString))
+//        .provideLayer(driverLayer)
+//    nr
+//  }
 
 
   @nowarn
@@ -56,14 +63,25 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
     if (ftr.id > 0) {
       update(ftr)
     } else {
-      create2(ftr) *> getByTransId1(ftr.id1, ftr.company)
+      val ids =  ftr.lines.map(_.account) ++ftr.lines.map(_.oaccount)
+      val trs = for {
+        accounts <- accRepo.getBy(ids, ftr.company)
+        nr <-  create2(List(ftr), accounts) *> getByTransId1(ftr.id1, ftr.company)
+      } yield nr
+      trs
     }
 
 
   @nowarn
   override def create(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = {
-    create2(models) *>
-      getByTransId1x(models.map(m => m.id), models.head.company)
+    var company = ""
+    val ids = models.flatMap(tr=> {company=tr.company; tr.lines.map(_.account)})++models.flatMap(tr=>tr.lines.map(_.oaccount))
+    val trs =for{
+      accounts        <-  accRepo.getBy(ids, company)
+     nr <-  create2(models, accounts) *>
+        getByTransId1x(models.map(m => m.id), models.head.company)
+    }yield nr
+    trs
   }
 
   private def buildDeleteDetails(ids: List[Long]): Delete[FinancialsTransactionDetails] =
@@ -77,19 +95,22 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
         .mapError(e => RepositoryError(e.getMessage))
   }
 
-  private def buildUpdateDetails(details: FinancialsTransactionDetails): Update[FinancialsTransactionDetails] =
+  private def buildUpdateDetails(details: FinancialsTransactionDetails, accounts:List[Account]): Update[FinancialsTransactionDetails] = {
+    val acc = accounts.find(acc=>acc.id==details.account)
+    val oacc = accounts.find(acc=>acc.id==details.oaccount)
     update(transactionDetails)
       .set(transid, details.transid)
       .set(laccount_, details.account)
-      .set(accountName_, details.accountName)
+      .set(accountName_, acc.fold(details.accountName)(acc=>acc.name))
       .set(oaccount_, details.oaccount)
-      .set(oaccountName_, details.oaccountName)
+      .set(oaccountName_, oacc.fold(details.oaccountName)(acc=>acc.name))
       .set(side_, details.side)
       .set(amount_, details.amount)
       .set(duedate_, details.duedate)
       .set(ltext_, details.text)
       .set(currency_, details.currency)
       .where(lid_ === details.id)
+  }
 
   private def build(trans: FinancialsTransaction):Update[FinancialsTransactionx]  = {
     val transid1= if(trans.id>0) trans.id else trans.id1
@@ -114,29 +135,29 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 
   @nowarn
   override def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = {
-    if (model.id <= 0) {
-      create2(model)
-    } else {
+
       val newLines = model.lines.filter(_.id == -1L).map(l=>l.copy(transid = model.id))
       val deletedLineIds = model.lines.filter(_.transid == -2L).map(line => line.id)
       val oldLines2Update = model.lines.filter(_.id > 0L).map(l=>l.copy(transid = model.id))
       val update_ = build(model)
-
+      val ids     = newLines.map(_.account)++newLines.map(_.oaccount)++oldLines2Update.map(_.account)++oldLines2Update.map(_.oaccount)
       val result = for {
-        insertedDetails <- ZIO.when(newLines.nonEmpty)(buildInsertNewLines(newLines).run)
+        accounts        <-  accRepo.getBy(ids, model.company)
+        insertedDetails <- ZIO.when(newLines.nonEmpty)(buildInsertNewLines(newLines, accounts).map(_.run).flip.map(_.size))
         deletedDetails <- ZIO.when(deletedLineIds.nonEmpty)(buildDeleteDetails(deletedLineIds).run)
-        updatedDetails <- ZIO.when(oldLines2Update.nonEmpty)(oldLines2Update.map(d => buildUpdateDetails(d).run).flip.map(_.sum))
+        updatedDetails <- ZIO.when(oldLines2Update.nonEmpty)(oldLines2Update.map(d => buildUpdateDetails(d, accounts).run).flip.map(_.sum))
         updatedTransactions <- update_.run
+        _<-ZIO.logInfo(s"Update lines transaction update stmt ${oldLines2Update.map(buildUpdateDetails(_, accounts)).map(renderUpdate)}")
       } yield insertedDetails.getOrElse(0) + deletedDetails.getOrElse(0) + updatedDetails.getOrElse(0) + updatedTransactions
 
       def buildResult = transact(result).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
 
-      ZIO.logInfo(s"New lines transaction insert stmt ${renderInsert(buildInsertNewLines(newLines))}") *>
-        ZIO.logInfo(s"Update lines transaction update stmt ${oldLines2Update.map(buildUpdateDetails).map(renderUpdate)}") *>
+      //ZIO.logInfo(s"New lines transaction insert stmt ${buildInsertNewLines(newLines).map(renderInsert)}") *>
+        //ZIO.logInfo(s"Update lines transaction update stmt ${oldLines2Update.map(buildUpdateDetails(_, accounts)).map(renderUpdate)}") *>
         ZIO.logInfo(s"Delete lines transaction  stmt ${renderDelete(buildDeleteDetails(deletedLineIds))}") *>
         ZIO.logInfo(s"Modify transaction stmt ${renderUpdate(update_)}") *> buildResult
     }
-  }
+
 
   @nowarn
   override def update(model: FinancialsTransaction): ZIO[Any, RepositoryError, FinancialsTransaction] =
@@ -260,6 +281,6 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 }
 
 object TransactionRepositoryImpl {
-  val live: ZLayer[ConnectionPool, Throwable, TransactionRepository] =
-    ZLayer.fromFunction(new TransactionRepositoryImpl(_))
+  val live: ZLayer[ConnectionPool with AccountRepository, Throwable, TransactionRepository] =
+    ZLayer.fromFunction(new TransactionRepositoryImpl(_, _))
 }

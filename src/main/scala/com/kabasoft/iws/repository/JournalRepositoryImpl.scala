@@ -236,7 +236,7 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
       .orderBy(account.descending)
 
     ZStream.fromZIO(
-      ZIO.logDebug(s"Query to execute find4Period is ${renderRead(selectAll)}")
+      ZIO.logInfo(s"Query to execute find4Period is ${renderRead(selectAll)}")
     ) *>
       execute(selectAll.to((Journal.apply _).tupled))
         .provideDriver(driverLayer)

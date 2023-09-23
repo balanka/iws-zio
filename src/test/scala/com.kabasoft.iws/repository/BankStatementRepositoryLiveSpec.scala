@@ -9,8 +9,9 @@ import zio.sql.ConnectionPool
 
 object BankStatementRepositoryLiveSpec extends ZIOSpecDefault {
 
-  val testLayer = ZLayer.make[BankStatementRepository](
+  val testLayer = ZLayer.make[BankStatementRepository with AccountRepository](
     BankStatementRepositoryImpl.live,
+    AccountRepositoryImpl.live,
     TransactionRepositoryImpl.live,
     PostgresContainer.connectionPoolConfigLayer,
     ConnectionPool.live,

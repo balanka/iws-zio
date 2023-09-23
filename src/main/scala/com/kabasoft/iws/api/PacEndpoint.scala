@@ -23,9 +23,8 @@ object PacEndpoint {
  // private val pacByIdEndpoint = pacByIdAPI.implement(id => PacRepository.getBy(id, "1000").mapError(e => RepositoryError(e.getMessage)))
  private val pacByAccountPeriodAEndpoint = pacByAccountPeriodAPI.implement{ case (company:String, accId:String, fromPeriod:Int,toPeriod:Int) =>
    ZIO.logInfo(s"Get periodic account balance by  accId:  ${accId} company: ${company} from: ${fromPeriod} to: ${toPeriod}") *>{
-     val result = PacRepository.find4Period(accId, fromPeriod, toPeriod, company).runCollect.mapBoth(e => RepositoryError(e.getMessage), _.toList)
-     ZIO.logInfo(s"Result Get periodic account balance by  accId:  ${result} ") *>
-      result }}
+      PacRepository.find4Period(accId, fromPeriod, toPeriod, company).runCollect.mapBoth(e => RepositoryError(e.getMessage), _.toList)
+       }}
 
   val routesPac = allPacEndpoint ++pacByAccountPeriodAEndpoint
 
