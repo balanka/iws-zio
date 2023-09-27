@@ -14,6 +14,7 @@ object Schema {
   implicit val companySchema             = DeriveSchema.gen[Company]
   implicit val company_Schema             = DeriveSchema.gen[Company_]
   implicit val costcenterSchema          = DeriveSchema.gen[Costcenter]
+  implicit val importFileSchema          = DeriveSchema.gen[ImportFile]
   implicit val customerSchema            = DeriveSchema.gen[Customer]
   implicit val customer_Schema           = DeriveSchema.gen[Customer_]
   implicit val bankAccountSchema         = DeriveSchema.gen[BankAccount]

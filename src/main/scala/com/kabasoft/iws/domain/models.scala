@@ -479,6 +479,15 @@ final case class Costcenter(
   modelid: Int = 6,
   company: String
 ) extends IWS
+
+final case class ImportFile( id: String,
+                             name: String,
+                             description: String,
+                             enterdate: Instant = Instant.now(),
+                             changedate: Instant = Instant.now(),
+                             postingdate: Instant = Instant.now(),
+                             modelid: Int = 81,
+                             company: String) extends IWS
 final case class Bank(
   id: String,
   name: String = "",

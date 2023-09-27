@@ -95,6 +95,18 @@ create table if not exists public.costcenter
     company     varchar(50)                    not null,
     modelid     integer   default 6            not null
     );
+
+create table if not exists public.bankstatement_file
+(
+    id  varchar(50) not null primary key,
+    name        varchar(255)                   not null,
+    description varchar(50000),
+    postingdate timestamp   default CURRENT_TIMESTAMP not null,
+    changedate  timestamp   default CURRENT_TIMESTAMP not null,
+    enterdate   timestamp   default CURRENT_TIMESTAMP not null,
+    company     varchar(50)                    not null,
+    modelid     integer   default 6            not null
+);
 create table if not exists public.module
 (
     id          varchar(50)                       not null

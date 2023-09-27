@@ -13,7 +13,7 @@ object BankStmtImportApp extends ZIOAppDefault {
   val env = System.getenv()
   val PATH = if(env.keySet().contains("IWS_IMPORT_DIR"))
     env.get("IWS_IMPORT_DIR")
-  else "/Users/iwsmac/Downloads/import/bankStatement/43006329/202308/"
+  else "/Users/iwsmac/Downloads/import/bankStatement/43006329/202104_12/"
   val HEADER    = "Auftragskonto"
   val CHAR      = "\""
   val EXTENSION = ".CSV"

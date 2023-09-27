@@ -2,9 +2,7 @@ package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Account, Asset, Bank, BankAccount, BankStatement, Company, Costcenter, Customer
-  , DerivedTransaction, FinancialsTransaction, FinancialsTransactionDetails, Fmodule, Journal, LoginRequest
-  , PeriodicAccountBalance, Permission, Role, Supplier, User, UserRight, User_, Vat}
+import com.kabasoft.iws.domain.{Account, Asset, Bank, BankAccount, BankStatement, Company, Costcenter, Customer, DerivedTransaction, FinancialsTransaction, FinancialsTransactionDetails, Fmodule, ImportFile, Journal, LoginRequest, PeriodicAccountBalance, Permission, Role, Supplier, User, UserRight, User_, Vat}
 import zio.json._
 
 object Protocol {
@@ -23,7 +21,7 @@ object Protocol {
   implicit lazy val user_Codec: JsonCodec[User_] = DeriveJsonCodec.gen[User_]
   implicit lazy val userCodec: JsonCodec[User] = DeriveJsonCodec.gen[User]
   implicit lazy val userRightCodec: JsonCodec[UserRight] = DeriveJsonCodec.gen[UserRight]
-  //implicit lazy val userRoleCodec: JsonCodec[Role] = DeriveJsonCodec.gen[Role]
+  implicit lazy val importFileCodec: JsonCodec[ImportFile] = DeriveJsonCodec.gen[ImportFile]
   implicit val fmoduleCodec: JsonCodec[Fmodule] = DeriveJsonCodec.gen[Fmodule]
   implicit val loginRequestEncoder: JsonEncoder[LoginRequest] = DeriveJsonEncoder.gen[LoginRequest]
   implicit val loginRequestDecoder: JsonDecoder[LoginRequest] = DeriveJsonDecoder.gen[LoginRequest]

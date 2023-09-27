@@ -14,6 +14,7 @@ import com.kabasoft.iws.api.SupplierEndpoint.appSup
 import com.kabasoft.iws.api.CustomerEndpoint.appCust
 import com.kabasoft.iws.api.FModuleEndpoint.appFModule
 import com.kabasoft.iws.api.FinancialsEndpoint.appFtr
+import com.kabasoft.iws.api.ImportFileEndpoint.appImportFile
 import com.kabasoft.iws.api.PermissionEndpoint.appPerm
 import com.kabasoft.iws.api.RoleEndpoint.appRole
 import com.kabasoft.iws.api.UserEndpoint.appUser
@@ -32,6 +33,7 @@ import zio.http.internal.middlewares.Cors.CorsConfig
 import zio.http.{Method, Server}
 import zio.http.Server.Config
 import zio.sql.ConnectionPool
+
 import scala.annotation.nowarn
 import java.lang.System
 
@@ -40,7 +42,6 @@ object Main extends ZIOAppDefault {
 
   implicit val clock: Clock = Clock.systemUTC
   val env = System.getenv()
-
   val hostName = if (env.keySet().contains("IWS_API_HOST")) env.get("IWS_API_HOST") else "0.0.0.0"
   val port = if (env.keySet().contains("IWS_API_PORT")) env.get("IWS_API_PORT").toInt else 8080
   println("hostName>>>" + hostName)
@@ -64,7 +65,7 @@ object Main extends ZIOAppDefault {
     )
 
   val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc ++ appBank  ++ appComp  ++ appFtr ++ appFModule
-     ++ appBankStmt ++  appUser ++ appPac ++ appJournal ++ appCC ++ appBankStmt ++appPerm ++ appRole ++ appAsset)// ++expose)//.toApp.withDefaultErrorResponse @@ bearerAuth(jwtDecode(_).isDefined)
+     ++ appImportFile ++appBankStmt ++  appUser ++ appPac ++ appJournal ++ appCC ++ appBankStmt ++appPerm ++ appRole ++ appAsset)// ++expose)//.toApp.withDefaultErrorResponse @@ bearerAuth(jwtDecode(_).isDefined)
 
   @nowarn val run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
 
@@ -85,11 +86,13 @@ object Main extends ZIOAppDefault {
           CompanyRepositoryImpl.live,
           CostcenterRepositoryImpl.live,
           CostcenterCacheImpl.live,
+          ImportFileCacheImpl.live,
           CustomerRepositoryImpl.live,
           CustomerCacheImpl.live,
           SupplierRepositoryImpl.live,
           SupplierCacheImpl.live,
           BankRepositoryImpl.live,
+          ImportFileRepositoryImpl.live,
           BankCacheImpl.live,
           ModuleRepositoryImpl.live,
           ModuleCacheImpl.live,

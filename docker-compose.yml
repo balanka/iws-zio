@@ -10,9 +10,9 @@ services:
     ports:
      - "8091:8080"
     environment:
-      - IWS_API_HOST=0.0.0.0
-      - IWS_API_PORT=8080
-      - IWS_WEB_URL=http://0.0.0.0:3000
+      - IWS_API_HOST=${IWS_API_HOST}
+      - IWS_API_PORT=${IWS_API_PORT}
+      - IWS_WEB_URL=http://${IWS_WEB_HOST_NAME}:${IWS_WEB_PORT}
     volumes:
       - ./iws-data:/Users/iwsmac/datax
     links:
@@ -26,14 +26,14 @@ services:
       - ./postgres-data:/Users/iwsmac/datax
       - ./sql/create_tables.sql:/docker-entrypoint-initdb.d
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=iws123
-      - POSTGRES_DB=iwsN
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
       #- PGDATA=/Users/iwsmac/datax
     #hostname: "192.168.1.6"
     network_mode: bridge
     ports:
-      - "5432:5432"
+      - ${POSTGRES_DB_PORT}:${POSTGRES_DB_PORT}
     #networks:
     #  - iws-zio_iws-network
     #  my-dhcp-eth0-6d6da6:

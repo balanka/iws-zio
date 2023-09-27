@@ -1,6 +1,5 @@
 val zioVersion                 = "2.0.17"
-//val zioHttpVersion             = "3.0.0-RC1"
-//val zioHttpVersion             = "0.0.5"
+
 val zioHttpVersion             = "3.0.0-RC2"
 val zioJsonVersion             = "0.3.0"
 val zioConfigVersion           = "3.0.7"
@@ -30,6 +29,7 @@ lazy val root = (project in file("."))
   .settings(
     Docker / packageName := "iws",
     Compile / mainClass := Some("com.kabasoft.iws.Main"),
+   // Compile / mainClass := Some("com.kabasoft.iws.BankStmtImportApp"),
 
     //dockerEnvVars ++= Map(("IWS_NODE_HOST", "localhost"), ("IWS_NODE_PORT", "3000"), ("IWS_API_HOST", "192.168.1.6"), ("IWS_API_PORT", "8080")),
     //dockerExposedPorts ++= Seq(8080),
