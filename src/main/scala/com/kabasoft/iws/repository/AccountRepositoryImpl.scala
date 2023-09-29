@@ -13,7 +13,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
   lazy val driverLayer   = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
   val map: List[Account] = List.empty[Account]
 
-  val account = defineTable[Account_]("account")
+  val accounts = defineTable[Account_]("account")
 
   def tuple2(acc: Account) = (
     acc.id,
@@ -51,7 +51,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
     icredit,
     debit,
     credit
-  ) = account.columns
+  ) = accounts.columns
 
   val SELECT = select(
     id,
@@ -70,7 +70,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
     icredit,
     debit,
     credit
-  ).from(account)
+  ).from(accounts)
 
   def whereClause(Id: String, companyId: String) =
     List(id === Id, company === companyId)
@@ -78,8 +78,8 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
 
   def whereClause(Ids: List[String], companyId: String) =
     List(company === companyId, id in Ids).fold(Expr.literal(true))(_ && _)
-  private def buildInsertQuery(accounts: List[Account]) =
-    insertInto(account)(
+  private def buildInsertQuery(models: List[Account]) =
+    insertInto(accounts)(
       id,
       name,
       description,
@@ -96,7 +96,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
       icredit,
       debit,
       credit
-    ).values(accounts.map(tuple2))
+    ).values(models.map(tuple2))
 
   override def create(c: Account): ZIO[Any, RepositoryError, Account] =
     create2(c)*>getBy((c.id, c.company))
@@ -121,18 +121,20 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
   }
 
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
-    val delete_ = deleteFrom(account).where(whereClause(item, companyId))
+    val delete_ = deleteFrom(accounts).where(whereClause(item, companyId))
     ZIO.logDebug(s"Delete Account is ${renderDelete(delete_)}") *>
     execute(delete_)
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getMessage))
   }
 
+
   private def build(model: Account_) =
-    update(account)
+    update(accounts)
       .set(id, model.id)
       .set(name, model.name)
-      .set(description, model.description)
+      .set(description, model.name)
+      .set(accountid, model.account)
       .set(company, model.company)
       .set(isDebit, model.isDebit)
       .set(balancesheet, model.balancesheet)

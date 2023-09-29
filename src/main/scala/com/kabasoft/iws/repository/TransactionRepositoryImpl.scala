@@ -253,7 +253,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool, accRepo: AccountRepo
         .findFirstLong(driverLayer, id)
   }
 
-  def getByIds(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = {
+  override def getByIds(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = {
     val selectAll = SELECT2.where((company_ === companyId) && (id_ in  ids))
    // ZStream.fromZIO(ZIO.logDebug(s"Query to execute getById ${ids} is ${renderRead(selectAll)}")) *>
       execute(selectAll.to[FinancialsTransaction](c => FinancialsTransaction.applyC(c)))

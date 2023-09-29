@@ -33,6 +33,8 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRe
     for {
       queries <- ZIO.foreach(ids)(id => ftrRepo.getByTransId((id, company)))
       models = queries.filter(_.posted == false)
+      _ <-ZIO.foreachDiscard(models.map(_.id)) (
+        id =>ZIO.logInfo(s"Posting transaction with id ${id} of company ${company}"))
       nr <- ZIO.foreach(models)(model => postTransaction(model, company)).map(_.sum)
     } yield nr
 
