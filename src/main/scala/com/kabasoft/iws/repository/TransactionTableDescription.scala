@@ -1,6 +1,6 @@
 package com.kabasoft.iws.repository
 
-import com.kabasoft.iws.domain.{Account, FinancialsTransaction, FinancialsTransactionDetails, FinancialsTransactionDetails_, FinancialsTransaction_, FinancialsTransactionx}
+import com.kabasoft.iws.domain.{Account, FinancialsTransaction, FinancialsTransactionDetails, FinancialsTransactionDetails_, FinancialsTransaction_, FinancialsTransactionx, common}
 import com.kabasoft.iws.repository.Schema.{transactionDetailsSchema, transactionDetails_Schema, transactionSchema_, transactionSchemax}
 import zio.ZIO
 import zio.prelude.FlipOps
@@ -172,13 +172,11 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
   def create2s(transactions: List[FinancialsTransaction], accounts:List[Account]): ZIO[SqlTransaction, Exception, Int] = {
     val models = transactions.zipWithIndex.map { case (ftr, i) =>
       val idx = newCreate()+i.toLong
-      ftr.copy(id1 = idx  , lines = ftr.lines.map(_.copy(transid = idx )))
+      ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx )), period=common.getPeriod(ftr.transdate))
     }
     val allLines = models.flatMap(_.lines)
     //val ids = transactions.flatMap(tr=>tr.lines.map(_.account))++transactions.flatMap(tr=>tr.lines.map(_.oaccount))
     val result = for {
-
-     // insertNewLines_ = buildInsertNewLines(allLines, accounts).map(_.run).flip.map(_.size)
       _ <- ZIO.logInfo(s"Create transaction stmt models      ${models}")
       //_ <-ZIO.logInfo(s"Create line transaction stmt   ${allLines.map(buildInsertNewLine).map(renderInsert)} ")
       insertNewLines_ = buildInsertNewLines(allLines, accounts).map(_.run).flip.map(_.size)
