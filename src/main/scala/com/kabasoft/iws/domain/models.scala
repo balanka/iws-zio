@@ -128,11 +128,11 @@ object common {
     if (month <= 9) {
       "0".concat(month.toString)
     } else month.toString
-  def getYear(instant: Instant)                            = LocalDateTime.ofInstant(instant, ZoneId.of("UTC+1")).getYear
+  def getYear(instant: Instant)                            = LocalDateTime.ofInstant(instant, ZoneId.of("UTC+2")).getYear
   def getMonthAsString(instant: Instant): String           =
-    getMonthAsString(LocalDateTime.ofInstant(instant, ZoneId.of("UTC+1")).getMonth.getValue)
+    getMonthAsString(LocalDateTime.ofInstant(instant, ZoneId.of("UTC+2")).getMonth.getValue)
   def getPeriod(instant: Instant)                          = {
-    val year = LocalDateTime.ofInstant(instant, ZoneId.of("UTC+1")).getYear
+    val year = LocalDateTime.ofInstant(instant, ZoneId.of("UTC+2")).getYear
     year.toString.concat(getMonthAsString(instant)).toInt
   }
 }
