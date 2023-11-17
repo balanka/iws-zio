@@ -1,6 +1,6 @@
 FROM adoptopenjdk:11-jre-hotspot as stage0
 LABEL snp-multi-stage="intermediate"
-LABEL snp-multi-stage-id="85d06d9c-3a8d-41ac-a945-d9663ce40d88"
+LABEL snp-multi-stage-id="b682fa5d-a055-499b-b597-f16e59f91b26"
 WORKDIR /opt/docker
 COPY 2/opt /2/opt
 COPY 4/opt /4/opt
@@ -23,9 +23,6 @@ RUN id -u demiourgos728 1>/dev/null 2>&1 || (( getent group 0 1>/dev/null 2>&1 |
 WORKDIR /opt/docker
 COPY --from=stage0 --chown=demiourgos728:root /2/opt/docker /opt/docker
 COPY --from=stage0 --chown=demiourgos728:root /4/opt/docker /opt/docker
-RUN ["mkdir", "-p", "/var/lib/postgresql/data", "/tmp/datax"]
-RUN ["chown", "-R", "demiourgos728:root", "/var/lib/postgresql/data", "/tmp/datax"]
-VOLUME ["/var/lib/postgresql/data", "/tmp/datax"]
 USER 1001:0
 ENTRYPOINT ["/opt/docker/bin/iws-zio"]
 CMD []
