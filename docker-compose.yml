@@ -1,45 +1,59 @@
-# run with "docker compose up -d"
 version: "3.8"
 services:
-  api:
-    restart: always
-    build:
-      context: .
-      dockerfile: Dockerfile.srv
-    network_mode: bridge
-    ports:
-     - "8091:8080"
-    environment:
-      - IWS_API_HOST=${IWS_API_HOST}
-      - IWS_API_PORT=${IWS_API_PORT}
-      - IWS_WEB_URL=http://${IWS_WEB_HOST_NAME}:${IWS_WEB_PORT}
-    volumes:
-      - ./iws-data:/Users/iwsmac/datax
-    links:
-      - db
-    #extra_hosts:
-    #  - "host.docker.internal:host-gateway"
-  db:
+  iws-db:
     image: postgres:latest #15.1-alpine
     restart: always
+    tty: true
+    networks:
+      node-network:
     volumes:
-      - ./postgres-data:/Users/iwsmac/datax
-      - ./sql/create_tables.sql:/docker-entrypoint-initdb.d
+      - ./iws-data-vol:/var/lib/postgresql/data:z
+      #- ./sql/create_tables.sql:/docker-entrypoint-initdb.d
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
-      #- PGDATA=/Users/iwsmac/datax
-    #hostname: "192.168.1.6"
-    network_mode: bridge
+    #network_mode: bridge
     ports:
-      - ${POSTGRES_DB_PORT}:${POSTGRES_DB_PORT}
-    #networks:
-    #  - iws-zio_iws-network
-    #  my-dhcp-eth0-6d6da6:
-    #    ipv4_address: 192.168.1.8
+      - ${POSTGRES_DB_PORT_FROM}:${POSTGRES_DB_PORT_TO}
+    container_name: ${IWS_DB_CONTAINER}
+  iws-api:
+    image: ${IWS_API_IMAGE}:${IWS_API_IMAGE_VERSION}
+    restart: always
+    tty: true
+    networks:
+      node-network:
+    ports:
+      - ${IWS_API_PORT_FROM}:${IWS_API_PORT_TO}
+    container_name: ${IWS_API_CONTAINER}
+    environment:
+      - IWS_API_HOST=${IWS_API_HOST}
+      - IWS_API_PORT=${IWS_API_PORT_TO}
+     # - IWS_WEB_URL=http://${IWS_WEB_HOST}:${IWS_WEB_PORT}
+      - IWS_WEB_URL=http://${IWS_WEB_HOST}/80
+    volumes:
+      - ./iws-db-vol:/var/lib/data
+    links:
+      - "iws-db"
+    depends_on:
+      - iws-db
+  web:
+    image: ${IWS_WEB_IMAGE}:${IWS_WEB_IMAGE_VERSION}
+    restart: always
+    tty: true
+    networks:
+      node-network:
+        #ipv6_address: 2001:3984:3989::10
+    ports:
+      - ${IWS_WEB_PORT}:${IWS_WEB_PORT}
+    container_name: ${IWS_WEB_CONTAINER}
+    environment:
+      - NODE_ENV=production
+      - NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
+    links:
+      - "iws-api"
+    depends_on:
+      - iws-api
 networks:
-    iws-network:
+  node-network:
       driver: bridge
-#      external: true
-#      name: my-dhcp-eth0-6d6da6

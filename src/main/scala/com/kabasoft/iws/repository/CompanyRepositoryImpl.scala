@@ -1,11 +1,14 @@
 package com.kabasoft.iws.repository
 
-import com.kabasoft.iws.repository.Schema.{ bankAccountSchema,company_Schema}
+import com.kabasoft.iws.repository.Schema.{bankAccountSchema, company_Schema}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{BankAccount, Company, Company_}
 import zio._
+import zio.prelude.FlipOps
 import zio.stream._
 import zio.sql.ConnectionPool
+
+import scala.annotation.nowarn
 
 final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepository with PostgresTableDescription {
 
@@ -134,21 +137,59 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getMessage))
 
-  override def modify(model: Company): ZIO[Any, RepositoryError, Int] = {
-    val update_ = update(company)
+  private def buildInsertBankAccount(ba: List[BankAccount]) =
+    insertInto(bankAccount)(iban_, bic, owner, company_, modelid_).values(ba.map(BankAccount.unapply(_).get))
+
+  private def buildUpdateBankAccount(model: BankAccount): Update[BankAccount] =
+    update(bankAccount)
+      .set(bic, model.bic)
+      .set(owner, model.owner)
+      .set(company_, model.company)
+      .where(iban_ === model.id)
+  private def buildDeleteBankAccount(ids: List[String]): List[Delete[BankAccount]] =
+    ids.map(id => deleteFrom(bankAccount).where(iban_ === id))
+  private def buildUpdate(model: Company_):Update[Company_]  =
+    update(company)
       .set(name, model.name)
-      .where((id === model.id))
-    ZIO.logDebug(s"Query Update Company is ${renderUpdate(update_)}") *>
-      execute(update_)
-        .provideLayer(driverLayer)
-        .mapError(e => RepositoryError(e.getMessage))
+      .set(street, model.street)
+      .set(zip, model.zip)
+      .set(city, model.city)
+      .set(state, model.state)
+      .set(country, model.country)
+      .set(phone, model.phone)
+      .set(email, model.email)
+      .set(bankAcc, model.bankAcc)
+      .set(vatCode, model.vatCode)
+      .set(taxCode, model.taxCode)
+      .set(currency, model.currency)
+      .set(locale, model.locale)
+      .set(balanceSheetAcc, model.balanceSheetAcc)
+      .set(incomeStmtAcc, model.incomeStmtAcc)
+      .where(id === model.id)
+  @nowarn
+  override def modify(model: Company): ZIO[Any, RepositoryError, Int] = {
+    val oldBankAccounts = model.bankaccounts.filter(_.modelid == -2).map(_.copy(modelid = 12))
+    val newBankAccounts = model.bankaccounts.filter(_.modelid == -3).map(_.copy(modelid = 12))
+    val deleteBankAccounts = model.bankaccounts.filter(_.modelid == -1).map(_.id)
+    val update_ = buildUpdate(Company_(model))
+    val result = for {
+      insertedBankAccounts <- ZIO.when(newBankAccounts.nonEmpty)(buildInsertBankAccount(newBankAccounts).run)
+      updatedBankAccounts <- ZIO.when(oldBankAccounts.nonEmpty)(oldBankAccounts.map(ba => buildUpdateBankAccount(ba).run).flip.map(_.sum))
+      deletedBankAccounts <- ZIO.when(deleteBankAccounts.nonEmpty)(buildDeleteBankAccount(deleteBankAccounts).map(_.run).flip.map(_.sum))
+      updated <- update_.run
+      _ <- ZIO.logInfo(s"New bank accounts insert stmt ${renderInsert(buildInsertBankAccount(newBankAccounts))}") *>
+        ZIO.logInfo(s" bank accounts  update stmt ${oldBankAccounts.map(ba => renderUpdate(buildUpdateBankAccount(ba)))}") *>
+        ZIO.logInfo(s" update company stm ${renderUpdate(update_)}") *>
+        ZIO.logInfo(s"bank accounts to delete ${buildDeleteBankAccount(deleteBankAccounts).map(renderDelete)}")
+    } yield insertedBankAccounts.getOrElse(0) + updatedBankAccounts.getOrElse(0) + deletedBankAccounts.getOrElse(0) + updated
+    transact(result).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
   }
 
   override def all: ZIO[Any, RepositoryError, List[Company]] = for{
     //list.runCollect.map(_.toList)
     companies <- list.runCollect.map(_.toList)
-    //bankAccounts_ <- listBankAccount().runCollect.map(_.toList)
-  } yield companies//.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
+    bankAccounts_ <- listBankAccount().runCollect.map(_.toList)
+  } yield companies.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
 
 
   def listBankAccount(): ZStream[Any, RepositoryError, BankAccount] = {

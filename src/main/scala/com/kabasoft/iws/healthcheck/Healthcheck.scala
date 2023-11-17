@@ -5,6 +5,6 @@ import zio.http.codec.HttpCodec._
 import zio.http.endpoint.Endpoint
 
 object Healthcheck {
-  val expose = Endpoint.get("health").out[String].implement (_ => ZIO.logInfo(s" http server started")*> ZIO.succeed(s"Welcome  health!!!"))
+  val expose = Endpoint.get("health").out[String].implement (_ => ZIO.succeed(s"Welcome  health!!!"))
 
 }

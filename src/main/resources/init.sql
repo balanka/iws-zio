@@ -134,6 +134,19 @@ create table  bank
     company       varchar(50)                    not null,
     modelid       integer                        not null
 );
+
+create table  store
+(
+    id            varchar(50)                    not null
+        primary key,
+    name          varchar(255)                   not null,
+    description   varchar(255),
+    postingdate  timestamp   default CURRENT_TIMESTAMP not null,
+    changedate timestamp   default CURRENT_TIMESTAMP not null,
+    enterdate    timestamp   default CURRENT_TIMESTAMP not null,
+    company       varchar(50)                    not null,
+    modelid       integer                        not null
+);
 create table  vat
 (
     id               varchar(50)                         not null
@@ -419,6 +432,31 @@ insert into asset(id,  name, description, transdate, enterdate, postingdate, com
 ('MACB002', 'MackBookPro 2019', 'MackBookPro 2019', '2019-08-09 15:53:37', '2019-08-09 15:53:37', '2019-08-09 15:53:37', '1000', 19, '0652', '4830', 1.0, 3, 2, 1.0, 12, 'EUR'),
 ('MACB003', 'MackBookPro 2019-2', 'MackBookPro 2019-2', '2019-11-25 12:32:00', '2019-11-25 12:32:00', '2019-11-25 12:32:00', '1000', 19, '0653', '4830', 1.0, 3, 2, 1.0, 12, 'EUR');
 
+drop table  if  exists article;
+create table if not exists article
+(
+    id  varchar(50) not null primary key,
+    name         varchar(255) not null,
+    description  varchar(255),
+    parent  varchar(50),
+    sprice   numeric(12, 2),
+    pprice   numeric(12, 2),
+    avg_price   numeric(12, 2),
+    currency  varchar(50) not null,
+    stocked  boolean,
+    changedate    timestamp default CURRENT_DATE not null,
+    enterdate    timestamp default CURRENT_DATE not null,
+    postingdate  timestamp default CURRENT_DATE not null,
+    company    varchar(50) not null,
+    modelId      int not null);
+
+insert into article (id,  name, description, parent, sprice, pprice, avg_price,currency, stocked, company, modelid) values
+                   ('iws001', 'Licence IWS base', 'Licence IWS base including masterfile, and administration', '-1', 1,1,1,'EUR', false, '1000', 35),
+                   ('iws002', 'Licence IWS sales', 'Licence IWS sales including 1 Y customer care', '-1', 1,1,1,'EUR', false, '1000', 35),
+                   ('iws003', 'Licence IWS purchasing', 'Licence IWS purchasing including 1 Y customer care''', '-1', 1,1,1,'EUR', false, '1000', 35),
+                   ('iws004', 'Licence IWS financials', 'Licence IWS financials including 1 Y customer care''', '-1', 1,1,1,'EUR', false, '1000', 35);
+
+insert into store (id,  name, description, company, modelid) values ('001', 'Zentral-Lager', 'Zentral-Lager', '1000', 35), ('002', 'Nebenlager', 'Nebenlager', '1000', 35);
 insert into fmodule (id,  name, description, account, is_debit, company, modelid) values
                    (112, 'Payables', 'Payables/Supplier invoices', '1810', false, '1000', 112),
                    (114, 'Payment', 'Payment', '1810', false, '1000', 114),
@@ -647,6 +685,7 @@ values('300','Production','Production','800' ,'2018-01-01T10:00:00.00Z', '2018-0
 
 insert into module (id, name, description,path, parent, enterdate,changedate,postingdate, modelid, company)
 values('0000','Dummy','Dummy', '', '', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z',300,'1000' );
+--INSERT INTO public."user_right" select 33, roleid, short, company, modelid from user_right where moduleid=3;
 
 insert into vat
 (id, name, description, percent, input_vat_account, output_vat_account, postingdate, changedate, enterdate,  company, modelid)

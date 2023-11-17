@@ -11,14 +11,13 @@ final class RoleRepositoryImpl(pool: ConnectionPool) extends RoleRepository with
 
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
 
-  val userRole = defineTable[Role_]("user_role")
+  val role = defineTable[Role_]("role")
   val userRight = defineTable[UserRight]("user_right")
 
-
-  val (id, name, description, transdate, postingdate, enterdate,  modelid, company) = userRole.columns
+  val (id, name, description, transdate, postingdate, enterdate,  modelid, company) = role.columns
   val (moduleid, roleid, short, company_, modelid_)                                 = userRight.columns
 
-  val SELECT                                                                         = select(id, name, description, transdate, postingdate, enterdate,  modelid, company).from(userRole)
+  val SELECT                                                                         = select(id, name, description, transdate, postingdate, enterdate,  modelid, company).from(role)
   val SELECT_USER_RIGHT                                                              = select(moduleid, roleid, short, company_, modelid_).from(userRight)
 
   def toTuple(c: Role) = (c.id, c.name, c.description, c.transdate, c.postingdate, c.enterdate,  c.modelid, c.company)
@@ -39,7 +38,7 @@ final class RoleRepositoryImpl(pool: ConnectionPool) extends RoleRepository with
     }
 
   override def create2(c: Role): ZIO[Any, RepositoryError, Unit]                        = {
-    val query = insertInto(userRole)(id, name, description, transdate, postingdate, enterdate,  modelid, company).values(toTuple(c))
+    val query = insertInto(role)(id, name, description, transdate, postingdate, enterdate,  modelid, company).values(toTuple(c))
 
     ZIO.logDebug(s"Query to insert user role is ${renderInsert(query)}") *>
       execute(query)
@@ -47,14 +46,14 @@ final class RoleRepositoryImpl(pool: ConnectionPool) extends RoleRepository with
         .unit
   }
   override def create2(models: List[Role]): ZIO[Any, RepositoryError, Int]              = {
-    val query = insertInto(userRole)(id, name, description, transdate, postingdate, enterdate,  modelid, company).values(models.map(toTuple))
+    val query = insertInto(role)(id, name, description, transdate, postingdate, enterdate,  modelid, company).values(models.map(toTuple))
 
     ZIO.logDebug(s"Query to insert user role is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
   }
   override def delete(id: Int, companyId: String): ZIO[Any, RepositoryError, Int] = {
-    val delete_ = deleteFrom(userRole).where(whereClause (id, companyId))
+    val delete_ = deleteFrom(role).where(whereClause (id, companyId))
     ZIO.logInfo(s"Delete user role is ${renderDelete(delete_)}") *>
       execute(delete_)
         .provideLayer(driverLayer)
@@ -62,7 +61,7 @@ final class RoleRepositoryImpl(pool: ConnectionPool) extends RoleRepository with
   }
 
   override def modify(model: Role): ZIO[Any, RepositoryError, Int] = {
-    val update_ = update(userRole)
+    val update_ = update(role)
       .set(name, model.name)
       .set(description, model.description)
       .where(whereClause( model.id,  model.company))

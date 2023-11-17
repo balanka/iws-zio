@@ -1,6 +1,7 @@
 package com.kabasoft.iws
 
 import com.kabasoft.iws.api.AccountEndpoint.appAcc
+import com.kabasoft.iws.api.ArticleEndpoint.appArticle
 import com.kabasoft.iws.api.AssetEndpoint.appAsset
 import com.kabasoft.iws.api.JournalEndpoint.appJournal
 import com.kabasoft.iws.api.LoginRoutes.{appLogin, jwtDecode}
@@ -12,11 +13,13 @@ import com.kabasoft.iws.api.CompanyEndpoint.appComp
 import com.kabasoft.iws.api.ModuleEndpoint.appModule
 import com.kabasoft.iws.api.SupplierEndpoint.appSup
 import com.kabasoft.iws.api.CustomerEndpoint.appCust
+import com.kabasoft.iws.api.EmployeeEndpoint.routesEmp
 import com.kabasoft.iws.api.FModuleEndpoint.appFModule
 import com.kabasoft.iws.api.FinancialsEndpoint.appFtr
 import com.kabasoft.iws.api.ImportFileEndpoint.appImportFile
 import com.kabasoft.iws.api.PermissionEndpoint.appPerm
 import com.kabasoft.iws.api.RoleEndpoint.appRole
+import com.kabasoft.iws.api.StoreEndpoint.appStore
 import com.kabasoft.iws.api.UserEndpoint.appUser
 import com.kabasoft.iws.api.VatEndpoint.appVat
 import com.kabasoft.iws.config.{DbConfig, ServerConfig}
@@ -42,8 +45,8 @@ object Main extends ZIOAppDefault {
 
   implicit val clock: Clock = Clock.systemUTC
   val env = System.getenv()
-  val hostName = if (env.keySet().contains("IWS_API_HOST")) env.get("IWS_API_HOST") else "0.0.0.0"
-  val port = if (env.keySet().contains("IWS_API_PORT")) env.get("IWS_API_PORT").toInt else 8080
+  val hostName:String =  env.get("IWS_API_HOST") //else "0.0.0.0"
+  val port:Int = env.get("IWS_API_PORT").toInt //else 8080
   println("hostName>>>" + hostName)
   println("hostport>>>" + port)
   private val serverLayer: ZLayer[Any, Throwable, Server] = {
@@ -56,8 +59,7 @@ object Main extends ZIOAppDefault {
     CorsConfig(
 
       allowedOrigin = {
-        case origin @ Origin.Value(_, host, _) if (host == "iwsmacs-MacBook-Pro.local" || host == "mac-studio.fritz.box" ||
-          host == hostName ||
+        case origin @ Origin.Value(_, host, _) if (host == hostName ||
           host == "localhost" || host == "127.0.0.1") => Some(AccessControlAllowOrigin.Specific(origin))
         case _ => None
       },
@@ -65,6 +67,7 @@ object Main extends ZIOAppDefault {
     )
 
   val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc ++ appBank  ++ appComp  ++ appFtr ++ appFModule
+    ++ routesEmp ++ appArticle ++ appStore
      ++ appImportFile ++appBankStmt ++  appUser ++ appPac ++ appJournal ++ appCC ++ appBankStmt ++appPerm ++ appRole ++ appAsset)// ++expose)//.toApp.withDefaultErrorResponse @@ bearerAuth(jwtDecode(_).isDefined)
 
   @nowarn val run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
@@ -78,6 +81,8 @@ object Main extends ZIOAppDefault {
           DbConfig.layer,
           ServerConfig.layer,
           ConnectionPool.live,
+          ArticleCacheImpl.live,
+          ArticleRepositoryImpl.live,
           AssetCacheImpl.live,
           AssetRepositoryImpl.live,
           AccountServiceImpl.live,
@@ -89,8 +94,12 @@ object Main extends ZIOAppDefault {
           ImportFileCacheImpl.live,
           CustomerRepositoryImpl.live,
           CustomerCacheImpl.live,
+          EmployeeRepositoryImpl.live,
+          EmployeeCacheImpl.live,
           SupplierRepositoryImpl.live,
           SupplierCacheImpl.live,
+          StoreRepositoryImpl.live,
+          StoreCacheImpl.live,
           BankRepositoryImpl.live,
           ImportFileRepositoryImpl.live,
           BankCacheImpl.live,

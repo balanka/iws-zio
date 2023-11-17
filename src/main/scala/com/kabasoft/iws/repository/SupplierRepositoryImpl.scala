@@ -149,8 +149,8 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
         .unit
   }
 
-  private def buildDeleteBankAccount(ids: List[String]): Delete[BankAccount] =
-    deleteFrom(bankAccount).where(id_ in ids)
+  private def buildDeleteBankAccount(ids: List[String]): List[Delete[BankAccount]] =
+    ids.map(id=>deleteFrom(bankAccount).where(id_ === id))
 
   override def create2(models: List[Supplier]): ZIO[Any, RepositoryError, Int] = {
     val query = buildInsertQuery(models)
@@ -175,12 +175,6 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
         .mapError(e => RepositoryError(e.getMessage))
   }
 
-   def  splitBankAccounts(s:Supplier, persistentBankAccounts: List[BankAccount], flag:Boolean): List[BankAccount] =
-     for {
-       bankAccounts <- if(flag) s.bankaccounts.filter(ba => persistentBankAccounts.map(_.id).contains(ba.id))
-                       else s.bankaccounts.filterNot(ba => persistentBankAccounts.map(_.id).contains(ba.id))
-     } yield bankAccounts
-
   private def buildUpdate(model: Supplier_):Update[Supplier_]  =
     update(supplier)
       .set(name, model.name)
@@ -201,19 +195,19 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     modify(model)*>getBy((model.id, model.company))
   @nowarn
   override def modify(model: Supplier): ZIO[Any, RepositoryError, Int] = {
+    val oldBankAccounts = model.bankaccounts.filter(_.modelid == -2).map(_.copy(modelid = 12))
+    val newBankAccounts = model.bankaccounts.filter(_.modelid == -3).map(_.copy(modelid = 12))
+    val deleteBankAccounts = model.bankaccounts.filter(_.modelid == -1).map(_.id)
+    val update_ = buildUpdate(Supplier_(model))
     val result = for {
-      persistentBankAccounts <- getBankAccounts4Supplier(model.id, model.company)
-      oldBankAccounts = splitBankAccounts(model, persistentBankAccounts, true)
-      newBankAccounts = splitBankAccounts(model, persistentBankAccounts, false)
-      deleteBankAccounts = model.bankaccounts.filter(_.modelid == -1)
-      update_ = buildUpdate(Supplier_(model))
-      insertedBankAccounts <- ZIO.when(newBankAccounts.nonEmpty)(buildInsertBankAccount(newBankAccounts).run)
+       insertedBankAccounts <- ZIO.when(newBankAccounts.nonEmpty)(buildInsertBankAccount(newBankAccounts).run)
       updatedBankAccounts <- ZIO.when(oldBankAccounts.nonEmpty)(oldBankAccounts.map(ba => buildUpdateBankAccount(ba).run).flip.map(_.sum))
-      deletedBankAccounts <- ZIO.when(deleteBankAccounts.nonEmpty)(buildDeleteBankAccount(deleteBankAccounts.map(_.id)).run)
+      deletedBankAccounts <- ZIO.when(deleteBankAccounts.nonEmpty)(buildDeleteBankAccount(deleteBankAccounts).map(_.run).flip.map(_.sum))
       updated <- update_.run
       _ <- ZIO.logInfo(s"New bank accounts insert stmt ${renderInsert(buildInsertBankAccount(newBankAccounts))}") *>
-        ZIO.logInfo(s"bank accounts to update ${renderUpdate(update_)}") *>
-        ZIO.logInfo(s"bank accounts to delete ${renderDelete(buildDeleteBankAccount(deleteBankAccounts.map(_.id)))}")
+        ZIO.logInfo(s" bank accounts  update stmt ${oldBankAccounts.map(ba => renderUpdate(buildUpdateBankAccount(ba)))}") *>
+        ZIO.logInfo(s" update supplier stm ${renderUpdate(update_)}") *>
+        ZIO.logInfo(s"bank accounts to delete ${ buildDeleteBankAccount(deleteBankAccounts).map(renderDelete)}")
     } yield insertedBankAccounts.getOrElse(0) + updatedBankAccounts.getOrElse(0) + deletedBankAccounts.getOrElse(0) + updated
     transact(result).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
   }
@@ -222,12 +216,6 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     val selectAll = SELECT_BANK_ACCOUNT.where(company_ === companyId)
     execute(selectAll.to((BankAccount.apply _).tupled))
       .provideDriver(driverLayer)
-  }
-
-  def getBankAccounts4Supplier(Id:String, companyId: String): ZIO[Any, RepositoryError, List[BankAccount]] = {
-    val selectAll = SELECT_BANK_ACCOUNT.where( (owner === Id) && (company_ === companyId))
-    execute(selectAll.to((BankAccount.apply _).tupled))
-      .provideDriver(driverLayer).runCollect.map(_.toList)
   }
 
   override def all(companyId: String): ZIO[Any, RepositoryError, List[Supplier]] = for {

@@ -19,55 +19,43 @@ ThisBuild / resolvers +=
 ThisBuild / scalacOptions += "-Wconf:any:wv"
 maintainer := "batexy@gmail.com"
 dockerBaseImage := "adoptopenjdk:11-jre-hotspot"
+//dockerBaseImage := "openjdk:17-alpine"
+//dockerBaseImage := "eclipse-temurin:21-alpine"
+//dockerBaseImage := "openjdk:21-jdk"
 
-//assemblyMergeStrategy in assembly := {
-//  case PathList("META-INF", xs @ _*) => MergeStrategy.discard
-//  case x => MergeStrategy.first
-//}
+assemblyMergeStrategy in assembly := {
+  case PathList("META-INF", xs @ _*) => MergeStrategy.discard
+  case x => MergeStrategy.first
+}
 
 lazy val root = (project in file("."))
   .settings(
     Docker / packageName := "iws",
     Compile / mainClass := Some("com.kabasoft.iws.Main"),
-   // Compile / mainClass := Some("com.kabasoft.iws.BankStmtImportApp"),
-
-    //dockerEnvVars ++= Map(("IWS_NODE_HOST", "localhost"), ("IWS_NODE_PORT", "3000"), ("IWS_API_HOST", "192.168.1.6"), ("IWS_API_PORT", "8080")),
-    //dockerExposedPorts ++= Seq(8080),
-    dockerExposedVolumes := Seq("/var/lib/postgresql/data", "/tmp/datax"),
-    //assembly / assemblyJarName := "iws-1.0.0.jar",
-    //assembly / mainClass := Some("com.kabasoft.iws.Main"),
-    //assembly / logLevel := Level.Debug,
     inThisBuild(
       List(
         name         := "iws-zio",
-        organization := "KABA SoftGmbH",
-        version      := "1.0.0",
+        organization := "KABA Soft GmbH",
+        version      := "1.0.7",
         scalaVersion := "2.13.10"
          //scalaVersion := "3.1.1"
       )
-    ),//++ScalaSettings.scala213Settings,
+    ),
     name           := "iws-zio",
     libraryDependencies ++= Seq(
-      // core
       "dev.zio"           %% "zio"                             % zioVersion,
       "dev.zio"           %% "zio-streams"                      % zioVersion,
-      // sql
       "dev.zio"           %% "zio-sql"                         % zioSqlVersion,
       "dev.zio"           %% "zio-sql-postgres"                % zioSqlVersion,
       "dev.zio"             %% "zio-http"                       % zioHttpVersion,
-      //"dev.zio"             %% "zio-http"                       % zioHttpVersion % Test,
       "dev.zio"            %% "zio-schema"                      % zioSchemaVersion,
-        // config
       "dev.zio"           %% "zio-config"                      % zioConfigVersion,
       "dev.zio"           %% "zio-config-typesafe"             % zioConfigVersion,
       "dev.zio"           %% "zio-config-magnolia"             % zioConfigVersion,
       "dev.zio"           %% "zio-cache"                      % zioCacheVersion,
       "dev.zio"           %% "zio-query"                      % zioQueryVersion,
-      // json
       "dev.zio"           %% "zio-json"                        % zioJsonVersion,
        "com.github.jwt-scala"   %% "jwt-core"                  % JwtCoreVersion,
-      // test dependencies
-
       "dev.zio"           %% "zio-test"                        % zioVersion                 % Test,
       "dev.zio"           %% "zio-test-sbt"                    % zioVersion                 % Test,
       "dev.zio"           %% "zio-test-junit"                  % zioVersion                 % Test,
@@ -76,7 +64,6 @@ lazy val root = (project in file("."))
       "org.testcontainers" % "testcontainers"                  % testcontainersVersion      % Test,
       "org.testcontainers" % "database-commons"                % testcontainersVersion      % Test,
       "org.testcontainers" % "postgresql"                      % testcontainersVersion      % Test,
-      //"org.testcontainers" % "jdbc"                            % testcontainersVersion      % Test
     ),
     testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
   )
