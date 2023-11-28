@@ -7,7 +7,7 @@ import zio.cache.{Cache, Lookup}
 import java.util.concurrent.TimeUnit
 
 
-final case class FinancialsTransactionCacheImpl (repository: TransactionRepository) extends FinancialsTransactionCache  {
+final case class FinancialsTransactionCacheImpl (repository: FinancialsTransactionRepository) extends FinancialsTransactionCache  {
 
   override def all(companyId: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = Cache.make(
     capacity = 100000,
@@ -26,6 +26,6 @@ final case class FinancialsTransactionCacheImpl (repository: TransactionReposito
 }
 
 object FinancialsTransactionCacheImpl {
-  val live: ZLayer[TransactionRepository , RepositoryError, FinancialsTransactionCache] =
+  val live: ZLayer[FinancialsTransactionRepository , RepositoryError, FinancialsTransactionCache] =
     ZLayer.fromFunction(new FinancialsTransactionCacheImpl(_))
 }
