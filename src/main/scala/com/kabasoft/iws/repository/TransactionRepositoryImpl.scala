@@ -1,11 +1,11 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Account, FinancialsTransaction, FinancialsTransactionDetails, FinancialsTransactionx, common}
-import zio.{ZIO, _}
+import com.kabasoft.iws.domain._
 import zio.prelude.FlipOps
 import zio.sql.ConnectionPool
 import zio.stream._
+import zio.{ZIO, _}
 
 import scala.annotation.nowarn
 
@@ -33,7 +33,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool, accRepo: AccountRepo
     )
       .from(transactions)
 
-  private val SELECT_LINE = select(lid_, transid, laccount_, side_, oaccount_, amount_, duedate_, ltext_, currency_, accountName_, oaccountName_).from(transactionDetails)
+  private val SELECT_LINE = select(lid_, transid, laccount_, side_, oaccount_, amount_, duedate_, ltext_, currency_, accountName_, oaccountName_).from(ftransactionDetails)
 
 
   @nowarn
@@ -41,22 +41,6 @@ final class TransactionRepositoryImpl(pool: ConnectionPool, accRepo: AccountRepo
     transact(create2s(transactions, accounts))
       .mapError(e => RepositoryError(e.toString))
       .provideLayer(driverLayer)
-
-
-
-//  @nowarn
-//   def create2(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = {
-//    val ids = model.lines.map(_.account) ++ model.lines.map(_.oaccount)
-//    val nr = for {
-//      accounts <- accRepo.getBy(ids, model.company)
-//    } yield
-//      transact(create2s(List(model), accounts))
-//        .tap(tr => ZIO.logInfo(s"Create transaction result ${tr} "))
-//        .mapError(e => RepositoryError(e.toString))
-//        .provideLayer(driverLayer)
-//    nr
-//  }
-
 
   @nowarn
   override def create(ftr : FinancialsTransaction): ZIO[Any, RepositoryError, FinancialsTransaction] =
@@ -85,7 +69,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool, accRepo: AccountRepo
   }
 
   private def buildDeleteDetails(ids: List[Long]): Delete[FinancialsTransactionDetails] =
-    deleteFrom(transactionDetails).where(lid_ in ids)
+    deleteFrom(ftransactionDetails).where(lid_ in ids)
 
   override def delete(id : Long, companyId: String): ZIO[Any, RepositoryError, Int] = {
     val deleteQuery = deleteFrom(transactions).where((id_ === id) && (company_ === companyId))
@@ -98,7 +82,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool, accRepo: AccountRepo
   private def buildUpdateDetails(details: FinancialsTransactionDetails, accounts:List[Account]): Update[FinancialsTransactionDetails] = {
     val acc = accounts.find(acc=>acc.id==details.account)
     val oacc = accounts.find(acc=>acc.id==details.oaccount)
-    update(transactionDetails)
+    update(ftransactionDetails)
       .set(transid, details.transid)
       .set(laccount_, details.account)
       .set(accountName_, acc.fold(details.accountName)(acc=>acc.name))
@@ -202,10 +186,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool, accRepo: AccountRepo
       execute(selectAll.to[FinancialsTransaction](c => FinancialsTransaction.applyC(c)))
         .provideDriver(driverLayer)
   }
-  def find4Period(
-                   fromPeriod: Int,
-                   toPeriod: Int,
-                   companyId: String
+  def find4Period(fromPeriod: Int, toPeriod: Int, companyId: String
                  ): ZStream[Any, RepositoryError, FinancialsTransaction] = for {
     trans <- find4Period_(fromPeriod, toPeriod, companyId)
       .mapZIO(tr => getTransWithLines(tr, tr.company))
@@ -249,7 +230,6 @@ final class TransactionRepositoryImpl(pool: ConnectionPool, accRepo: AccountRepo
     val selectAll = SELECT2.where((company_ === companyId) && (id_ === id))
     ZIO.logDebug(s"Query to execute getById ${id} is ${renderRead(selectAll)}") *>
       execute(selectAll.to[FinancialsTransaction](c => FinancialsTransaction.applyC(c)))
-     // execute(selectAll.to(x => FinancialsTransaction.apply(x)))
         .findFirstLong(driverLayer, id)
   }
 
