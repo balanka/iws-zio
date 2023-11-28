@@ -1,6 +1,6 @@
 FROM adoptopenjdk:11-jre-hotspot as stage0
 LABEL snp-multi-stage="intermediate"
-LABEL snp-multi-stage-id="b682fa5d-a055-499b-b597-f16e59f91b26"
+LABEL snp-multi-stage-id="8c5c154c-6c31-4523-a11a-903082227fb7"
 WORKDIR /opt/docker
 COPY 2/opt /2/opt
 COPY 4/opt /4/opt

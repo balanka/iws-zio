@@ -24,11 +24,14 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
     art.avgPrice,
     art.currency,
     art.stocked,
+    art.quantityUnit,
+    art.packUnit,
     art.company,
     art.modelid,
     art.enterdate,
     art.changedate,
     art.postingdate
+    //art.bom
   )
 
   val (
@@ -41,6 +44,8 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
     avgPrice,
     currency,
     stocked,
+    quantityUnit,
+    packUnit,
     company,
     modelid,
     enterdate,
@@ -58,6 +63,8 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
     avgPrice,
     currency,
     stocked,
+    quantityUnit,
+    packUnit,
     company,
     modelid,
     enterdate,
@@ -82,6 +89,8 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
       avgPrice,
       currency,
       stocked,
+      quantityUnit,
+      packUnit,
       company,
       modelid,
       enterdate,
@@ -131,6 +140,8 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
       .set(avgPrice, model.avgPrice)
       .set(currency, model.currency)
       .set(stocked, model.stocked)
+      .set(quantityUnit, model.quantityUnit)
+      .set(packUnit, model.packUnit)
       .set(company, model.company)
       .where(whereClause(model.id, model.company))
 

@@ -47,8 +47,8 @@ lazy val root = (project in file("."))
       "dev.zio"           %% "zio-streams"                      % zioVersion,
       "dev.zio"           %% "zio-sql"                         % zioSqlVersion,
       "dev.zio"           %% "zio-sql-postgres"                % zioSqlVersion,
-      "dev.zio"             %% "zio-http"                       % zioHttpVersion,
-      "dev.zio"            %% "zio-schema"                      % zioSchemaVersion,
+      "dev.zio"           %% "zio-http"                       % zioHttpVersion,
+      "dev.zio"           %% "zio-schema"                      % zioSchemaVersion,
       "dev.zio"           %% "zio-config"                      % zioConfigVersion,
       "dev.zio"           %% "zio-config-typesafe"             % zioConfigVersion,
       "dev.zio"           %% "zio-config-magnolia"             % zioConfigVersion,
@@ -59,7 +59,7 @@ lazy val root = (project in file("."))
       "dev.zio"           %% "zio-test"                        % zioVersion                 % Test,
       "dev.zio"           %% "zio-test-sbt"                    % zioVersion                 % Test,
       "dev.zio"           %% "zio-test-junit"                  % zioVersion                 % Test,
-      "org.postgresql"     % "postgresql"                      % postgresql,
+      "org.postgresql"    % "postgresql"                      % postgresql,
       "com.dimafeng"      %% "testcontainers-scala-postgresql" % testcontainersScalaVersion % Test,
       "org.testcontainers" % "testcontainers"                  % testcontainersVersion      % Test,
       "org.testcontainers" % "database-commons"                % testcontainersVersion      % Test,
@@ -68,5 +68,6 @@ lazy val root = (project in file("."))
     testFrameworks := Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
   )
   .enablePlugins(JavaAppPackaging, DockerPlugin)
+  //.enablePlugins(JavaAppPackaging, DockerPlugin, JlinkPlugin)
 
 

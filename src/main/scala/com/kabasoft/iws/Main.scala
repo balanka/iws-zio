@@ -19,6 +19,7 @@ import com.kabasoft.iws.api.FinancialsEndpoint.appFtr
 import com.kabasoft.iws.api.ImportFileEndpoint.appImportFile
 import com.kabasoft.iws.api.PermissionEndpoint.appPerm
 import com.kabasoft.iws.api.RoleEndpoint.appRole
+import com.kabasoft.iws.api.SalaryItemEndpoint.appSalaryItem
 import com.kabasoft.iws.api.StoreEndpoint.appStore
 import com.kabasoft.iws.api.UserEndpoint.appUser
 import com.kabasoft.iws.api.VatEndpoint.appVat
@@ -67,7 +68,7 @@ object Main extends ZIOAppDefault {
     )
 
   val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc ++ appBank  ++ appComp  ++ appFtr ++ appFModule
-    ++ routesEmp ++ appArticle ++ appStore
+    ++ routesEmp ++ appArticle ++ appStore ++ appSalaryItem
      ++ appImportFile ++appBankStmt ++  appUser ++ appPac ++ appJournal ++ appCC ++ appBankStmt ++appPerm ++ appRole ++ appAsset)// ++expose)//.toApp.withDefaultErrorResponse @@ bearerAuth(jwtDecode(_).isDefined)
 
   @nowarn val run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
@@ -113,11 +114,13 @@ object Main extends ZIOAppDefault {
           PermissionCacheImpl.live,
           BankStatementRepositoryImpl.live,
           FinancialsTransactionCacheImpl.live,
-          TransactionRepositoryImpl.live,
+          FinancialsTransactionRepositoryImpl.live,
           PacRepositoryImpl.live,
           UserRepositoryImpl.live,
           VatRepositoryImpl.live,
           VatCacheImpl.live,
+          SalaryItemRepositoryImpl.live,
+          SalaryItemCacheImpl.live,
           JournalRepositoryImpl.live,
           BankStatementServiceImpl.live,
           FinancialsServiceImpl.live,

@@ -2,7 +2,7 @@ package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Account, Article, Asset, Bank, BankAccount, BankStatement, Bom, Company, Costcenter, Customer, DerivedTransaction, Employee, FinancialsTransaction, FinancialsTransactionDetails, Fmodule, ImportFile, Journal, LoginRequest, PeriodicAccountBalance, Permission, Role, Stock, Store, Supplier, User, UserRight, User_, Vat}
+import com.kabasoft.iws.domain.{Account, Article, Asset, Bank, BankAccount, BankStatement, Bom, Company, Costcenter, Customer, Employee, FinancialsTransaction, FinancialsTransactionDetails, Fmodule, ImportFile, Journal, LoginRequest, PeriodicAccountBalance, Permission, Role, SalaryItem, Stock, Store, Supplier, TransactionDetails, User, UserRight, User_, Vat}
 import zio.json._
 
 object Protocol {
@@ -11,7 +11,8 @@ object Protocol {
   implicit val bankAccountCodec: JsonCodec[BankAccount] = DeriveJsonCodec.gen[BankAccount]
   implicit val assetCodec: JsonCodec[Asset] = DeriveJsonCodec.gen[Asset]
   implicit val customerCodec: JsonCodec[Customer] = DeriveJsonCodec.gen[Customer]
-  implicit val employeeCodec: JsonCodec[Employee] = DeriveJsonCodec.gen[Employee]
+  implicit  val salaryItemCodec: JsonCodec[SalaryItem] = DeriveJsonCodec.gen[SalaryItem]
+  implicit lazy val employeeCodec: JsonCodec[Employee] = DeriveJsonCodec.gen[Employee]
   implicit val moduleCodec: JsonCodec[domain.Module] = DeriveJsonCodec.gen[domain.Module]
   implicit val supplierCodec: JsonCodec[Supplier] = DeriveJsonCodec.gen[Supplier]
   implicit val suppliersDecoder: JsonDecoder[List[Supplier]] = DeriveJsonDecoder.gen[List[Supplier]]
@@ -33,10 +34,9 @@ object Protocol {
   implicit val companyCodec: JsonCodec[Company] = DeriveJsonCodec.gen[Company]
 
   implicit val costcenterCodec: JsonCodec[Costcenter] = DeriveJsonCodec.gen[Costcenter]
-  implicit val financialsDerivedCodec: JsonCodec[DerivedTransaction] = DeriveJsonCodec.gen[DerivedTransaction]
+  implicit val transactionDetailsCodec: JsonCodec[TransactionDetails] = DeriveJsonCodec.gen[TransactionDetails]
   implicit val financialsDetailsCodec: JsonCodec[FinancialsTransactionDetails] = DeriveJsonCodec.gen[FinancialsTransactionDetails]
   implicit val financialsCodec: JsonCodec[FinancialsTransaction] = DeriveJsonCodec.gen[FinancialsTransaction]
-
   implicit val journalCodec: JsonCodec[Journal] = DeriveJsonCodec.gen[Journal]
   implicit val repoErrorCodec: JsonCodec[RepositoryError] = DeriveJsonCodec.gen[RepositoryError]
   implicit lazy val articleCodec: JsonCodec[Article] = DeriveJsonCodec.gen[Article]

@@ -4,7 +4,7 @@ import com.kabasoft.iws.domain.{PeriodicAccountBalance, common}
 import com.kabasoft.iws.domain.AccountBuilder.{companyId, paccountId0}
 import com.kabasoft.iws.domain.TransactionBuilder.{ftr1, ftr2, line1, line2}
 import com.kabasoft.iws.repository.container.PostgresContainer
-import com.kabasoft.iws.repository.{AccountRepository, AccountRepositoryImpl, JournalRepositoryImpl, PacRepository, PacRepositoryImpl, PostTransactionRepositoryImpl, TransactionRepository, TransactionRepositoryImpl}
+import com.kabasoft.iws.repository.{AccountRepository, AccountRepositoryImpl, JournalRepositoryImpl, PacRepository, PacRepositoryImpl, PostTransactionRepositoryImpl, FinancialsTransactionRepository, FinancialsTransactionRepositoryImpl}
 import zio.ZLayer
 import zio.sql.ConnectionPool
 import zio.test.TestAspect._
@@ -16,12 +16,12 @@ import java.time.{Instant, LocalDateTime, ZoneOffset}
 
 object FinancialsServiceLiveSpec extends ZIOSpecDefault {
 
-  val testServiceLayer = ZLayer.make[AccountService  with FinancialsService with TransactionRepository with AccountRepository with PacRepository](
+  val testServiceLayer = ZLayer.make[AccountService  with FinancialsService with FinancialsTransactionRepository with AccountRepository with PacRepository](
     AccountRepositoryImpl.live,
     AccountServiceImpl.live,
     PacRepositoryImpl.live,
     JournalRepositoryImpl.live,
-    TransactionRepositoryImpl.live,
+    FinancialsTransactionRepositoryImpl.live,
     FinancialsServiceImpl.live,
     PostTransactionRepositoryImpl.live,
     PostgresContainer.connectionPoolConfigLayer,
@@ -53,8 +53,8 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
 
         for {
           //oneRow     <- TransactionRepository.create(List(ftr1, ftr2, ftr3))
-          oneRow     <- TransactionRepository.create(List(ftr1, ftr2)).map(_.map(_.lines.size).sum+2)
-          ftr        <-   TransactionRepository.all(companyId)
+          oneRow     <- FinancialsTransactionRepository.create(List(ftr1, ftr2)).map(_.map(_.lines.size).sum+2)
+          ftr        <-   FinancialsTransactionRepository.all(companyId)
 
           postedRows <- FinancialsService.postAll(ftr.map(_.id), companyId)
           oaccountEntry <- FinancialsService.journal(line1.oaccount, period, period, companyId).map(_.size)

@@ -166,6 +166,6 @@ type TYPE = (TableName, Instant, Instant, TableName, TableName, TableName, Table
 }
 
 object BankStatementRepositoryImpl {
-  val live: ZLayer[ConnectionPool with TransactionRepository with AccountRepository, Throwable, BankStatementRepository] =
+  val live: ZLayer[ConnectionPool with FinancialsTransactionRepository with AccountRepository, Throwable, BankStatementRepository] =
     ZLayer.fromFunction(new BankStatementRepositoryImpl(_, _))
 }

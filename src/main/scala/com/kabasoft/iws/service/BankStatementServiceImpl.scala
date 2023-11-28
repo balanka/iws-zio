@@ -3,10 +3,10 @@ package com.kabasoft.iws.service
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.common.zeroAmount
 import com.kabasoft.iws.domain.{Account, BankStatement, BusinessPartner, Company, FinancialsTransaction, FinancialsTransactionDetails, Vat, common}
-import com.kabasoft.iws.repository.{AccountRepository, BankStatementRepository, CompanyRepository, CustomerRepository, SupplierRepository, TransactionRepository, VatRepository}
+import com.kabasoft.iws.repository.{AccountRepository, BankStatementRepository, CompanyRepository, CustomerRepository, SupplierRepository, FinancialsTransactionRepository, VatRepository}
 import zio.prelude.FlipOps
 import zio.stream._
-import zio.{ZLayer, _}
+import zio._
 
 import java.math.{BigDecimal, RoundingMode}
 import java.nio.file.{Files, Paths}
@@ -150,7 +150,7 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
 
 object BankStatementServiceImpl {
   val live: ZLayer[
-    BankStatementRepository with TransactionRepository with CustomerRepository with SupplierRepository with CompanyRepository with VatRepository with AccountRepository,
+    BankStatementRepository with FinancialsTransactionRepository with CustomerRepository with SupplierRepository with CompanyRepository with VatRepository with AccountRepository,
     RepositoryError,
     BankStatementService
   ] = ZLayer.fromFunction(new BankStatementServiceImpl(_, _, _, _, _, _))

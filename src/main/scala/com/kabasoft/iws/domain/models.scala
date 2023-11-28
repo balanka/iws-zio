@@ -73,19 +73,21 @@ object Store {
   val MODELID = 35
 }
 final case class Article_(id: String,
-                         name: String ,
-                         description: String,
-                         parent: String,
-                         sprice: BigDecimal = zeroAmount,
-                         pprice: BigDecimal = zeroAmount,
-                         avgPrice: BigDecimal = zeroAmount,
-                         currency:String,
-                         stocked: Boolean = false,
-                         company: String,
-                         modelid: Int =Article.MODELID,
-                         enterdate: Instant = Instant.now(),
-                         changedate: Instant = Instant.now(),
-                         postingdate: Instant = Instant.now())
+                          name: String,
+                          description: String,
+                          parent: String,
+                          sprice: BigDecimal = zeroAmount,
+                          pprice: BigDecimal = zeroAmount,
+                          avgPrice: BigDecimal = zeroAmount,
+                          currency: String,
+                          stocked: Boolean = false,
+                          quantityUnit: String,
+                          packUnit: String,
+                          company: String,
+                          modelid: Int = Article.MODELID,
+                          enterdate: Instant = Instant.now(),
+                          changedate: Instant = Instant.now(),
+                          postingdate: Instant = Instant.now())
 object Article_ {
   def apply(art: Article): Article_ = new Article_(
     art.id,
@@ -97,27 +99,32 @@ object Article_ {
     art.avgPrice,
     art.currency,
     art.stocked,
+    art.quantityUnit,
+    art.packUnit,
     art.company,
     art.modelid,
     art.enterdate,
     art.changedate,
     art.postingdate)
 }
+
 final case class Article(id: String,
-                          name: String ,
-                          description: String,
-                          parent: String,
-                          sprice: BigDecimal = zeroAmount,
-                          pprice: BigDecimal = zeroAmount,
-                          avgPrice: BigDecimal = zeroAmount,
+                         name: String,
+                         description: String,
+                         parent: String,
+                         sprice: BigDecimal = zeroAmount,
+                         pprice: BigDecimal = zeroAmount,
+                         avgPrice: BigDecimal = zeroAmount,
                          currency: String,
-                          stocked: Boolean = false,
-                          company: String,
-                          modelid: Int = Article.MODELID,
+                         stocked: Boolean = false,
+                         quantityUnit:String,
+                         packUnit:String,
+                         company: String,
+                         modelid: Int = Article.MODELID,
                          enterdate: Instant = Instant.now(),
                          changedate: Instant = Instant.now(),
                          postingdate: Instant = Instant.now(),
-                          bom: List[Bom] = List.empty[Bom]
+                         bom: List[Bom] = List.empty[Bom]
                         ) extends IWS
 object Article {
 
@@ -132,6 +139,8 @@ object Article {
       BigDecimal,
       String,
       Boolean,
+      String,
+      String,
       String,
       Int,
       Instant,
@@ -149,6 +158,8 @@ object Article {
     art.avgPrice,
     art.currency,
     art.stocked,
+    art.quantityUnit,
+    art.packUnit,
     art.company,
     art.modelid,
     art.enterdate,
@@ -173,6 +184,8 @@ object Article {
       acc._12,
       acc._13,
       acc._14,
+      acc._15,
+      acc._16,
       Nil
     )
 }
@@ -261,7 +274,6 @@ object AppError {
   final case class RepositoryError(message: String) extends AppError
   final case class DecodingError(message: String)    extends AppError
 }
-
 
 final case class Balance(id: String, idebit: BigDecimal, icredit: BigDecimal, debit: BigDecimal, credit: BigDecimal) {
   def debiting(amount: BigDecimal) = copy(debit = debit.add(amount))
@@ -614,6 +626,18 @@ final case class ImportFile( id: String,
                              postingdate: Instant = Instant.now(),
                              modelid: Int = 81,
                              company: String) extends IWS
+
+final case class SalaryItem(id: String,
+                            name: String = "",
+                            description: String = "",
+                            account:String,
+                            amount:BigDecimal,
+                            enterdate: Instant = Instant.now(),
+                            changedate: Instant = Instant.now(),
+                            postingdate: Instant = Instant.now(),
+                            modelid: Int = 171,
+                            company: String
+                           ) extends IWS
 final case class Bank(
   id: String,
   name: String = "",
@@ -1320,7 +1344,8 @@ final case class Employee(
                            enterdate: Instant = Instant.now(),
                            changedate: Instant = Instant.now(),
                            postingdate: Instant = Instant.now(),
-                           bankaccounts: List[BankAccount] = List.empty[BankAccount]
+                           bankaccounts: List[BankAccount] = List.empty[BankAccount],
+                           salaryItems: List[SalaryItem] = List.empty[SalaryItem]
                          ) extends BusinessPartner
 object Employee                      {
   val MODELID = 33
@@ -1399,6 +1424,8 @@ object FinancialsTransactionDetails_ {
   def apply(tr: FinancialsTransactionDetails): FinancialsTransactionDetails_ =
     new FinancialsTransactionDetails_(tr.transid,  tr.account, tr.side, tr.oaccount, tr.amount, tr.duedate, tr.text, tr.currency, tr.accountName, tr.oaccountName)
 }
+final case class TransactionDetails( id: Long, transid: Long, articleId: String, price: BigDecimal, quantity: BigDecimal,
+                                     unit: String, duedate: Instant = Instant.now(), text: String)
 final case class FinancialsTransactionx(
   id: Long,
   oid: Long,
@@ -1466,7 +1493,8 @@ final case class FinancialsTransaction(
   text: String = "",
   typeJournal: Int = 0,
   file_content: Int = 0,
-  lines: List[FinancialsTransactionDetails] = Nil
+  lines: List[FinancialsTransactionDetails] = Nil,
+  lines2: List[TransactionDetails] = Nil
   // ,copyFlag: Boolean = false
 ) {
   def month: String = common.getMonthAsString(transdate)
@@ -1474,29 +1502,9 @@ final case class FinancialsTransaction(
   def getPeriod     = common.getPeriod(transdate)
 
   def total: BigDecimal = lines.map(_.amount) reduce ((l1, l2) => l2.add(l1).setScale(2, RoundingMode.HALF_UP))
-  def toDerive()    = lines.map(l =>
-    DerivedTransaction(
-      id,
-      oid,
-      l.account,
-      transdate,
-      enterdate,
-      postingdate,
-      period,
-      posted,
-      modelid,
-      company,
-      text,
-      file_content,
-      l.id,
-      l.side,
-      l.oaccount,
-      l.amount,
-      l.currency,
-      l.text
-    )
-  )
 
+  def total2: BigDecimal = lines2.map(l=>l.quantity.multiply(l.price)) reduce ((l1, l2) =>
+    l2.add(l1).setScale(2, RoundingMode.HALF_UP))
 }
 object FinancialsTransactionDetails  {
 
@@ -1512,6 +1520,23 @@ object FinancialsTransactionDetails  {
 
   def apply(tr: FinancialsTransactionDetails_Type): FinancialsTransactionDetails =
     new FinancialsTransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11)
+
+}
+
+object TransactionDetails  {
+
+  val dummy                                                   = TransactionDetails(0, 0, "", zeroAmount, zeroAmount, "", Instant.now(), "")
+  implicit val monoid: Identity[TransactionDetails] =
+    new Identity[TransactionDetails] {
+      def identity                                                                          = dummy
+      def combine(m1: => TransactionDetails, m2: => TransactionDetails) =
+        m2.copy(quantity = m2.quantity.add(m1.quantity))
+    }
+
+  type TransactionDetails_Type = (Long, Long, String, BigDecimal, BigDecimal, String, Instant,  String)
+
+  def apply(tr: TransactionDetails_Type): TransactionDetails =
+    new TransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8)
 
 }
 object FinancialsTransaction         {
@@ -1561,26 +1586,6 @@ object FinancialsTransaction         {
     )
 
 }
-final case class DerivedTransaction(
-  id: Long,
-  oid: Long,
-  account: String,
-  transdate: Instant = Instant.now(),
-  enterdate: Instant = Instant.now(),
-  postingdate: Instant = Instant.now(),
-  period: Int = common.getPeriod(Instant.now()),
-  posted: Boolean = false,
-  modelid: Int,
-  company: String,
-  text: String = "",
-  file: Int = 0,
-  lid: Long,
-  side: Boolean,
-  oaccount: String,
-  amount: BigDecimal,
-  currency: String,
-  terms: String = ""
-)
 final case class Journal_(
   transid: Long,
   oid: Long,

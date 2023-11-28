@@ -6,8 +6,8 @@ import zio.json.EncoderOps
 import com.kabasoft.iws.repository.{AccountCache, AccountCacheImpl, AccountRepositoryImpl, BankCache, BankCacheImpl,
   BankRepositoryImpl, CostcenterCache, CostcenterCacheImpl, CostcenterRepositoryImpl, CustomerCache, CustomerCacheImpl,
   CustomerRepositoryImpl, FinancialsTransactionCache, FinancialsTransactionCacheImpl, ModuleCache, ModuleCacheImpl,
-  ModuleRepositoryImpl, SupplierCache, SupplierCacheImpl, SupplierRepositoryImpl, TransactionRepository,
-  TransactionRepositoryImpl, UserRepository, UserRepositoryImpl, VatCache, VatCacheImpl, VatRepositoryImpl}
+  ModuleRepositoryImpl, SupplierCache, SupplierCacheImpl, SupplierRepositoryImpl, FinancialsTransactionRepository,
+  FinancialsTransactionRepositoryImpl, UserRepository, UserRepositoryImpl, VatCache, VatCacheImpl, VatRepositoryImpl}
 import com.kabasoft.iws.api.CostcenterEndpoint.{ccByIdEndpoint, ccCreateEndpoint, ccDeleteEndpoint}
 import com.kabasoft.iws.api.Protocol._
 import com.kabasoft.iws.domain.BankBuilder.{bank, bankx}
@@ -64,7 +64,7 @@ object ApiSpec extends ZIOSpecDefault {
               FinancialsTransactionCache.getByModelId((p._2, p._1)).mapBoth(e => RepositoryError(e.getMessage), _.size))
           val ftrByTransId = Endpoint.get("ftr2" / string("company") / int("transid")).out[BigDecimal].outError[RepositoryError](Status.InternalServerError)
             .implement(p => ZIO.logInfo(s"Find  Transaction by TransId  ${p}") *>
-              TransactionRepository.getByTransId((p._2.toLong, p._1)).mapBoth(e => RepositoryError(e.getMessage), _.total))
+              FinancialsTransactionRepository.getByTransId((p._2.toLong, p._1)).mapBoth(e => RepositoryError(e.getMessage), _.total))
 
          // val testRoutes1 = testPostApi(ftrCreateEndpoint) _
           val testRoutes = testApi(ftrByModelId ++ ftrByTransId ++ ftrModifyEndpoint) _
@@ -148,7 +148,7 @@ object ApiSpec extends ZIOSpecDefault {
         BankCacheImpl.live, CostcenterRepositoryImpl.live, CostcenterCacheImpl.live, CustomerRepositoryImpl.live,
         CustomerCacheImpl.live, SupplierRepositoryImpl.live, SupplierCacheImpl.live, VatRepositoryImpl.live, VatCacheImpl.live,
         ModuleRepositoryImpl.live, ModuleCacheImpl.live, UserRepositoryImpl.live, PostgresContainer.connectionPoolConfigLayer,
-        TransactionRepositoryImpl.live, FinancialsTransactionCacheImpl.live,
+        FinancialsTransactionRepositoryImpl.live, FinancialsTransactionCacheImpl.live,
         PostgresContainer.createContainer)
     )
 

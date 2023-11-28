@@ -10,9 +10,9 @@ import zio.test._
 
 object TransactionRepositoryLiveSpec extends ZIOSpecDefault {
 
-  val testLayer = ZLayer.make[TransactionRepository with AccountRepository](
+  val testLayer = ZLayer.make[FinancialsTransactionRepository with AccountRepository](
     AccountRepositoryImpl.live,
-    TransactionRepositoryImpl.live,
+    FinancialsTransactionRepositoryImpl.live,
     PostgresContainer.connectionPoolConfigLayer,
     ConnectionPool.live,
     PostgresContainer.createContainer
@@ -24,14 +24,14 @@ object TransactionRepositoryLiveSpec extends ZIOSpecDefault {
         val terms ="changed text"
         val list =List(ftr1,ftr2)
         for {
-          oneRow <- TransactionRepository.create(list).map(_.map(_.lines.size).sum+2)
-          all <- TransactionRepository.all(companyId)
-          ftr <- TransactionRepository.getByTransId((all(0).id, companyId))
-          count <- TransactionRepository.all(companyId).map(_.size)
-          nrUpdatedLines <- TransactionRepository.modify(ftr1.copy(lines=ftr1.lines.map(l=>l.copy(text="Modified"))))
-          nrUpdated <- TransactionRepository.modify(ftr.copy(text=terms))
-          ftr2 <- TransactionRepository.getByTransId((ftr.id, companyId))
-          ftrByModelIdCount <- TransactionRepository.getByModelId((modelid2, companyId)).map(_.size)
+          oneRow <- FinancialsTransactionRepository.create(list).map(_.map(_.lines.size).sum+2)
+          all <- FinancialsTransactionRepository.all(companyId)
+          ftr <- FinancialsTransactionRepository.getByTransId((all(0).id, companyId))
+          count <- FinancialsTransactionRepository.all(companyId).map(_.size)
+          nrUpdatedLines <- FinancialsTransactionRepository.modify(ftr1.copy(lines=ftr1.lines.map(l=>l.copy(text="Modified"))))
+          nrUpdated <- FinancialsTransactionRepository.modify(ftr.copy(text=terms))
+          ftr2 <- FinancialsTransactionRepository.getByTransId((ftr.id, companyId))
+          ftrByModelIdCount <- FinancialsTransactionRepository.getByModelId((modelid2, companyId)).map(_.size)
         } yield assertTrue(oneRow == 7, count == 3, ftrByModelIdCount == 1, nrUpdated == 3, ftr2.text == terms, nrUpdatedLines == 3)
       }
     ).provideLayerShared(testLayer.orDie) @@ sequential

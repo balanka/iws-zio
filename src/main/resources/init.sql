@@ -124,8 +124,7 @@ create table if not exists public.module
 
 create table  bank
 (
-    id            varchar(50)                    not null
-        primary key,
+    id            varchar(50)  not null primary key,
     name          varchar(255)                   not null,
     description   varchar(255),
     postingdate  timestamp   default CURRENT_TIMESTAMP not null,
@@ -134,11 +133,22 @@ create table  bank
     company       varchar(50)                    not null,
     modelid       integer                        not null
 );
-
+create table  salaryItem
+(
+    id            varchar(50)  not null primary key,
+    name          varchar(255)                   not null,
+    description   varchar(255),
+    account       varchar(50)  not null ,
+    amount        numeric(12, 2) default 0,
+    postingdate  timestamp   default CURRENT_TIMESTAMP not null,
+    changedate timestamp   default CURRENT_TIMESTAMP not null,
+    enterdate    timestamp   default CURRENT_TIMESTAMP not null,
+    company       varchar(50)                    not null,
+    modelid       integer                        not null
+);
 create table  store
 (
-    id            varchar(50)                    not null
-        primary key,
+    id            varchar(50)                    not null primary key,
     name          varchar(255)                   not null,
     description   varchar(255),
     postingdate  timestamp   default CURRENT_TIMESTAMP not null,
@@ -444,17 +454,37 @@ create table if not exists article
     avg_price   numeric(12, 2),
     currency  varchar(50) not null,
     stocked  boolean,
+    quantit_unit  varchar(50) not null,
+    pack_unit  varchar(50) not null,
     changedate    timestamp default CURRENT_DATE not null,
     enterdate    timestamp default CURRENT_DATE not null,
     postingdate  timestamp default CURRENT_DATE not null,
     company    varchar(50) not null,
     modelId      int not null);
 
-insert into article (id,  name, description, parent, sprice, pprice, avg_price,currency, stocked, company, modelid) values
-                   ('iws001', 'Licence IWS base', 'Licence IWS base including masterfile, and administration', '-1', 1,1,1,'EUR', false, '1000', 35),
-                   ('iws002', 'Licence IWS sales', 'Licence IWS sales including 1 Y customer care', '-1', 1,1,1,'EUR', false, '1000', 35),
-                   ('iws003', 'Licence IWS purchasing', 'Licence IWS purchasing including 1 Y customer care''', '-1', 1,1,1,'EUR', false, '1000', 35),
-                   ('iws004', 'Licence IWS financials', 'Licence IWS financials including 1 Y customer care''', '-1', 1,1,1,'EUR', false, '1000', 35);
+CREATE TABLE IF NOT EXISTS public.salary_item
+(
+    id character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    name character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    description character varying(255) COLLATE pg_catalog."default",
+    account character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    amount numeric(12,2) DEFAULT 0,
+    postingdate timestamp without time zone NOT NULL DEFAULT CURRENT_DATE,
+    changedate timestamp without time zone NOT NULL DEFAULT CURRENT_DATE,
+    enterdate timestamp without time zone NOT NULL DEFAULT CURRENT_DATE,
+    company character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    modelid integer NOT NULL DEFAULT 6,
+    CONSTRAINT salary_item_pkey PRIMARY KEY (id, company)
+)
+TABLESPACE pg_default;
+ALTER TABLE IF EXISTS public.salary_item OWNER to postgres;
+
+
+insert into article (id,  name, description, parent, sprice, pprice, avg_price,currency, stocked, quantit_unit, pack_unit, company, modelid) values
+                   ('iws001', 'Licence IWS base', 'Licence IWS base including masterfile, and administration', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '1000', 35),
+                   ('iws002', 'Licence IWS sales', 'Licence IWS sales including 1 Y customer care', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '1000', 35),
+                   ('iws003', 'Licence IWS purchasing', 'Licence IWS purchasing including 1 Y customer care''', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '1000', 35),
+                   ('iws004', 'Licence IWS financials', 'Licence IWS financials including 1 Y customer care''', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '1000', 35);
 
 insert into store (id,  name, description, company, modelid) values ('001', 'Zentral-Lager', 'Zentral-Lager', '1000', 35), ('002', 'Nebenlager', 'Nebenlager', '1000', 35);
 insert into fmodule (id,  name, description, account, is_debit, company, modelid) values
@@ -672,7 +702,10 @@ values
     ('B Mady',current_timestamp, current_timestamp,'TEST POSTING','TEST PURPOSE','B Mady','DE27662900000001470034X','43007711BIC', -1000, 'EUR','INFO TXT','1000','47114300IBAN',false,18 ),
     ('KABA Soft GmbH',current_timestamp, current_timestamp,'TEST POSTING','TEST PURPOSE','KABA Soft GmbH','DE27662900000001470004X','470434300IBAN', 1000, 'EUR','INFO TXT','1000','47114300IBAN',false,18 );
 
-
+insert into salaryItem
+(id, name, description, account, amount, postingdate, changedate, enterdate,  company, modelid)
+values('4711','Lohnsteuer','Lohnsteuer', '6024', current_timestamp, current_timestamp, current_timestamp, '1000',11),
+      ('COLSDE33','SPARKASSE KOELN-BONN','SPARKASSE KOELN-BONN','2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '1000',11);
 insert into bank
 (id, name, description, postingdate, changedate, enterdate,  company, modelid)
 values('4711','myFirstBank','myFirstBank',current_timestamp, current_timestamp, current_timestamp, '1000',11),

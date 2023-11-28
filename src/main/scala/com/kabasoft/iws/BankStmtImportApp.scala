@@ -29,7 +29,7 @@ object BankStmtImportApp extends ZIOAppDefault {
       ConnectionPool.live,
       BankStatementRepositoryImpl.live,
       BankStatementServiceImpl.live,
-      TransactionRepositoryImpl.live,
+      FinancialsTransactionRepositoryImpl.live,
       CustomerRepositoryImpl.live,
       SupplierRepositoryImpl.live,
       VatRepositoryImpl.live,

@@ -3,11 +3,11 @@ package com.kabasoft.iws.service
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.common._
 import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, Journal, PeriodicAccountBalance, TPeriodicAccountBalance, common}
-import com.kabasoft.iws.repository.{JournalRepository, PacRepository, PostTransactionRepository, TransactionRepository}
+import com.kabasoft.iws.repository.{JournalRepository, PacRepository, PostTransactionRepository, FinancialsTransactionRepository}
 import zio._
 import zio.prelude.FlipOps
 
-final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRepository, journalRepo: JournalRepository, repository4PostingTransaction:PostTransactionRepository) extends FinancialsService {
+final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: FinancialsTransactionRepository, journalRepo: JournalRepository, repository4PostingTransaction:PostTransactionRepository) extends FinancialsService {
 
   override def journal(accountId: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[Journal]] =
     for {
@@ -132,6 +132,6 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRe
 }
 
 object FinancialsServiceImpl {
-  val live: ZLayer[PacRepository with TransactionRepository with JournalRepository with PostTransactionRepository, RepositoryError, FinancialsService] =
+  val live: ZLayer[PacRepository with FinancialsTransactionRepository with JournalRepository with PostTransactionRepository, RepositoryError, FinancialsService] =
     ZLayer.fromFunction(new FinancialsServiceImpl(_, _, _, _))
 }

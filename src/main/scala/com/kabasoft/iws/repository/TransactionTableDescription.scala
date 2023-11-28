@@ -1,7 +1,7 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.{Account, FinancialsTransaction, FinancialsTransactionDetails, FinancialsTransactionDetails_, FinancialsTransaction_, FinancialsTransactionx, common}
-import com.kabasoft.iws.repository.Schema.{transactionDetailsSchema, transactionDetails_Schema, transactionSchema_, transactionSchemax}
+import com.kabasoft.iws.repository.Schema.{/*transactionDetailsSchema,*/ financialsRransactionDetailsSchema, transactionDetails_Schema, transactionSchema_, transactionSchemax}
 import zio.ZIO
 import zio.prelude.FlipOps
 
@@ -11,9 +11,8 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
 
   val transactions           = defineTable[FinancialsTransactionx]("master_compta")
   val transactionInsert     = defineTable[FinancialsTransaction_]("master_compta")
-  val transactionDetails    = defineTable[FinancialsTransactionDetails]("details_compta")
-  val transactionDetailsInsert   = defineTable[FinancialsTransactionDetails_]("details_compta")
-
+  val ftransactionDetails    = defineTable[FinancialsTransactionDetails]("details_compta")
+  val ftransactionDetailsInsert   = defineTable[FinancialsTransactionDetails_]("details_compta")
 
   val (
     oidx,
@@ -61,7 +60,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     currency_,
     accountName_,
     oaccountName_
-  ) = transactionDetails.columns
+  ) = ftransactionDetails.columns
 
   val (transidx,
     laccountx,
@@ -73,13 +72,9 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     currencyx__,
   accountNamex,
   oaccountNamex
-  ) = transactionDetailsInsert.columns
+  ) = ftransactionDetailsInsert.columns
 
-
-
-
-  def toTupleF(c: FinancialsTransaction) = (
-    c.id,
+  private def toTupleC(c: FinancialsTransaction) = (
     c.oid,
     c.id1,
     c.costcenter,
@@ -96,24 +91,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     c.file_content
   )
 
-  def toTupleC(c: FinancialsTransaction) = (
-    c.oid,
-    c.id1,
-    c.costcenter,
-    c.account,
-    c.transdate,
-    c.enterdate,
-    c.postingdate,
-    c.period,
-    c.posted,
-    c.modelid,
-    c.company,
-    c.text,
-    c.typeJournal,
-    c.file_content
-  )
-
-  def toTuple(c: FinancialsTransactionDetails) = (
+  private  def toTuple(c: FinancialsTransactionDetails) = (
     c.transid,
     c.account,
     c.side,
@@ -125,7 +103,6 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     c.accountName,
     c.oaccountName
   )
-//insertNewLines_ = buildInsertNewLines(allLines, List.empty[Account]).map(_.run).flip.map(_.size)
    def buildInsertNewLine(model_ : FinancialsTransactionDetails, accounts:List[Account]): Insert[FinancialsTransactionDetails_, (Long, TableName, Boolean, TableName, java.math.BigDecimal, Instant, TableName, TableName, TableName, TableName)] = {
      val acc = accounts.find(acc => acc.id == model_.account)
      val oacc = accounts.find(acc => acc.id == model_.oaccount)
@@ -134,7 +111,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
      println(s"accounts >>>>> ${accounts}")
      val model = model_.copy(accountName = acc.fold(model_.accountName)(acc=>acc.name),
                              oaccountName = oacc.fold(model_.oaccountName)(acc=>acc.name))
-    val insertStmt = insertInto(transactionDetailsInsert)(transidx, laccountx, sidex, oaccountx, amountx, duedatex, ltextx, currencyx__, accountNamex, oaccountNamex)
+    val insertStmt = insertInto(ftransactionDetailsInsert)(transidx, laccountx, sidex, oaccountx, amountx, duedatex, ltextx, currencyx__, accountNamex, oaccountNamex)
       .values(toTuple(model))
      println(s"renderInsert(insertStmt ${renderInsert(insertStmt)}")
      insertStmt
