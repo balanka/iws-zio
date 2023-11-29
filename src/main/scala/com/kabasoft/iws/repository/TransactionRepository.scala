@@ -7,7 +7,6 @@ import zio.stream._
 
 trait TransactionRepository {
   def create(model: FinancialsTransaction): ZIO[Any, RepositoryError, FinancialsTransaction]
-  def create2(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int]
   def create(item: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]]
   def delete(item: Long, company: String): ZIO[Any, RepositoryError, Int]
   def delete(ids: List[Long], company: String): ZIO[Any, RepositoryError, List[Int]] =
@@ -15,6 +14,8 @@ trait TransactionRepository {
   def all(companyId: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]]
   def getByTransId(id: (Long, String)): ZIO[Any, RepositoryError, FinancialsTransaction]
   def getByTransId1(id: (Long, String)): ZIO[Any, RepositoryError, FinancialsTransaction]
+
+  def getByIds(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]]
   def getByModelId(modelid:(Int,  String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]]
   def getByModelIdX(modelId: Int, companyId: String): ZStream[Any, RepositoryError, FinancialsTransaction]
   def find4Period(fromPeriod: Int, toPeriod: Int, company: String): ZStream[Any, RepositoryError, FinancialsTransaction]
@@ -23,29 +24,30 @@ trait TransactionRepository {
   def update(model: FinancialsTransaction): ZIO[Any, RepositoryError, FinancialsTransaction]
    def updatePostedField(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int]
   def updatePostedField(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int]
+
 }
 
 object TransactionRepository {
 
   def create(model: FinancialsTransaction): ZIO[TransactionRepository, RepositoryError, FinancialsTransaction] =
-    ZIO.service[TransactionRepository] flatMap (_.create(model))
-  def create2(model: FinancialsTransaction): ZIO[TransactionRepository, RepositoryError, Int]                      =
-    ZIO.service[TransactionRepository] flatMap (_.create2(model))
+    ZIO.serviceWithZIO[TransactionRepository](_.create(model))
   def create(models: List[FinancialsTransaction]): ZIO[TransactionRepository, RepositoryError, List[FinancialsTransaction]]              =
-   ZIO.service[TransactionRepository] flatMap (_.create(models))
+   ZIO.serviceWithZIO[TransactionRepository](_.create(models))
   def delete(id: Long, company: String): ZIO[TransactionRepository, RepositoryError, Int]                         =
-    ZIO.service[TransactionRepository] flatMap (_.delete(id, company))
+    ZIO.serviceWithZIO[TransactionRepository](_.delete(id, company))
   def delete(ids: List[Long], company: String): ZIO[TransactionRepository, RepositoryError, List[Int]]            =
     ZIO.foreach(ids)(delete(_, company))
   def all(companyId: String): ZIO[TransactionRepository, RepositoryError, List[FinancialsTransaction]]             =
-    ZIO.service[TransactionRepository] flatMap (_.all(companyId))
+    ZIO.serviceWithZIO[TransactionRepository](_.all(companyId))
   def getByTransId(id:(Long,  String)): ZIO[TransactionRepository, RepositoryError, FinancialsTransaction] =
-    ZIO.service[TransactionRepository] flatMap (_.getByTransId(id))
+    ZIO.serviceWithZIO[TransactionRepository](_.getByTransId(id))
 
+  def getByIds(ids: List[Long], companyId: String): ZIO[TransactionRepository, RepositoryError, List[FinancialsTransaction]] =
+    ZIO.serviceWithZIO[TransactionRepository](_.getByIds(ids, companyId))
   def getByTransId1(id: (Long, String)): ZIO[TransactionRepository, RepositoryError, FinancialsTransaction] =
-    ZIO.service[TransactionRepository] flatMap (_.getByTransId1(id))
+    ZIO.serviceWithZIO[TransactionRepository](_.getByTransId1(id))
   def getByModelId(modelid:(Int,  String)): ZIO[TransactionRepository, RepositoryError, List[FinancialsTransaction]]         =
-    ZIO.service[TransactionRepository] flatMap (_.getByModelId(modelid))
+    ZIO.serviceWithZIO[TransactionRepository](_.getByModelId(modelid))
   def getByModelIdX(modelId: Int, companyId: String): ZStream[TransactionRepository, RepositoryError, FinancialsTransaction]               =
     ZStream.service[TransactionRepository] flatMap (_.getByModelIdX(modelId, companyId))
   def find4Period(fromPeriod: Int, toPeriod: Int, company: String): ZStream[TransactionRepository, RepositoryError, FinancialsTransaction] =

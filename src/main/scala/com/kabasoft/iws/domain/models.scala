@@ -1,5 +1,4 @@
 package com.kabasoft.iws.domain
-
 import java.util.Locale
 import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 import zio.prelude._
@@ -8,38 +7,9 @@ import zio.{UIO, _}
 
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
-import scala.collection.immutable.{::, Nil}
+import scala.collection.immutable.{::, List, Nil}
 import scala.annotation.tailrec
 import java.math.{BigDecimal, RoundingMode}
-//import com.kabasoft.iws.domain.FinancialsTransaction.DerivedTransaction_Type
-
-final case class Company(
-  id: String,
-  name: String,
-  street: String,
-  zip: String,
-  city: String,
-  state: String,
-  country: String,
-  email: String,
-  partner: String,
-  phone: String,
-  bankAcc: String,
-  iban: String,
-  taxCode: String,
-  vatCode: String,
-  currency: String,
-  locale: String,
-  balanceSheetAcc: String,
-  incomeStmtAcc: String,
-  modelid: Int
-)
-sealed trait AppError extends Throwable
-
-object AppError {
-  final case class RepositoryError(message: String) extends AppError
-  final case class DecodingError(message: String)    extends AppError
-}
 
 object common {
 
@@ -70,9 +40,9 @@ object common {
   implicit val pacMonoid: Identity[PeriodicAccountBalance] = new Identity[PeriodicAccountBalance] {
     def identity: PeriodicAccountBalance                                      = PeriodicAccountBalance.dummy
     def combine(m1: => PeriodicAccountBalance, m2: => PeriodicAccountBalance): PeriodicAccountBalance = {
-      if(m1.id==PeriodicAccountBalance.dummy.id){
-         m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
-       }else {
+      if(m1.id.equals(PeriodicAccountBalance.dummy.id)){
+        m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
+      }else {
         m1.idebiting(m2.idebit).icrediting(m2.icredit).debiting(m2.debit).crediting(m2.credit)
       }
     }
@@ -82,15 +52,229 @@ object common {
     if (month <= 9) {
       "0".concat(month.toString)
     } else month.toString
-  def getYear(instant: Instant)                            = LocalDateTime.ofInstant(instant, ZoneId.of("UTC+1")).getYear
+  def getYear(instant: Instant)                            = LocalDateTime.ofInstant(instant, ZoneId.of("UTC+2")).getYear
   def getMonthAsString(instant: Instant): String           =
-    getMonthAsString(LocalDateTime.ofInstant(instant, ZoneId.of("UTC+1")).getMonth.getValue)
+    getMonthAsString(LocalDateTime.ofInstant(instant, ZoneId.of("UTC+2")).getMonth.getValue)
   def getPeriod(instant: Instant)                          = {
-    val year = LocalDateTime.ofInstant(instant, ZoneId.of("UTC+1")).getYear
+    val year = LocalDateTime.ofInstant(instant, ZoneId.of("UTC+2")).getYear
     year.toString.concat(getMonthAsString(instant)).toInt
   }
 }
 import common._
+final case class Store(id: String,
+                       name: String,
+                       description: String,
+                       enterdate: Instant = Instant.now(),
+                       changedate: Instant = Instant.now(),
+                       postingdate: Instant = Instant.now(),
+                       company: String,
+                       modelid: Int = Store.MODELID)
+object Store {
+  val MODELID = 35
+}
+final case class Article_(id: String,
+                          name: String,
+                          description: String,
+                          parent: String,
+                          sprice: BigDecimal = zeroAmount,
+                          pprice: BigDecimal = zeroAmount,
+                          avgPrice: BigDecimal = zeroAmount,
+                          currency: String,
+                          stocked: Boolean = false,
+                          quantityUnit: String,
+                          packUnit: String,
+                          company: String,
+                          modelid: Int = Article.MODELID,
+                          enterdate: Instant = Instant.now(),
+                          changedate: Instant = Instant.now(),
+                          postingdate: Instant = Instant.now())
+object Article_ {
+  def apply(art: Article): Article_ = new Article_(
+    art.id,
+    art.name,
+    art.description,
+    art.parent,
+    art.sprice,
+    art.pprice,
+    art.avgPrice,
+    art.currency,
+    art.stocked,
+    art.quantityUnit,
+    art.packUnit,
+    art.company,
+    art.modelid,
+    art.enterdate,
+    art.changedate,
+    art.postingdate)
+}
+
+final case class Article(id: String,
+                         name: String,
+                         description: String,
+                         parent: String,
+                         sprice: BigDecimal = zeroAmount,
+                         pprice: BigDecimal = zeroAmount,
+                         avgPrice: BigDecimal = zeroAmount,
+                         currency: String,
+                         stocked: Boolean = false,
+                         quantityUnit:String,
+                         packUnit:String,
+                         company: String,
+                         modelid: Int = Article.MODELID,
+                         enterdate: Instant = Instant.now(),
+                         changedate: Instant = Instant.now(),
+                         postingdate: Instant = Instant.now(),
+                         bom: List[Bom] = List.empty[Bom]
+                        ) extends IWS
+object Article {
+
+  val MODELID = 34
+  private type Article_Type = (
+    String,
+      String,
+      String,
+      String,
+      BigDecimal,
+      BigDecimal,
+      BigDecimal,
+      String,
+      Boolean,
+      String,
+      String,
+      String,
+      Int,
+      Instant,
+      Instant,
+      Instant
+    )
+
+  def apply(art: Article_): Article = new Article(
+    art.id,
+    art.name,
+    art.description,
+    art.parent,
+    art.sprice,
+    art.pprice,
+    art.avgPrice,
+    art.currency,
+    art.stocked,
+    art.quantityUnit,
+    art.packUnit,
+    art.company,
+    art.modelid,
+    art.enterdate,
+    art.changedate,
+    art.postingdate,
+   List.empty[Bom]
+  )
+
+  def apply(acc: Article_Type): Article =
+    new Article(
+      acc._1,
+      acc._2,
+      acc._3,
+      acc._4,
+      acc._5,
+      acc._6,
+      acc._7,
+      acc._8,
+      acc._9,
+      acc._10,
+      acc._11,
+      acc._12,
+      acc._13,
+      acc._14,
+      acc._15,
+      acc._16,
+      Nil
+    )
+}
+final case class Bom(id:String, parent:String, quantity:BigDecimal, description:String, company:String, modelid: Int =Bom.MODELID)
+object Bom {
+  val MODELID= 34
+  val dummy = Bom("-1", "", zeroAmount, "", "",36)
+}
+final case class Stock(storeId:String, artId:String, quantity:BigDecimal, chargeId:String, modelid: Int =37)
+final case class Company_(
+                          id: String,
+                          name: String,
+                          street: String,
+                          zip: String,
+                          city: String,
+                          state: String,
+                          country: String,
+                          email: String,
+                          partner: String,
+                          phone: String,
+                          bankAcc: String,
+                          iban: String,
+                          taxCode: String,
+                          vatCode: String,
+                          currency: String,
+                          locale: String,
+                          balanceSheetAcc: String,
+                          incomeStmtAcc: String,
+                          modelid: Int
+                        )
+object Company_ {
+  def  apply(c:Company):Company_ = Company_(c.id, c.name, c.street, c.zip, c.city, c.state, c.country, c.email, c.partner,
+    c.phone, c.bankAcc, c.iban, c.taxCode, c.vatCode, c.currency, c.locale, c.balanceSheetAcc, c.incomeStmtAcc, c.modelid)
+}
+final case class Company(
+  id: String,
+  name: String,
+  street: String,
+  zip: String,
+  city: String,
+  state: String,
+  country: String,
+  email: String,
+  partner: String,
+  phone: String,
+  bankAcc: String,
+  iban: String,
+  taxCode: String,
+  vatCode: String,
+  currency: String,
+  locale: String,
+  balanceSheetAcc: String,
+  incomeStmtAcc: String,
+  modelid: Int,
+ bankaccounts: List[BankAccount] = List.empty[BankAccount]
+)
+object Company{
+  val MODEL_ID=10;
+  type TYPE=(
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+    String,
+     Int
+  )
+  def apply(c:TYPE):Company = Company(c._1, c._2,c._3,c._4,c._5,c._6,c._7,c._8,c._9,c._10
+    ,c._11,c._12,c._13,c._14,c._15, c._16,c._17,c._18,c._19,List.empty[BankAccount])
+}
+sealed trait AppError extends Throwable
+
+object AppError {
+  final case class RepositoryError(message: String) extends AppError
+  final case class DecodingError(message: String)    extends AppError
+}
+
 final case class Balance(id: String, idebit: BigDecimal, icredit: BigDecimal, debit: BigDecimal, credit: BigDecimal) {
   def debiting(amount: BigDecimal) = copy(debit = debit.add(amount))
 
@@ -151,10 +335,10 @@ final case class Account(
   postingdate: Instant = Instant.now(),
   company: String,
   modelid: Int = 9,
-  account: String = "",
+  account: String,
   isDebit: Boolean,
   balancesheet: Boolean,
-  currency: String = "EUR ",
+  currency: String,
   idebit: BigDecimal = zeroAmount,
   icredit: BigDecimal = zeroAmount,
   debit: BigDecimal = zeroAmount,
@@ -190,20 +374,6 @@ final case class Account(
   def filterAddSubAccounts(accSet: Set[Account]): Account =
     copy(subAccounts = accSet.filter(_.account == id).map(_.filterAddSubAccounts(accSet)))
 
-  def updateBalanceP(accounts: Ref[Set[Account]]): UIO[List[Account]] = {
-    val r = accounts.get
-    r.flatMap(all =>
-      { println("all" + all); all.find(_.id == account) } match {
-        case Some(parent) =>
-          val updated = parent.updateBalance(this)
-          val old     = all.filterNot(_.id == id)
-          accounts.set(old + updated)
-          val w       = updated.updateBalanceP(accounts)
-          w
-        case None         => ZIO.succeed(List(this))
-      }
-    )
-  }
 
   def updateBalance(acc: Account): Account =
     idebiting(acc.idebit)
@@ -416,32 +586,23 @@ object Account {
   }
 
 }
-final case class BaseData(
-  id: String,
-  name: String,
-  description: String,
-  modelId: Int = 19,
-  isDebit: Boolean,
-  balancesheet: Boolean,
-  idebit: BigDecimal,
-  icredit: BigDecimal,
-  debit: BigDecimal,
-  credit: BigDecimal,
-  currency: String,
-  company: String
-) {
-  def debiting(amount: BigDecimal)   = copy(debit = debit.add(amount))
-  def crediting(amount: BigDecimal)  = copy(credit = credit.add(amount))
-  def idebiting(amount: BigDecimal)  = copy(idebit = idebit.add(amount))
-  def icrediting(amount: BigDecimal) = copy(icredit = icredit.add(amount))
-  def fdebit                         = debit.add(idebit)
-  def fcredit                        = credit.add(icredit)
-  def dbalance                       = fdebit.subtract(fcredit)
-  def cbalance                       = fcredit.subtract(fdebit)
-  def balance                        = if (isDebit) dbalance else cbalance
 
-}
-
+final case class Asset (id: String,
+                        name: String,
+                        description: String,
+                        enterdate: Instant = Instant.now(),
+                        changedate: Instant = Instant.now(),
+                        postingdate: Instant = Instant.now(),
+                        company: String,
+                        modelid: Int = 19,
+                        account: String,
+                        oaccount: String,
+                        depMethod:Int,
+                        rate: BigDecimal,
+                        lifeSpan:Int,
+                        scrapValue: BigDecimal = zeroAmount,
+                        frequency:Int,
+                        currency: String = "EUR ")
 sealed trait IWS {
   def id: String
 }
@@ -456,6 +617,27 @@ final case class Costcenter(
   modelid: Int = 6,
   company: String
 ) extends IWS
+
+final case class ImportFile( id: String,
+                             name: String,
+                             description: String,
+                             enterdate: Instant = Instant.now(),
+                             changedate: Instant = Instant.now(),
+                             postingdate: Instant = Instant.now(),
+                             modelid: Int = 81,
+                             company: String) extends IWS
+
+final case class SalaryItem(id: String,
+                            name: String = "",
+                            description: String = "",
+                            account:String,
+                            amount:BigDecimal,
+                            enterdate: Instant = Instant.now(),
+                            changedate: Instant = Instant.now(),
+                            postingdate: Instant = Instant.now(),
+                            modelid: Int = 171,
+                            company: String
+                           ) extends IWS
 final case class Bank(
   id: String,
   name: String = "",
@@ -488,7 +670,8 @@ final case class BankStatement_(
   company: String,
   companyIban: String,
   posted: Boolean = false,
-  modelid: Int = 18
+  modelid: Int = 18,
+  period: Int //= common.getPeriod(Instant.now())
 )
 object BankStatement_ {
   def apply(bs: BankStatement): BankStatement_ = new BankStatement_(
@@ -506,7 +689,8 @@ object BankStatement_ {
     bs.company,
     bs.companyIban,
     bs.posted,
-    bs.modelid
+    bs.modelid,
+    bs.period
   )
 }
 final case class BankStatement(
@@ -525,9 +709,11 @@ final case class BankStatement(
   company: String,
   companyIban: String,
   posted: Boolean = false,
-  modelid: Int = 18
+  modelid: Int = 18,
+  period: Int //= common.getPeriod(Instant.now())
 )
 object BankStatement  {
+  val MODELID         = 18
   val CENTURY         = "20"
   val COMPANY         = "1000"
   val COMPANY_IBAN    = "DE47480501610043006329"
@@ -552,24 +738,7 @@ object BankStatement  {
     String,
     String,
     Boolean,
-    Int
-  )
-
-  type BS_Type2 = (
-    String,
-    Instant,
-    Instant,
-    String,
-    String,
-    String,
-    String,
-    String,
-    BigDecimal,
-    String,
-    String,
-    String,
-    String,
-    Boolean,
+    Int,
     Int
   )
 
@@ -589,27 +758,10 @@ object BankStatement  {
     bs._13,
     bs._14,
     bs._15,
-    bs._16
+    bs._16,
+    bs._17
   )
 
-  def apply2(bs: BS_Type2): BankStatement    = BankStatement(
-    -1L,
-    bs._1,
-    bs._2,
-    bs._3,
-    bs._4,
-    bs._5,
-    bs._6,
-    bs._7,
-    bs._8,
-    bs._9,
-    bs._10,
-    bs._11,
-    bs._12,
-    bs._13,
-    bs._14,
-    bs._15
-  )
   def fullDate(partialDate: String): Instant = {
     val index    = partialDate.lastIndexOf(".")
     val pYear    = partialDate.substring(index + 1)
@@ -629,7 +781,6 @@ object BankStatement  {
     val date1       = if (date1_.trim.nonEmpty) date1_ else date2
     val postingdate = fullDate(date1)
     val valuedate   = fullDate(date2)
-    // val depositor = values(3)
     val postingtext = values(3)
     val purpose     = values(4)
     val beneficiary = values(5)
@@ -639,6 +790,8 @@ object BankStatement  {
     val amount      = new BigDecimal(NUMBER_FORMAT.parse(amount_).toString)
     val currency    = values(9)
     val info        = values(10)
+    val posted      = false
+    val period      = common.getPeriod(valuedate)
     val bs          = BankStatement(
       bid,
       companyIban,
@@ -653,9 +806,12 @@ object BankStatement  {
       currency,
       info,
       COMPANY,
-      companyIban
+      companyIban,
+      posted,
+      MODELID,
+      period
     )
-    // println ("BankStatement>>"+bs)
+     println ("BankStatement>>"+bs)
     bs
   }
 
@@ -669,7 +825,7 @@ final case class Module(
   enterdate: Instant = Instant.now(),
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now(),
-  modelid: Int = 300,
+  modelid: Int = 400,
   company: String
 )
 final case class Vat(
@@ -683,7 +839,7 @@ final case class Vat(
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now(),
   company: String,
-  modelid: Int = 6
+  modelid: Int = 14
 )
 
 final case class TPeriodicAccountBalance(
@@ -696,53 +852,11 @@ final case class TPeriodicAccountBalance(
   credit: TRef[BigDecimal],
   currency: String,
   company: String,
+  name: String,
   modelid: Int = PeriodicAccountBalance.MODELID
 ) {
   self =>
-//  def debiting(amount: BigDecimal) = //STM.atomically {
-//    self.debit.get.flatMap(balance => self.debit.set(balance.add(amount)))
-//  //}
-//
-//  def crediting(amount: BigDecimal) = //STM.atomically {
-//    self.credit.get.flatMap(balance => self.credit.set(balance.add(amount)))
-// // }
-//
-//  def idebiting(amount: BigDecimal) = //STM.atomically {
-//    self.idebit.get.flatMap(balance => self.idebit.set(balance.add(amount)))
-// // }
-//
-//  def icrediting(amount: BigDecimal) = //STM.atomically {
-//    self.icredit.get.flatMap(balance => self.icredit.set(balance.add(amount)))
-//  //}
-//
-//  def fdebit = for {
-//    debitx  <- self.debit.get.commit
-//    idebitx <- self.idebit.get.commit
-//  } yield (debitx.add(idebitx))
-//
-//  def fcredit = for {
-//    creditx  <- self.credit.get.commit
-//    icreditx <- self.icredit.get.commit
-//  } yield creditx.add(icreditx)
-//
-//  def dbalance = for {
-//    fdebitx  <- self.fdebit
-//    fcreditx <- self.fcredit
-//  } yield fdebitx.subtract(fcreditx)
-//
-//  def cbalance = for {
-//    fdebitx  <- self.fdebit
-//    fcreditx <- self.fcredit
-//  } yield fcreditx.subtract(fdebitx)
 
-
-//  def transfer(from: TPeriodicAccountBalance, amount: BigDecimal): IO[Nothing, Unit] =
-//    STM.atomically {
-//      for {
-//        _ <- withdraw(from, amount)
-//        _ <- deposit(self, amount)
-//      } yield ()
-//    }
 def transferX(from: TPeriodicAccountBalance, to: TPeriodicAccountBalance, amount: BigDecimal): IO[Nothing, Unit] = {
   STM.atomically {
     for {
@@ -783,24 +897,7 @@ object TPeriodicAccountBalance {
     icredit <- TRef.makeCommit(pac.icredit)
     debit   <- TRef.makeCommit(pac.debit)
     credit  <- TRef.makeCommit(pac.credit)
-  } yield TPeriodicAccountBalance(pac.id, pac.account, pac.period, idebit, icredit, debit, credit, pac.currency, pac.company, pac.modelid)
-
-  def create(line: FinancialsTransactionDetails, period:Int, side:Boolean, company: String): UIO[TPeriodicAccountBalance] = {
-    val debitAmount = if (side) line.amount   else zeroAmount
-    val creditAmount = if (side) zeroAmount  else line.amount
-    TPeriodicAccountBalance.apply(PeriodicAccountBalance(
-        PeriodicAccountBalance.createId(period, line.account),
-        line.account,
-        period,
-        zeroAmount,
-        zeroAmount,
-        debitAmount,
-        creditAmount,
-        line.currency,
-        company,
-        PeriodicAccountBalance.MODELID
-      ))
-  }
+  } yield TPeriodicAccountBalance(pac.id, pac.account, pac.period, idebit, icredit, debit, credit, pac.currency, pac.company, pac.name, pac.modelid)
 
   def create(model: FinancialsTransaction): List[PeriodicAccountBalance] =
     model.lines.flatMap { line: FinancialsTransactionDetails => //{
@@ -814,7 +911,7 @@ object TPeriodicAccountBalance {
         zeroAmount,
         line.currency,
         model.company,
-
+        line.accountName,
         PeriodicAccountBalance.MODELID
       )
       val credited = PeriodicAccountBalance(
@@ -827,50 +924,13 @@ object TPeriodicAccountBalance {
         line.amount,
         line.currency,
         model.company,
-        PeriodicAccountBalance.MODELID
-      )
+        line.oaccountName,
+        PeriodicAccountBalance.MODELID)
       List(debited, credited)
     }
 
 
-  def debitAndCredit(pac: TPeriodicAccountBalance, poac: TPeriodicAccountBalance, amount: BigDecimal) = STM.atomically {
-    pac.debit.get.flatMap(debit => pac.debit.set(debit.add(amount))) *>
-      poac.credit.get.flatMap(credit => poac.credit.set(credit.add(amount)))
-  }
-
-//  def debitAndCreditAll(pacs: List[TPeriodicAccountBalance], poacs: List[TPeriodicAccountBalance], amount: BigDecimal): List[IO[Nothing, Unit]] =
-//    pacs.zip(poacs).map { case (pac, poac) => /*debitAndCredit(pac, poac, amount)*/
-//                                              transfer(poac, pac, amount)
-//    }
-
-  def debitAndCreditAllX(pacs: List[PeriodicAccountBalance], poacs: List[PeriodicAccountBalance], amount: BigDecimal): List[PeriodicAccountBalance] =
-    pacs.zip(poacs).flatMap { case (pac, poac) => List(pac.debiting(amount), poac.crediting(amount))
-    }
-
-  def transfer1(from: TPeriodicAccountBalance, to: TPeriodicAccountBalance, amount: BigDecimal): UIO[Unit] =
-    STM.atomically {
-      (from.credit.update(_.add(amount))) *>(to.debit.update(_.add(amount)))
-    }
-
-//  def withdraw(from: TPeriodicAccountBalance, amount: BigDecimal): USTM[Unit] =
-//    from.crediting(amount)
-//
-//  def deposit(to: TPeriodicAccountBalance, amount: BigDecimal): USTM[Unit] = {
-//    to.debiting(amount)
-//  }
-
-//  def transfer(
-//                from: TPeriodicAccountBalance,
-//                to: TPeriodicAccountBalance,
-//                amount: BigDecimal
-//              ): IO[Nothing, Unit] =
-//    STM.atomically {
-//      for {
-//        _ <- withdraw(from, amount)
-//        _ <- deposit(to, amount)
-//      } yield ()
-//    }
-  def transferX(from: TPeriodicAccountBalance, to: TPeriodicAccountBalance, amount: BigDecimal)= {
+  def transferX(from: TPeriodicAccountBalance, to: TPeriodicAccountBalance, amount: BigDecimal): IO[Nothing, Unit] = {
     STM.atomically {
       for {
         _ <- from.credit.update(_.add(amount))
@@ -881,6 +941,19 @@ object TPeriodicAccountBalance {
    // List(from,to)
   }
 }
+final case class PeriodicAccountBalance_(
+                                         id: String,
+                                         account: String,
+                                         period: Int,
+                                         idebit: BigDecimal,
+                                         icredit: BigDecimal,
+                                         debit: BigDecimal,
+                                         credit: BigDecimal,
+                                         currency: String,
+                                         company: String,
+                                         name: String,
+                                         modelid: Int = PeriodicAccountBalance.MODELID)
+
 final case class PeriodicAccountBalance(
   id: String,
   account: String,
@@ -891,8 +964,8 @@ final case class PeriodicAccountBalance(
   credit: BigDecimal,
   currency: String,
   company: String,
-  modelid: Int = PeriodicAccountBalance.MODELID
-) {
+  name: String,
+  modelid: Int = PeriodicAccountBalance.MODELID) {
   def debiting(amount: BigDecimal)         = copy(debit = debit.add(amount))
   def crediting(amount: BigDecimal)        = copy(credit = credit.add(amount))
   def idebiting(amount: BigDecimal)        = copy(idebit = idebit.add(amount))
@@ -911,19 +984,14 @@ final case class PeriodicAccountBalance(
 
 object PeriodicAccountBalance {
 
-  type PAC_Type = (String, String, Int, BigDecimal, BigDecimal, BigDecimal, BigDecimal, String, String, Int)
+  private type PAC_Type = (String, String, Int, BigDecimal, BigDecimal, BigDecimal, BigDecimal, String, String, String, Int)
 
   val MODELID                                   = 106
-  def init(paccs: List[PeriodicAccountBalance]) =
-    paccs.foreach(
-      _.copy(idebit = zeroAmount, debit = zeroAmount, icredit = zeroAmount, credit = zeroAmount)
-    )
-
   def createId(period: Int, accountId: String) = period.toString.concat(accountId)
   val dummy                                    =
-    PeriodicAccountBalance("-1", "", 0, zeroAmount, zeroAmount, zeroAmount, zeroAmount, "EUR", "1000")
+    PeriodicAccountBalance("-1", "", 0, zeroAmount, zeroAmount, zeroAmount, zeroAmount, "EUR", "1000", "")
 
-  def create(accountId: String, period: Int, currency: String, company: String): PeriodicAccountBalance =
+  def create(accountId: String, period: Int, currency: String, company: String, name: String): PeriodicAccountBalance =
     PeriodicAccountBalance.apply(
       PeriodicAccountBalance.createId(period, accountId),
       accountId,
@@ -932,8 +1000,9 @@ object PeriodicAccountBalance {
       zeroAmount,
       zeroAmount,
       zeroAmount,
-      company,
       currency,
+      company,
+      name,
       PeriodicAccountBalance.MODELID
     )
 
@@ -950,7 +1019,7 @@ object PeriodicAccountBalance {
           zeroAmount,
           line.currency,
           model.company,
-
+          line.accountName,
           PeriodicAccountBalance.MODELID
         ),
         PeriodicAccountBalance.apply(
@@ -963,18 +1032,19 @@ object PeriodicAccountBalance {
           line.amount,
           line.currency,
           model.company,
+          line.oaccountName,
           PeriodicAccountBalance.MODELID
         )
       )
     }
-  def applyX(p: PAC_Type)                                                = PeriodicAccountBalance(p._1, p._2, p._3, p._4, p._5, p._6, p._7, p._8, p._9, p._10)
+  def applyX(p: PAC_Type)                                                = PeriodicAccountBalance(p._1, p._2, p._3, p._4, p._5, p._6, p._7, p._8, p._9, p._10, p._11)
 
   def applyT(tpac: TPeriodicAccountBalance): ZIO[Any, Nothing, PeriodicAccountBalance] = for {
     idebit  <- tpac.idebit.get.commit
     icredit <- tpac.icredit.get.commit
     debit   <- tpac.debit.get.commit
     credit  <- tpac.credit.get.commit
-  } yield PeriodicAccountBalance(tpac.id, tpac.account, tpac.period, idebit, icredit, debit, credit, tpac.currency, tpac.company, tpac.modelid)
+  } yield PeriodicAccountBalance(tpac.id, tpac.account, tpac.period, idebit, icredit, debit, credit, tpac.currency, tpac.company, tpac.name, tpac.modelid)
 }
 
 sealed trait BusinessPartner         {
@@ -990,7 +1060,7 @@ sealed trait BusinessPartner         {
   def email: String
   def account: String
   def oaccount: String
-  def iban: String
+  //def iban: String
   def vatcode: String
   def company: String
   def modelid: Int
@@ -1012,7 +1082,7 @@ final case class Supplier_(
   email: String,
   account: String,
   oaccount: String,
-  iban: String,
+  //iban: String,
   vatcode: String,
   company: String,
   modelid: Int = Supplier.MODELID,
@@ -1020,6 +1090,26 @@ final case class Supplier_(
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now()
 )
+object Supplier_ {
+  def apply(c:Supplier):Supplier_ = Supplier_(c.id,
+    c.name,
+    c.description,
+    c.street,
+    c.zip,
+    c.city,
+    c.state,
+    c.country,
+    c.phone,
+    c.email,
+    c.account,
+    c.oaccount,
+    c.vatcode,
+    c.company,
+    c.modelid,
+    c.enterdate,
+    c.changedate,
+    c.postingdate)
+}
 final case class Supplier(
   id: String,
   name: String,
@@ -1033,7 +1123,6 @@ final case class Supplier(
   email: String,
   account: String,
   oaccount: String,
-  iban: String,
   vatcode: String,
   company: String,
   modelid: Int = Supplier.MODELID,
@@ -1045,7 +1134,6 @@ final case class Supplier(
 object Supplier                      {
   val MODELID = 1
   type TYPE = (
-    String,
     String,
     String,
     String,
@@ -1085,7 +1173,7 @@ object Supplier                      {
       c._16,
       c._17,
       c._18,
-      c._19,
+      //c._19,
       List.empty[BankAccount]
     )
 }
@@ -1102,7 +1190,6 @@ final case class Customer_(
   email: String,
   account: String,
   oaccount: String,
-  iban: String,
   vatcode: String,
   company: String,
   modelid: Int = Customer.MODELID,
@@ -1110,6 +1197,26 @@ final case class Customer_(
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now()
 )
+object Customer_ {
+  def apply(c:Customer):Customer_ = Customer_(c.id,
+    c.name,
+    c.description,
+    c.street,
+    c.zip,
+    c.city,
+    c.state,
+    c.country,
+    c.phone,
+    c.email,
+    c.account,
+    c.oaccount,
+    c.vatcode,
+    c.company,
+    c.modelid,
+    c.enterdate,
+    c.changedate,
+    c.postingdate)
+}
 final case class Customer(
   id: String,
   name: String,
@@ -1123,7 +1230,6 @@ final case class Customer(
   email: String,
   account: String,
   oaccount: String,
-  iban: String,
   vatcode: String,
   company: String,
   modelid: Int = Customer.MODELID,
@@ -1135,7 +1241,6 @@ final case class Customer(
 object Customer                      {
   val MODELID = 3
   type TYPE = (
-    String,
     String,
     String,
     String,
@@ -1176,11 +1281,119 @@ object Customer                      {
       c._16,
       c._17,
       c._18,
-      c._19,
+      //c._19,
       List.empty[BankAccount]
     )
 }
+final case class Employee_(
+                            id: String,
+                            name: String,
+                            description: String,
+                            street: String,
+                            zip: String,
+                            city: String,
+                            state: String,
+                            country: String,
+                            phone: String,
+                            email: String,
+                            account: String,
+                            oaccount: String,
+                            vatcode: String,
+                            company: String,
+                            modelid: Int = Employee.MODELID,
+                            enterdate: Instant = Instant.now(),
+                            changedate: Instant = Instant.now(),
+                            postingdate: Instant = Instant.now()
+                          )
+object Employee_ {
+  def apply(c:Employee):Employee_ = Employee_(c.id,
+    c.name,
+    c.description,
+    c.street,
+    c.zip,
+    c.city,
+    c.state,
+    c.country,
+    c.phone,
+    c.email,
+    c.account,
+    c.oaccount,
+    c.vatcode,
+    c.company,
+    c.modelid,
+    c.enterdate,
+    c.changedate,
+    c.postingdate)
+}
+final case class Employee(
+                           id: String,
+                           name: String,
+                           description: String,
+                           street: String,
+                           zip: String,
+                           city: String,
+                           state: String,
+                           country: String,
+                           phone: String,
+                           email: String,
+                           account: String,
+                           oaccount: String,
+                           vatcode: String,
+                           company: String,
+                           modelid: Int = Employee.MODELID,
+                           enterdate: Instant = Instant.now(),
+                           changedate: Instant = Instant.now(),
+                           postingdate: Instant = Instant.now(),
+                           bankaccounts: List[BankAccount] = List.empty[BankAccount],
+                           salaryItems: List[SalaryItem] = List.empty[SalaryItem]
+                         ) extends BusinessPartner
+object Employee                      {
+  val MODELID = 33
+  type TYPE = (
+    String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      String,
+      Int,
+      Instant,
+      Instant,
+      Instant
+    )
 
+  def apply(c: TYPE): Employee =
+    Employee(
+      c._1,
+      c._2,
+      c._3,
+      c._4,
+      c._5,
+      c._6,
+      c._7,
+      c._8,
+      c._9,
+      c._10,
+      c._11,
+      c._12,
+      c._13,
+      c._14,
+      c._15,
+      c._16,
+      c._17,
+      c._18,
+      //c._19,
+      List.empty[BankAccount]
+    )
+}
 final case class FinancialsTransactionDetails(
   id: Long,
   transid: Long,
@@ -1190,7 +1403,9 @@ final case class FinancialsTransactionDetails(
   amount: BigDecimal,
   duedate: Instant = Instant.now(),
   text: String,
-  currency: String
+  currency: String,
+  accountName: String,
+  oaccountName: String
 )
 
 final case class FinancialsTransactionDetails_(
@@ -1201,12 +1416,16 @@ final case class FinancialsTransactionDetails_(
   amount: BigDecimal,
   duedate: Instant = Instant.now(),
   text: String,
-  currency: String
+  currency: String,
+  accountName: String,
+  oaccountName: String
 )
 object FinancialsTransactionDetails_ {
   def apply(tr: FinancialsTransactionDetails): FinancialsTransactionDetails_ =
-    new FinancialsTransactionDetails_(tr.transid,  tr.account, tr.side, tr.oaccount, tr.amount, tr.duedate, tr.text, tr.currency)
+    new FinancialsTransactionDetails_(tr.transid,  tr.account, tr.side, tr.oaccount, tr.amount, tr.duedate, tr.text, tr.currency, tr.accountName, tr.oaccountName)
 }
+final case class TransactionDetails( id: Long, transid: Long, articleId: String, price: BigDecimal, quantity: BigDecimal,
+                                     unit: String, duedate: Instant = Instant.now(), text: String)
 final case class FinancialsTransactionx(
   id: Long,
   oid: Long,
@@ -1274,7 +1493,8 @@ final case class FinancialsTransaction(
   text: String = "",
   typeJournal: Int = 0,
   file_content: Int = 0,
-  lines: List[FinancialsTransactionDetails] = Nil
+  lines: List[FinancialsTransactionDetails] = Nil,
+  lines2: List[TransactionDetails] = Nil
   // ,copyFlag: Boolean = false
 ) {
   def month: String = common.getMonthAsString(transdate)
@@ -1282,33 +1502,13 @@ final case class FinancialsTransaction(
   def getPeriod     = common.getPeriod(transdate)
 
   def total: BigDecimal = lines.map(_.amount) reduce ((l1, l2) => l2.add(l1).setScale(2, RoundingMode.HALF_UP))
-  def toDerive()    = lines.map(l =>
-    DerivedTransaction(
-      id,
-      oid,
-      l.account,
-      transdate,
-      enterdate,
-      postingdate,
-      period,
-      posted,
-      modelid,
-      company,
-      text,
-      file_content,
-      l.id,
-      l.side,
-      l.oaccount,
-      l.amount,
-      l.currency,
-      l.text
-    )
-  )
 
+  def total2: BigDecimal = lines2.map(l=>l.quantity.multiply(l.price)) reduce ((l1, l2) =>
+    l2.add(l1).setScale(2, RoundingMode.HALF_UP))
 }
 object FinancialsTransactionDetails  {
-  import FinancialsTransaction.FinancialsTransaction_Type2
-  val dummy                                                   = FinancialsTransactionDetails(0, 0, "", true, "", zeroAmount, Instant.now(), "", "EUR")
+
+  val dummy                                                   = FinancialsTransactionDetails(0, 0, "", true, "", zeroAmount, Instant.now(), "", "EUR", "", "")
   implicit val monoid: Identity[FinancialsTransactionDetails] =
     new Identity[FinancialsTransactionDetails] {
       def identity                                                                          = dummy
@@ -1316,64 +1516,34 @@ object FinancialsTransactionDetails  {
         m2.copy(amount = m2.amount.add(m1.amount))
     }
 
-  type FinancialsTransactionDetails_Type = (Long, Long,  String, Boolean, String, BigDecimal, Instant, String, String)
-  type FTX2                              = FinancialsTransaction_Type2
-  def apply(tr: FinancialsTransactionDetails_Type): FinancialsTransactionDetails =
-    new FinancialsTransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9)
-  //def apply(tr: FinancialsTransactionDetails.FTX2): FinancialsTransactionDetails =
-  //  new FinancialsTransactionDetails(tr._15, tr._1, tr._16, tr._17, tr._18, tr._19, tr._20, tr._21, tr._22)
+  type FinancialsTransactionDetails_Type = (Long, Long,  String, Boolean, String, BigDecimal, Instant, String, String, String, String)
 
-//  def apply(x: DerivedTransaction_Type): FinancialsTransactionDetails =
-//    new FinancialsTransactionDetails(x._13, x._1, x._3, x._14, x._15, x._16, x._4, x._18, x._17)
+  def apply(tr: FinancialsTransactionDetails_Type): FinancialsTransactionDetails =
+    new FinancialsTransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11)
+
+}
+
+object TransactionDetails  {
+
+  val dummy                                                   = TransactionDetails(0, 0, "", zeroAmount, zeroAmount, "", Instant.now(), "")
+  implicit val monoid: Identity[TransactionDetails] =
+    new Identity[TransactionDetails] {
+      def identity                                                                          = dummy
+      def combine(m1: => TransactionDetails, m2: => TransactionDetails) =
+        m2.copy(quantity = m2.quantity.add(m1.quantity))
+    }
+
+  type TransactionDetails_Type = (Long, Long, String, BigDecimal, BigDecimal, String, Instant,  String)
+
+  def apply(tr: TransactionDetails_Type): TransactionDetails =
+    new TransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8)
+
 }
 object FinancialsTransaction         {
   type FinancialsTransaction_Type =
     (Long, Long, Long, String, String, Instant, Instant, Instant, Int, Boolean, Int, String, String, Int, Int)
 
-  type FinancialsTransaction_Type2 = (
-    Long,
-    Long,
-    String,
-    String,
-    Instant,
-    Instant,
-    Instant,
-    Int,
-    Boolean,
-    Int,
-    String,
-    String,
-    Int,
-    Int,
-    Long,
-    String,
-    Boolean,
-    String,
-    BigDecimal,
-    Instant,
-    String,
-    String
-  )
-  type DerivedTransaction_Type     = (
-    Long,
-    Long,
-    String,
-    Instant,
-    Instant,
-    Instant,
-    Int,
-    Boolean,
-    Int,
-    String,
-    String,
-    Int,
-    Long,
-    Boolean,
-    String,
-    BigDecimal,
-    String,
-    String
-  )
+
   def apply(tr: FinancialsTransactionx): FinancialsTransaction = FinancialsTransaction(
     tr.id,
     tr.oid,
@@ -1415,96 +1585,7 @@ object FinancialsTransaction         {
       Nil
     )
 
-//  def applyD(transactions: List[DerivedTransaction_Type]): List[FinancialsTransaction]           =
-//    transactions
-//      .groupBy(rc => (rc._1, rc._2, rc._3, rc._4, rc._5, rc._6, rc._7, rc._8, rc._9, rc._10, rc._11, rc._12))
-//      .map { case (k, v) =>
-//        new FinancialsTransaction(k._1, k._2, k._3, k._4, k._5, k._6, k._7, k._8, k._9, k._10, k._11, k._12)
-//          .copy(lines = v.filter(p => p._13 != -1).map(FinancialsTransactionDetails.apply))
-//      }
-//      .toList
-//  def applyL(transactions: List[FinancialsTransactionDetails.FTX2]): List[FinancialsTransaction] =
-//    transactions
-//      .groupBy(rc => (rc._1, rc._2, rc._3, rc._4, rc._5, rc._6, rc._7, rc._8, rc._9, rc._10, rc._11, rc._12, rc._13, rc._14))
-//      .map { case (k, v) =>
-//        new FinancialsTransaction(
-//          k._1,
-//          k._2,
-//          k._3,
-//          k._4,
-//          k._5,
-//          k._6,
-//          k._7,
-//          k._8,
-//          k._9,
-//          k._10,
-//          k._11,
-//          k._12,
-//          k._13,
-//          k._14
-//        )
-//          .copy(lines = v.filter(p => p._15 != -1).map(FinancialsTransactionDetails.apply))
-//      }
-//      .toList
-
-//  def apply(x: FinancialsTransactionDetails.FTX2) =
-//    new FinancialsTransaction(x._1, x._2, x._3, x._4, x._5, x._6, x._7, x._8, x._9, x._10, x._11, x._12, x._13, x._14)
-//      .copy(lines = List(FinancialsTransactionDetails.apply(x)))
-
-//  def apply1(x: DerivedTransaction) =
-//    new FinancialsTransaction(
-//      x.id,
-//      x.oid,
-//      "",
-//      x.oaccount,
-//      x.account,
-//      x.transdate,
-//      x.enterdate,
-//      x.postingdate,
-//      x.period,
-//      x.posted,
-//      x.modelid,
-//      x.company,
-//      x.text,
-//      x.file,
-//      0
-//    )
-//      .copy(lines =
-//        List(
-//          FinancialsTransactionDetails(
-//            x.lid,
-//            x.id,
-//            x.account,
-//            x.side,
-//            x.oaccount,
-//            x.amount,
-//            x.transdate,
-//            x.terms,
-//            x.currency
-//          )
-//        )
-//      )
 }
-final case class DerivedTransaction(
-  id: Long,
-  oid: Long,
-  account: String,
-  transdate: Instant = Instant.now(),
-  enterdate: Instant = Instant.now(),
-  postingdate: Instant = Instant.now(),
-  period: Int = common.getPeriod(Instant.now()),
-  posted: Boolean = false,
-  modelid: Int,
-  company: String,
-  text: String = "",
-  file: Int = 0,
-  lid: Long,
-  side: Boolean,
-  oaccount: String,
-  amount: BigDecimal,
-  currency: String,
-  terms: String = ""
-)
 final case class Journal_(
   transid: Long,
   oid: Long,
@@ -1576,23 +1657,6 @@ final case class Journal(
   modelid: Int
 )
 
-final case class Role(roleRepr: String)
-
-object Role extends Enumeration { // SimpleAuthEnum[Role, String] {
-  val Admin: Role      = Role("Admin")
-  val DevOps: Role     = Role("DevOps")
-  val Dev: Role        = Role("Developer")
-  val Customer: Role   = Role("Customer")
-  val Supplier: Role   = Role("Supplier")
-  val Logistics: Role  = Role("Logistics")
-  val Accountant: Role = Role("Accountant")
-  val Tester: Role     = Role("Tester")
-
-  // override val values: AuthGroup[Role] = AuthGroup(Admin, Customer, Accountant, Tester)
-
-  def getRepr(t: Role): String = t.roleRepr
-}
-
 final case class User(
   id: Int,
   userName: String,
@@ -1604,9 +1668,28 @@ final case class User(
   department: String, // Role,
   menu: String = "",
   company: String = "1000",
-  modelid: Int = 111
+  modelid: Int = User.MODELID,
+  roles:List[Role] = List.empty[Role],
+  rights:List[UserRight]=List.empty[UserRight]
 )
-
+final case class Userx(
+                       id: Int,
+                       userName: String,
+                       firstName: String,
+                       lastName: String,
+                       hash: String,
+                       phone: String,
+                       email: String,
+                       department: String,
+                       menu: String = "",
+                       company: String = "1000",
+                       modelid: Int = User.MODELID
+                     )
+object User {
+  val MODELID = 111
+  type TYPE = (Int, String, String, String, String, String, String, String, String, String, Int)
+  def apply(u: TYPE): User = new User( u._1, u._2,u._3,u._4,u._5,u._6,u._7,u._8,u._9, u._10, u._11)
+}
 final case class User_(
   userName: String,
   firstName: String,
@@ -1617,9 +1700,45 @@ final case class User_(
   department: String,
   menu: String = "",
   company: String = "1000",
-  modelid: Int = 111
+  modelid: Int = User.MODELID
 )
 object User_ {
-  def apply(u: User): User_ = new User_(u.userName, u.firstName, u.lastName, u.hash, u.phone, u.email, u.department, u.menu, u.company, u.modelid)
+  def apply(u: User): User_ = new User_( u.userName, u.firstName, u.lastName, u.hash, u.phone, u.email, u.department, u.menu, u.company, u.modelid)
 }
 final case class LoginRequest(userName: String, password: String, company: String, language:String)
+final case class Role(id:Int, name:String, description:String,
+                      transdate: Instant,
+                      postingdate: Instant,
+                      enterdate: Instant,
+                      modelid:Int = Role.MODELID,
+                      company:String,
+                      rights:List[UserRight]=List.empty[UserRight]
+                          )
+final case class Role_(id:Int, name:String, description:String,
+                       transdate: Instant,
+                       postingdate: Instant,
+                       enterdate: Instant,
+                       modelid:Int = Role.MODELID,
+                       company:String)
+object Role {
+  val MODELID = 121
+  type TYPE = (Int, String, String, Instant, Instant, Instant, Int, String)
+  def apply(c:TYPE):Role = Role(c._1, c._2, c._3, c._4, c._5, c._6, c._7, c._8, List.empty[UserRight])
+}
+final case class  UserRight (moduleid:Int,  roleid:Int, short:String, company:String, modelid:Int = 131)
+final case class  UserRole (userid:Int,  roleid:Int, company:String, modelid:Int = 161)
+final case class  Permission (id:Int,  name:String, description:String,
+                              transdate: Instant,
+                              postingdate: Instant,
+                              enterdate: Instant,
+                              modelid:Int =141,
+                              company:String )
+
+final case class  Fmodule (id:Int,  name:String, description:String,
+                              transdate: Instant,
+                              postingdate: Instant,
+                              enterdate: Instant,
+                              account:String,
+                              isDebit:Boolean,
+                              modelid:Int =151,
+                              company:String )

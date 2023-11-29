@@ -18,33 +18,37 @@ object FinancialsEndpoint {
   val ftrByTransIdAPI  = Endpoint.get("ftr" / string("company")/ int("transid")).out[FinancialsTransaction].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI = Endpoint.delete("ftr" / string("company")/ int("transid")).out[Int].outError[RepositoryError](Status.InternalServerError)
   val ftrModifyAPI     = Endpoint.put(literal("ftr")).in[FinancialsTransaction].out[FinancialsTransaction].outError[RepositoryError](Status.InternalServerError)
-  private val ftrPostAPI     = Endpoint.get("ftr"/literal("post")/ int("transid")/string("company")).out[FinancialsTransaction].outError[RepositoryError](Status.InternalServerError)
+  //private val ftrPostAPI     = Endpoint.get("ftr"/literal("post")/ int("transid")/string("company")).out[FinancialsTransaction].outError[RepositoryError](Status.InternalServerError)
+  private val ftrPostAllAPI     = Endpoint.get("ftr"/literal("post")/ string("transids")/string("company")).out[List[FinancialsTransaction]].outError[RepositoryError](Status.InternalServerError)
   private val ftrPost4PeriodAPI     = Endpoint.get("ftr/post"/ string("company")/ int("from") / int("to")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
 
   private val ftrAllEndpoint        = ftrAllAPI.implement(company => FinancialsTransactionCache.all(company).mapError(e => RepositoryError(e.getMessage)))
   val ftrCreateEndpoint = ftrCreateAPI.implement(ftr => ZIO.logInfo(s"Create Transaction  ${ftr}") *>
-      TransactionRepository.create(ftr).mapError(e => RepositoryError(e.getMessage)))
+      FinancialsTransactionRepository.create(ftr).mapError(e => RepositoryError(e.getMessage)))
 
   val ftrByTransIdEndpoint = ftrByTransIdAPI.implement( p =>  ZIO.logInfo(s"Get Transaction by id ${p}") *>
-    TransactionRepository.getByTransId((p._2.toLong, p._1)).mapError(e => RepositoryError(e.getMessage)))
+    FinancialsTransactionRepository.getByTransId((p._2.toLong, p._1)).mapError(e => RepositoryError(e.getMessage)))
 
-  private val ftrPostEndpoint = ftrPostAPI.implement(p =>  ZIO.logInfo(s"Post Transaction by id ${p}") *>
-    FinancialsService.post(p._1.toLong, p._2).mapError(e => RepositoryError(e.getMessage))*>
-    TransactionRepository.getByTransId((p._1.toLong, p._2)).mapError(e => RepositoryError(e.getMessage)))
+//  private val ftrPostEndpoint = ftrPostAPI.implement(p =>  ZIO.logInfo(s"Post Transaction by id ${p}") *>
+//    FinancialsService.post(p._1.toLong, p._2).mapError(e => RepositoryError(e.getMessage))*>
+//    TransactionRepository.getByTransId((p._1.toLong, p._2)).mapError(e => RepositoryError(e.getMessage)))
+
+  private val ftrPostAllEndpoint = ftrPostAllAPI.implement(p => //ZIO.logInfo(s"Post all transaction by id ${p}") *>
+    ZIO.logInfo(s"Post all transaction by id ${p._1.split(',').map(_.toLong).toList}") *>
+    FinancialsService.postAll(p._1.split(',').map(_.toLong).toList, p._2).mapError(e => RepositoryError(e.getMessage)) *>
+    FinancialsTransactionRepository.getByIds(p._1.split(' ').map(_.toLong).toList, p._2).mapError(e => RepositoryError(e.getMessage)))
 
   private val ftrByModelIdEndpoint = ftrByModelIdAPI.implement(p => FinancialsTransactionCache.getByModelId((p._2,p._1)).mapError(e => RepositoryError(e.getMessage)))
 
   private val ftrPost4PeriodEndpoint = ftrPost4PeriodAPI.implement(p => FinancialsService.postTransaction4Period(p._2, p._3, p._1).mapError(e => RepositoryError(e.getMessage)))
 
   val ftrModifyEndpoint = ftrModifyAPI.implement(ftr => ZIO.logInfo(s"Modify Transaction  ${ftr}") *>
-    TransactionRepository.update(ftr).mapError(e => RepositoryError(e.getMessage)))
+    FinancialsTransactionRepository.update(ftr).mapError(e => RepositoryError(e.getMessage)))
 
-  private val ftrDeleteEndpoint = deleteAPI.implement(p => TransactionRepository.delete(p._2.toLong, p._1).mapError(e => RepositoryError(e.getMessage)))
+  private val ftrDeleteEndpoint = deleteAPI.implement(p => FinancialsTransactionRepository.delete(p._2.toLong, p._1).mapError(e => RepositoryError(e.getMessage)))
 
-  val routes = ftrModifyEndpoint++ftrAllEndpoint  ++ftrByModelIdEndpoint ++ ftrCreateEndpoint ++ftrDeleteEndpoint++
-               ftrPostEndpoint++ftrPost4PeriodEndpoint++ ftrByTransIdEndpoint
-
-  val appFtr = routes//.toApp //@@ bearerAuth(jwtDecode(_).isDefined)
+  val appFtr = ftrModifyEndpoint++ftrAllEndpoint  ++ftrByModelIdEndpoint ++ ftrCreateEndpoint ++ftrDeleteEndpoint++
+               ftrPost4PeriodEndpoint++ ftrByTransIdEndpoint++ftrPostAllEndpoint
 
 }

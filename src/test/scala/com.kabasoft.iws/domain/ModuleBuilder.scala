@@ -9,9 +9,8 @@ object ModuleBuilder {
   val name ="Dummy"
   val path =""
   val parent=""
-  val vtime = instantFromStr("2018-01-01T10:00:00.00Z")
+  val vtime = Instant.parse("2018-01-01T10:00:00.00Z")
   val m = Module(id, name, name, path, parent, vtime,vtime,vtime, 300, companyId)
   val mx = Module(idx, name, name, path, parent, vtime,vtime,vtime, 300, companyId)
 
-  def instantFromStr(str:String)=Instant.parse(str)
 }

@@ -3,11 +3,11 @@ package com.kabasoft.iws.service
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.common._
 import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, Journal, PeriodicAccountBalance, TPeriodicAccountBalance, common}
-import com.kabasoft.iws.repository.{JournalRepository, PacRepository, PostTransactionRepository, TransactionRepository}
+import com.kabasoft.iws.repository.{JournalRepository, PacRepository, PostTransactionRepository, FinancialsTransactionRepository}
 import zio._
 import zio.prelude.FlipOps
 
-final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRepository, journalRepo: JournalRepository, repository4PostingTransaction:PostTransactionRepository) extends FinancialsService {
+final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: FinancialsTransactionRepository, journalRepo: JournalRepository, repository4PostingTransaction:PostTransactionRepository) extends FinancialsService {
 
   override def journal(accountId: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[Journal]] =
     for {
@@ -33,6 +33,8 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRe
     for {
       queries <- ZIO.foreach(ids)(id => ftrRepo.getByTransId((id, company)))
       models = queries.filter(_.posted == false)
+      _ <-ZIO.foreachDiscard(models.map(_.id)) (
+        id =>ZIO.logInfo(s"Posting transaction with id ${id} of company ${company}"))
       nr <- ZIO.foreach(models)(model => postTransaction(model, company)).map(_.sum)
     } yield nr
 
@@ -44,12 +46,12 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRe
 
   private[this] def postTransaction(transaction: FinancialsTransaction, company: String): ZIO[Any, RepositoryError, Int] = {
     val model = transaction.copy(period = common.getPeriod(transaction.transdate))
+    val pacids = buildPacIds(model)
     for {
-      pacs <- pacRepo.getByIds(buildPacIds(model), company)
+
+      pacs <- pacRepo.getByIds(pacids, company).map(_.filterNot(_.id.equals(PeriodicAccountBalance.dummy.id)))
       newRecords = PeriodicAccountBalance.create(model).filterNot(pac => pacs.map(_.id).contains(pac.id))
-        .groupBy(_.id) map { case (_, v) =>
-        common.reduce(v, PeriodicAccountBalance.dummy)
-      }
+        .groupBy(_.id) map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy)}
       tpacs <- pacs.map(TPeriodicAccountBalance.apply).flip
       oldPacs <- updatePac(model, tpacs).map(e=>e.map(PeriodicAccountBalance.applyT))
       journalEntries <- makeJournal(model, newRecords.toList, oldPacs)
@@ -132,6 +134,6 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRe
 }
 
 object FinancialsServiceImpl {
-  val live: ZLayer[PacRepository with TransactionRepository with JournalRepository with PostTransactionRepository, RepositoryError, FinancialsService] =
+  val live: ZLayer[PacRepository with FinancialsTransactionRepository with JournalRepository with PostTransactionRepository, RepositoryError, FinancialsService] =
     ZLayer.fromFunction(new FinancialsServiceImpl(_, _, _, _))
 }

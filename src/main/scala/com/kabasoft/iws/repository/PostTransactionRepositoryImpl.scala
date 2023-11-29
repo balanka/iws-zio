@@ -16,8 +16,8 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
   val pac = defineTable[PeriodicAccountBalance]("periodic_account_balance")
   val journals_ = defineTable[Journal_]("journal")
-  val (id_pac, account_pac, period_pac, idebit_pac, icredit_pac, debit_pac, credit_pac, currency_pac, company_pac, modelid_pac) = pac.columns
-  val (
+  val (id_pac, account_pac, period_pac, idebit_pac, icredit_pac, debit_pac, credit_pac, currency_pac, company_pac, name_pac, modelid_pac) = pac.columns
+  private val (
     transid_j,
     oid_j,
     account_j,
@@ -67,10 +67,10 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
 
   private def createPacs4T(models_ : List[PeriodicAccountBalance]): ZIO[SqlTransaction, Exception, Int] = {
         insertInto(pac)(id_pac, account_pac, period_pac, idebit_pac, icredit_pac, debit_pac, credit_pac,
-          currency_pac, company_pac, modelid_pac).values(models_.map(c => PeriodicAccountBalance.unapply(c).get)).run
+          currency_pac, company_pac, name_pac, modelid_pac).values(models_.map(c => PeriodicAccountBalance.unapply(c).get)).run
     }
 
-  private def createJ4T(journals: List[Journal]): ZIO[SqlTransaction, Exception, Int] = {
+  private def buildJ4T(journal: Journal) = {
     insertInto(journals_)(
       transid_j,
       oid_j,
@@ -92,9 +92,9 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
       year_j,
       company_j,
       modelid_j
-    )
-      .values(journals.map(tuple2)).run
+    ).values(tuple2(journal)).run
   }
+  private def createJ4T(journals: List[Journal]): ZIO[SqlTransaction, Exception, Int] = journals.map(buildJ4T).flip.map(_.sum)
   private def modifyPacs4T(models: List[PeriodicAccountBalance]) = models.map(buildPac4T).map(_.run).flip.map(_.sum)
 
   private def buildPac4T(model: PeriodicAccountBalance): Update[PeriodicAccountBalance] =
@@ -119,9 +119,10 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
   override  def post(models: List[FinancialsTransaction], pac2Insert:List[PeriodicAccountBalance], pac2update:UIO[List[PeriodicAccountBalance]],
                      journals:List[Journal]): ZIO[Any, RepositoryError, Int] =  for {
     pac2updatex<-pac2update
-    _ <- ZIO.logDebug(s" New Pacs  to insert into DB ${pac2Insert}")
-    _ <- ZIO.logDebug(s" Old Pacs  to update in DB ${pac2updatex}")
-    _ <- ZIO.logDebug(s" Transaction posted  ${models}")
+    _ <- ZIO.logInfo(s" New Pacs  to insert into DB ${pac2Insert}")
+    _ <- ZIO.logInfo(s" Old Pacs  to update in DB ${pac2updatex}")
+    _ <- ZIO.logInfo(s" journals  ${journals}")
+    _ <- ZIO.logInfo(s" Transaction posted  ${models}")
      z = ZIO.when(models.nonEmpty)(updatePostedField4T(models))
              .zipWith(ZIO.when(pac2Insert.nonEmpty)(createPacs4T(pac2Insert)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0))
              .zipWith(ZIO.when(pac2updatex.nonEmpty)(modifyPacs4T(pac2updatex)))((i1, i2)=>i1 +i2.getOrElse(0))

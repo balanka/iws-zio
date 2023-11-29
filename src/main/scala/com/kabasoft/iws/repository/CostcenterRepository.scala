@@ -6,9 +6,10 @@ import zio._
 import zio.stream._
 
 trait CostcenterRepository {
-
-  def create(item: Costcenter): ZIO[Any, RepositoryError, Unit]
-  def create(models: List[Costcenter]): ZIO[Any, RepositoryError, Int]
+  def create(item: Costcenter): ZIO[Any, RepositoryError, Costcenter]
+  def create(models: List[Costcenter]): ZIO[Any, RepositoryError, List[Costcenter]]
+  def create2(item: Costcenter): ZIO[Any, RepositoryError, Unit]
+  def create2(models: List[Costcenter]): ZIO[Any, RepositoryError, Int]
   def delete(item: String, company: String): ZIO[Any, RepositoryError, Int]
   def delete(items: List[String], company: String): ZIO[Any, RepositoryError, List[Int]] =
     ZIO.foreach(items)(delete(_, company))
@@ -22,11 +23,14 @@ trait CostcenterRepository {
 }
 
 object CostcenterRepository {
-
-  def create(item: Costcenter): ZIO[CostcenterRepository, RepositoryError, Unit]                               =
+  def create(item: Costcenter): ZIO[CostcenterRepository, RepositoryError, Costcenter] =
     ZIO.service[CostcenterRepository] flatMap (_.create(item))
-  def create(items: List[Costcenter]): ZIO[CostcenterRepository, RepositoryError, Int]                         =
+  def create(items: List[Costcenter]): ZIO[CostcenterRepository, RepositoryError, List[Costcenter]] =
     ZIO.service[CostcenterRepository] flatMap (_.create(items))
+  def create2(item: Costcenter): ZIO[CostcenterRepository, RepositoryError, Unit]                               =
+    ZIO.service[CostcenterRepository] flatMap (_.create2(item))
+  def create2(items: List[Costcenter]): ZIO[CostcenterRepository, RepositoryError, Int]                         =
+    ZIO.service[CostcenterRepository] flatMap (_.create2(items))
   def delete(item: String, company: String): ZIO[CostcenterRepository, RepositoryError, Int]              =
     ZIO.service[CostcenterRepository] flatMap (_.delete(item, company))
   def delete(items: List[String], company: String): ZIO[CostcenterRepository, RepositoryError, List[Int]] =

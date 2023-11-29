@@ -15,7 +15,23 @@ final class CostcenterRepositoryImpl(pool: ConnectionPool) extends CostcenterRep
 
   val (id, name, description, account, enterdate, changedate, postingdate, modelid, company) = module.columns
   val SELECT                                                                                 = select(id, name, description, account, enterdate, changedate, postingdate, modelid, company).from(module)
-  override def create(c: Costcenter): ZIO[Any, RepositoryError, Unit]                        = {
+
+  def whereClause(Id: String, companyId: String) =
+    List(id === Id, company === companyId)
+      .fold(Expr.literal(true))(_ && _)
+
+  def whereClause(Ids: List[String], companyId: String) =
+    List(company === companyId, id in Ids).fold(Expr.literal(true))(_ && _)
+
+  override def create(c: Costcenter): ZIO[Any, RepositoryError, Costcenter] = create2(c) *> getBy((c.id, c.company))
+
+  override def create(models: List[Costcenter]): ZIO[Any, RepositoryError, List[Costcenter]] =
+    if (models.isEmpty) {
+      ZIO.succeed(List.empty[Costcenter])
+    } else {
+      create2(models) *> getBy(models.map(_.id), models.head.company)
+    }
+  override def create2(c: Costcenter): ZIO[Any, RepositoryError, Unit]                        = {
     val query =
       insertInto(module)(id, name, description, account, enterdate, changedate, postingdate, modelid, company).values(Costcenter.unapply(c).get)
 
@@ -24,7 +40,7 @@ final class CostcenterRepositoryImpl(pool: ConnectionPool) extends CostcenterRep
         .provideAndLog(driverLayer)
         .unit
   }
-  override def create(models: List[Costcenter]): ZIO[Any, RepositoryError, Int]              = {
+  override def create2(models: List[Costcenter]): ZIO[Any, RepositoryError, Int]              = {
     val data  = models.map(Costcenter.unapply(_).get)
     val query = insertInto(module)(id, name, description, account, enterdate, changedate, postingdate, modelid, company).values(data)
 
@@ -32,8 +48,8 @@ final class CostcenterRepositoryImpl(pool: ConnectionPool) extends CostcenterRep
       execute(query)
         .provideAndLog(driverLayer)
   }
-  override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int]       =
-    execute(deleteFrom(module).where(company === companyId  && id === item))
+  override def delete(idx: String, companyId: String): ZIO[Any, RepositoryError, Int]       =
+    execute(deleteFrom(module).where((company === companyId) && (id === idx) ))
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getMessage))
 
@@ -68,6 +84,15 @@ final class CostcenterRepositoryImpl(pool: ConnectionPool) extends CostcenterRep
         .findFirst(driverLayer, Id._1)
   }
 
+  def getBy(ids: List[String], company: String): ZIO[Any, RepositoryError, List[Costcenter]] = for {
+    cc <- getBy_(ids, company).runCollect.map(_.toList)
+  } yield cc
+
+  def getBy_(ids: List[String], company: String): ZStream[Any, RepositoryError, Costcenter] = {
+    val selectAll = SELECT.where(whereClause(ids, company))
+    execute(selectAll.to((Costcenter.apply _).tupled))
+      .provideDriver(driverLayer)
+  }
   override def getByModelId(id: (Int, String)): ZIO[Any, RepositoryError, List[Costcenter]] = for {
     all <- getByModelIdStream(id._1, id._2).runCollect.map(_.toList)
   } yield all

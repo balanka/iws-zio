@@ -23,28 +23,30 @@ trait BankStatementTableDescription extends IWSTableDescriptionPostgres {
     company,
     companyIban,
     posted,
-    modelid
+    modelid,
+    period
   ) = bankStatements.columns
 
   val (
-    depositor_,
-    postingdate_,
-    valuedate_,
-    postingtext_,
-    purpose_,
-    beneficiary_,
-    accountno_,
-    bankCode_,
-    amount_,
-    currency_,
-    info_,
-    company_,
-    companyIban_,
-    posted_,
-    modelid_
+    depositor_bs,
+    postingdatex_bs,
+    valuedatex_bs,
+    postingtextx_bs,
+    purposex_bs,
+    beneficiaryx_bs,
+    accountnox_bs,
+    bankCodex_bs,
+    amountx_bs,
+    currencyx_bs,
+    infox_bs,
+    companyx_bs,
+    companyIbanx_bs,
+    postedx_bs,
+    modelidx_bs,
+    periodx_bs
   ) = bankStatementInsert.columns
 
-  def toTuple2(c: BankStatement_) = (
+  def toTuple2(c: BankStatement) = (
     c.depositor,
     c.postingdate,
     c.valuedate,
@@ -59,7 +61,8 @@ trait BankStatementTableDescription extends IWSTableDescriptionPostgres {
     c.company,
     c.companyIban,
     c.posted,
-    c.modelid
+    c.modelid,
+    c.period
   )
 
 }

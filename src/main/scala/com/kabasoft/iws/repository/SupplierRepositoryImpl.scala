@@ -1,23 +1,29 @@
 package com.kabasoft.iws.repository
 
-import com.kabasoft.iws.domain.{ BankAccount, Supplier, Supplier_ }
+import com.kabasoft.iws.domain.{BankAccount, Supplier, Supplier_}
 import zio._
-import com.kabasoft.iws.repository.Schema.{ bankAccountSchema, supplier_Schema }
+import com.kabasoft.iws.repository.Schema.{bankAccountSchema, supplier_Schema}
 import com.kabasoft.iws.domain.AppError.RepositoryError
+import zio.prelude.FlipOps
 import zio.sql.ConnectionPool
 import zio.stream._
+
+import scala.annotation.nowarn
 
 final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierRepository with IWSTableDescriptionPostgres {
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
 
   val supplier                                = defineTable[Supplier_]("supplier")
   val bankAccount                             = defineTable[BankAccount]("bankaccount")
-  val (iban_, bic, owner, company_, modelid_) = bankAccount.columns
+  val (id_, bic, owner, company_, modelid_) = bankAccount.columns
 
   def whereClause(Idx: String, companyId: String) =
     List(id === Idx, company === companyId).fold(Expr.literal(true))(_ && _)
 
-  val SELECT_BANK_ACCOUNT = select(iban_, bic, owner, company_, modelid_).from(bankAccount)
+  def whereClause(Ids: List[String], companyId: String) =
+    List(company === companyId, id in Ids).fold(Expr.literal(true))(_ && _)
+
+  val SELECT_BANK_ACCOUNT = select(id_, bic, owner, company_, modelid_).from(bankAccount)
 
   val (
     id,
@@ -32,7 +38,6 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     email,
     account,
     oaccount,
-    iban,
     vatcode,
     company,
     modelid,
@@ -54,7 +59,6 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     email,
     account,
     oaccount,
-    iban,
     vatcode,
     company,
     modelid,
@@ -76,7 +80,6 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     email,
     account,
     oaccount,
-    iban_,
     vatcode,
     company,
     modelid,
@@ -98,7 +101,6 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     c.email,
     c.account,
     c.oaccount,
-    c.iban,
     c.vatcode,
     c.company,
     c.modelid,
@@ -107,8 +109,17 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     c.postingdate
   )
 
-  override def create(c: Supplier): ZIO[Any, RepositoryError, Unit]                    = {
-    val query = insertInto(supplier)(
+  private def buildInsertBankAccount(ba: List[BankAccount]) =
+    insertInto(bankAccount)(id_, bic, owner, company_, modelid_).values(ba.map(BankAccount.unapply(_).get))
+
+  private def buildUpdateBankAccount(model: BankAccount): Update[BankAccount] =
+    update(bankAccount)
+      .set(bic, model.bic)
+      .set(owner, model.owner)
+      .set(company_, model.company)
+      .where(id_ === model.id)
+  private def buildInsertQuery(suppliers: List[Supplier]) =
+    insertInto(supplier)(
       id,
       name,
       description,
@@ -121,68 +132,82 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
       email,
       account,
       oaccount,
-      iban,
       vatcode,
       company,
       modelid,
       enterdate,
       changedate,
       postingdate
-    ).values(toTuple(c))
-
+    ).values(suppliers.map(toTuple))
+  override def create2(c: Supplier): ZIO[Any, RepositoryError, Unit]                    = {
+    val query = buildInsertQuery(List(c))
     ZIO.logDebug(s"Query to insert Supplier is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
         .unit
   }
-  override def create(models: List[Supplier]): ZIO[Any, RepositoryError, Int]          = {
-    val data  = models.map(toTuple(_))
-    val query = insertInto(supplier)(
-      id,
-      name,
-      description,
-      street,
-      zip,
-      city,
-      state,
-      country,
-      phone,
-      email,
-      account,
-      oaccount,
-      iban,
-      vatcode,
-      company,
-      modelid,
-      enterdate,
-      changedate,
-      postingdate
-    ).values(data)
 
-    ZIO.logDebug(s"Query to insert Supplier is ${renderInsert(query)}") *>
+  private def buildDeleteBankAccount(ids: List[String]): List[Delete[BankAccount]] =
+    ids.map(id=>deleteFrom(bankAccount).where(id_ === id))
+
+  override def create2(models: List[Supplier]): ZIO[Any, RepositoryError, Int] = {
+    val query = buildInsertQuery(models)
+    ZIO.logInfo(s"Query to insert Supplier is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
   }
-  override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
-    val delete_ = deleteFrom(supplier).where(company === companyId && id === item)
+
+  override def create(c: Supplier): ZIO[Any, RepositoryError, Supplier] =
+    create2(c) *> getBy((c.id, c.company))
+  override def create(models: List[Supplier]): ZIO[Any, RepositoryError, List[Supplier]] =
+    if (models.isEmpty) {
+      ZIO.succeed(List.empty[Supplier])
+    } else {
+      create2(models) *> getBy(models.map(_.id), models.head.company)
+    }
+  override def delete(idx: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
+    val delete_ = deleteFrom(supplier).where((company === companyId) && (id === idx) )
     ZIO.logDebug(s"Delete supplier is ${renderDelete(delete_)}") *>
       execute(delete_)
         .provideLayer(driverLayer)
         .mapError(e => RepositoryError(e.getMessage))
   }
-//    execute(deleteFrom(supplier).where(whereClause(item, companyId)))
-//      .provideLayer(driverLayer)
-//      .mapError(e => RepositoryError(e.getMessage))
 
-  override def modify(model: Supplier): ZIO[Any, RepositoryError, Int] = {
-    val update_ = update(supplier)
+  private def buildUpdate(model: Supplier_):Update[Supplier_]  =
+    update(supplier)
       .set(name, model.name)
       .set(description, model.description)
+      .set(street, model.street)
+      .set(zip, model.zip)
+      .set(city, model.city)
+      .set(state, model.state)
+      .set(country, model.country)
+      .set(phone, model.phone)
+      .set(email, model.email)
+      .set(account, model.account)
+      .set(oaccount, model.oaccount)
+      .set(vatcode, model.vatcode)
       .where(whereClause(model.id, model.company))
-    ZIO.logDebug(s"Query Update supplier is ${renderUpdate(update_)}") *>
-      execute(update_)
-        .provideLayer(driverLayer)
-        .mapError(e => RepositoryError(e.getMessage))
+
+  override def update(model: Supplier): ZIO[Any, RepositoryError, Supplier] =
+    modify(model)*>getBy((model.id, model.company))
+  @nowarn
+  override def modify(model: Supplier): ZIO[Any, RepositoryError, Int] = {
+    val oldBankAccounts = model.bankaccounts.filter(_.modelid == -2).map(_.copy(modelid = 12))
+    val newBankAccounts = model.bankaccounts.filter(_.modelid == -3).map(_.copy(modelid = 12))
+    val deleteBankAccounts = model.bankaccounts.filter(_.modelid == -1).map(_.id)
+    val update_ = buildUpdate(Supplier_(model))
+    val result = for {
+       insertedBankAccounts <- ZIO.when(newBankAccounts.nonEmpty)(buildInsertBankAccount(newBankAccounts).run)
+      updatedBankAccounts <- ZIO.when(oldBankAccounts.nonEmpty)(oldBankAccounts.map(ba => buildUpdateBankAccount(ba).run).flip.map(_.sum))
+      deletedBankAccounts <- ZIO.when(deleteBankAccounts.nonEmpty)(buildDeleteBankAccount(deleteBankAccounts).map(_.run).flip.map(_.sum))
+      updated <- update_.run
+      _ <- ZIO.logInfo(s"New bank accounts insert stmt ${renderInsert(buildInsertBankAccount(newBankAccounts))}") *>
+        ZIO.logInfo(s" bank accounts  update stmt ${oldBankAccounts.map(ba => renderUpdate(buildUpdateBankAccount(ba)))}") *>
+        ZIO.logInfo(s" update supplier stm ${renderUpdate(update_)}") *>
+        ZIO.logInfo(s"bank accounts to delete ${ buildDeleteBankAccount(deleteBankAccounts).map(renderDelete)}")
+    } yield insertedBankAccounts.getOrElse(0) + updatedBankAccounts.getOrElse(0) + deletedBankAccounts.getOrElse(0) + updated
+    transact(result).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
   }
 
   def listBankAccount(companyId: String): ZStream[Any, RepositoryError, BankAccount] = {
@@ -197,22 +222,33 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
   } yield suppliers.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
 
   override def list(companyId: String): ZStream[Any, RepositoryError, Supplier]          = {
-    val selectAll = SELECT
+    val selectAll = SELECT.where(company === companyId)
     execute(selectAll.to[Supplier](c => Supplier.apply(c)))
       .provideDriver(driverLayer)
   }
+
+
   override def getBy(id:(String,String)): ZIO[Any, RepositoryError, Supplier] = {
     val selectAll = SELECT.where(whereClause(id._1, id._2))
-
     ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to[Supplier](c => Supplier.apply(c)))
         .findFirst(driverLayer, id._1)
   }
 
-  override def getByIban(iban: String, companyId: String): ZIO[Any, RepositoryError, Supplier]    = {
-    val selectAll = SELECT2.where((iban_ === iban) && (company === companyId))
+  def getBy(ids: List[String], company: String): ZIO[Any, RepositoryError, List[Supplier]] = for {
+    customers <- getBy_(ids, company).runCollect.map(_.toList)
+    bankAccounts_ <- listBankAccount(company).runCollect.map(_.toList)
+  } yield customers.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
 
-    ZIO.logDebug(s"Query to execute getByIban is ${renderRead(selectAll)}") *>
+  def getBy_(ids: List[String], company: String): ZStream[Any, RepositoryError, Supplier] = {
+    val selectAll = SELECT.where(whereClause(ids, company))
+    execute(selectAll.to[Supplier](c => Supplier.apply(c)))
+      .provideDriver(driverLayer)
+  }
+  override def getByIban(iban: String, companyId: String): ZIO[Any, RepositoryError, Supplier]    = {
+    val selectAll = SELECT2.where((id_ === iban) && (company === companyId))
+
+    ZIO.logInfo(s"Query to execute getByIban is ${renderRead(selectAll)}") *>
       execute(selectAll.to[Supplier](c => Supplier.apply(c)))
         .findFirst(driverLayer, iban)
   }

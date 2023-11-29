@@ -20,7 +20,7 @@ object CompanyEndpoint {
   val compModifyAPI     = Endpoint.put("comp").in[Company].out[Company].outError[RepositoryError](Status.InternalServerError)
   private val companyDeleteAPI      = Endpoint.get("comp" / string("id")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
-  private val companyCreateEndpoint    = companyCreateAPI.implement(comp => CompanyRepository.create(List(comp)).mapError(e => RepositoryError(e.getMessage)))
+  private val companyCreateEndpoint    = companyCreateAPI.implement(comp => CompanyRepository.create2(List(comp)).mapError(e => RepositoryError(e.getMessage)))
   private val companyAllEndpoint    = companyAllAPI.implement(_ => CompanyRepository.all.mapError(e => RepositoryError(e.getMessage)))
   private val companyByIdEndpoint   = companyByIdAPI.implement(id => CompanyRepository.getBy(id).mapError(e => RepositoryError(e.getMessage)))
   val moduleModifyEndpoint = compModifyAPI.implement(p => ZIO.logInfo(s"Modify company  ${p}") *>

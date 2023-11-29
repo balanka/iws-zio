@@ -12,15 +12,26 @@ final class BankAccountRepositoryImpl(pool: ConnectionPool) extends BankAccountR
   val bankAccount                                                                      = defineTable[BankAccount]("bankaccount")
   val (id, bic, owner, company, modelid)                                               = bankAccount.columns
   val SELECT                                                                           = select(id, bic, owner, company, modelid).from(bankAccount)
-  override def create(c: BankAccount): ZIO[Any, RepositoryError, Unit]                 = {
-    val query = insertInto(bankAccount)(id, bic, owner, company, modelid).values(BankAccount.unapply(c).get)
 
+  def whereClause(Id: String, companyId: String) =
+    List(id === Id, company === companyId)
+      .fold(Expr.literal(true))(_ && _)
+  def whereClause(Ids: List[String], companyId: String) =
+    List(company === companyId, id in Ids).fold(Expr.literal(true))(_ && _)
+  override def create(c: BankAccount): ZIO[Any, RepositoryError, BankAccount]                 =
+    create2(c)*>getBy(c.id, c.company)
+
+  override def create(c: List[BankAccount]): ZIO[Any, RepositoryError, List[BankAccount]] =
+    create2(c) *> getBy(c.map(_.id), c.head.company)
+
+  override def create2(c: BankAccount): ZIO[Any, RepositoryError, Unit]                 = {
+    val query = insertInto(bankAccount)(id, bic, owner, company, modelid).values(BankAccount.unapply(c).get)
     ZIO.logDebug(s"Query to insert bank account is ${renderInsert(query)}") *>
       execute(query)
         .provideAndLog(driverLayer)
         .unit
   }
-  override def create(models: List[BankAccount]): ZIO[Any, RepositoryError, Int]       = {
+  override def create2(models: List[BankAccount]): ZIO[Any, RepositoryError, Int]       = {
     val data  = models.map(BankAccount.unapply(_).get)
     val query = insertInto(bankAccount)(id, bic, owner, company, modelid).values(data)
 
@@ -29,7 +40,7 @@ final class BankAccountRepositoryImpl(pool: ConnectionPool) extends BankAccountR
         .provideAndLog(driverLayer)
   }
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
-    val delete_ = deleteFrom(bankAccount).where(company === companyId && id === item)
+    val delete_ = deleteFrom(bankAccount).where( (company === companyId) && (id === item))
     ZIO.logDebug(s"Delete Account is ${renderDelete(delete_)}") *>
       execute(delete_)
         .provideLayer(driverLayer)
@@ -44,7 +55,7 @@ final class BankAccountRepositoryImpl(pool: ConnectionPool) extends BankAccountR
       .set(owner, model.owner)
       .set(company, model.company)
       .set(modelid, model.modelid)
-      .where((id === model.id) && (company === model.company))
+      .where(whereClause(model.id, model.company))
     ZIO.logDebug(s"Query Update bank account is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
@@ -63,8 +74,19 @@ final class BankAccountRepositoryImpl(pool: ConnectionPool) extends BankAccountR
       execute(selectAll.to((BankAccount.apply _).tupled))
         .provideDriver(driverLayer)
   }
+
+  def getBy(ids: List[String], company: String): ZIO[Any, RepositoryError, List[BankAccount]] = for {
+    accounts <- getBy_(ids, company).runCollect.map(_.toList)
+  } yield accounts
+
+  def getBy_(ids: List[String], company: String): ZStream[Any, RepositoryError, BankAccount] = {
+    val selectAll = SELECT.where(whereClause(ids, company))
+    execute(selectAll.to((BankAccount.apply _).tupled))
+      .provideDriver(driverLayer)
+  }
+
   override def getBy(Id: String, companyId: String): ZIO[Any, RepositoryError, BankAccount]          = {
-    val selectAll = SELECT.where((id === Id) && (company === companyId))
+    val selectAll = SELECT.where(whereClause(Id, companyId))
 
     ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to((BankAccount.apply _).tupled))

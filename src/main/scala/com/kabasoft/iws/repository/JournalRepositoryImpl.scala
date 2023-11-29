@@ -211,7 +211,8 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
     ZStream.fromZIO(
       ZIO.logDebug(s"Query to execute findAll is ${renderRead(SELECT)}")
     ) *>
-      execute(SELECT.to((Journal.apply _).tupled))
+      execute(SELECT.where(company === companyId)
+        .to((Journal.apply _).tupled))
         .provideDriver(driverLayer)
   override def getBy(id: Long, companyId: String): ZIO[Any, RepositoryError, Journal] = {
     val selectAll = SELECT.where(whereClause(id, companyId))
@@ -235,7 +236,7 @@ final class JournalRepositoryImpl(pool: ConnectionPool) extends JournalRepositor
       .orderBy(account.descending)
 
     ZStream.fromZIO(
-      ZIO.logDebug(s"Query to execute find4Period is ${renderRead(selectAll)}")
+      ZIO.logInfo(s"Query to execute find4Period is ${renderRead(selectAll)}")
     ) *>
       execute(selectAll.to((Journal.apply _).tupled))
         .provideDriver(driverLayer)

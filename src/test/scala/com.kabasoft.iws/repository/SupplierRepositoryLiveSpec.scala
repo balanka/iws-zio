@@ -24,13 +24,13 @@ val newName = "New Supplier name"
     suite("Supplier repository test with postgres test container")(
       test("insert two new supplier, modify one and look it up by id") {
         for {
-          oneRow <- SupplierRepository.create(suppliers)
+          oneRow <- SupplierRepository.create2(suppliers)
           count <- SupplierRepository.list(companyId).runCount
           stmt <- SupplierRepository.getBy((supplierId1, companyId))
           updated <- SupplierRepository.modify(stmt.copy(name = newName))
           stmt2 <- SupplierRepository.getBy((supplierId1, companyId))
           stmt3 <- SupplierRepository.getByIban(supplierIban3, companyId)
-        } yield assertTrue(oneRow == 2) && assertTrue(count == 8)&&
+        } yield assertTrue(oneRow == 2) && assertTrue(count == 6)&&
           assertTrue(stmt.name == nameSupplie1) &&
           assertTrue(stmt2.name == newName) &&
           assertTrue(stmt3.id == supplierId1)&&

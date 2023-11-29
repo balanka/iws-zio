@@ -6,8 +6,10 @@ import zio._
 import zio.stream._
 
 trait ModuleRepository {
-  def create(item: Module): ZIO[Any, RepositoryError, Unit]
-  def create(models: List[Module]): ZIO[Any, RepositoryError, Int]
+  def create(item: Module): ZIO[Any, RepositoryError, Module]
+  def create(models: List[Module]): ZIO[Any, RepositoryError, List[Module]]
+  def create2(item: Module): ZIO[Any, RepositoryError, Unit]
+  def create2(models: List[Module]): ZIO[Any, RepositoryError, Int]
   def delete(item: String, company: String): ZIO[Any, RepositoryError, Int]
   def delete(items: List[String], company: String): ZIO[Any, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
@@ -21,11 +23,15 @@ trait ModuleRepository {
 }
 
 object ModuleRepository {
-
-  def create(item: Module): ZIO[ModuleRepository, RepositoryError, Unit]                               =
+  def create(item: Module): ZIO[ModuleRepository, RepositoryError, Module] =
     ZIO.service[ModuleRepository] flatMap (_.create(item))
-  def create(items: List[Module]): ZIO[ModuleRepository, RepositoryError, Int]                         =
+
+  def create(items: List[Module]): ZIO[ModuleRepository, RepositoryError, List[Module]] =
     ZIO.service[ModuleRepository] flatMap (_.create(items))
+  def create2(item: Module): ZIO[ModuleRepository, RepositoryError, Unit]                               =
+    ZIO.service[ModuleRepository] flatMap (_.create2(item))
+  def create2(items: List[Module]): ZIO[ModuleRepository, RepositoryError, Int]                         =
+    ZIO.service[ModuleRepository] flatMap (_.create2(items))
   def delete(item: String, company: String): ZIO[ModuleRepository, RepositoryError, Int]              =
     ZIO.service[ModuleRepository] flatMap (_.delete(item, company))
   def delete(items: List[String], company: String): ZIO[ModuleRepository, RepositoryError, List[Int]] =

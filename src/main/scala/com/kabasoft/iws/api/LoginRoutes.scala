@@ -48,12 +48,12 @@ object LoginRoutes {
 
   private def checkLogin(loginRequest: LoginRequest): ZIO[UserRepository, RepositoryError, Response] = for {
     _ <- ZIO.logInfo(s"checkLogin >>>>>>")
-    //_ <- ZIO.logInfo(s"pwd >>>>>> ${jwtEncode(loginRequest.password,1000000)}")
-    r <- UserRepository.list(loginRequest.company).runCollect.map(_.toList)
+    _ <- ZIO.logInfo(s"pwd >>>>>> ${jwtEncode(loginRequest.password,1000000)}")
+    r <- UserRepository.all(loginRequest.company)
     user = r.find(_.userName.equals(loginRequest.userName)).getOrElse(DummyUser)
+    _ <- ZIO.logInfo(s"all Users >>>>>> ${user}")
     content   = jwtDecode(user.hash).toList.head.content.replace("{","").replace("}","")
-   // _ <- ZIO.logInfo(s"user >>>>>> ${user}")
-   // _ <- ZIO.logInfo(s"password >>>>>> ${content} >>>>>   ${content.substring(1, content.length - 1)}")
+
   } yield {
 
     println(s"content >>>>>> $content")
@@ -62,12 +62,16 @@ object LoginRoutes {
     val usernameR = loginRequest.userName
     val username  = user.userName
     val check     = (usernameR == username) & (pwdR == pwd)
+    val env = System.getenv()
+    val webUrl     =if (env.keySet().contains("IWS_WEB_URL")) env.get("IWS_WEB_URL") else "http://localhost:3000"
+    println(s"webUrl >>>>>> $webUrl")
     if (check) {
       val json = s"""{"${loginRequest.password}"}"""
       val token = jwtEncode(json, 1000000)
       Response.json(user.toJson).addHeader(Custom("authorization", token))
-        .addHeader(Custom("Origin", "http://localhost:3000"))
         .addHeader(Custom("Access-Control-Allow-Origin", "*"))
+        .addHeader(Custom("Origin", webUrl))
+
     } else {
       Response.text("Invalid  user name or password "
         + loginRequest.userName + "/"

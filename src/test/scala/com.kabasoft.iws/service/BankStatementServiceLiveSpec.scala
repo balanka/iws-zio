@@ -3,7 +3,7 @@ package com.kabasoft.iws.service
 import com.kabasoft.iws.domain.AccountBuilder.companyId
 import com.kabasoft.iws.domain.BankStatementBuilder
 import com.kabasoft.iws.repository.container.PostgresContainer
-import com.kabasoft.iws.repository.{BankStatementRepository, BankStatementRepositoryImpl, CompanyRepository, CompanyRepositoryImpl, CustomerRepository, CustomerRepositoryImpl, SupplierRepository, SupplierRepositoryImpl, TransactionRepository, TransactionRepositoryImpl}
+import com.kabasoft.iws.repository.{AccountRepositoryImpl, BankStatementRepository, BankStatementRepositoryImpl, CompanyRepository, CompanyRepositoryImpl, CustomerRepository, CustomerRepositoryImpl, SupplierRepository, SupplierRepositoryImpl, FinancialsTransactionRepository, FinancialsTransactionRepositoryImpl, VatRepositoryImpl}
 import zio.ZLayer
 import zio.sql.ConnectionPool
 import zio.test.TestAspect._
@@ -11,12 +11,14 @@ import zio.test._
 
 object BankStatementServiceLiveSpec extends ZIOSpecDefault {
 
-  val testServiceLayer = ZLayer.make[BankStatementService with TransactionRepository
+  val testServiceLayer = ZLayer.make[BankStatementService with FinancialsTransactionRepository
     with CustomerRepository with SupplierRepository with CompanyRepository with BankStatementRepository](
     CustomerRepositoryImpl.live,
     SupplierRepositoryImpl.live,
     CompanyRepositoryImpl.live,
-    TransactionRepositoryImpl.live,
+    FinancialsTransactionRepositoryImpl.live,
+    VatRepositoryImpl.live,
+    AccountRepositoryImpl.live,
     BankStatementRepositoryImpl.live,
     BankStatementServiceImpl.live,
     PostgresContainer.connectionPoolConfigLayer,
@@ -28,10 +30,10 @@ object BankStatementServiceLiveSpec extends ZIOSpecDefault {
     suite("Bank statement service  test with postgres test container")(
       test("create,ge all bank stmt  and post all bank statement"){
         for {
-          created <- BankStatementRepository.create(BankStatementBuilder.bs)
+          created <- BankStatementRepository.create2(BankStatementBuilder.bs)
           bs <- BankStatementRepository.list( companyId).runCollect.map(_.toList)
-          postedBS <- BankStatementService.postAll(bs.map(_.id), companyId)
-        } yield  assertTrue(created == 2) && assertTrue(postedBS == 8)
+          postedBS <- BankStatementService.post(bs.map(_.id), companyId).map(_.size)
+        } yield  assertTrue(created == 2) && assertTrue(postedBS == 4)
      }
     ).provideLayerShared(testServiceLayer.orDie) @@ sequential
 }

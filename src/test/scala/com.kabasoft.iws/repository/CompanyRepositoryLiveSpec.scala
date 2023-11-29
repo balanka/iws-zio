@@ -31,7 +31,7 @@ val company = Company("1000", "ABC GmbH", "Word stree1 0", "55555", "FF", "Hesse
       },
       test("insert a new company") {
         for {
-          oneRow <- CompanyRepository.create(companies)
+          oneRow <- CompanyRepository.create2(companies)
           count <- CompanyRepository.list.runCount
         } yield assertTrue(oneRow ==1) && assertTrue(count == 2)
       },
