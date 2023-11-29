@@ -133,7 +133,7 @@ create table  bank
     company       varchar(50)                    not null,
     modelid       integer                        not null
 );
-create table  salaryItem
+create table  salary_item
 (
     id            varchar(50)  not null primary key,
     name          varchar(255)                   not null,
@@ -194,6 +194,7 @@ create table  account
 create table if not exists periodic_account_balance
 (
     account  varchar(50)                not null,
+    name  varchar(255)                not null,
     period   integer                    not null,
     idebit   numeric(12, 2) default 0   not null,
     icredit  numeric(12, 2) default 0   not null,
@@ -262,7 +263,9 @@ create table if not exists details_compta
     currency varchar(10)                                 not null,
     terms    varchar(250),
     posted   boolean     default false,
-    company  varchar(50) default 1000
+    company  varchar(50) default 1000,
+    account_name varchar(255) not null,
+    oaccount_name varchar(255) not null
     );
 create table if not exists financialstransaction
 (
@@ -475,9 +478,7 @@ CREATE TABLE IF NOT EXISTS public.salary_item
     company character varying(50) COLLATE pg_catalog."default" NOT NULL,
     modelid integer NOT NULL DEFAULT 6,
     CONSTRAINT salary_item_pkey PRIMARY KEY (id, company)
-)
-TABLESPACE pg_default;
-ALTER TABLE IF EXISTS public.salary_item OWNER to postgres;
+);
 
 
 insert into article (id,  name, description, parent, sprice, pprice, avg_price,currency, stocked, quantit_unit, pack_unit, company, modelid) values
@@ -630,30 +631,33 @@ insert into account
                                                                                                                                                              , '4000', false, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
                                                                                                                                                              ('1200','Forderungen aus Lieferungen und Leistungen','Forderung a. L & L',current_timestamp, current_timestamp, current_timestamp, '1000',9
                                                                                                                                                              , '9901', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
+                                                                                                                                                             ('1217','Forderung1','Forderung1',current_timestamp, current_timestamp, current_timestamp, '1000',9, '9901', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
                                                                                                                                                              ('1800','Bank','Bank',current_timestamp, current_timestamp, current_timestamp, '1000',9
                                                                                                                                                              , '9901', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
                                                                                                                                                              ('1810','Giro SPK Bielefeld','Giro SPK Bielefeld',current_timestamp, current_timestamp, current_timestamp, '1000',9, '1800', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
                                                                                                                                                              ('1600','Kasse','Kasse',current_timestamp, current_timestamp, current_timestamp, '1000',9, '9901', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
                                                                                                                                                              ('1601','Kasse','Kasse',current_timestamp, current_timestamp, current_timestamp, '1000',9, '1600', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
+                                                                                                                                                             ('331031','Verbbindlichkeiten 1','Verbbindlichkeiten 1',current_timestamp, current_timestamp, current_timestamp, '1000',9, '331030', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
+                                                                                                                                                             ('3806','MWst 19%','MWst 19%',current_timestamp, current_timestamp, current_timestamp, '1000',9, '6', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
                                                                                                                                                              ('00000','Dummy','Dummy','2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '1000',9, '5', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0);
 
 
 insert into periodic_account_balance
-(id, account, period, idebit,debit,icredit,credit, company,currency,modelid)
+(id, account, name, period, idebit,debit,icredit,credit, company,currency,modelid)
 values
-    (CONCAT(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'1200'), '1200', TO_NUMBER(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'99999999'),
+    (CONCAT(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'1200'), '1200',  'Forderungen aus Lieferungen und Leistungen', TO_NUMBER(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'99999999'),
      0, 1000, 0, 0,'1000' , 'EUR', 106),
-    (CONCAT(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'1601'), '1601', TO_NUMBER(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'99999999'),
+    (CONCAT(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'1601'), '1601', 'Kasse', TO_NUMBER(to_char( CURRENT_DATE- INTERVAL '1 year', 'YYYYMM'),'99999999'),
     0, 1000, 0, 0,'1000' , 'EUR', 106),
-    (CONCAT(to_char( CURRENT_DATE, 'YYYY'),'001200'), '1200', TO_NUMBER(CONCAT(to_char( CURRENT_DATE, 'YYYY'),'00'),'99999999'),
+    (CONCAT(to_char( CURRENT_DATE, 'YYYY'),'001200'), '1200', 'Forderungen aus Lieferungen und Leistungen', TO_NUMBER(CONCAT(to_char( CURRENT_DATE, 'YYYY'),'00'),'99999999'),
      500, 0, 0, 0,'1000' , 'EUR', 106),
-    (CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'1200'), '1200', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'),
+    (CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'1200'), '1200', 'Forderungen aus Lieferungen und Leistungen', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'),
      10, 100, 0, 0,'1000' , 'EUR', 106),
-    (CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'1810'), '1810', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'),
+    (CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'1810'), '1810', 'Giro SPK Bielefeld', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'),
      0, 50, 0, 0,'1000' , 'EUR', 106),
-    (CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'1601'), '1601', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'),
+    (CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'1601'), '1601', 'Kasse', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'),
      0, 200, 0, 0,'1000' , 'EUR', 106),
-    (CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'4400'), '4400', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'),
+    (CONCAT(to_char( CURRENT_DATE, 'YYYYMM'),'4400'), '4400', 'Umsatzerloese 19%', TO_NUMBER(to_char( CURRENT_DATE, 'YYYYMM'),'99999999'),
      0, 200, 0, 0,'1000' , 'EUR', 106)   ;
 
 insert into customer (id, name, description,street,zip,city,state, country, phone,email,account,oaccount,iban,vatcode,company,modelid,enterdate,changedate,postingdate)
@@ -702,10 +706,9 @@ values
     ('B Mady',current_timestamp, current_timestamp,'TEST POSTING','TEST PURPOSE','B Mady','DE27662900000001470034X','43007711BIC', -1000, 'EUR','INFO TXT','1000','47114300IBAN',false,18 ),
     ('KABA Soft GmbH',current_timestamp, current_timestamp,'TEST POSTING','TEST PURPOSE','KABA Soft GmbH','DE27662900000001470004X','470434300IBAN', 1000, 'EUR','INFO TXT','1000','47114300IBAN',false,18 );
 
-insert into salaryItem
+insert into salary_item
 (id, name, description, account, amount, postingdate, changedate, enterdate,  company, modelid)
-values('4711','Lohnsteuer','Lohnsteuer', '6024', current_timestamp, current_timestamp, current_timestamp, '1000',11),
-      ('COLSDE33','SPARKASSE KOELN-BONN','SPARKASSE KOELN-BONN','2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '1000',11);
+values('4711','Lohnsteuer','Lohnsteuer', '6024', 200, current_timestamp, current_timestamp, current_timestamp, '1000',171);
 insert into bank
 (id, name, description, postingdate, changedate, enterdate,  company, modelid)
 values('4711','myFirstBank','myFirstBank',current_timestamp, current_timestamp, current_timestamp, '1000',11),
@@ -735,9 +738,9 @@ values('jdegoes011','John','dgoes', '$21a$10$0IZtq3wGiRQSMIuoIgNKrePjQfmGFRgkpnH
 
 INSERT INTO master_compta (id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content)
 VALUES (1, -1, 1, '300', '1600', '2023-04-08T14:46:44.173Z', '2023-04-08T15:07:28.685Z', '2023-04-08T15:07:28.685Z', 202304, false, 124, '1000', '', 0, 0);
-INSERT INTO details_compta (transid,  account, side, oaccount, amount, duedate, text, currency)
-VALUES (1,  '1200', true, '4400', 81.00, '2023-04-09T15:50:17.598252Z', 'terms', 'EUR' ),
-       (1,  '1200', true, '3806', 19.00, '2023-04-09T15:50:17.598270Z', 'terms', 'EUR');
+INSERT INTO details_compta (transid,  account, side, oaccount, amount, duedate, text, currency, account_name, oaccount_name)
+VALUES (1,  '1200', true, '4400', 81.00, '2023-04-09T15:50:17.598252Z', 'terms', 'EUR', 'Forderungen aus Lieferungen und Leistungen', 'Umsatzerloese 19%' ),
+       (1,  '1200', true, '3806', 19.00, '2023-04-09T15:50:17.598270Z', 'terms', 'EUR','Forderungen aus Lieferungen und Leistungen', 'MWSt 19%' );
 
 
 

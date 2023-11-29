@@ -1,6 +1,6 @@
 package com.kabasoft.iws.repository
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{BankStatement, BankStatement_, FinancialsTransaction, common}
+import com.kabasoft.iws.domain.{BankStatement, FinancialsTransaction, common}
 import zio._
 import zio.prelude.FlipOps
 import zio.sql.ConnectionPool
@@ -54,14 +54,9 @@ type TYPE = (TableName, Instant, Instant, TableName, TableName, TableName, Table
       postedx_bs,
       modelidx_bs,
       periodx_bs
-    ).values(bs.map(BankStatement_.apply).map(toTuple2))
+    ).values(bs.map(toTuple2))
   override def create(bs: BankStatement): ZIO[Any, RepositoryError, BankStatement]              =
-    create2(bs)*>getById(bs.id)
-  override def create2(bs: BankStatement): ZIO[Any, RepositoryError, Unit]              = {
-    val query = buildInsertQueryBS(List(bs))
-    ZIO.logDebug(s"Query to insert BankStatement is ${renderInsert(query)}") *>
-      execute(query).provideAndLog(driverLayer).unit
-  }
+    create2(List(bs))*>getById(bs.id)
 
   override def create(models: List[BankStatement]): ZIO[Any, RepositoryError, List[BankStatement]]     = {
     create2(models)*>getById(models.map(_.id)).runCollect.map(_.toList)
@@ -153,7 +148,7 @@ type TYPE = (TableName, Instant, Instant, TableName, TableName, TableName, Table
     val result = for {
       accounts        <-  accRepo.getBy(ids, company)
       posted <- ZIO.logInfo(s"Update stmt bank statement  ${updateSQL.map(renderUpdate)}  ") *>updateSQL.map(_.run).flip.map(_.sum)
-      created <- ZIO.logInfo(s"Posted bank statement  ${posted}  ") *> create2s(transactions, accounts)
+      created <- ZIO.logInfo(s"Posted bank statement  ${posted}  ") *> create2s( buildId1(transactions), accounts)
       _<- ZIO.logInfo(s"Created transactions  ${posted}  ")
     } yield posted+created
     transact(result)

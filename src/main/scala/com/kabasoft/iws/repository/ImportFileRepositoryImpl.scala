@@ -48,8 +48,8 @@ final class ImportFileRepositoryImpl(pool: ConnectionPool) extends ImportFileRep
       execute(query)
         .provideAndLog(driverLayer)
   }
-  override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
-    val delete_ = deleteFrom(importFile).where(whereClause (item, companyId))
+  override def delete(idx: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
+    val delete_ = deleteFrom(importFile).where((company === companyId) && (id === idx)  )
     ZIO.logInfo(s"Delete ImportFile is ${renderDelete(delete_)}") *>
       execute(delete_)
         .provideLayer(driverLayer)

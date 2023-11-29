@@ -54,8 +54,8 @@ final class UserRepositoryImpl(pool: ConnectionPool) extends UserRepository with
     ZIO.logDebug(s"Query to insert Vat is ${renderInsert(query)}") *>
       execute(query).provideAndLog(driverLayer)
   }
-  override def delete(Id: Int, companyId: String): ZIO[Any, RepositoryError, Int] =
-    execute(deleteFrom(usersx).where(whereClause(Id,  companyId)))
+  override def delete(idx: Int, companyId: String): ZIO[Any, RepositoryError, Int] =
+    execute(deleteFrom(usersx).where((company === companyId) && (id === idx) ))
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getMessage))
 

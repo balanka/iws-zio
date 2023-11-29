@@ -52,8 +52,8 @@ final class RoleRepositoryImpl(pool: ConnectionPool) extends RoleRepository with
       execute(query)
         .provideAndLog(driverLayer)
   }
-  override def delete(id: Int, companyId: String): ZIO[Any, RepositoryError, Int] = {
-    val delete_ = deleteFrom(role).where(whereClause (id, companyId))
+  override def delete(idx: Int, companyId: String): ZIO[Any, RepositoryError, Int] = {
+    val delete_ = deleteFrom(role).where((company === companyId) && (id === idx) )
     ZIO.logInfo(s"Delete user role is ${renderDelete(delete_)}") *>
       execute(delete_)
         .provideLayer(driverLayer)

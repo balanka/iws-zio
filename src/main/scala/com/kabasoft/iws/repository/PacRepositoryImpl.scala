@@ -110,12 +110,12 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
   override def all(companyId: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]] =
     list(companyId).runCollect.map(_.toList)
 
-  override def getBy(id: String, companyId: String): ZIO[Any, RepositoryError, PeriodicAccountBalance] = {
-    val selectAll = SELECT.where(whereClause(id, companyId))
+  override def getBy(idx: String, companyId: String): ZIO[Any, RepositoryError, PeriodicAccountBalance] = {
+    val selectAll = SELECT.where( company === companyId && id === idx )
 
-    ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
+    ZIO.logInfo(s"Query to execute getBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to((PeriodicAccountBalance.apply _).tupled))
-        .findFirst(driverLayer, id, PeriodicAccountBalance.dummy)
+        .findFirst(driverLayer, idx, PeriodicAccountBalance.dummy)
   }
 
   override def getByIds(ids: List[String], companyId: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]] =

@@ -101,7 +101,6 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     c.email,
     c.account,
     c.oaccount,
-    //c.iban,
     c.vatcode,
     c.company,
     c.modelid,
@@ -133,7 +132,6 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
       email,
       account,
       oaccount,
-      //iban,
       vatcode,
       company,
       modelid,
@@ -167,8 +165,8 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     } else {
       create2(models) *> getBy(models.map(_.id), models.head.company)
     }
-  override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
-    val delete_ = deleteFrom(supplier).where(whereClause(item, companyId))
+  override def delete(idx: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
+    val delete_ = deleteFrom(supplier).where((company === companyId) && (id === idx) )
     ZIO.logDebug(s"Delete supplier is ${renderDelete(delete_)}") *>
       execute(delete_)
         .provideLayer(driverLayer)

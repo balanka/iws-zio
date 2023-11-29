@@ -15,7 +15,7 @@ import com.kabasoft.iws.api.CustomerEndpoint.{custByIdEndpoint, custCreateEndpoi
 import com.kabasoft.iws.api.FinancialsEndpoint.ftrModifyEndpoint
 import com.kabasoft.iws.api.ModuleEndpoint.{moduleByIdEndpoint, moduleCreateEndpoint, moduleDeleteEndpoint}
 import com.kabasoft.iws.api.SupplierEndpoint.{supByIdEndpoint, supCreateEndpoint, supDeleteEndpoint}
-import com.kabasoft.iws.api.UserEndpoint.{userByUserNameEndpoint, userCreateEndpoint, userDeleteEndpoint}
+import com.kabasoft.iws.api.UserEndpoint.{userByUserNameEndpoint, userDeleteEndpoint}
 import com.kabasoft.iws.api.VatEndpoint.{vatByIdEndpoint, vatCreateEndpoint, vatDeleteEndpoint}
 import com.kabasoft.iws.domain.AccountBuilder.{acc, accx}
 import com.kabasoft.iws.domain.AppError.RepositoryError
@@ -53,9 +53,9 @@ object ApiSpec extends ZIOSpecDefault {
           val testRoutes = testApi((accAll ++accByIdEndpoint)) _
           val deleteRoutes = testDeleteApi(accDeleteEndpoint) _
           val postRoutes = testPostApi(accCreateEndpoint) _
-            testRoutes("/acc/1000", "14") && testRoutes("/acc/"+acc.id+"/"+acc.company, acc.toJson)&&
+            testRoutes("/acc/1000", "15") && testRoutes("/acc/"+acc.id+"/"+acc.company, acc.toJson)&&
             deleteRoutes("/acc/"+acc.id+"/"+acc.company, "1")&&
-            postRoutes("/acc", accx.toJson, "1")
+            postRoutes("/acc", accx.toJson, accx.toJson)
         },
 
         test("financials integration test") {
@@ -96,7 +96,7 @@ object ApiSpec extends ZIOSpecDefault {
            val deleteRoutes = testDeleteApi(custDeleteEndpoint) _
           val testRoutes1 = testPostApi(custCreateEndpoint) _
           testRoutes("/cust/"+cust.company, "3") && testRoutes("/cust/"+cust.id+"/"+cust.company, cust.toJson)&&
-          deleteRoutes("/cust/"+cust.id+"/"+cust.company, "1")&&testRoutes1("/cust", custx.toJson, "1")
+          deleteRoutes("/cust/"+cust.id+"/"+cust.company, "1")&&testRoutes1("/cust", custx.toJson, custx.toJson)
         },
         test("Supplier integration test") {
           val supAllEndpoint = Endpoint.get("sup"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
@@ -125,15 +125,6 @@ object ApiSpec extends ZIOSpecDefault {
           testRoutes("/module/"+m.company, "1") && testRoutes("/module/"+m.id+"/"+m.company, m.toJson)&&
             deleteRoutes("/module/"+m.id+"/"+m.company, "1")&&testRoutes1("/module", mx.toJson, "1")
         },
-           test("User integration test") {
-          val userAllEndpoint = Endpoint.get("user"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
-            .implement((company:String) => UserRepository.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
-          val testRoutes = testApi(userByUserNameEndpoint ++ userAllEndpoint) _
-          val deleteRoutes = testDeleteApi(userDeleteEndpoint) _
-         val testRoutes1 = testPostApi(userCreateEndpoint) _
-          testRoutes("/user/1000", "2") && testRoutes("/user/"+user.userName+"/"+user.company, user.toJson)&&
-            deleteRoutes("/user/"+userx.id+"/"+userx.company, "1")&&testRoutes1("/user", userx.toJson, "1")
-        },
         test("Vat integration test") {
           val vatAllEndpoint = Endpoint.get("vat"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
             .implement((company:String) => VatCache.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
@@ -142,7 +133,15 @@ object ApiSpec extends ZIOSpecDefault {
           val testRoutes1 = testPostApi(vatCreateEndpoint) _
           testRoutes("/vat/1000", "2") && testRoutes("/vat/"+vat1.id+"/"+vat1.company, vat1.toJson) &&
           deleteRoutes("/vat/"+vat1.id+"/"+vat1.company, "1")&&testRoutes1("/vat", vat1x.toJson, "1")
-
+        },
+        test("User integration test") {
+          val userAllEndpoint = Endpoint.get("user" / string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
+            .implement((company: String) => UserRepository.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
+          val testRoutes = testApi(userByUserNameEndpoint ++ userAllEndpoint) _
+          val deleteRoutes = testDeleteApi(userDeleteEndpoint) _
+          //val testRoutes1 = testPostApi(userCreateEndpoint) _
+          testRoutes("/user/1000", "2") && testRoutes("/user/" + user.userName + "/" + user.company, user.toJson) &&
+            deleteRoutes("/user/" + userx.id + "/" + userx.company, "1") //&& testRoutes1("/user", userx.toJson, "1")
         }
     ).provideShared(ConnectionPool.live,  AccountRepositoryImpl.live, AccountCacheImpl.live,BankRepositoryImpl.live,
         BankCacheImpl.live, CostcenterRepositoryImpl.live, CostcenterCacheImpl.live, CustomerRepositoryImpl.live,

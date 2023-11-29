@@ -46,8 +46,10 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: FinancialsTra
 
   private[this] def postTransaction(transaction: FinancialsTransaction, company: String): ZIO[Any, RepositoryError, Int] = {
     val model = transaction.copy(period = common.getPeriod(transaction.transdate))
+    val pacids = buildPacIds(model)
     for {
-      pacs <- pacRepo.getByIds(buildPacIds(model), company)
+
+      pacs <- pacRepo.getByIds(pacids, company).map(_.filterNot(_.id.equals(PeriodicAccountBalance.dummy.id)))
       newRecords = PeriodicAccountBalance.create(model).filterNot(pac => pacs.map(_.id).contains(pac.id))
         .groupBy(_.id) map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy)}
       tpacs <- pacs.map(TPeriodicAccountBalance.apply).flip

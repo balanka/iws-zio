@@ -15,7 +15,7 @@ object SupplierBuilder {
   val supplierIban3 = "DE84480501610047008271"
   val iban = "DE8448050161004700827X"
   val name = "Sontige Lieferant Rechts und Beratung"
-  val vtime = instantFromStr("2018-01-01T10:00:00.00Z")
+  val vtime = Instant.parse("2018-01-01T10:00:00.00Z")
   val supplier1 = Supplier(supplierId1, "B Mady", "Bintou Mady Kaba","Bielefelder Str 1", "33615" , "Bielefeld", "NRW", "DE", "0521-471163",
       "0521-471164","xxx@domain.de", accountRecvId, incaccountId, vataccountId,1000)
 
@@ -25,7 +25,5 @@ object SupplierBuilder {
   val sup = Supplier(supId, supName, supName, "", "", "", "", "DE","", "", accId, "6825",  vat,companyId, Supplier.MODELID, vtime, vtime,vtime)
   val supx = Supplier(supIdx, supName, supName, "", "", "", "", "DE","", "", accId, "6825",  vat,companyId, Supplier.MODELID, vtime, vtime,vtime)
   val suppliers = List( supplier1, supplier2 )
-
-   def instantFromStr(str:String)=Instant.parse(str)
 
 }

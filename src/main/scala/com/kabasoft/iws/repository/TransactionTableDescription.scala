@@ -146,11 +146,17 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     val transid1x = time & ~9223372036854251520L
     transid1x
   }
-  def create2s(transactions: List[FinancialsTransaction], accounts:List[Account]): ZIO[SqlTransaction, Exception, Int] = {
-    val models = transactions.zipWithIndex.map { case (ftr, i) =>
-      val idx = newCreate()+i.toLong
-      ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx )), period=common.getPeriod(ftr.transdate))
+
+  def buildId1(transactions: List[FinancialsTransaction]): List[FinancialsTransaction] =
+     transactions.zipWithIndex.map { case (ftr, i) =>
+      val idx = newCreate() + i.toLong
+      ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
     }
+  def create2s(models: List[FinancialsTransaction], accounts:List[Account]): ZIO[SqlTransaction, Exception, Int] = {
+//    val models = transactions.zipWithIndex.map { case (ftr, i) =>
+//      val idx = newCreate()+i.toLong
+//      ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx )), period=common.getPeriod(ftr.transdate))
+//    }
     val allLines = models.flatMap(_.lines)
     //val ids = transactions.flatMap(tr=>tr.lines.map(_.account))++transactions.flatMap(tr=>tr.lines.map(_.oaccount))
     val result = for {

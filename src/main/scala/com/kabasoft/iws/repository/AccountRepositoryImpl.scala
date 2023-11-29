@@ -72,8 +72,8 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
     credit
   ).from(accounts)
 
-  def whereClause(Id: String, companyId: String) =
-    List(id === Id, company === companyId)
+  def whereClause(idx: String, companyId: String) =
+    List(id === idx, company === companyId)
       .fold(Expr.literal(true))(_ && _)
 
   def whereClause(Ids: List[String], companyId: String) =
@@ -120,8 +120,8 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
         .unit
   }
 
-  override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
-    val delete_ = deleteFrom(accounts).where(whereClause(item, companyId))
+  override def delete(idx: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
+    val delete_ = deleteFrom(accounts).where(company === companyId && id === idx  )
     ZIO.logDebug(s"Delete Account is ${renderDelete(delete_)}") *>
     execute(delete_)
       .provideLayer(driverLayer)
@@ -170,9 +170,9 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
         .provideDriver(driverLayer)
 
   override def getBy(Id: (String,  String)): ZIO[Any, RepositoryError, Account]          = {
-    val selectAll = SELECT.where(whereClause(Id._1, Id._2))
+    val selectAll = SELECT.where(company === Id._2 && id === Id._1 )
 
-    ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
+    ZIO.logInfo(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to(c => (Account.apply(c))))
         .findFirst(driverLayer, Id._1)
   }

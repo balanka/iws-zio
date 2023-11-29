@@ -47,8 +47,8 @@ final class ModuleRepositoryImpl(pool: ConnectionPool) extends ModuleRepository 
       execute(query)
         .provideAndLog(driverLayer)
   }
-  override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int]    =
-    execute(deleteFrom(module).where(whereClause(item, companyId)))
+  override def delete(idx: String, companyId: String): ZIO[Any, RepositoryError, Int]    =
+    execute(deleteFrom(module).where((company === companyId) && (id === idx) ))
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getMessage))
 

@@ -170,8 +170,8 @@ final class EmployeeRepositoryImpl(pool: ConnectionPool) extends EmployeeReposit
     }
 
 
-  override def delete(id: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
-    val delete_ = deleteFrom(employee).where(whereClause(id, companyId))
+  override def delete(idx: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
+    val delete_ = deleteFrom(employee).where( (company === companyId) && (id === idx)  )
     ZIO.logDebug(s"Delete Employee is ${renderDelete(delete_)}") *>
       execute(delete_)
         .provideLayer(driverLayer)

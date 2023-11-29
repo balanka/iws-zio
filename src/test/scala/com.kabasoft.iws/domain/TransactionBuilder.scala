@@ -40,7 +40,7 @@ object TransactionBuilder {
     , period, false, modelid2, company, "comments", 0, 0, List(line4))
   val ftr5 = FinancialsTransaction(-1, -1, 1, costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
     , period, false, modelid2, company, "comments", 0, 0, List(line5, line6))
-  val dtransactions = ftr1.toDerive()
+  //val dtransactions = ftr1.toDerive()
   val pacs = PeriodicAccountBalance.create(ftr1).distinct
 
 

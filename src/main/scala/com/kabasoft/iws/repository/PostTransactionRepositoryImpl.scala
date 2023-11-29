@@ -119,9 +119,10 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
   override  def post(models: List[FinancialsTransaction], pac2Insert:List[PeriodicAccountBalance], pac2update:UIO[List[PeriodicAccountBalance]],
                      journals:List[Journal]): ZIO[Any, RepositoryError, Int] =  for {
     pac2updatex<-pac2update
-    _ <- ZIO.logDebug(s" New Pacs  to insert into DB ${pac2Insert}")
-    _ <- ZIO.logDebug(s" Old Pacs  to update in DB ${pac2updatex}")
-    _ <- ZIO.logDebug(s" Transaction posted  ${models}")
+    _ <- ZIO.logInfo(s" New Pacs  to insert into DB ${pac2Insert}")
+    _ <- ZIO.logInfo(s" Old Pacs  to update in DB ${pac2updatex}")
+    _ <- ZIO.logInfo(s" journals  ${journals}")
+    _ <- ZIO.logInfo(s" Transaction posted  ${models}")
      z = ZIO.when(models.nonEmpty)(updatePostedField4T(models))
              .zipWith(ZIO.when(pac2Insert.nonEmpty)(createPacs4T(pac2Insert)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0))
              .zipWith(ZIO.when(pac2updatex.nonEmpty)(modifyPacs4T(pac2updatex)))((i1, i2)=>i1 +i2.getOrElse(0))

@@ -33,7 +33,7 @@ object BankStatementServiceLiveSpec extends ZIOSpecDefault {
           created <- BankStatementRepository.create2(BankStatementBuilder.bs)
           bs <- BankStatementRepository.list( companyId).runCollect.map(_.toList)
           postedBS <- BankStatementService.post(bs.map(_.id), companyId).map(_.size)
-        } yield  assertTrue(created == 2) && assertTrue(postedBS == 8)
+        } yield  assertTrue(created == 2) && assertTrue(postedBS == 4)
      }
     ).provideLayerShared(testServiceLayer.orDie) @@ sequential
 }

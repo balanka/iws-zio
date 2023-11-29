@@ -39,7 +39,6 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     email,
     account,
     oaccount,
-    //iban,
     vatcode,
     company,
     modelid,
@@ -61,7 +60,6 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     email,
     account,
     oaccount,
-    //iban,
     vatcode,
     company,
     modelid,
@@ -82,7 +80,6 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     email,
     account,
     oaccount,
-    //id_,
     vatcode,
     company,
     modelid,
@@ -137,7 +134,6 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     email,
     account,
     oaccount,
-    //iban,
     vatcode,
     company,
     modelid,
@@ -176,8 +172,8 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
   }
 
 
-  override def delete(id: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
-    val delete_ = deleteFrom(customer).where(whereClause(id, companyId))
+  override def delete(idx: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
+    val delete_ = deleteFrom(customer).where((company === companyId) && (id === idx) )
     ZIO.logDebug(s"Delete customer is ${renderDelete(delete_)}") *>
     execute(delete_)
       .provideLayer(driverLayer)

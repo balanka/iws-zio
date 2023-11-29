@@ -121,7 +121,7 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
   }
 
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
-    val delete_ = deleteFrom(articles).where(whereClause(item, companyId))
+    val delete_ = deleteFrom(articles).where((company === companyId) && (id === item))
     ZIO.logDebug(s"Delete Article is ${renderDelete(delete_)}") *>
       execute(delete_)
         .provideLayer(driverLayer)

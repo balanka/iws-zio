@@ -48,8 +48,8 @@ final class StoreRepositoryImpl(pool: ConnectionPool) extends StoreRepository wi
       execute(query)
         .provideAndLog(driverLayer)
   }
-  override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
-    val delete_ = deleteFrom(store).where(whereClause (item, companyId))
+  override def delete(idx: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
+    val delete_ = deleteFrom(store).where((company === companyId) && (id === idx) )
     ZIO.logInfo(s"Delete Store is ${renderDelete(delete_)}") *>
       execute(delete_)
         .provideLayer(driverLayer)

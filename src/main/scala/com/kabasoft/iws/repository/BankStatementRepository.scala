@@ -11,7 +11,7 @@ trait BankStatementRepository {
   def create(item: BS): ZIO[Any, RepositoryError, BS]
 
   def create(models: List[BS]): ZIO[Any, RepositoryError, List[BS]]
-  def create2(item: BS): ZIO[Any, RepositoryError, Unit]
+  //def create2(item: BS): ZIO[Any, RepositoryError, Unit]
   def create2(models: List[BS]): ZIO[Any, RepositoryError, Int]
   def delete(item: String, company: String): ZIO[Any, RepositoryError, Int]
   def delete(items: List[String], company: String): ZIO[Any, RepositoryError, List[Int]] =
@@ -41,8 +41,8 @@ object BankStatementRepository {
 
   def create(items: List[BS]): ZIO[BSRepository, RepositoryError, List[BS]] =
     ZIO.service[BSRepository] flatMap (_.create(items))
-  def create2(item: BS): ZIO[BSRepository, RepositoryError, Unit]                                  =
-    ZIO.service[BSRepository] flatMap (_.create2(item))
+  //def create2(item: BS): ZIO[BSRepository, RepositoryError, Unit]                                  =
+  //  ZIO.service[BSRepository] flatMap (_.create2(item))
   def create2(items: List[BS]): ZIO[BSRepository, RepositoryError, Int]                            =
     ZIO.service[BSRepository] flatMap (_.create2(items))
   def delete(item: String, company: String): ZIO[BSRepository, RepositoryError, Int]              =

@@ -47,8 +47,8 @@ final class SalaryItemRepositoryImpl(pool: ConnectionPool) extends SalaryItemRep
       execute(query)
         .provideAndLog(driverLayer)
   }
-  override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
-    val delete_ = deleteFrom(salaryItem).where(whereClause (item, companyId))
+  override def delete(idx: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
+    val delete_ = deleteFrom(salaryItem).where((company === companyId) && (id === idx) )
     ZIO.logInfo(s"Delete salaryItem is ${renderDelete(delete_)}") *>
       execute(delete_)
         .provideLayer(driverLayer)

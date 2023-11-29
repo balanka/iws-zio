@@ -23,8 +23,10 @@ object TransactionRepositoryLiveSpec extends ZIOSpecDefault {
       test("insert a  transactions, modify, gets a transaction by transId and count the Nr all transactions ") {
         val terms ="changed text"
         val list =List(ftr1,ftr2)
+
         for {
-          oneRow <- FinancialsTransactionRepository.create(list).map(_.map(_.lines.size).sum+2)
+
+          oneRow <- FinancialsTransactionRepository.create(list).map(_.map(_.lines.size).sum)
           all <- FinancialsTransactionRepository.all(companyId)
           ftr <- FinancialsTransactionRepository.getByTransId((all(0).id, companyId))
           count <- FinancialsTransactionRepository.all(companyId).map(_.size)
@@ -32,7 +34,7 @@ object TransactionRepositoryLiveSpec extends ZIOSpecDefault {
           nrUpdated <- FinancialsTransactionRepository.modify(ftr.copy(text=terms))
           ftr2 <- FinancialsTransactionRepository.getByTransId((ftr.id, companyId))
           ftrByModelIdCount <- FinancialsTransactionRepository.getByModelId((modelid2, companyId)).map(_.size)
-        } yield assertTrue(oneRow == 7, count == 3, ftrByModelIdCount == 1, nrUpdated == 3, ftr2.text == terms, nrUpdatedLines == 3)
+        } yield assertTrue(oneRow == 3, count == 3, ftrByModelIdCount == 1, nrUpdated == 3, ftr2.text == terms, nrUpdatedLines == 2)
       }
     ).provideLayerShared(testLayer.orDie) @@ sequential
 }

@@ -46,7 +46,7 @@ trait BankStatementTableDescription extends IWSTableDescriptionPostgres {
     periodx_bs
   ) = bankStatementInsert.columns
 
-  def toTuple2(c: BankStatement_) = (
+  def toTuple2(c: BankStatement) = (
     c.depositor,
     c.postingdate,
     c.valuedate,

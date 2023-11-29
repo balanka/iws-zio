@@ -48,8 +48,8 @@ final class BankRepositoryImpl(pool: ConnectionPool) extends BankRepository with
       execute(query)
         .provideAndLog(driverLayer)
   }
-  override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
-    val delete_ = deleteFrom(bank).where(whereClause (item, companyId))
+  override def delete(idx: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
+    val delete_ = deleteFrom(bank).where( (company === companyId) && (id === idx)  )
     ZIO.logInfo(s"Delete Bank is ${renderDelete(delete_)}") *>
       execute(delete_)
         .provideLayer(driverLayer)

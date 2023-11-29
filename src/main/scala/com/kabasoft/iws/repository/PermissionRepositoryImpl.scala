@@ -48,8 +48,8 @@ final class PermissionRepositoryImpl(pool: ConnectionPool) extends PermissionRep
       execute(query)
         .provideAndLog(driverLayer)
   }
-  override def delete(id: Int, companyId: String): ZIO[Any, RepositoryError, Int] = {
-    val delete_ = deleteFrom(permission).where(whereClause (id, companyId))
+  override def delete(idx: Int, companyId: String): ZIO[Any, RepositoryError, Int] = {
+    val delete_ = deleteFrom(permission).where((company === companyId) && (id === idx) )
     ZIO.logDebug(s"Delete Permission is ${renderDelete(delete_)}") *>
       execute(delete_)
         .provideLayer(driverLayer)

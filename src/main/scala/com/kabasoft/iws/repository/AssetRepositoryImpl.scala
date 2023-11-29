@@ -51,7 +51,7 @@ final class AssetRepositoryImpl(pool: ConnectionPool) extends AssetRepository wi
         .provideAndLog(driverLayer)
   }
   override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
-    val delete_ = deleteFrom(asset).where(whereClause (item, companyId))
+    val delete_ = deleteFrom(asset).where((company === companyId) && (id === item))
     ZIO.logInfo(s"Delete asset is ${renderDelete(delete_)}") *>
       execute(delete_)
         .provideLayer(driverLayer)

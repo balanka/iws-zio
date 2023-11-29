@@ -38,7 +38,7 @@ final class FinancialsTransactionRepositoryImpl(pool: ConnectionPool, accRepo: A
 
   @nowarn
   def create2(transactions: List[FinancialsTransaction], accounts:List[Account]): ZIO[Any, RepositoryError, Int] =
-    transact(create2s(transactions, accounts))
+    transact(create2s( buildId1(transactions), accounts))
       .mapError(e => RepositoryError(e.toString))
       .provideLayer(driverLayer)
 
@@ -50,7 +50,8 @@ final class FinancialsTransactionRepositoryImpl(pool: ConnectionPool, accRepo: A
       val ids =  ftr.lines.map(_.account) ++ftr.lines.map(_.oaccount)
       val trs = for {
         accounts <- accRepo.getBy(ids, ftr.company)
-        nr <-  create2(List(ftr), accounts) *> getByTransId1(ftr.id1, ftr.company)
+        transactions = buildId1(List(ftr))
+        nr <-  create2(transactions, accounts) *> getByTransId1(transactions.head.id1, ftr.company)
       } yield nr
       trs
     }
@@ -62,8 +63,9 @@ final class FinancialsTransactionRepositoryImpl(pool: ConnectionPool, accRepo: A
     val ids = models.flatMap(tr=> {company=tr.company; tr.lines.map(_.account)})++models.flatMap(tr=>tr.lines.map(_.oaccount))
     val trs =for{
       accounts        <-  accRepo.getBy(ids, company)
-     nr <-  create2(models, accounts) *>
-        getByTransId1x(models.map(m => m.id), models.head.company)
+      transactions = buildId1(models)
+     nr <-  create2(transactions, accounts) *>
+        getByTransId1x(transactions.map(m => m.id1), transactions.head.company)
     }yield nr
     trs
   }
@@ -234,8 +236,8 @@ final class FinancialsTransactionRepositoryImpl(pool: ConnectionPool, accRepo: A
   }
 
   override def getByIds(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = {
-    val selectAll = SELECT2.where((company_ === companyId) && (id_ in  ids))
-   // ZStream.fromZIO(ZIO.logDebug(s"Query to execute getById ${ids} is ${renderRead(selectAll)}")) *>
+    val selectAll = SELECT2.where((company_ === companyId) && (id1_ in  ids))
+    ZIO.logInfo(s"Query to execute getByIds ${ids} is ${renderRead(selectAll)}") *>
       execute(selectAll.to[FinancialsTransaction](c => FinancialsTransaction.applyC(c)))
         .provideDriver(driverLayer)
         .runCollect.map(_.toList)
