@@ -63,8 +63,8 @@ final class VatRepositoryImpl(pool: ConnectionPool) extends VatRepository with I
     ZIO.logDebug(s"Query to insert Vat is ${renderInsert(query)}") *>
       execute(query).provideAndLog(driverLayer)
   }
-  override def delete(item: String, companyId: String): ZIO[Any, RepositoryError, Int] =
-    execute(deleteFrom(vat).where(whereClause(item,  companyId)))
+  override def delete(idx: String, companyId: String): ZIO[Any, RepositoryError, Int] =
+    execute(deleteFrom(vat).where((company === companyId) && (id === idx) ))
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getMessage))
 

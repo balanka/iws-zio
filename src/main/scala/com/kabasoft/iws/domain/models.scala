@@ -40,7 +40,7 @@ object common {
   implicit val pacMonoid: Identity[PeriodicAccountBalance] = new Identity[PeriodicAccountBalance] {
     def identity: PeriodicAccountBalance                                      = PeriodicAccountBalance.dummy
     def combine(m1: => PeriodicAccountBalance, m2: => PeriodicAccountBalance): PeriodicAccountBalance = {
-      if(m1.id==PeriodicAccountBalance.dummy.id){
+      if(m1.id.equals(PeriodicAccountBalance.dummy.id)){
         m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
       }else {
         m1.idebiting(m2.idebit).icrediting(m2.icredit).debiting(m2.debit).crediting(m2.credit)
