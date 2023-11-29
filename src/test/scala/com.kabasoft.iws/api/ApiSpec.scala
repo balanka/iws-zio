@@ -87,7 +87,7 @@ object ApiSpec extends ZIOSpecDefault {
           val deleteRoutes = testDeleteApi(bankDeleteEndpoint) _
           val testRoutes1 = testPostApi(bankCreateEndpoint) _
           testRoutes("/bank/"+bank.company, "2") && testRoutes("/bank/"+bank.id+"/"+bank.company, bank.toJson) &&
-            deleteRoutes("/bank/"+bank.id+"/"+bank.company, "1")&& testRoutes1("/bank", bankx.toJson, bank.toJson)
+            deleteRoutes("/bank/"+bank.id+"/"+bank.company, "1")&& testRoutes1("/bank", bankx.toJson, bankx.toJson)
         },
          test("Customer integration test") {
           val custAllEndpoint = Endpoint.get("cust"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
