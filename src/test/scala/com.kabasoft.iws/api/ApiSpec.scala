@@ -53,7 +53,7 @@ object ApiSpec extends ZIOSpecDefault {
           val testRoutes = testApi((accAll ++accByIdEndpoint)) _
           val deleteRoutes = testDeleteApi(accDeleteEndpoint) _
           val postRoutes = testPostApi(accCreateEndpoint) _
-            testRoutes("/acc/1000", "15") && testRoutes("/acc/"+acc.id+"/"+acc.company, acc.toJson)&&
+            testRoutes("/acc/1000", "17") && testRoutes("/acc/"+acc.id+"/"+acc.company, acc.toJson)&&
             deleteRoutes("/acc/"+acc.id+"/"+acc.company, "1")&&
             postRoutes("/acc", accx.toJson, accx.toJson)
         },
@@ -87,7 +87,7 @@ object ApiSpec extends ZIOSpecDefault {
           val deleteRoutes = testDeleteApi(bankDeleteEndpoint) _
           val testRoutes1 = testPostApi(bankCreateEndpoint) _
           testRoutes("/bank/"+bank.company, "2") && testRoutes("/bank/"+bank.id+"/"+bank.company, bank.toJson) &&
-            deleteRoutes("/bank/"+bank.id+"/"+bank.company, "1")&& testRoutes1("/bank", bankx.toJson, "1")
+            deleteRoutes("/bank/"+bank.id+"/"+bank.company, "1")&& testRoutes1("/bank", bankx.toJson, bank.toJson)
         },
          test("Customer integration test") {
           val custAllEndpoint = Endpoint.get("cust"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
@@ -105,7 +105,7 @@ object ApiSpec extends ZIOSpecDefault {
           val deleteRoutes = testDeleteApi(supDeleteEndpoint) _
           val testRoutes1 = testPostApi(supCreateEndpoint) _
           testRoutes("/sup/"+sup.company, "6") && testRoutes("/sup/"+sup.id+"/"+sup.company, sup.toJson)&&
-          deleteRoutes("/sup/"+sup.id+"/"+sup.company, "1")&&testRoutes1("/sup", supx.toJson, "1")
+          deleteRoutes("/sup/"+sup.id+"/"+sup.company, "1")&&testRoutes1("/sup", supx.toJson, supx.toJson)
         },
         test("Cost center integration test") {
           val ccAllEndpoint = Endpoint.get("cc"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
@@ -114,7 +114,7 @@ object ApiSpec extends ZIOSpecDefault {
           val deleteRoutes = testDeleteApi(ccDeleteEndpoint) _
           val testRoutes1 = testPostApi(ccCreateEndpoint) _
           testRoutes("/cc/"+cc.company, "2") && testRoutes("/cc/"+cc.id+"/"+cc.company, cc.toJson)&&
-            deleteRoutes("/cc/"+cc.id+"/"+cc.company, "1")&&testRoutes1("/cc", ccx.toJson, "1")
+            deleteRoutes("/cc/"+cc.id+"/"+cc.company, "1")&&testRoutes1("/cc", ccx.toJson, ccx.toJson)
         },
           test("Module integration test") {
           val moduleAllEndpoint = Endpoint.get("module"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
@@ -123,7 +123,7 @@ object ApiSpec extends ZIOSpecDefault {
             val deleteRoutes = testDeleteApi(moduleDeleteEndpoint) _
           val testRoutes1 = testPostApi(moduleCreateEndpoint) _
           testRoutes("/module/"+m.company, "1") && testRoutes("/module/"+m.id+"/"+m.company, m.toJson)&&
-            deleteRoutes("/module/"+m.id+"/"+m.company, "1")&&testRoutes1("/module", mx.toJson, "1")
+            deleteRoutes("/module/"+m.id+"/"+m.company, "1")&&testRoutes1("/module", mx.toJson, mx.toJson)
         },
         test("Vat integration test") {
           val vatAllEndpoint = Endpoint.get("vat"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
@@ -132,7 +132,7 @@ object ApiSpec extends ZIOSpecDefault {
           val deleteRoutes = testDeleteApi(vatDeleteEndpoint) _
           val testRoutes1 = testPostApi(vatCreateEndpoint) _
           testRoutes("/vat/1000", "2") && testRoutes("/vat/"+vat1.id+"/"+vat1.company, vat1.toJson) &&
-          deleteRoutes("/vat/"+vat1.id+"/"+vat1.company, "1")&&testRoutes1("/vat", vat1x.toJson, "1")
+          deleteRoutes("/vat/"+vat1.id+"/"+vat1.company, "1")&&testRoutes1("/vat", vat1x.toJson, vat1x.toJson)
         },
         test("User integration test") {
           val userAllEndpoint = Endpoint.get("user" / string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
