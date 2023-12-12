@@ -1,4 +1,6 @@
 package com.kabasoft.iws.domain
+
+
 import java.util.Locale
 import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 import zio.prelude._
@@ -621,6 +623,7 @@ final case class Costcenter(
 final case class ImportFile( id: String,
                              name: String,
                              description: String,
+                             extension: String,
                              enterdate: Instant = Instant.now(),
                              changedate: Instant = Instant.now(),
                              postingdate: Instant = Instant.now(),
@@ -638,6 +641,8 @@ final case class SalaryItem(id: String,
                             modelid: Int = 171,
                             company: String
                            ) extends IWS
+final case class EmployeeSalaryItem(id: String, account: String, amount: BigDecimal, text:String, company: String)
+
 final case class Bank(
   id: String,
   name: String = "",
@@ -1345,7 +1350,7 @@ final case class Employee(
                            changedate: Instant = Instant.now(),
                            postingdate: Instant = Instant.now(),
                            bankaccounts: List[BankAccount] = List.empty[BankAccount],
-                           salaryItems: List[SalaryItem] = List.empty[SalaryItem]
+                           salaryItems: List[EmployeeSalaryItem] = List.empty[EmployeeSalaryItem]
                          ) extends BusinessPartner
 object Employee                      {
   val MODELID = 33

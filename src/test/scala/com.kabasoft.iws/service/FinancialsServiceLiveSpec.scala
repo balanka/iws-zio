@@ -44,18 +44,12 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
         val amount = new BigDecimal("200.00").setScale(2, RoundingMode.HALF_UP)
         val amount2 = new BigDecimal("869.00").setScale(2, RoundingMode.HALF_UP)
         val creditAmount = new BigDecimal("281.00").setScale(2, RoundingMode.HALF_UP)
-        //val z = ZoneId.of( "Europe/Berlin" )
-        //val month = ftr1.transdate.atZone(z).getMonthValue
-        //val localDate:LocalDate = LocalDate.ofInstant(ftr1.transdate, z)
-        //val ftr3 = ftr1.copy(transdate = localDate.plusMonths(-month.toLong).atStartOfDay().toInstant(ZoneOffset.UTC) )
-        //val tdate = localDate.plusYears(-1L).atStartOfDay().toInstant(ZoneOffset.UTC)
-        //val ftr3 = ftr1.copy(enterdate= tdate, transdate = tdate ,period = getPeriod(tdate))
+
         val list  = List(ftr1, ftr2)
         for {
-          //oneRow     <- TransactionRepository.create(List(ftr1, ftr2, ftr3))
-          oneRow     <- FinancialsTransactionRepository.create(List(ftr1, ftr2)).map(_.map(_.lines.size).sum+list.size)
-          ftr        <-   FinancialsTransactionRepository.all(companyId)
 
+          oneRow     <- FinancialsTransactionRepository.create(list).map(_.map(_.lines.size).sum+list.size)
+          ftr        <-   FinancialsTransactionRepository.all(companyId)
           postedRows <- FinancialsService.postAll(ftr.map(_.id), companyId)
           oaccountEntry <- FinancialsService.journal(line1.oaccount, period, period, companyId).map(_.size)
           accountEntry <- FinancialsService.journal(line1.account, period, period, companyId).map(_.size)

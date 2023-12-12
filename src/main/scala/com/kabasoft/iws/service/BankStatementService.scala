@@ -25,10 +25,10 @@ object BankStatementService {
     ZIO.service[BankStatementService].flatMap(_.post(ids, companyId))
   def importBankStmt( path: String,
                       header: String,
-                      char: String,
+                      char: String ="\"",
                       extension: String,
                       company: String,
-                      buildFn: String => BankStatement
+                      buildFn: String => BankStatement = BankStatement.from
   ): ZIO[BankStatementService, RepositoryError, Int] =
     ZIO.service[BankStatementService].flatMap(_.importBankStmt(path, header, char, extension, company, buildFn))
 }

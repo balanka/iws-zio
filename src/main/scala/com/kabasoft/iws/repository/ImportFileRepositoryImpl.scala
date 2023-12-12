@@ -12,9 +12,9 @@ final class ImportFileRepositoryImpl(pool: ConnectionPool) extends ImportFileRep
 
   val importFile = defineTable[ImportFile]("bankstatement_file")
 
-  val (id, name, description, enterdate, changedate, postingdate, modelid, company) = importFile.columns
+  val (id, name, description, extension, enterdate, changedate, postingdate, modelid, company) = importFile.columns
 
-  val SELECT                                                                           = select(id, name, description, enterdate, changedate, postingdate, modelid, company).from(importFile)
+  val SELECT                                                                           = select(id, name, description, extension, enterdate, changedate, postingdate, modelid, company).from(importFile)
 
 
   def whereClause(Id: String, companyId: String) =
@@ -33,7 +33,7 @@ final class ImportFileRepositoryImpl(pool: ConnectionPool) extends ImportFileRep
     }
 
   override def create2(c: ImportFile): ZIO[Any, RepositoryError, Unit]                        = {
-    val query = insertInto(importFile)(id, name, description, enterdate, changedate, postingdate, modelid, company).values(ImportFile.unapply(c).get)
+    val query = insertInto(importFile)(id, name, description,  extension, enterdate, changedate, postingdate, modelid, company).values(ImportFile.unapply(c).get)
 
     ZIO.logDebug(s"Query to insert ImportFile is ${renderInsert(query)}") *>
       execute(query)
@@ -42,7 +42,7 @@ final class ImportFileRepositoryImpl(pool: ConnectionPool) extends ImportFileRep
   }
   override def create2(models: List[ImportFile]): ZIO[Any, RepositoryError, Int]              = {
     val data  = models.map(ImportFile.unapply(_).get)
-    val query = insertInto(importFile)(id, name, description, enterdate, changedate, postingdate, modelid, company).values(data)
+    val query = insertInto(importFile)(id, name, description,  extension, enterdate, changedate, postingdate, modelid, company).values(data)
 
     ZIO.logDebug(s"Query to insert ImportFile is ${renderInsert(query)}") *>
       execute(query)

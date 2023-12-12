@@ -51,7 +51,7 @@ object LoginRoutes {
     _ <- ZIO.logInfo(s"pwd >>>>>> ${jwtEncode(loginRequest.password,1000000)}")
     r <- UserRepository.all(loginRequest.company)
     user = r.find(_.userName.equals(loginRequest.userName)).getOrElse(DummyUser)
-    _ <- ZIO.logInfo(s"all Users >>>>>> ${user}")
+    _ <- ZIO.logDebug(s"all Users >>>>>> ${user}")
     content   = jwtDecode(user.hash).toList.head.content.replace("{","").replace("}","")
 
   } yield {

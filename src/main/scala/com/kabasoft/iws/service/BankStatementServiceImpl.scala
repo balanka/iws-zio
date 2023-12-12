@@ -20,9 +20,9 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
 ) extends BankStatementService {
 
   override def post(id: Long, companyId: String): ZIO[Any, RepositoryError, BankStatement] =
-    call(List(id), companyId) *> bankStmtRepo.getById(id)
+    postBankStmtCreateTransaction(List(id), companyId) *> bankStmtRepo.getById(id)
 
-  private def call(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, Int] =
+  private def postBankStmtCreateTransaction(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, Int] =
     for {
       accounts <- ZIO.logInfo(s"get company by id  ${companyId}  ") *>accountRepo.all(companyId)
       company <- ZIO.logInfo(s"get company by id  ${companyId}  ") *> companyRepo.getBy(companyId)
@@ -34,7 +34,7 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
     } yield posted
 
   override def post(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, List[BankStatement]] = {
-    call(ids, companyId) *> bankStmtRepo.getById(ids).runCollect.map(_.toList)
+    postBankStmtCreateTransaction(ids, companyId) *> bankStmtRepo.getById(ids).runCollect.map(_.toList)
   }
 
   private def buildTransactions(bs: List[BankStatement], vats:List[Vat], company: Company, accounts:List[Account]): ZIO[Any, RepositoryError, List[List[FinancialsTransaction]]] = bs.map(stmt =>
@@ -43,7 +43,7 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
     } else {
       supplierRepo.getByIban(stmt.accountno, stmt.company)
     }).map(s => {
-      List(buildPaymentSettlement(stmt, s, company, accounts), buildTrans(stmt, s, vats.find(_.id == s.vatcode), accounts))
+      List(buildPaymentSettlement(stmt, s, company, accounts), buildReceivablesPayables(stmt, s, vats.find(_.id == s.vatcode), accounts))
     })
   ).flip
   private def  getX (optVat:Option[Vat], bs: BankStatement): Option[(String, BigDecimal)] =
@@ -54,7 +54,7 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
           .setScale(2, RoundingMode.HALF_UP)
      (vatAccount, netAmount)
   })
-  private def buildTrans(bs: BankStatement, partner: BusinessPartner, optVat: Option[Vat], accounts:List[Account]): FinancialsTransaction = {
+  private def buildReceivablesPayables(bs: BankStatement, partner: BusinessPartner, optVat: Option[Vat], accounts:List[Account]): FinancialsTransaction = {
 
     val modelid = if (bs.amount.compareTo(zeroAmount) >= 0) 122 else 112
 
@@ -82,6 +82,7 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
       } else {
         FinancialsTransactionDetails(-1L, -1L, oaccount, true, account, amount.abs(), bs.valuedate, bs.purpose, bs.currency, oaccountName, accountName)
       }
+
     buildTransaction(bs, partner, modelid, buildLines())
 
   }
@@ -136,9 +137,11 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
           ZStream
             .fromPath(files)
             .via(ZPipeline.utf8Decode >>> ZPipeline.splitLines)
+            //.via(ZPipeline.utf8Decode >>> ZPipeline.splitLines)
             .tap(e => ZIO.logInfo(s"Element ${e}"))
             .filterNot(p => p.replaceAll(char, "").startsWith(header))
-            .map(p => buildFn(p.replaceAll(char, "")))
+            //.map(p => buildFn(p))
+             .map(p => buildFn(p.replaceAll(char, "")))//.replaceAll("Spk ", "Spk")))
         }
         .mapError(e => RepositoryError(e.getMessage))
         .runCollect

@@ -6,8 +6,7 @@ import com.kabasoft.iws.repository.Schema.repositoryErrorSchema
 import com.kabasoft.iws.domain.Customer
 import com.kabasoft.iws.repository._
 import zio.ZIO
-import zio.http.codec.HttpCodec._
-import zio.http.codec.HttpCodec.string
+import zio.http.codec.HttpCodec.{string, _}
 import zio.http.endpoint.Endpoint
 import zio.http.Status
 import zio.schema.DeriveSchema.gen

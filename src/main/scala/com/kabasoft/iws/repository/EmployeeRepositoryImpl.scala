@@ -1,7 +1,7 @@
 package com.kabasoft.iws.repository
-import com.kabasoft.iws.repository.Schema.{bankAccountSchema, employee_Schema}
+import com.kabasoft.iws.repository.Schema.{bankAccountSchema, employee_Schema, employeeSalaryItemSchema}
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{BankAccount, Employee, Employee_}
+import com.kabasoft.iws.domain.{BankAccount, Employee, EmployeeSalaryItem, Employee_}
 import zio._
 import zio.prelude.FlipOps
 import zio.sql.ConnectionPool
@@ -15,7 +15,9 @@ final class EmployeeRepositoryImpl(pool: ConnectionPool) extends EmployeeReposit
 
   val employee                                = defineTable[Employee_]("employee")
   val bankAccount                             = defineTable[BankAccount]("bankaccount")
+  val salaryItem                             = defineTable[EmployeeSalaryItem]("employee_salary_item")
   val (id_, bic, owner, company_, modelid_) = bankAccount.columns
+  val (id2, account2, amount, text, company2) = salaryItem.columns
 
 
   def whereClause(Ids: List[String], companyId: String) =
@@ -25,6 +27,7 @@ final class EmployeeRepositoryImpl(pool: ConnectionPool) extends EmployeeReposit
     List(company === companyId, id === Idx ).fold(Expr.literal(true))(_ && _)
 
   val SELECT_BANK_ACCOUNT = select(id_, bic, owner, company_, modelid_).from(bankAccount)
+  val SELECT_SALARY_ITEM = select(id2, account2, amount, text, company2).from(salaryItem)
   val (
     id,
     name,
@@ -108,8 +111,18 @@ final class EmployeeRepositoryImpl(pool: ConnectionPool) extends EmployeeReposit
     c.postingdate
   )
 
+//  private def buildInsertSalaryItem(ba: List[EmployeeSalaryItem]) =
+//    insertInto(salaryItem)(id2, account2, amount, text, company2).values(ba.map(EmployeeSalaryItem.unapply(_).get))
   private def buildInsertBankAccount(ba: List[BankAccount]) =
     insertInto(bankAccount)(id_, bic, owner, company_, modelid_).values(ba.map(BankAccount.unapply(_).get))
+
+//  private def buildUpdateSalaryItem(model: EmployeeSalaryItem): Update[EmployeeSalaryItem] =
+//    update(salaryItem)
+//      .set(account2, model.account)
+//      .set(amount, model.amount)
+//      .set(text, model.text)
+//      .set(company2, model.company)
+//      .where(id2 === model.id)
 
   private def buildUpdateBankAccount(model: BankAccount): Update[BankAccount] =
     update(bankAccount)
@@ -151,6 +164,9 @@ final class EmployeeRepositoryImpl(pool: ConnectionPool) extends EmployeeReposit
 
   private def buildDeleteBankAccount(ids : List[String]): List[Delete[BankAccount]] =
     ids.map(id=>deleteFrom(bankAccount).where(id_ === id))
+
+//  private def buildDeleteSalaryItem(owner:String, accounts: List[String]): List[Delete[EmployeeSalaryItem]] =
+//    accounts.map(acc => deleteFrom(salaryItem).where(id2 === owner && account2 === acc))
 
   override def create2(models: List[Employee]): ZIO[Any, RepositoryError, Int]        = {
     val query = buildInsertQuery(models)
@@ -226,16 +242,29 @@ final class EmployeeRepositoryImpl(pool: ConnectionPool) extends EmployeeReposit
       .provideDriver(driverLayer)
   }
 
+  def listEmployeeSalaryItem(companyId: String): ZStream[Any, RepositoryError, EmployeeSalaryItem] = {
+    val selectAll = SELECT_SALARY_ITEM.where(company2 === companyId)
+    execute(selectAll.to((EmployeeSalaryItem.apply _).tupled))
+      .provideDriver(driverLayer)
+  }
+
   def getBankAccounts4Employee(Id: String, companyId: String): ZIO[Any, RepositoryError, List[BankAccount]] = {
     val selectAll = SELECT_BANK_ACCOUNT.where((owner === Id) && (company_ === companyId))
     execute(selectAll.to((BankAccount.apply _).tupled))
       .provideDriver(driverLayer).runCollect.map(_.toList)
   }
 
+//  def getEmployeeSalaryItem(Id: String, companyId: String): ZIO[Any, RepositoryError, List[EmployeeSalaryItem]] = {
+//    val selectAll = SELECT_SALARY_ITEM.where((id2 === Id) && (company2 === companyId))
+//    execute(selectAll.to((EmployeeSalaryItem.apply _).tupled))
+//      .provideDriver(driverLayer).runCollect.map(_.toList)
+//  }
   override def all(companyId: String): ZIO[Any, RepositoryError, List[Employee]]     = for {
     employees     <- list(companyId).runCollect.map(_.toList)
     bankAccounts_ <- listBankAccount(companyId).runCollect.map(_.toList)
-  } yield employees.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
+    salaryItems_ <- listEmployeeSalaryItem(companyId).runCollect.map(_.toList)
+  } yield employees.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id),
+                                     salaryItems = salaryItems_.filter(_.id == c.id)))
 
   override def list(companyId: String): ZStream[Any, RepositoryError, Employee] = {
     val selectAll = SELECT.where(company === companyId)
@@ -253,7 +282,9 @@ final class EmployeeRepositoryImpl(pool: ConnectionPool) extends EmployeeReposit
   def getBy(ids: List[String], company: String): ZIO[Any, RepositoryError, List[Employee]] = for {
     employees <- getBy_(ids, company).runCollect.map(_.toList)
     bankAccounts_ <- listBankAccount(company).runCollect.map(_.toList)
-  }yield employees.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
+    salaryItems_ <- listEmployeeSalaryItem(company).runCollect.map(_.toList)
+  }yield employees.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id),
+                                    salaryItems = salaryItems_.filter(_.id == c.id)))
   def getBy_(ids: List[String], company:String): ZStream[Any, RepositoryError, Employee] = {
     val selectAll = SELECT.where(whereClause(ids, company))
     //ZIO.logDebug(s"Query to execute getBy is ${renderRead(selectAll)}") *>

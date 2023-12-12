@@ -61,7 +61,7 @@ object Main extends ZIOAppDefault {
 
       allowedOrigin = {
         case origin @ Origin.Value(_, host, _) if (host == hostName ||
-          host == "localhost" || host == "127.0.0.1") => Some(AccessControlAllowOrigin.Specific(origin))
+          host == "localhost" || host == "127.0.0.1" ) => Some(AccessControlAllowOrigin.Specific(origin))
         case _ => None
       },
       allowedMethods = AccessControlAllowMethods(Method.GET, Method.POST, Method.PUT, Method.PATCH, Method.DELETE)

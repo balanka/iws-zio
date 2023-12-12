@@ -101,11 +101,12 @@ create table if not exists public.bankstatement_file
     id  varchar(50) not null primary key,
     name        varchar(255)                   not null,
     description varchar(50000),
+    extension varchar(50) not null,
     postingdate timestamp   default CURRENT_TIMESTAMP not null,
     changedate  timestamp   default CURRENT_TIMESTAMP not null,
     enterdate   timestamp   default CURRENT_TIMESTAMP not null,
     company     varchar(50)                    not null,
-    modelid     integer   default 6            not null
+    modelid     integer   default 81            not null
 );
 create table if not exists public.module
 (
@@ -479,7 +480,15 @@ CREATE TABLE IF NOT EXISTS public.salary_item
     modelid integer NOT NULL DEFAULT 6,
     CONSTRAINT salary_item_pkey PRIMARY KEY (id, company)
 );
-
+CREATE TABLE IF NOT EXISTS public.employee_salary_item
+(
+    id character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    account character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    amount numeric(12,2) DEFAULT 0,
+    text character varying(255) NOT NULL,
+    company character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT employee_salary_item_pkey PRIMARY KEY (id, account, company)
+);
 
 insert into article (id,  name, description, parent, sprice, pprice, avg_price,currency, stocked, quantit_unit, pack_unit, company, modelid) values
                    ('iws001', 'Licence IWS base', 'Licence IWS base including masterfile, and administration', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '1000', 35),
