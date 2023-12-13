@@ -1,8 +1,7 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.repository.Schema.costcenterSchema
-import com.kabasoft.iws.repository.Schema.repositoryErrorSchema
+import com.kabasoft.iws.repository.Schema.{costcenterSchema, repositoryErrorSchema}
 import com.kabasoft.iws.domain.Costcenter
 import com.kabasoft.iws.repository._
 import zio.ZIO

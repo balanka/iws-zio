@@ -1,8 +1,7 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.repository.Schema.pacSchema
-import com.kabasoft.iws.repository.Schema.repositoryErrorSchema
+import com.kabasoft.iws.repository.Schema.{pacSchema, repositoryErrorSchema}
 import com.kabasoft.iws.domain.PeriodicAccountBalance
 import com.kabasoft.iws.repository.PacRepository
 import zio.ZIO

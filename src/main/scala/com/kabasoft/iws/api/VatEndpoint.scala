@@ -1,7 +1,6 @@
 package com.kabasoft.iws.api
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.repository.Schema.vatSchema
-import com.kabasoft.iws.repository.Schema.repositoryErrorSchema
+import com.kabasoft.iws.repository.Schema.{vatSchema, repositoryErrorSchema}
 import com.kabasoft.iws.domain.Vat
 import com.kabasoft.iws.repository._
 import zio.ZIO

@@ -1,15 +1,14 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.repository.Schema.supplierschema
-import com.kabasoft.iws.repository.Schema.repositoryErrorSchema
+import com.kabasoft.iws.repository.Schema.{supplierschema, repositoryErrorSchema}
 import com.kabasoft.iws.domain.Supplier
 import com.kabasoft.iws.repository._
 import zio.ZIO
 import zio.http.codec.HttpCodec.{string, _}
 import zio.http.endpoint.Endpoint
 import zio.http.Status
-//import zio.schema.DeriveSchema.gen
+
 
 object SupplierEndpoint {
 
