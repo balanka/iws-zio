@@ -9,7 +9,7 @@ trait SupplierRepository {
   def create(item: Supplier): ZIO[Any, RepositoryError, Supplier]
 
   def create(models: List[Supplier]): ZIO[Any, RepositoryError, List[Supplier]]
-  def create2(item: Supplier): ZIO[Any, RepositoryError, Unit]
+  def create2(item: Supplier): ZIO[Any, RepositoryError, Int]
   def create2(models: List[Supplier]): ZIO[Any, RepositoryError, Int]
   def delete(item: String, company: String): ZIO[Any, RepositoryError, Int]
   def delete(items: List[String], company: String): ZIO[Any, RepositoryError, List[Int]] =
@@ -30,7 +30,7 @@ object SupplierRepository {
 
   def create(items: List[Supplier]): ZIO[SupplierRepository, RepositoryError, List[Supplier]] =
     ZIO.service[SupplierRepository] flatMap (_.create(items))
-  def create2(item: Supplier): ZIO[SupplierRepository, RepositoryError, Unit]                               =
+  def create2(item: Supplier): ZIO[SupplierRepository, RepositoryError, Int]                               =
     ZIO.service[SupplierRepository] flatMap (_.create2(item))
   def create2(items: List[Supplier]): ZIO[SupplierRepository, RepositoryError, Int]                         =
     ZIO.service[SupplierRepository] flatMap (_.create2(items))

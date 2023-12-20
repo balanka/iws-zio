@@ -483,11 +483,12 @@ CREATE TABLE IF NOT EXISTS public.salary_item
 CREATE TABLE IF NOT EXISTS public.employee_salary_item
 (
     id character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    owner varchar(50) NOT NULL,
     account character varying(50) COLLATE pg_catalog."default" NOT NULL,
     amount numeric(12,2) DEFAULT 0,
     text character varying(255) NOT NULL,
     company character varying(50) COLLATE pg_catalog."default" NOT NULL,
-    CONSTRAINT employee_salary_item_pkey PRIMARY KEY (id, account, company)
+    CONSTRAINT employee_salary_item_pkey PRIMARY KEY (id, owner, account, company)
 );
 
 insert into article (id,  name, description, parent, sprice, pprice, avg_price,currency, stocked, quantit_unit, pack_unit, company, modelid) values

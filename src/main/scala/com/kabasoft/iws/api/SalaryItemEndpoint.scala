@@ -19,7 +19,7 @@ object SalaryItemEndpoint {
 
   private val salaryItemAllEndpoint        = salaryItemAllAPI.implement(company => SalaryItemCache.all(company).mapError(e => RepositoryError(e.getMessage)))
   val salaryItemCreateEndpoint = salaryItemCreateAPI.implement(SalaryItem =>
-    ZIO.logDebug(s"Insert SalaryItem  ${SalaryItem}") *>
+    ZIO.logInfo(s"Create SalaryItem  ${SalaryItem}") *>
       SalaryItemRepository.create(SalaryItem).mapError(e => RepositoryError(e.getMessage)))
   val salaryItemByIdEndpoint = salaryItemByIdAPI.implement( p => SalaryItemCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val salaryItemModifyEndpoint = SalaryItemModifyAPI.implement(p => ZIO.logInfo(s"Modify SalaryItem  ${p}") *>

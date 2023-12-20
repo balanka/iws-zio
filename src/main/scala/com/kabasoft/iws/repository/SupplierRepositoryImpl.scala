@@ -139,32 +139,35 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
       changedate,
       postingdate
     ).values(suppliers.map(toTuple))
-  override def create2(c: Supplier): ZIO[Any, RepositoryError, Unit]                    = {
-    val query = buildInsertQuery(List(c))
-    ZIO.logDebug(s"Query to insert Supplier is ${renderInsert(query)}") *>
-      execute(query)
-        .provideAndLog(driverLayer)
-        .unit
+
+  override def create2(models: List[Supplier]): ZIO[Any, RepositoryError, Int]        = buildInsert(models)
+  override def create(model: Supplier): ZIO[Any, RepositoryError, Supplier] =
+    create2(List(model)) *> getBy((model.id, model.company))
+
+  override def create(models: List[Supplier]): ZIO[Any, RepositoryError, List[Supplier]]        =
+    if(models.isEmpty){
+      ZIO.succeed(List.empty[Supplier])
+    }  else {
+      create2(models)*>getBy(models.map(_.id), models.head.company)
+    }
+  @nowarn
+   def buildInsert(models: List[Supplier]): ZIO[Any, RepositoryError, Int] = {
+    val newBankAccounts = models.flatMap(_.bankaccounts.filter(_.modelid == -3).map(_.copy(modelid = 12)))
+    val insertAll = buildInsertQuery(models)
+    val insertBankAccounts = buildInsertBankAccount(newBankAccounts)
+    val result = for {
+      insertedBankAccounts <- ZIO.when(newBankAccounts.nonEmpty)(insertBankAccounts.run)<*
+        ZIO.logInfo(s" insert bank accounts stmt ${renderInsert(insertBankAccounts)}")
+      inserted <- insertAll.run <* ZIO.logInfo(s"insert supplier  stmt ${renderInsert(insertAll)}")
+    } yield insertedBankAccounts.getOrElse(0)  + inserted
+    transact(result).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
   }
+
+  override def create2(c: Supplier): ZIO[Any, RepositoryError, Int]                    = create2(List(c))
 
   private def buildDeleteBankAccount(ids: List[String]): List[Delete[BankAccount]] =
     ids.map(id=>deleteFrom(bankAccount).where(id_ === id))
 
-  override def create2(models: List[Supplier]): ZIO[Any, RepositoryError, Int] = {
-    val query = buildInsertQuery(models)
-    ZIO.logInfo(s"Query to insert Supplier is ${renderInsert(query)}") *>
-      execute(query)
-        .provideAndLog(driverLayer)
-  }
-
-  override def create(c: Supplier): ZIO[Any, RepositoryError, Supplier] =
-    create2(c) *> getBy((c.id, c.company))
-  override def create(models: List[Supplier]): ZIO[Any, RepositoryError, List[Supplier]] =
-    if (models.isEmpty) {
-      ZIO.succeed(List.empty[Supplier])
-    } else {
-      create2(models) *> getBy(models.map(_.id), models.head.company)
-    }
   override def delete(idx: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
     val delete_ = deleteFrom(supplier).where((company === companyId) && (id === idx) )
     ZIO.logDebug(s"Delete supplier is ${renderDelete(delete_)}") *>

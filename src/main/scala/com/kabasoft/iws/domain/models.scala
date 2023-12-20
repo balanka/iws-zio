@@ -641,7 +641,7 @@ final case class SalaryItem(id: String,
                             modelid: Int = 171,
                             company: String
                            ) extends IWS
-final case class EmployeeSalaryItem(id: String, account: String, amount: BigDecimal, text:String, company: String)
+final case class EmployeeSalaryItem(id: String, owner: String,account: String, amount: BigDecimal, text:String, company: String)
 
 final case class Bank(
   id: String,

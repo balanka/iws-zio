@@ -7,10 +7,10 @@ import zio.stream._
 
 trait EmployeeRepository {
   def create(item: Employee): ZIO[Any, RepositoryError, Employee]
-  def create2(item: Employee): ZIO[Any, RepositoryError, Unit]
+  def create2(item: Employee): ZIO[Any, RepositoryError, Int]
 
   def create(models: List[Employee]): ZIO[Any, RepositoryError, List[Employee]]
-  def create2(models: List[Employee]): ZIO[Any, RepositoryError, Int]
+  def buildInsert(models: List[Employee]): ZIO[Any, RepositoryError, Int]
   def delete(item: String, company: String): ZIO[Any, RepositoryError, Int]
   def delete(items: List[String], company: String): ZIO[Any, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
@@ -26,13 +26,13 @@ trait EmployeeRepository {
 object EmployeeRepository {
   def create(item: Employee): ZIO[EmployeeRepository, RepositoryError, Employee] =
     ZIO.service[EmployeeRepository] flatMap (_.create(item))
-  def create2(item: Employee): ZIO[EmployeeRepository, RepositoryError, Unit]                               =
+  def create2(item: Employee): ZIO[EmployeeRepository, RepositoryError, Int]                               =
     ZIO.service[EmployeeRepository] flatMap (_.create2(item))
 
   def create(items: List[Employee]): ZIO[EmployeeRepository, RepositoryError, List[Employee]] =
     ZIO.service[EmployeeRepository] flatMap (_.create(items))
-  def create2(items: List[Employee]): ZIO[EmployeeRepository, RepositoryError, Int]                         =
-    ZIO.service[EmployeeRepository] flatMap (_.create2(items))
+  def buildInsert(items: List[Employee]): ZIO[EmployeeRepository, RepositoryError, Int]                         =
+    ZIO.service[EmployeeRepository] flatMap (_.buildInsert(items))
   def delete(item: String, company: String): ZIO[EmployeeRepository, RepositoryError, Int]              =
     ZIO.service[EmployeeRepository] flatMap (_.delete(item, company))
   def delete(items: List[String], company: String): ZIO[EmployeeRepository, RepositoryError, List[Int]] =
