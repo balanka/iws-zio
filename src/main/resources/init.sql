@@ -473,6 +473,7 @@ CREATE TABLE IF NOT EXISTS public.salary_item
     description character varying(255) COLLATE pg_catalog."default",
     account character varying(50) COLLATE pg_catalog."default" NOT NULL,
     amount numeric(12,2) DEFAULT 0,
+    percentile numeric(12,2) DEFAULT 0,
     postingdate timestamp without time zone NOT NULL DEFAULT CURRENT_DATE,
     changedate timestamp without time zone NOT NULL DEFAULT CURRENT_DATE,
     enterdate timestamp without time zone NOT NULL DEFAULT CURRENT_DATE,
@@ -717,8 +718,8 @@ values
     ('KABA Soft GmbH',current_timestamp, current_timestamp,'TEST POSTING','TEST PURPOSE','KABA Soft GmbH','DE27662900000001470004X','470434300IBAN', 1000, 'EUR','INFO TXT','1000','47114300IBAN',false,18 );
 
 insert into salary_item
-(id, name, description, account, amount, postingdate, changedate, enterdate,  company, modelid)
-values('4711','Lohnsteuer','Lohnsteuer', '6024', 200, current_timestamp, current_timestamp, current_timestamp, '1000',171);
+(id, name, description, account, amount, percentile, postingdate, changedate, enterdate,  company, modelid)
+values('4711','Lohnsteuer','Lohnsteuer', '6024', 200, 2.0, current_timestamp, current_timestamp, current_timestamp, '1000',171);
 insert into bank
 (id, name, description, postingdate, changedate, enterdate,  company, modelid)
 values('4711','myFirstBank','myFirstBank',current_timestamp, current_timestamp, current_timestamp, '1000',11),
