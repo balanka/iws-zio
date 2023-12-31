@@ -1306,6 +1306,7 @@ final case class Employee_(
                             oaccount: String,
                             vatcode: String,
                             company: String,
+                            salary:BigDecimal,
                             modelid: Int = Employee.MODELID,
                             enterdate: Instant = Instant.now(),
                             changedate: Instant = Instant.now(),
@@ -1326,6 +1327,7 @@ object Employee_ {
     c.oaccount,
     c.vatcode,
     c.company,
+    c.salary,
     c.modelid,
     c.enterdate,
     c.changedate,
@@ -1346,6 +1348,7 @@ final case class Employee(
                            oaccount: String,
                            vatcode: String,
                            company: String,
+                           salary:BigDecimal,
                            modelid: Int = Employee.MODELID,
                            enterdate: Instant = Instant.now(),
                            changedate: Instant = Instant.now(),
@@ -1370,6 +1373,7 @@ object Employee                      {
       String,
       String,
       String,
+      BigDecimal,
       Int,
       Instant,
       Instant,
@@ -1396,7 +1400,7 @@ object Employee                      {
       c._16,
       c._17,
       c._18,
-      //c._19,
+      c._19,
       List.empty[BankAccount]
     )
 }

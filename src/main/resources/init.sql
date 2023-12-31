@@ -46,6 +46,28 @@ create table if not exists supplier(
     country        varchar(50) default 'X'::character varying not null
     );
 
+create table if not exists employee(
+                                       id             varchar(50)  not null  primary key,
+                                       name           varchar(255) not null,
+                                       description    varchar(255) not null,
+                                       street         varchar(255),
+                                       city           varchar(255),
+                                       state          varchar(255),
+                                       zip            varchar(255),
+                                       phone          varchar(50),
+                                       email          varchar(50),
+                                       account        varchar(50),
+                                       vatcode        varchar(50),
+                                       oaccount varchar(50),
+                                       postingdate   timestamp        default CURRENT_TIMESTAMP           not null,
+                                       changedate  timestamp        default CURRENT_TIMESTAMP           not null,
+                                       enterdate     timestamp        default CURRENT_TIMESTAMP           not null,
+                                       company        varchar(50)                                not null,
+                                       modelid        integer     default 5                      not null,
+                                       country        varchar(50) default 'X'::character varying not null,
+                                       salary        numeric(12, 2) default 0
+);
+
 create table if not exists bankaccount
 (
     id    varchar(50)  not null,

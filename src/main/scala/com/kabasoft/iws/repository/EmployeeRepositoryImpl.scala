@@ -43,6 +43,7 @@ final class EmployeeRepositoryImpl(pool: ConnectionPool) extends EmployeeReposit
     oaccount,
     vatcode,
     company,
+    salary,
     modelid,
     enterdate,
     changedate,
@@ -64,6 +65,7 @@ final class EmployeeRepositoryImpl(pool: ConnectionPool) extends EmployeeReposit
     oaccount,
     vatcode,
     company,
+    salary,
     modelid,
     enterdate,
     changedate,
@@ -84,6 +86,7 @@ final class EmployeeRepositoryImpl(pool: ConnectionPool) extends EmployeeReposit
     oaccount,
     vatcode,
     company,
+    salary,
     modelid,
     enterdate,
     changedate,
@@ -105,6 +108,7 @@ final class EmployeeRepositoryImpl(pool: ConnectionPool) extends EmployeeReposit
     c.oaccount,
     c.vatcode,
     c.company,
+    c.salary,
     c.modelid,
     c.enterdate,
     c.changedate,
@@ -148,6 +152,7 @@ final class EmployeeRepositoryImpl(pool: ConnectionPool) extends EmployeeReposit
       oaccount,
       vatcode,
       company,
+      salary,
       modelid,
       enterdate,
       changedate,
@@ -225,6 +230,7 @@ final class EmployeeRepositoryImpl(pool: ConnectionPool) extends EmployeeReposit
       .set(account, model.account)
       .set(oaccount, model.oaccount)
       .set(vatcode, model.vatcode)
+      .set(salary,model.salary)
       .where(whereClause(model.id, model.company))
 
 
