@@ -17,6 +17,7 @@ import com.kabasoft.iws.api.EmployeeEndpoint.routesEmp
 import com.kabasoft.iws.api.FModuleEndpoint.appFModule
 import com.kabasoft.iws.api.FinancialsEndpoint.appFtr
 import com.kabasoft.iws.api.ImportFileEndpoint.appImportFile
+import com.kabasoft.iws.api.PayrollEndpoint.appPayroll
 import com.kabasoft.iws.api.PermissionEndpoint.appPerm
 import com.kabasoft.iws.api.RoleEndpoint.appRole
 import com.kabasoft.iws.api.SalaryItemEndpoint.appSalaryItem
@@ -68,7 +69,7 @@ object Main extends ZIOAppDefault {
     )
 
   val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc ++ appBank  ++ appComp  ++ appFtr ++ appFModule
-    ++ routesEmp ++ appArticle ++ appStore ++ appSalaryItem
+    ++ routesEmp ++ appArticle ++ appStore ++ appSalaryItem ++ appPayroll
      ++ appImportFile ++appBankStmt ++  appUser ++ appPac ++ appJournal ++ appCC ++ appBankStmt ++appPerm ++ appRole ++ appAsset)// ++expose)//.toApp.withDefaultErrorResponse @@ bearerAuth(jwtDecode(_).isDefined)
 
   @nowarn val run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
@@ -124,6 +125,7 @@ object Main extends ZIOAppDefault {
           JournalRepositoryImpl.live,
           BankStatementServiceImpl.live,
           FinancialsServiceImpl.live,
-          PostTransactionRepositoryImpl.live
+          PostTransactionRepositoryImpl.live,
+          EmployeeServiceImpl.live
         )//.<*( ZIO.logInfo(s"http server started successfully!!!!"))
 }
