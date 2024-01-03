@@ -608,6 +608,16 @@ final case class Asset (id: String,
 sealed trait IWS {
   def id: String
 }
+final case class Masterfile(id: String,
+                             name: String = "",
+                             description: String = "",
+                             parent: String = "",
+                             enterdate: Instant = Instant.now(),
+                             changedate: Instant = Instant.now(),
+                             postingdate: Instant = Instant.now(),
+                             modelid: Int,
+                             company: String
+                           ) extends IWS
 final case class Costcenter(
   id: String,
   name: String = "",
