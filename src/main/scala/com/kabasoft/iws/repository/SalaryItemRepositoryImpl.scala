@@ -68,11 +68,11 @@ final class SalaryItemRepositoryImpl(pool: ConnectionPool) extends SalaryItemRep
         .mapError(e => RepositoryError(e.getMessage))
   }
 
-  override def all(companyId: String): ZIO[Any, RepositoryError, List[SalaryItem]] =
-    list(companyId).runCollect.map(_.toList)
+  override def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[SalaryItem]] =
+    list(Id).runCollect.map(_.toList)
 
-  override def list(companyId: String): ZStream[Any, RepositoryError, SalaryItem]                   = {
-    val selectAll = SELECT.where(company === companyId)
+  override def list(Id:(Int, String)): ZStream[Any, RepositoryError, SalaryItem]                   = {
+    val selectAll = SELECT.where(modelid === Id._1 && company === Id._2)
     ZStream.fromZIO(
       ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")
     ) *>

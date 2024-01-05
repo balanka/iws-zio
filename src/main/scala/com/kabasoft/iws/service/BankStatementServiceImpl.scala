@@ -24,10 +24,10 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
 
   private def postBankStmtCreateTransaction(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, Int] =
     for {
-      accounts <- ZIO.logInfo(s"get company by id  ${companyId}  ") *>accountRepo.all(companyId)
+      accounts <- ZIO.logInfo(s"get company by id  ${companyId}  ") *>accountRepo.all((Account.MODELID, companyId))
       company <- ZIO.logInfo(s"get company by id  ${companyId}  ") *> companyRepo.getBy(companyId)
       bankStmt <- ZIO.logInfo(s"get bankStmt by ids  ${ids}  ") *> bankStmtRepo.getById(ids).runCollect.map(_.toList)
-      vat <- vatRepo.all(company.id)
+      vat <- vatRepo.all((Vat.MODEL_ID, company.id))
       transactions <- ZIO.logInfo(s"Got bankStmt  ${bankStmt}  ") *> buildTransactions(bankStmt, vat, company, accounts)
       posted <- ZIO.logInfo(s"Created transactions  ${transactions}  ") *> bankStmtRepo.post(bankStmt, transactions.flatten)
       _ <- ZIO.logInfo(s"Transaction posted ${posted}  ")

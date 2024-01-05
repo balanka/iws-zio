@@ -219,13 +219,13 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
       .provideDriver(driverLayer)
   }
 
-  override def all(companyId: String): ZIO[Any, RepositoryError, List[Supplier]] = for {
-    suppliers     <- list(companyId).runCollect.map(_.toList)
-    bankAccounts_ <- listBankAccount(companyId).runCollect.map(_.toList)
+  override def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Supplier]] = for {
+    suppliers     <- list(Id).runCollect.map(_.toList)
+    bankAccounts_ <- listBankAccount(Id._2).runCollect.map(_.toList)
   } yield suppliers.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
 
-  override def list(companyId: String): ZStream[Any, RepositoryError, Supplier]          = {
-    val selectAll = SELECT.where(company === companyId)
+  override def list(Id:(Int, String)): ZStream[Any, RepositoryError, Supplier]          = {
+    val selectAll = SELECT.where(modelid === Id._1 && company === Id._2)
     execute(selectAll.to[Supplier](c => Supplier.apply(c)))
       .provideDriver(driverLayer)
   }

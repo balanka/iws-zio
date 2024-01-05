@@ -3,11 +3,7 @@ package com.kabasoft.iws.api
 import com.kabasoft.iws.api.AccountEndpoint.{accByIdEndpoint, accCreateEndpoint, accDeleteEndpoint}
 import com.kabasoft.iws.api.BankEndpoint.{bankByIdEndpoint, bankCreateEndpoint, bankDeleteEndpoint}
 import zio.json.EncoderOps
-import com.kabasoft.iws.repository.{AccountCache, AccountCacheImpl, AccountRepositoryImpl, BankCache, BankCacheImpl,
-  BankRepositoryImpl, CostcenterCache, CostcenterCacheImpl, CostcenterRepositoryImpl, CustomerCache, CustomerCacheImpl,
-  CustomerRepositoryImpl, FinancialsTransactionCache, FinancialsTransactionCacheImpl, ModuleCache, ModuleCacheImpl,
-  ModuleRepositoryImpl, SupplierCache, SupplierCacheImpl, SupplierRepositoryImpl, FinancialsTransactionRepository,
-  FinancialsTransactionRepositoryImpl, UserRepository, UserRepositoryImpl, VatCache, VatCacheImpl, VatRepositoryImpl}
+import com.kabasoft.iws.repository.{AccountCache, AccountCacheImpl, AccountRepositoryImpl, BankCache, BankCacheImpl, BankRepositoryImpl, CostcenterCache, CostcenterCacheImpl, CostcenterRepositoryImpl, CustomerCache, CustomerCacheImpl, CustomerRepositoryImpl, FinancialsTransactionCache, FinancialsTransactionCacheImpl, FinancialsTransactionRepository, FinancialsTransactionRepositoryImpl, ModuleCache, ModuleCacheImpl, ModuleRepositoryImpl, SupplierCache, SupplierCacheImpl, SupplierRepositoryImpl, UserRepository, UserRepositoryImpl, VatCache, VatCacheImpl, VatRepositoryImpl}
 import com.kabasoft.iws.api.CostcenterEndpoint.{ccByIdEndpoint, ccCreateEndpoint, ccDeleteEndpoint}
 import com.kabasoft.iws.api.Protocol._
 import com.kabasoft.iws.domain.BankBuilder.{bank, bankx}
@@ -17,6 +13,7 @@ import com.kabasoft.iws.api.ModuleEndpoint.{moduleByIdEndpoint, moduleCreateEndp
 import com.kabasoft.iws.api.SupplierEndpoint.{supByIdEndpoint, supCreateEndpoint, supDeleteEndpoint}
 import com.kabasoft.iws.api.UserEndpoint.{userByUserNameEndpoint, userDeleteEndpoint}
 import com.kabasoft.iws.api.VatEndpoint.{vatByIdEndpoint, vatCreateEndpoint, vatDeleteEndpoint}
+//import com.kabasoft.iws.domain.Account
 import com.kabasoft.iws.domain.AccountBuilder.{acc, accx}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.CostcenterBuilder.ccx
@@ -48,8 +45,8 @@ object ApiSpec extends ZIOSpecDefault {
     def spec = suite("APISpec")(
       suite("handler")(
         test("Account  integration test ") {
-        val accAll = Endpoint.get(("acc")/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
-                     .implement(company => AccountCache.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
+        val accAll = Endpoint.get(("acc")/int("modelid")/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
+                     .implement(Id => AccountCache.all(Id).mapBoth(e => RepositoryError(e.getMessage), _.size))
           val testRoutes = testApi((accAll ++accByIdEndpoint)) _
           val deleteRoutes = testDeleteApi(accDeleteEndpoint) _
           val postRoutes = testPostApi(accCreateEndpoint) _
@@ -90,8 +87,8 @@ object ApiSpec extends ZIOSpecDefault {
             deleteRoutes("/bank/"+bank.id+"/"+bank.company, "1")&& testRoutes1("/bank", bankx.toJson, bankx.toJson)
         },
          test("Customer integration test") {
-          val custAllEndpoint = Endpoint.get("cust"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
-            .implement(company => CustomerCache.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
+          val custAllEndpoint = Endpoint.get("cust"/int("modelid")/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
+            .implement(Id => CustomerCache.all(Id).mapBoth(e => RepositoryError(e.getMessage), _.size))
           val testRoutes = testApi(custByIdEndpoint ++ custAllEndpoint) _
            val deleteRoutes = testDeleteApi(custDeleteEndpoint) _
           val testRoutes1 = testPostApi(custCreateEndpoint) _
@@ -99,8 +96,8 @@ object ApiSpec extends ZIOSpecDefault {
           deleteRoutes("/cust/"+cust.id+"/"+cust.company, "1")&&testRoutes1("/cust", custx.toJson, custx.toJson)
         },
         test("Supplier integration test") {
-          val supAllEndpoint = Endpoint.get("sup"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
-            .implement(company => SupplierCache.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
+          val supAllEndpoint = Endpoint.get("sup"/int("modelid")/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
+            .implement(p => SupplierCache.all(p).mapBoth(e => RepositoryError(e.getMessage), _.size))
           val testRoutes = testApi(supByIdEndpoint ++ supAllEndpoint) _
           val deleteRoutes = testDeleteApi(supDeleteEndpoint) _
           val testRoutes1 = testPostApi(supCreateEndpoint) _
@@ -117,8 +114,8 @@ object ApiSpec extends ZIOSpecDefault {
             deleteRoutes("/cc/"+cc.id+"/"+cc.company, "1")&&testRoutes1("/cc", ccx.toJson, ccx.toJson)
         },
           test("Module integration test") {
-          val moduleAllEndpoint = Endpoint.get("module"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
-            .implement((company:String) => ModuleCache.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
+          val moduleAllEndpoint = Endpoint.get("module"/int("modelid")/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
+            .implement(p => ModuleCache.all(p).mapBoth(e => RepositoryError(e.getMessage), _.size))
           val testRoutes = testApi(moduleByIdEndpoint ++ moduleAllEndpoint) _
             val deleteRoutes = testDeleteApi(moduleDeleteEndpoint) _
           val testRoutes1 = testPostApi(moduleCreateEndpoint) _
@@ -126,8 +123,8 @@ object ApiSpec extends ZIOSpecDefault {
             deleteRoutes("/module/"+m.id+"/"+m.company, "1")&&testRoutes1("/module", mx.toJson, mx.toJson)
         },
         test("Vat integration test") {
-          val vatAllEndpoint = Endpoint.get("vat"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
-            .implement((company:String) => VatCache.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
+          val vatAllEndpoint = Endpoint.get("vat"/int("modelid")/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
+            .implement(p => VatCache.all(p).mapBoth(e => RepositoryError(e.getMessage), _.size))
           val testRoutes = testApi(vatByIdEndpoint ++ vatAllEndpoint) _
           val deleteRoutes = testDeleteApi(vatDeleteEndpoint) _
           val testRoutes1 = testPostApi(vatCreateEndpoint) _

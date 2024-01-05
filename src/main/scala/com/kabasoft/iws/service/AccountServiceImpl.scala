@@ -7,7 +7,7 @@ import zio._
 final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepository) extends AccountService {
   def getBalance(accId: String, fromPeriod: Int, toPeriod: Int, companyId: String): ZIO[Any, RepositoryError, List[Account]] =
     (for {
-      accounts    <- accRepo.all(companyId)
+      accounts    <- accRepo.all((Account.MODELID, companyId))
       period       = fromPeriod.toString.slice(0, 4).concat("00").toInt
       pacBalances <- pacRepo.getBalances4Period(fromPeriod, toPeriod, companyId).runCollect.map(_.toList)
       pacs        <- pacRepo.find4Period(period, period, companyId).runCollect.map(_.toList)
@@ -29,7 +29,7 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
   def closePeriod(fromPeriod: Int, toPeriod: Int, inStmtAccId: String, company: String): ZIO[Any, RepositoryError, Int] =
     for {
       pacs         <- pacRepo.findBalance4Period(fromPeriod, toPeriod, company).runCollect.map(_.toList)
-      allAccounts  <- accRepo.list(company).runCollect.map(_.toList)
+      allAccounts  <- accRepo.list(Account.MODELID, company).runCollect.map(_.toList)
       currentYear   = fromPeriod.toString.slice(0, 4).toInt
       currentPeriod = currentYear.toString.concat("00").toInt
       nextPeriod    = (currentYear + 1).toString.concat("00").toInt

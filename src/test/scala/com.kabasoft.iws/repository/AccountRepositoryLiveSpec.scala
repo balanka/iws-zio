@@ -31,14 +31,14 @@ object AccountRepositoryLiveSpec extends ZIOSpecDefault {
     suite("Account repository test with postgres test container")(
       test("count all accounts") {
         for {
-          count <- AccountRepository.list(companyId).runCount
+          count <- AccountRepository.list(Account.MODELID, companyId).runCount
         } yield assertTrue(count == 17)
       },
       test("insert two new accounts") {
         for {
           oneRow <- AccountRepository.create2(accounts)
-          list <- AccountRepository.list(companyId).runCollect.map(_.toList)
-          count <- AccountRepository.list(companyId).runCount
+          list <- AccountRepository.list(Account.MODELID, companyId).runCollect.map(_.toList)
+          count <- AccountRepository.list(Account.MODELID, companyId).runCount
         } yield assertTrue(oneRow == 2) && assertTrue(count ==19)&& assertTrue(list.size == 19)
       },
       test("get an account by its id") {
