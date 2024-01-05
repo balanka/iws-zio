@@ -6,14 +6,14 @@ import zio._
 
 
 trait ModuleCache {
-  def all(companyId: String): ZIO[Any, RepositoryError, List[Module]]
+  def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Module]]
   def getBy(id:(String,  String)): ZIO[Any, RepositoryError, Module]
   def getByModelId(id:(Int, String)): ZIO[Any, RepositoryError, List[Module]]
 
 }
 object ModuleCache {
-  def all(companyId: String): ZIO[ModuleCache, RepositoryError, List[Module]] =
-    ZIO.service[ModuleCache] flatMap (_.all(companyId))
+  def all(Id:(Int, String)): ZIO[ModuleCache, RepositoryError, List[Module]] =
+    ZIO.service[ModuleCache] flatMap (_.all(Id))
 
   def getBy(id:(String, String)): ZIO[ModuleCache, RepositoryError, Module]=
     ZIO.service[ModuleCache] flatMap (_.getBy(id))

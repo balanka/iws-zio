@@ -64,11 +64,11 @@ final class MasterfileRepositoryImpl(pool: ConnectionPool) extends MasterfileRep
         .mapError(e => RepositoryError(e.getMessage))
   }
 
-  override def all(modelId:Int, companyId: String): ZIO[Any, RepositoryError, List[Masterfile]]                  =
-    list(modelId, companyId).runCollect.map(_.toList)
+  override def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Masterfile]]                  =
+    list(Id).runCollect.map(_.toList)
 
-  override def list(modelId:Int, companyId: String): ZStream[Any, RepositoryError, Masterfile]                   = {
-    val selectAll = SELECT.where(company === companyId && modelid === modelId)
+  override def list(Id:(Int, String)): ZStream[Any, RepositoryError, Masterfile]                   = {
+    val selectAll = SELECT.where(modelid === Id._1 && company === Id._2)
     ZStream.fromZIO(
       ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")
     ) *>

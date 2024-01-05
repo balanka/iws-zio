@@ -6,14 +6,14 @@ import zio._
 
 
 trait MasterfileCache {
-  //def all(modelId:Int, companyId: String): ZIO[Any, RepositoryError, List[Masterfile]]
+  def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Masterfile]]
   def getBy(id:(String, Int,  String)): ZIO[Any, RepositoryError, Masterfile]
   def getByModelId(id:(Int, String)): ZIO[Any, RepositoryError, List[Masterfile]]
 
 }
 object MasterfileCache {
-//  def all(modelId:Int, companyId: String): ZIO[MasterfileCache, RepositoryError, List[Masterfile]] =
-//    ZIO.service[MasterfileCache] flatMap (_.all(modelId, companyId))
+  def all(Id:(Int, String)): ZIO[MasterfileCache, RepositoryError, List[Masterfile]] =
+    ZIO.service[MasterfileCache] flatMap (_.all(Id))
 
   def getBy(id:(String, Int, String)): ZIO[MasterfileCache, RepositoryError, Masterfile]=
     ZIO.service[MasterfileCache] flatMap (_.getBy(id))

@@ -6,14 +6,14 @@ import zio._
 
 
 trait FModuleCache {
-  def all(companyId: String): ZIO[Any, RepositoryError, List[Fmodule]]
+  def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Fmodule]]
   def getBy(id:(Int,  String)): ZIO[Any, RepositoryError, Fmodule]
   def getByModelId(id:(Int, String)): ZIO[Any, RepositoryError, List[Fmodule]]
 
 }
 object FModuleCache {
-  def all(companyId: String): ZIO[FModuleCache, RepositoryError, List[Fmodule]] =
-    ZIO.service[FModuleCache] flatMap (_.all(companyId))
+  def all(Id:(Int, String)): ZIO[FModuleCache, RepositoryError, List[Fmodule]] =
+    ZIO.service[FModuleCache] flatMap (_.all(Id))
 
   def getBy(id:(Int, String)): ZIO[FModuleCache, RepositoryError, Fmodule]=
     ZIO.service[FModuleCache] flatMap (_.getBy(id))
