@@ -12,12 +12,12 @@ import zio.http.endpoint.Endpoint
 object AssetEndpoint {
 
   val assetCreateAPI     = Endpoint.post("asset").in[Asset].out[Asset].outError[RepositoryError](Status.InternalServerError)
-  val assetAllAPI        = Endpoint.get("asset" / string("company")).out[List[Asset]].outError[RepositoryError](Status.InternalServerError)
+  val assetAllAPI        = Endpoint.get("asset" / int("company")/string("company")).out[List[Asset]].outError[RepositoryError](Status.InternalServerError)
   val assetByIdAPI       = Endpoint.get("asset" / string("id")/ string("company")).out[Asset].outError[RepositoryError](Status.InternalServerError)
   val assetModifyAPI     = Endpoint.put(literal("asset")).in[Asset].out[Asset].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI = Endpoint.delete("asset" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
-  private val assetAllEndpoint        = assetAllAPI.implement(company => AssetCache.all(company).mapError(e => RepositoryError(e.getMessage)))
+  private val assetAllEndpoint        = assetAllAPI.implement(p => AssetCache.all(p).mapError(e => RepositoryError(e.getMessage)))
   val assetCreateEndpoint = assetCreateAPI.implement(asset =>
     ZIO.logDebug(s"Insert asset  ${asset}") *>
     AssetRepository.create(asset).mapError(e => RepositoryError(e.getMessage)))

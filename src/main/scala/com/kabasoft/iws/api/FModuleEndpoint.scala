@@ -12,18 +12,18 @@ import zio.http.endpoint.Endpoint
 object FModuleEndpoint {
 
   val fmoduleCreateAPI     = Endpoint.post("fmodule").in[Fmodule].out[Fmodule].outError[RepositoryError](Status.InternalServerError)
-  val fmoduleAllAPI        = Endpoint.get("fmodule" / string("company")).out[List[Fmodule]].outError[RepositoryError](Status.InternalServerError)
+  val fmoduleAllAPI        = Endpoint.get("fmodule" / int("modelid")/string("company")).out[List[Fmodule]].outError[RepositoryError](Status.InternalServerError)
   val fmoduleByIdAPI       = Endpoint.get("fmodule" / string("id")/ string("company")).out[Fmodule].outError[RepositoryError](Status.InternalServerError)
   val fmoduleModifyAPI     = Endpoint.put(literal("fmodule")).in[Fmodule].out[Fmodule].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI = Endpoint.delete("fmodule" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
-  private val fmoduleAllEndpoint        = fmoduleAllAPI.implement(company => ZIO.logInfo(s"get all permission for   ${company}")
-    *>FModuleCache.all(company).mapError(e => RepositoryError(e.getMessage)))
+  private val fmoduleAllEndpoint        = fmoduleAllAPI.implement(p => ZIO.logInfo(s"get all module for   ${p}")
+    *>FModuleCache.all(p).mapError(e => RepositoryError(e.getMessage)))
   val fmoduleCreateEndpoint = fmoduleCreateAPI.implement(perm =>
-    ZIO.logInfo(s"Insert perm  ${perm}") *>
+    ZIO.logInfo(s"Insert module  ${perm}") *>
       FModuleRepository.create(perm).mapError(e => RepositoryError(e.getMessage)))
   val fmoduleByIdEndpoint = fmoduleByIdAPI.implement( p => FModuleCache.getBy((p._1.toInt, p._2)).mapError(e => RepositoryError(e.getMessage)))
-  val fmoduleModifyEndpoint = fmoduleModifyAPI.implement(p => ZIO.logInfo(s"Modify perm  ${p}") *>
+  val fmoduleModifyEndpoint = fmoduleModifyAPI.implement(p => ZIO.logInfo(s"Modify module  ${p}") *>
     FModuleRepository.modify(p).mapError(e => RepositoryError(e.getMessage)) *>
     FModuleRepository.getBy((p.id, p.company)).mapError(e => RepositoryError(e.getMessage)))
   val fmoduleDeleteEndpoint = deleteAPI.implement(p => FModuleRepository.delete(p._1.toInt, p._2).mapError(e => RepositoryError(e.getMessage)))

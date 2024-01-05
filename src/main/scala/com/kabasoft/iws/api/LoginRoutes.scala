@@ -1,6 +1,6 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.api.Protocol.{ loginRequestDecoder, userCodec}
+import com.kabasoft.iws.api.Protocol.{ loginRequestCodec, userCodec}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain._
 import com.kabasoft.iws.domain.common.DummyUser
