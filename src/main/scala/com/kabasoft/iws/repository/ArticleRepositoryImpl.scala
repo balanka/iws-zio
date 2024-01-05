@@ -162,13 +162,13 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
   }
 
 
-  override def all(companyId: String): ZIO[Any, RepositoryError, List[Article]] = for {
-    articles <- list(companyId).runCollect.map(_.toList)
+  override def all(Id:(Int,  String)): ZIO[Any, RepositoryError, List[Article]] = for {
+    articles <- list(Id).runCollect.map(_.toList)
   } yield articles
 
-  override def list(companyId: String): ZStream[Any, RepositoryError, Article] =
+  override def list(Id:(Int,  String)): ZStream[Any, RepositoryError, Article] =
     ZStream.fromZIO(ZIO.logDebug(s"Query to execute findAll is ${renderRead(SELECT)}")) *>
-      execute(SELECT.where(company === companyId)
+      execute(SELECT.where(modelid === Id._1 && company === Id._2)
         .to { c =>val x = Article.apply(c); map :+ (x); x
         })
         .provideDriver(driverLayer)

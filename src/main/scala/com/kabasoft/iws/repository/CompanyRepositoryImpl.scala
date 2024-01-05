@@ -185,9 +185,9 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
     transact(result).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
   }
 
-  override def all: ZIO[Any, RepositoryError, List[Company]] = for{
+  override def all(modelid:Int): ZIO[Any, RepositoryError, List[Company]] = for{
     //list.runCollect.map(_.toList)
-    companies <- list.runCollect.map(_.toList)
+    companies <- list(modelid).runCollect.map(_.toList)
     bankAccounts_ <- listBankAccount().runCollect.map(_.toList)
   } yield companies.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
 
@@ -197,7 +197,7 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
     execute(selectAll.to((BankAccount.apply _).tupled))
       .provideDriver(driverLayer)
   }
-  override def list: ZStream[Any, RepositoryError, Company]          = {
+  override def list(modelId:Int): ZStream[Any, RepositoryError, Company]          = {
     val selectAll =
       select(
         id,
@@ -219,7 +219,7 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
         balanceSheetAcc,
         incomeStmtAcc,
         modelid
-      ).from(company) // .where(id === companyId)
+      ).from(company) .where(modelid === modelId)
 
      ZStream.fromZIO(
       ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")

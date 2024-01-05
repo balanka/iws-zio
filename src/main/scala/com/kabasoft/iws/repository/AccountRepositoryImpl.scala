@@ -158,13 +158,13 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
   }
 
 
-  override def all(companyId: String): ZIO[Any, RepositoryError, List[Account]] = for {
-    accounts <- list(companyId).runCollect.map(_.toList)
-  } yield accounts // .map(_.addSubAccounts(accounts))
+  override def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Account]] = for {
+    accounts <- list(Id._1, Id._2).runCollect.map(_.toList)
+  } yield accounts
 
-  override def list(companyId: String): ZStream[Any, RepositoryError, Account] =
+  override def list(modelId:Int, companyId: String): ZStream[Any, RepositoryError, Account] =
     ZStream.fromZIO(ZIO.logDebug(s"Query to execute findAll is ${renderRead(SELECT)}")) *>
-      execute(SELECT.where(company === companyId)
+      execute(SELECT.where(modelid === modelId && company === companyId)
         .to { c =>val x = Account.apply(c); map :+ (x); x
       })
         .provideDriver(driverLayer)

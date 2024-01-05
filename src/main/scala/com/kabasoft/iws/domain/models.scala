@@ -855,8 +855,11 @@ final case class Vat(
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now(),
   company: String,
-  modelid: Int = 14
+  modelid: Int = Vat.MODEL_ID
 )
+object Vat {
+  val MODEL_ID = 14
+}
 
 final case class TPeriodicAccountBalance(
   id: String,
@@ -1727,7 +1730,7 @@ object User_ {
 }
 final case class LoginRequest(userName: String, password: String, company: String, language:String)
 final case class Role(id:Int, name:String, description:String,
-                      transdate: Instant,
+                      changedate: Instant,
                       postingdate: Instant,
                       enterdate: Instant,
                       modelid:Int = Role.MODELID,
@@ -1735,7 +1738,7 @@ final case class Role(id:Int, name:String, description:String,
                       rights:List[UserRight]=List.empty[UserRight]
                           )
 final case class Role_(id:Int, name:String, description:String,
-                       transdate: Instant,
+                       changedate: Instant,
                        postingdate: Instant,
                        enterdate: Instant,
                        modelid:Int = Role.MODELID,
@@ -1747,18 +1750,21 @@ object Role {
 }
 final case class  UserRight (moduleid:Int,  roleid:Int, short:String, company:String, modelid:Int = 131)
 final case class  UserRole (userid:Int,  roleid:Int, company:String, modelid:Int = 161)
-final case class  Permission (id:Int,  name:String, description:String,
-                              transdate: Instant,
+final case class  Permission (id:Int, name:String, description:String,
+                              changedate: Instant,
                               postingdate: Instant,
                               enterdate: Instant,
                               modelid:Int =141,
                               company:String )
 
-final case class  Fmodule (id:Int,  name:String, description:String,
-                              transdate: Instant,
-                              postingdate: Instant,
-                              enterdate: Instant,
-                              account:String,
-                              isDebit:Boolean,
-                              modelid:Int =151,
-                              company:String )
+final case class  Fmodule (id:Int, name:String, description:String,
+                           changedate: Instant,
+                           postingdate: Instant,
+                           enterdate: Instant,
+                           account:String,
+                           isDebit:Boolean,
+                           modelid:Int = Fmodule.MODEL_ID,
+                           company:String )
+object Fmodule {
+  val MODEL_ID = 151
+}

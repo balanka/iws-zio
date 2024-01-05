@@ -77,11 +77,11 @@ final class AssetRepositoryImpl(pool: ConnectionPool) extends AssetRepository wi
         .mapError(e => RepositoryError(e.getMessage))
   }
 
-  override def all(companyId: String): ZIO[Any, RepositoryError, List[Asset]] =
-    list(companyId).runCollect.map(_.toList)
+  override def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Asset]] =
+    list(Id).runCollect.map(_.toList)
 
-  override def list(companyId: String): ZStream[Any, RepositoryError, Asset]                   = {
-    val selectAll = SELECT.where(company === companyId)
+  override def list(Id:(Int, String)): ZStream[Any, RepositoryError, Asset]                   = {
+    val selectAll = SELECT.where(modelid === Id._1 && company === Id._2)
     ZStream.fromZIO(
       ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")
     ) *>
