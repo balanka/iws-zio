@@ -14,8 +14,8 @@ trait ArticleRepository {
   def delete(item: String, company: String): ZIO[Any, RepositoryError, Int]
   def delete(items: List[String], company: String): ZIO[Any, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
-  def list(company: String): ZStream[Any, RepositoryError, Article]
-  def all(companyId: String): ZIO[Any, RepositoryError, List[Article]]
+  def list(Id:(Int,  String)): ZStream[Any, RepositoryError, Article]
+  def all(Id:(Int,  String)): ZIO[Any, RepositoryError, List[Article]]
   def getBy(id: (String,String)): ZIO[Any, RepositoryError, Article]
   def getBy(ids: List[String], company: String): ZIO[Any, RepositoryError, List[Article]]
   def getByModelId(id: (Int,  String)): ZIO[Any, RepositoryError, List[Article]]
@@ -42,11 +42,11 @@ object ArticleRepository {
   def delete(items: List[String], company: String): ZIO[ArticleRepository, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
 
-  def list(company: String): ZStream[ArticleRepository, RepositoryError, Article] =
-    ZStream.service[ArticleRepository] flatMap (_.list(company))
+  def list(Id:(Int,  String)): ZStream[ArticleRepository, RepositoryError, Article] =
+    ZStream.service[ArticleRepository] flatMap (_.list(Id))
 
-  def all(companyId: String): ZIO[ArticleRepository, RepositoryError, List[Article]] =
-    ZIO.serviceWithZIO[ArticleRepository](_.all(companyId))
+  def all(Id:(Int,  String)): ZIO[ArticleRepository, RepositoryError, List[Article]] =
+    ZIO.serviceWithZIO[ArticleRepository](_.all(Id))
   def getBy(id: (String,String)): ZIO[ArticleRepository, RepositoryError, Article] =
     ZIO.serviceWithZIO[ArticleRepository](_.getBy(id))
 

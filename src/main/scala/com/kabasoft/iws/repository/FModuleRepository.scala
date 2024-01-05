@@ -14,8 +14,8 @@ trait FModuleRepository {
   def delete(id: Int, company: String): ZIO[Any, RepositoryError, Int]
   def delete(ids: List[Int], company: String): ZIO[Any, RepositoryError, List[Int]] =
     ZIO.collectAll(ids.map(delete(_, company)))
-  def all(companyId: String): ZIO[Any, RepositoryError, List[Fmodule]]
-  def list(company: String): ZStream[Any, RepositoryError, Fmodule]
+  def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Fmodule]]
+  def list(Id:(Int, String)): ZStream[Any, RepositoryError, Fmodule]
   def getBy(id: (Int,String)): ZIO[Any, RepositoryError, Fmodule]
   def getByModelId(modelid:(Int,String)): ZIO[Any, RepositoryError, List[Fmodule]]
   def getByModelIdStream(modelid: Int, company: String): ZStream[Any, RepositoryError, Fmodule]
@@ -37,10 +37,10 @@ object FModuleRepository {
     ZIO.service[FModuleRepository] flatMap (_.delete(id, company))
   def delete(items: List[Int], company: String): ZIO[FModuleRepository, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
-  def all(companyId: String): ZIO[FModuleRepository, RepositoryError, List[Fmodule]]                      =
-    ZIO.service[FModuleRepository] flatMap (_.all(companyId))
-  def list(company: String): ZStream[FModuleRepository, RepositoryError, Fmodule]                        =
-    ZStream.service[FModuleRepository] flatMap (_.list(company))
+  def all(Id:(Int, String)): ZIO[FModuleRepository, RepositoryError, List[Fmodule]]                      =
+    ZIO.service[FModuleRepository] flatMap (_.all(Id))
+  def list(Id:(Int, String)): ZStream[FModuleRepository, RepositoryError, Fmodule]                        =
+    ZStream.service[FModuleRepository] flatMap (_.list(Id))
   def getBy(id: (Int,String)): ZIO[FModuleRepository, RepositoryError, Fmodule]               =
     ZIO.service[FModuleRepository] flatMap (_.getBy(id))
   def getByModelId(modelid: (Int,String)): ZIO[FModuleRepository, RepositoryError, List[Fmodule]]      =

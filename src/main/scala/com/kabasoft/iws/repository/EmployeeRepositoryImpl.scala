@@ -283,15 +283,15 @@ final class EmployeeRepositoryImpl(pool: ConnectionPool) extends EmployeeReposit
       .provideDriver(driverLayer).runCollect.map(_.toList)
   }
 
-  override def all(companyId: String): ZIO[Any, RepositoryError, List[Employee]]     = for {
-    employees     <- list(companyId).runCollect.map(_.toList)
-    bankAccounts_ <- listBankAccount(companyId).runCollect.map(_.toList)
-    salaryItems_ <- listEmployeeSalaryItem(companyId).runCollect.map(_.toList)
+  override def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Employee]]     = for {
+    employees     <- list(Id).runCollect.map(_.toList)
+    bankAccounts_ <- listBankAccount(Id._2).runCollect.map(_.toList)
+    salaryItems_ <- listEmployeeSalaryItem(Id._2).runCollect.map(_.toList)
   } yield employees.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id),
                                      salaryItems = salaryItems_.filter(_.id == c.id)))
 
-  override def list(companyId: String): ZStream[Any, RepositoryError, Employee] = {
-    val selectAll = SELECT.where(company === companyId)
+  override def list(Id:(Int, String)): ZStream[Any, RepositoryError, Employee] = {
+    val selectAll = SELECT.where(modelid === Id._1 && company === Id._2)
     execute(selectAll.to(c => Employee.apply(c)))
       .provideDriver(driverLayer)
   }

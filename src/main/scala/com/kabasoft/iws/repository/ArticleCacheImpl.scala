@@ -10,10 +10,10 @@ import java.util.concurrent.TimeUnit
 
 final case class ArticleCacheImpl (repository: ArticleRepository) extends ArticleCache  {
 
-  override def all(companyId: String): ZIO[Any, RepositoryError, List[Article]] = Cache.make(
+  override def all(Id:(Int,  String)): ZIO[Any, RepositoryError, List[Article]] = Cache.make(
     capacity = 100000,
     timeToLive = Duration.apply(15, TimeUnit.HOURS),
-    lookup = Lookup(repository.all)).flatMap(_.get(companyId))
+    lookup = Lookup(repository.all)).flatMap(_.get(Id))
 
   override def getBy(id:(String, String)): ZIO[Any, RepositoryError, Article] = Cache.make(
     capacity = 100000,

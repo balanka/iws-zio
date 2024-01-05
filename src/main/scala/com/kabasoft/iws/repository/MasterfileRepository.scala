@@ -13,8 +13,8 @@ trait MasterfileRepository {
   def delete(item: String, modelId:Int, company: String): ZIO[Any, RepositoryError, Int]
   def delete(items: List[String], modelId:Int, company: String): ZIO[Any, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, modelId, company)))
-  def all(modelid:Int, companyId: String): ZIO[Any, RepositoryError, List[Masterfile]]
-  def list(modelid:Int, company: String): ZStream[Any, RepositoryError, Masterfile]
+  def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Masterfile]]
+  def list(Id:(Int, String)): ZStream[Any, RepositoryError, Masterfile]
   def getBy(id: (String, Int,  String)): ZIO[Any, RepositoryError, Masterfile]
   def getByModelId(modelid:(Int, String)): ZIO[Any, RepositoryError, List[Masterfile]]
   def getByModelIdStream(modelid: Int, company: String): ZStream[Any, RepositoryError, Masterfile]
@@ -37,10 +37,10 @@ object MasterfileRepository {
   def delete(items: List[String], modelId:Int, company: String): ZIO[MasterfileRepository, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, modelId, company)))
 
-  def all(modelid:Int, companyId: String): ZIO[MasterfileRepository, RepositoryError, List[Masterfile]]                =
-    ZIO.service[MasterfileRepository] flatMap (_.all(modelid, companyId))
-  def list(modelid:Int, company: String): ZStream[MasterfileRepository, RepositoryError, Masterfile]                   =
-    ZStream.service[MasterfileRepository] flatMap (_.list(modelid, company))
+  def all(Id:(Int, String)): ZIO[MasterfileRepository, RepositoryError, List[Masterfile]]                =
+    ZIO.service[MasterfileRepository] flatMap (_.all(Id))
+  def list(Id:(Int, String)): ZStream[MasterfileRepository, RepositoryError, Masterfile]                   =
+    ZStream.service[MasterfileRepository] flatMap (_.list(Id))
   def getBy(id:(String,Int,  String)): ZIO[MasterfileRepository, RepositoryError, Masterfile]          =
     ZIO.service[MasterfileRepository] flatMap (_.getBy(id))
   def getByModelId(modelid:(Int,  String)): ZIO[MasterfileRepository, RepositoryError, List[Masterfile]] =
