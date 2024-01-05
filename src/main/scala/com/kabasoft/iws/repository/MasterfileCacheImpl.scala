@@ -10,15 +10,15 @@ import java.util.concurrent.TimeUnit
 
 final class MasterfileCacheImpl (repository: MasterfileRepository) extends MasterfileCache  {
 
-//  override def all(modelId:Int, companyId: String): ZIO[Any, RepositoryError, List[Masterfile]] = Cache.make(
-//    capacity = 100000,
-//    timeToLive = Duration.apply(15, TimeUnit.HOURS),
-//    lookup = Lookup [(Int, String), Any, RepositoryError, List[Masterfile]] (repository.all).flatMap(_.get(modelId, companyId))
+  override def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Masterfile]] = Cache.make(
+    capacity = 100000,
+    timeToLive = Duration.apply(15, TimeUnit.HOURS),
+    lookup = Lookup(repository.all)).flatMap(_.get(Id))
 
   override def getBy(id:(String, Int, String)): ZIO[Any, RepositoryError, Masterfile] = Cache.make(
     capacity = 100000,
     timeToLive = Duration.apply(15, TimeUnit.HOURS),
-    lookup = Lookup[(String, Int, String),Any,RepositoryError, Masterfile](repository.getBy)).flatMap(_.get(id))
+    lookup = Lookup(repository.getBy)).flatMap(_.get(id))
 
   override def getByModelId(id: (Int, String)): ZIO[Any, RepositoryError, List[Masterfile]] = Cache.make(
     capacity = 100000,

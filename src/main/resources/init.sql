@@ -386,7 +386,7 @@ create table if not exists role
     id     integer not null primary key,
     name   varchar(255) not null,
     description     varchar(255)  not null,
-    transdate    timestamp default CURRENT_DATE not null,
+    changedate    timestamp default CURRENT_DATE not null,
     enterdate    timestamp default CURRENT_DATE not null,
     postingdate  timestamp default CURRENT_DATE not null,
     company varchar(50)  not null,
@@ -399,7 +399,7 @@ create table if not exists Permission
     id     integer not null primary key,
     name   varchar(255) not null,
     description     varchar(255)  not null,
-    transdate    timestamp default CURRENT_DATE not null,
+    changedate    timestamp default CURRENT_DATE not null,
     enterdate    timestamp default CURRENT_DATE not null,
     postingdate  timestamp default CURRENT_DATE not null,
     short varchar(10)  not null,
@@ -432,7 +432,7 @@ create table if not exists fmodule
     id     integer not null primary key,
     name   varchar(255) not null,
     description     varchar(255)  not null,
-    transdate    timestamp default CURRENT_DATE not null,
+    changedate    timestamp default CURRENT_DATE not null,
     enterdate    timestamp default CURRENT_DATE not null,
     postingdate  timestamp default CURRENT_DATE not null,
     account varchar(50)  not null,
@@ -447,7 +447,7 @@ create table if not exists asset
     id  varchar(50) not null primary key,
     name         varchar(255) not null,
     description  varchar(255),
-    transdate    timestamp default CURRENT_DATE not null,
+    changedate    timestamp default CURRENT_DATE not null,
     enterdate    timestamp default CURRENT_DATE not null,
     postingdate  timestamp default CURRENT_DATE not null,
     company    varchar(50) not null,
@@ -461,7 +461,7 @@ create table if not exists asset
     frequency    int,
     currency     varchar(50) not null
     );
-insert into asset(id,  name, description, transdate, enterdate, postingdate, company, modelid, account, oaccount, scrap_value, life_span, dep_method, rate, frequency, currency) values
+insert into asset(id,  name, description, changedate, enterdate, postingdate, company, modelid, account, oaccount, scrap_value, life_span, dep_method, rate, frequency, currency) values
 ('1804', 'BMW-220D', 'BMW-220D', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '1000', 19, '0520', '6222', 1.0, 5, 2, 0.30, 12, 'EUR'),
 ('IWS-01', 'IWS', 'Integriertes Finanzbuchhaltungssystem', '2019-04-11 00:00:00','2019-04-11 00:00:00', '2019-04-11 00:00:00', '1000', 19, '0135', '6222', 1.0, 5, 2, 1.0, 12, 'EUR'),
 ('MACB001', 'MacBook Pro 2017', 'MacBook Pro 2017', '2019-03-15 00:00:00', '2019-03-15 00:00:00','2019-03-15 00:00:00', '1000', 19, '0651', '4830', 1.0, 3, 2, 1.0, 12, 'EUR' ),

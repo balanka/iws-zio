@@ -14,13 +14,13 @@ final class RoleRepositoryImpl(pool: ConnectionPool) extends RoleRepository with
   val role = defineTable[Role_]("role")
   val userRight = defineTable[UserRight]("user_right")
 
-  val (id, name, description, transdate, postingdate, enterdate,  modelid, company) = role.columns
+  val (id, name, description, changedate, postingdate, enterdate,  modelid, company) = role.columns
   val (moduleid, roleid, short, company_, modelid_)                                 = userRight.columns
 
-  val SELECT                                                                         = select(id, name, description, transdate, postingdate, enterdate,  modelid, company).from(role)
+  val SELECT                                                                         = select(id, name, description, changedate, postingdate, enterdate,  modelid, company).from(role)
   val SELECT_USER_RIGHT                                                              = select(moduleid, roleid, short, company_, modelid_).from(userRight)
 
-  def toTuple(c: Role) = (c.id, c.name, c.description, c.transdate, c.postingdate, c.enterdate,  c.modelid, c.company)
+  def toTuple(c: Role) = (c.id, c.name, c.description, c.changedate, c.postingdate, c.enterdate,  c.modelid, c.company)
   def whereClause(Id: Int, companyId: String) =
     List(id === Id, company === companyId)
       .fold(Expr.literal(true))(_ && _)
@@ -38,7 +38,7 @@ final class RoleRepositoryImpl(pool: ConnectionPool) extends RoleRepository with
     }
 
   override def create2(c: Role): ZIO[Any, RepositoryError, Unit]                        = {
-    val query = insertInto(role)(id, name, description, transdate, postingdate, enterdate,  modelid, company).values(toTuple(c))
+    val query = insertInto(role)(id, name, description, changedate, postingdate, enterdate,  modelid, company).values(toTuple(c))
 
     ZIO.logDebug(s"Query to insert user role is ${renderInsert(query)}") *>
       execute(query)
@@ -46,7 +46,7 @@ final class RoleRepositoryImpl(pool: ConnectionPool) extends RoleRepository with
         .unit
   }
   override def create2(models: List[Role]): ZIO[Any, RepositoryError, Int]              = {
-    val query = insertInto(role)(id, name, description, transdate, postingdate, enterdate,  modelid, company).values(models.map(toTuple))
+    val query = insertInto(role)(id, name, description, changedate, postingdate, enterdate,  modelid, company).values(models.map(toTuple))
 
     ZIO.logDebug(s"Query to insert user role is ${renderInsert(query)}") *>
       execute(query)

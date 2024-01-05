@@ -14,8 +14,8 @@ trait SalaryItemRepository {
   def delete(item: String, company: String): ZIO[Any, RepositoryError, Int]
   def delete(items: List[String], company: String): ZIO[Any, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
-  def all(companyId: String): ZIO[Any, RepositoryError, List[SalaryItem]]
-  def list(company: String): ZStream[Any, RepositoryError, SalaryItem]
+  def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[SalaryItem]]
+  def list(Id:(Int, String)): ZStream[Any, RepositoryError, SalaryItem]
   def getBy(id: (String,String)): ZIO[Any, RepositoryError, SalaryItem]
   def getByModelId(modelid:(Int,String)): ZIO[Any, RepositoryError, List[SalaryItem]]
   def getByModelIdStream(modelid: Int, company: String): ZStream[Any, RepositoryError, SalaryItem]
@@ -37,10 +37,10 @@ object SalaryItemRepository {
     ZIO.service[SalaryItemRepository] flatMap (_.delete(item, company))
   def delete(items: List[String], company: String): ZIO[SalaryItemRepository, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
-  def all(companyId: String): ZIO[SalaryItemRepository, RepositoryError, List[SalaryItem]]                      =
-    ZIO.service[SalaryItemRepository] flatMap (_.all(companyId))
-  def list(company: String): ZStream[SalaryItemRepository, RepositoryError, SalaryItem]                        =
-    ZStream.service[SalaryItemRepository] flatMap (_.list(company))
+  def all(Id:(Int, String)): ZIO[SalaryItemRepository, RepositoryError, List[SalaryItem]]                      =
+    ZIO.service[SalaryItemRepository] flatMap (_.all(Id))
+  def list(Id:(Int, String)): ZStream[SalaryItemRepository, RepositoryError, SalaryItem]                        =
+    ZStream.service[SalaryItemRepository] flatMap (_.list(Id))
   def getBy(id: (String,String)): ZIO[SalaryItemRepository, RepositoryError, SalaryItem]               =
     ZIO.service[SalaryItemRepository] flatMap (_.getBy(id))
   def getByModelId(modelid: (Int,String)): ZIO[SalaryItemRepository, RepositoryError, List[SalaryItem]]      =
