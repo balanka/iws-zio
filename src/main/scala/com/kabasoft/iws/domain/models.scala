@@ -66,6 +66,7 @@ import common._
 final case class Store(id: String,
                        name: String,
                        description: String,
+                       account: String,
                        enterdate: Instant = Instant.now(),
                        changedate: Instant = Instant.now(),
                        postingdate: Instant = Instant.now(),
@@ -626,9 +627,12 @@ final case class Costcenter(
   enterdate: Instant = Instant.now(),
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now(),
-  modelid: Int = 6,
+  modelid: Int = Costcenter.MODEL_ID,
   company: String
 ) extends IWS
+object Costcenter {
+  val MODEL_ID = 6
+}
 
 final case class ImportFile( id: String,
                              name: String,
