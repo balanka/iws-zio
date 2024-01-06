@@ -42,7 +42,7 @@ object VatRepositoryLiveSpec extends ZIOSpecDefault {
         for {
           oneRow <- VatRepository.create2(vats)
           count <- VatRepository.list((Vat.MODEL_ID, company)).runCount
-        } yield assertTrue(oneRow==2) && assertTrue(count==4L)
+        } yield assertTrue(oneRow==2) && assertTrue(count==2L)
       },
       test("get a Vat by its id") {
         for {

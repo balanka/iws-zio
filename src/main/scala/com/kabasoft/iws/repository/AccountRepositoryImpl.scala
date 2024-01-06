@@ -99,26 +99,34 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
     ).values(models.map(tuple2))
 
   override def create(c: Account): ZIO[Any, RepositoryError, Account] =
-    create2(c)*>getBy((c.id, c.company))
-  override def create(c: List[Account]): ZIO[Any, RepositoryError, List[Account]] =
-    if(c.isEmpty) {
-      ZIO.succeed(List.empty[Account])
-    }else {
-      create2(c) *> getBy(c.map(_.id), c.head.company)
-    }
+    create2(List(c))*>getBy((c.id, c.company))
+
+  override def create(c: List[Account]): ZIO[Any, RepositoryError, List[Account]] = for{
+   nr <- create2(c)
+    _ <- ZIO.logInfo(s" ${nr}  accounts inserted ")
+   result <- getBy(c.map(_.id), c.head.company)
+  }yield result
+   // create2(c) *> getBy(c.map(_.id), c.head.company)
+//    if(c.isEmpty) {
+//      ZIO.succeed(List.empty[Account])
+//    }else {
+//      create2(c) *> getBy(c.map(_.id), c.head.company)
+//    }
 
   override def create2(models: List[Account]): ZIO[Any, RepositoryError, Int] = {
     val query = buildInsertQuery(models)
-    ZIO.logDebug(s"Query to insert Account is ${renderInsert(query)}") *>
+    ZIO.logInfo(s" insert Account stmt ${renderInsert(query)}") *>
       execute(query)
-        .provideAndLog(driverLayer)
+        .provideLayer(driverLayer)
+        .mapError(e => RepositoryError(e.getMessage))
+        //.provideAndLog(driverLayer)
   }
-  override def create2(c: Account): ZIO[Any, RepositoryError, Unit]                     = {
-    val query = buildInsertQuery(List(c))
-      execute(query)
-        .provideAndLog(driverLayer)
-        .unit
-  }
+//  override def create2(c: Account): ZIO[Any, RepositoryError, Unit]                     = {
+//    val query = buildInsertQuery(List(c))
+//      execute(query)
+//        .provideAndLog(driverLayer)
+//        .unit
+//  }
 
   override def delete(idx: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
     val delete_ = deleteFrom(accounts).where(company === companyId && id === idx  )

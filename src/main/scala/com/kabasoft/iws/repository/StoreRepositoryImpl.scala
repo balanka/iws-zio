@@ -12,9 +12,9 @@ final class StoreRepositoryImpl(pool: ConnectionPool) extends StoreRepository wi
 
   val store = defineTable[Store]("store")
 
-  val (id, name, description, enterdate, changedate, postingdate, company, modelid) = store.columns
+  val (id, name, description, account, enterdate, changedate, postingdate, company, modelid) = store.columns
 
-  val SELECT                                                                           = select(id, name, description, enterdate, changedate, postingdate, company, modelid).from(store)
+  val SELECT                                                                           = select(id, name, description, account, enterdate, changedate, postingdate, company, modelid).from(store)
 
 
   def whereClause(Id: String, companyId: String) =
@@ -33,7 +33,7 @@ final class StoreRepositoryImpl(pool: ConnectionPool) extends StoreRepository wi
     }
 
   override def create2(c: Store): ZIO[Any, RepositoryError, Unit]                        = {
-    val query = insertInto(store)(id, name, description, enterdate, changedate, postingdate, company, modelid).values(Store.unapply(c).get)
+    val query = insertInto(store)(id, name, description, account, enterdate, changedate, postingdate, company, modelid).values(Store.unapply(c).get)
 
     ZIO.logDebug(s"Query to insert Store is ${renderInsert(query)}") *>
       execute(query)
@@ -42,7 +42,7 @@ final class StoreRepositoryImpl(pool: ConnectionPool) extends StoreRepository wi
   }
   override def create2(models: List[Store]): ZIO[Any, RepositoryError, Int]              = {
     val data  = models.map(Store.unapply(_).get)
-    val query = insertInto(store)(id, name, description, enterdate, changedate, postingdate, company, modelid ).values(data)
+    val query = insertInto(store)(id, name, description, account, enterdate, changedate, postingdate, company, modelid ).values(data)
 
     ZIO.logDebug(s"Query to insert Store is ${renderInsert(query)}") *>
       execute(query)
@@ -60,6 +60,7 @@ final class StoreRepositoryImpl(pool: ConnectionPool) extends StoreRepository wi
     val update_ = update(store)
       .set(name, model.name)
       .set(description, model.description)
+      .set(account, model.account)
       .where(whereClause( model.id,  model.company))
     ZIO.logDebug(s"Query Update Store is ${renderUpdate(update_)}") *>
       execute(update_)

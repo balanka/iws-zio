@@ -46,7 +46,7 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
       pacList      = filteredList
                        .filterNot(x => x.dbalance == zeroAmount || x.cbalance == zeroAmount)
                        .map(pac => allAccounts.find(_.id == pac.account).fold(pac)(acc => net(acc, pac, nextPeriod)))
-      oldPacs     <- pacRepo.getByIds(pacList.map(_.id), company)
+      oldPacs     <- pacRepo.getByIds(pacList.map(_.id), company).map(_.filterNot(x => x.id == PeriodicAccountBalance.dummy.id))
       newPacs      = pacList.filterNot(oldPacs.contains)
       pac_created <- if (newPacs.isEmpty) ZIO.succeed(0) else pacRepo.create(newPacs)
       pac_updated <- if (oldPacs.isEmpty) ZIO.succeed(0) else pacRepo.modify(oldPacs)

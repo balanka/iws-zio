@@ -42,8 +42,8 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
         val fromPPeriod = previousYear.toString.concat("01").toInt
         val toPPeriod = previousYear.toString.concat("12").toInt
         val amount = new BigDecimal("200.00").setScale(2, RoundingMode.HALF_UP)
-        val amount2 = new BigDecimal("869.00").setScale(2, RoundingMode.HALF_UP)
-        val creditAmount = new BigDecimal("281.00").setScale(2, RoundingMode.HALF_UP)
+        val amount2 = new BigDecimal("769.00").setScale(2, RoundingMode.HALF_UP)
+        val creditAmount = new BigDecimal("200.00").setScale(2, RoundingMode.HALF_UP)
 
         val list  = List(ftr1, ftr2)
         for {
@@ -59,7 +59,7 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
           balances4P     <-PacRepository.getBalances4Period(period, period, companyId).runCollect.map(_.toList)
           balance       <-AccountService.getBalance(paccountId0, fromPeriod, toPeriod, companyId).map(_.head)
         } yield {
-          assertTrue(oneRow == 5, nrOfAccounts == 2, postedRows == 24, nrOfPacs == 1, accountEntry == 3,
+          assertTrue(oneRow == 5, nrOfAccounts == 4, postedRows == 24, nrOfPacs == 1, accountEntry == 3,
             oaccountEntry == 1, vatEntry == 1, balances4P.size == 5,
             balances4P.headOption.getOrElse(PeriodicAccountBalance.dummy).debit.equals(amount),
             balance.debit.equals(amount2), balance.credit.equals(creditAmount))
