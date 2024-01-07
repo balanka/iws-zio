@@ -10,10 +10,10 @@ import java.util.concurrent.TimeUnit
 
 final class VatCacheImpl (repository: VatRepository) extends VatCache  {
 
-  override def all(companyId: String): ZIO[Any, RepositoryError, List[Vat]] = Cache.make(
+  override def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Vat]] = Cache.make(
     capacity = 100000,
     timeToLive = Duration.apply(15, TimeUnit.HOURS),
-    lookup = Lookup(repository.all)).flatMap(_.get(companyId))
+    lookup = Lookup(repository.all)).flatMap(_.get(Id))
 
   override def getBy(id:(String, String)): ZIO[Any, RepositoryError, Vat] = Cache.make(
     capacity = 100000,

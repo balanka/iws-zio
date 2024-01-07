@@ -7,15 +7,15 @@ import zio.stream._
 
 trait EmployeeRepository {
   def create(item: Employee): ZIO[Any, RepositoryError, Employee]
-  def create2(item: Employee): ZIO[Any, RepositoryError, Unit]
+  def create2(item: Employee): ZIO[Any, RepositoryError, Int]
 
   def create(models: List[Employee]): ZIO[Any, RepositoryError, List[Employee]]
-  def create2(models: List[Employee]): ZIO[Any, RepositoryError, Int]
+  def buildInsert(models: List[Employee]): ZIO[Any, RepositoryError, Int]
   def delete(item: String, company: String): ZIO[Any, RepositoryError, Int]
   def delete(items: List[String], company: String): ZIO[Any, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
-  def list(company: String): ZStream[Any, RepositoryError, Employee]
-  def all(companyId: String): ZIO[Any, RepositoryError, List[Employee]]
+  def list(Id:(Int, String)): ZStream[Any, RepositoryError, Employee]
+  def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Employee]]
   def getBy(id: (String,  String)): ZIO[Any, RepositoryError, Employee]
   def getByIban(Iban: String, companyId: String): ZIO[Any, RepositoryError, Employee]
   def getByModelId(modelid:(Int, String)): ZIO[Any, RepositoryError, List[Employee]]
@@ -26,20 +26,21 @@ trait EmployeeRepository {
 object EmployeeRepository {
   def create(item: Employee): ZIO[EmployeeRepository, RepositoryError, Employee] =
     ZIO.service[EmployeeRepository] flatMap (_.create(item))
-  def create2(item: Employee): ZIO[EmployeeRepository, RepositoryError, Unit]                               =
+  def create2(item: Employee): ZIO[EmployeeRepository, RepositoryError, Int]                               =
     ZIO.service[EmployeeRepository] flatMap (_.create2(item))
 
   def create(items: List[Employee]): ZIO[EmployeeRepository, RepositoryError, List[Employee]] =
     ZIO.service[EmployeeRepository] flatMap (_.create(items))
-  def create2(items: List[Employee]): ZIO[EmployeeRepository, RepositoryError, Int]                         =
-    ZIO.service[EmployeeRepository] flatMap (_.create2(items))
+  def buildInsert(items: List[Employee]): ZIO[EmployeeRepository, RepositoryError, Int]                         =
+    ZIO.service[EmployeeRepository] flatMap (_.buildInsert(items))
   def delete(item: String, company: String): ZIO[EmployeeRepository, RepositoryError, Int]              =
     ZIO.service[EmployeeRepository] flatMap (_.delete(item, company))
   def delete(items: List[String], company: String): ZIO[EmployeeRepository, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
-
-  def all(company: String): ZIO[EmployeeRepository, RepositoryError, List[Employee]]                      =
-    ZIO.service[EmployeeRepository] flatMap (_.all(company))
+  def list(Id:(Int, String)): ZStream[EmployeeRepository, RepositoryError, Employee]=
+    ZStream.service[EmployeeRepository] flatMap (_.list(Id))
+  def all(Id:(Int, String)): ZIO[EmployeeRepository, RepositoryError, List[Employee]]                      =
+    ZIO.service[EmployeeRepository] flatMap (_.all(Id))
   def getBy(id:(String, String)): ZIO[EmployeeRepository, RepositoryError, Employee]              =
     ZIO.service[EmployeeRepository] flatMap (_.getBy(id))
   def getByIban(Iban: String, companyId: String): ZIO[EmployeeRepository, RepositoryError, Employee]      =

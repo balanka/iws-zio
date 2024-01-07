@@ -5,17 +5,16 @@ import com.kabasoft.iws.domain.SalaryItem
 import zio._
 import zio.sql.ConnectionPool
 import zio.stream._
+
 final class SalaryItemRepositoryImpl(pool: ConnectionPool) extends SalaryItemRepository with IWSTableDescriptionPostgres {
 
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
 
   val salaryItem = defineTable[SalaryItem]("salary_item")
 
-  val (id, name, description, account, amount, enterdate, changedate, postingdate, modelid, company) = salaryItem.columns
+  val (id, name, description, account, amount, percentile, enterdate, changedate, postingdate, modelid, company) = salaryItem.columns
 
-  val SELECT                                                                           = select(id, name, description, account, amount, enterdate, changedate, postingdate, modelid, company).from(salaryItem)
-
-
+  val SELECT                                                                           = select(id, name, description, account, amount, percentile, enterdate, changedate, postingdate, modelid, company).from(salaryItem)
   def whereClause(Id: String, companyId: String) =
     List(id === Id, company === companyId)
       .fold(Expr.literal(true))(_ && _)
@@ -32,7 +31,7 @@ final class SalaryItemRepositoryImpl(pool: ConnectionPool) extends SalaryItemRep
     }
 
   override def create2(c: SalaryItem): ZIO[Any, RepositoryError, Unit]                        = {
-    val query = insertInto(salaryItem)(id, name, description, account, amount, enterdate, changedate, postingdate, modelid, company).values(SalaryItem.unapply(c).get)
+    val query = insertInto(salaryItem)(id, name, description, account, amount, percentile, enterdate, changedate, postingdate, modelid, company).values(SalaryItem.unapply(c).get)
 
     ZIO.logDebug(s"Query to insert SalaryItem is ${renderInsert(query)}") *>
       execute(query)
@@ -41,7 +40,7 @@ final class SalaryItemRepositoryImpl(pool: ConnectionPool) extends SalaryItemRep
   }
   override def create2(models: List[SalaryItem]): ZIO[Any, RepositoryError, Int]              = {
     val data  = models.map(SalaryItem.unapply(_).get)
-    val query = insertInto(salaryItem)(id, name, description, account, amount, enterdate, changedate, postingdate, modelid, company).values(data)
+    val query = insertInto(salaryItem)(id, name, description, account, amount, percentile, enterdate, changedate, postingdate, modelid, company).values(data)
 
     ZIO.logDebug(s"Query to insert SalaryItem is ${renderInsert(query)}") *>
       execute(query)
@@ -61,6 +60,7 @@ final class SalaryItemRepositoryImpl(pool: ConnectionPool) extends SalaryItemRep
       .set(description, model.description)
       .set(account, model.account)
       .set(amount, model.amount)
+      .set(percentile, model.percentile)
       .where(whereClause( model.id,  model.company))
     ZIO.logDebug(s"Query Update salaryItem is ${renderUpdate(update_)}") *>
       execute(update_)
@@ -68,11 +68,11 @@ final class SalaryItemRepositoryImpl(pool: ConnectionPool) extends SalaryItemRep
         .mapError(e => RepositoryError(e.getMessage))
   }
 
-  override def all(companyId: String): ZIO[Any, RepositoryError, List[SalaryItem]] =
-    list(companyId).runCollect.map(_.toList)
+  override def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[SalaryItem]] =
+    list(Id).runCollect.map(_.toList)
 
-  override def list(companyId: String): ZStream[Any, RepositoryError, SalaryItem]                   = {
-    val selectAll = SELECT.where(company === companyId)
+  override def list(Id:(Int, String)): ZStream[Any, RepositoryError, SalaryItem]                   = {
+    val selectAll = SELECT.where(modelid === Id._1 && company === Id._2)
     ZStream.fromZIO(
       ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")
     ) *>

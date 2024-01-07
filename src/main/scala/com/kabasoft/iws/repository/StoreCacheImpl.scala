@@ -10,10 +10,10 @@ import java.util.concurrent.TimeUnit
 
 final class StoreCacheImpl (repository: StoreRepository) extends StoreCache  {
 
-  override def all(companyId: String): ZIO[Any, RepositoryError, List[Store]] = Cache.make(
+  override def all(Id:(Int,  String)): ZIO[Any, RepositoryError, List[Store]] = Cache.make(
     capacity = 100000,
     timeToLive = Duration.apply(15, TimeUnit.HOURS),
-    lookup = Lookup(repository.all)).flatMap(_.get(companyId))
+    lookup = Lookup(repository.all)).flatMap(_.get(Id))
 
   override def getBy(id:(String, String)): ZIO[Any, RepositoryError, Store] = Cache.make(
     capacity = 100000,

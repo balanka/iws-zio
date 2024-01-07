@@ -1,4 +1,4 @@
-val zioVersion                 = "2.0.17"
+val zioVersion                 = "2.0.20"
 
 val zioHttpVersion             = "3.0.0-RC2"
 val zioJsonVersion             = "0.3.0"
@@ -18,9 +18,9 @@ ThisBuild / resolvers +=
   "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 ThisBuild / scalacOptions += "-Wconf:any:wv"
 maintainer := "batexy@gmail.com"
-dockerBaseImage := "adoptopenjdk:11-jre-hotspot"
+//dockerBaseImage := "adoptopenjdk:11-jre-hotspot"
 //dockerBaseImage := "openjdk:17-alpine"
-//dockerBaseImage := "eclipse-temurin:21-alpine"
+dockerBaseImage := "eclipse-temurin:21-alpine"
 //dockerBaseImage := "openjdk:21-jdk"
 
 assemblyMergeStrategy in assembly := {
@@ -36,7 +36,7 @@ lazy val root = (project in file("."))
       List(
         name         := "iws-zio",
         organization := "KABA Soft GmbH",
-        version      := "1.0.8",
+        version      := "1.1.7",
         scalaVersion := "2.13.10"
          //scalaVersion := "3.1.1"
       )

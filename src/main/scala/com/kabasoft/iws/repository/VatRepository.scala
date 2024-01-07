@@ -14,8 +14,8 @@ trait VatRepository {
   def delete(items: List[String], company: String): ZIO[Any, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
 
-  def all(companyId: String): ZIO[Any, RepositoryError, List[Vat]]
-  def list(company: String): ZStream[Any, RepositoryError, Vat]
+  def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Vat]]
+  def list(Id:(Int, String)): ZStream[Any, RepositoryError, Vat]
   def getBy(id: (String, String)): ZIO[Any, RepositoryError, Vat]
   def getByModelId(modelid:(Int,String)): ZIO[Any, RepositoryError, List[Vat]]
   def getByModelIdStream(modelid: Int, company: String): ZStream[Any, RepositoryError, Vat]
@@ -38,10 +38,10 @@ object VatRepository {
   def delete(items: List[String], company: String): ZIO[VatRepository, RepositoryError, List[Int]] =
     ZIO.collectAll(items.map(delete(_, company)))
 
-  def all(companyId: String): ZIO[VatRepository, RepositoryError, List[Vat]]                =
-    ZIO.service[VatRepository] flatMap (_.all(companyId))
-  def list(company: String): ZStream[VatRepository, RepositoryError, Vat]                   =
-    ZStream.service[VatRepository] flatMap (_.list(company))
+  def all(Id:(Int, String)): ZIO[VatRepository, RepositoryError, List[Vat]]                =
+    ZIO.service[VatRepository] flatMap (_.all(Id))
+  def list(Id:(Int, String)): ZStream[VatRepository, RepositoryError, Vat]                   =
+    ZStream.service[VatRepository] flatMap (_.list(Id))
   def getBy(id: (String, String)): ZIO[VatRepository, RepositoryError, Vat]          =
     ZIO.service[VatRepository] flatMap (_.getBy(id))
   def getByModelId(modelid:(Int, String)): ZIO[VatRepository, RepositoryError, List[Vat]] =

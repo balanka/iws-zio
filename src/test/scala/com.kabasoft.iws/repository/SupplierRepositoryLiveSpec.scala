@@ -2,6 +2,7 @@ package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.SupplierBuilder.{supplierIban3, suppliers}
 import com.kabasoft.iws.domain.AccountBuilder.companyId
+import com.kabasoft.iws.domain.Supplier
 import com.kabasoft.iws.repository.container.PostgresContainer
 import zio.ZLayer
 import zio.sql.ConnectionPool
@@ -25,7 +26,7 @@ val newName = "New Supplier name"
       test("insert two new supplier, modify one and look it up by id") {
         for {
           oneRow <- SupplierRepository.create2(suppliers)
-          count <- SupplierRepository.list(companyId).runCount
+          count <- SupplierRepository.list((Supplier.MODELID, companyId)).runCount
           stmt <- SupplierRepository.getBy((supplierId1, companyId))
           updated <- SupplierRepository.modify(stmt.copy(name = newName))
           stmt2 <- SupplierRepository.getBy((supplierId1, companyId))

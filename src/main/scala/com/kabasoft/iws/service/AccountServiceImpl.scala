@@ -7,7 +7,7 @@ import zio._
 final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepository) extends AccountService {
   def getBalance(accId: String, fromPeriod: Int, toPeriod: Int, companyId: String): ZIO[Any, RepositoryError, List[Account]] =
     (for {
-      accounts    <- accRepo.all(companyId)
+      accounts    <- accRepo.all((Account.MODELID, companyId))
       period       = fromPeriod.toString.slice(0, 4).concat("00").toInt
       pacBalances <- pacRepo.getBalances4Period(fromPeriod, toPeriod, companyId).runCollect.map(_.toList)
       pacs        <- pacRepo.find4Period(period, period, companyId).runCollect.map(_.toList)
@@ -29,7 +29,7 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
   def closePeriod(fromPeriod: Int, toPeriod: Int, inStmtAccId: String, company: String): ZIO[Any, RepositoryError, Int] =
     for {
       pacs         <- pacRepo.findBalance4Period(fromPeriod, toPeriod, company).runCollect.map(_.toList)
-      allAccounts  <- accRepo.list(company).runCollect.map(_.toList)
+      allAccounts  <- accRepo.list(Account.MODELID, company).runCollect.map(_.toList)
       currentYear   = fromPeriod.toString.slice(0, 4).toInt
       currentPeriod = currentYear.toString.concat("00").toInt
       nextPeriod    = (currentYear + 1).toString.concat("00").toInt
@@ -46,7 +46,7 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
       pacList      = filteredList
                        .filterNot(x => x.dbalance == zeroAmount || x.cbalance == zeroAmount)
                        .map(pac => allAccounts.find(_.id == pac.account).fold(pac)(acc => net(acc, pac, nextPeriod)))
-      oldPacs     <- pacRepo.getByIds(pacList.map(_.id), company)
+      oldPacs     <- pacRepo.getByIds(pacList.map(_.id), company).map(_.filterNot(x => x.id == PeriodicAccountBalance.dummy.id))
       newPacs      = pacList.filterNot(oldPacs.contains)
       pac_created <- if (newPacs.isEmpty) ZIO.succeed(0) else pacRepo.create(newPacs)
       pac_updated <- if (oldPacs.isEmpty) ZIO.succeed(0) else pacRepo.modify(oldPacs)

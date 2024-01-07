@@ -6,14 +6,14 @@ import zio._
 
 
 trait AccountCache {
-  def all(companyId: String): ZIO[Any, RepositoryError, List[Account]]
+  def all(Id:(Int,  String)): ZIO[Any, RepositoryError, List[Account]]
   def getBy(id:(String,  String)): ZIO[Any, RepositoryError, Account]
   def getByModelId(id:(Int, String)): ZIO[Any, RepositoryError, List[Account]]
 
 }
 object AccountCache {
-  def all(companyId: String): ZIO[AccountCache, RepositoryError, List[Account]] =
-    ZIO.service[AccountCache] flatMap (_.all(companyId))
+  def all(Id:(Int, String)): ZIO[AccountCache, RepositoryError, List[Account]] =
+    ZIO.service[AccountCache] flatMap (_.all(Id))
 
   def getBy(id:(String, String)): ZIO[AccountCache, RepositoryError, Account]=
     ZIO.service[AccountCache] flatMap (_.getBy(id))

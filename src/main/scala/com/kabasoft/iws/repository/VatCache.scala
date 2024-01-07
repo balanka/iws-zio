@@ -6,14 +6,14 @@ import zio._
 
 
 trait VatCache {
-  def all(companyId: String): ZIO[Any, RepositoryError, List[Vat]]
+  def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Vat]]
   def getBy(id:(String,  String)): ZIO[Any, RepositoryError, Vat]
   def getByModelId(id:(Int, String)): ZIO[Any, RepositoryError, List[Vat]]
 
 }
 object VatCache {
-  def all(companyId: String): ZIO[VatCache, RepositoryError, List[Vat]] =
-    ZIO.service[VatCache] flatMap (_.all(companyId))
+  def all(Id:(Int, String)): ZIO[VatCache, RepositoryError, List[Vat]] =
+    ZIO.service[VatCache] flatMap (_.all(Id))
 
   def getBy(id:(String, String)): ZIO[VatCache, RepositoryError, Vat]=
     ZIO.service[VatCache] flatMap (_.getBy(id))

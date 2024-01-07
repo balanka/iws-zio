@@ -6,9 +6,10 @@ import com.kabasoft.iws.api.AssetEndpoint.appAsset
 import com.kabasoft.iws.api.JournalEndpoint.appJournal
 import com.kabasoft.iws.api.LoginRoutes.{appLogin, jwtDecode}
 import com.kabasoft.iws.api.BankStmtEndpoint.appBankStmt
-import com.kabasoft.iws.api.CostcenterEndpoint.appCC
+//import com.kabasoft.iws.api.CostcenterEndpoint.appCC
 import com.kabasoft.iws.api.PacEndpoint.appPac
-import com.kabasoft.iws.api.BankEndpoint.appBank
+//import com.kabasoft.iws.api.BankEndpoint.appBank
+import com.kabasoft.iws.api.MasterfileEndpoint.appMasterfile
 import com.kabasoft.iws.api.CompanyEndpoint.appComp
 import com.kabasoft.iws.api.ModuleEndpoint.appModule
 import com.kabasoft.iws.api.SupplierEndpoint.appSup
@@ -17,6 +18,7 @@ import com.kabasoft.iws.api.EmployeeEndpoint.routesEmp
 import com.kabasoft.iws.api.FModuleEndpoint.appFModule
 import com.kabasoft.iws.api.FinancialsEndpoint.appFtr
 import com.kabasoft.iws.api.ImportFileEndpoint.appImportFile
+import com.kabasoft.iws.api.PayrollEndpoint.appPayroll
 import com.kabasoft.iws.api.PermissionEndpoint.appPerm
 import com.kabasoft.iws.api.RoleEndpoint.appRole
 import com.kabasoft.iws.api.SalaryItemEndpoint.appSalaryItem
@@ -48,8 +50,8 @@ object Main extends ZIOAppDefault {
   val env = System.getenv()
   val hostName:String =  env.get("IWS_API_HOST") //else "0.0.0.0"
   val port:Int = env.get("IWS_API_PORT").toInt //else 8080
-  println("hostName>>>" + hostName)
-  println("hostport>>>" + port)
+  //println("hostName>>>" + hostName)
+  //println("hostport>>>" + port)
   private val serverLayer: ZLayer[Any, Throwable, Server] = {
     implicit val trace = Trace.empty
     ZLayer.succeed(
@@ -61,15 +63,15 @@ object Main extends ZIOAppDefault {
 
       allowedOrigin = {
         case origin @ Origin.Value(_, host, _) if (host == hostName ||
-          host == "localhost" || host == "127.0.0.1") => Some(AccessControlAllowOrigin.Specific(origin))
+          host == "localhost" || host == "127.0.0.1" ) => Some(AccessControlAllowOrigin.Specific(origin))
         case _ => None
       },
       allowedMethods = AccessControlAllowMethods(Method.GET, Method.POST, Method.PUT, Method.PATCH, Method.DELETE)
     )
 
-  val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc ++ appBank  ++ appComp  ++ appFtr ++ appFModule
-    ++ routesEmp ++ appArticle ++ appStore ++ appSalaryItem
-     ++ appImportFile ++appBankStmt ++  appUser ++ appPac ++ appJournal ++ appCC ++ appBankStmt ++appPerm ++ appRole ++ appAsset)// ++expose)//.toApp.withDefaultErrorResponse @@ bearerAuth(jwtDecode(_).isDefined)
+  private val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc  ++ appComp  ++ appFtr ++ appFModule
+    ++ routesEmp ++ appArticle ++ appStore ++ appSalaryItem ++ appPayroll ++ appMasterfile
+    ++ appImportFile ++appBankStmt ++  appUser ++ appPac ++ appJournal  ++appPerm ++ appRole ++ appAsset)
 
   @nowarn val run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
 
@@ -90,20 +92,22 @@ object Main extends ZIOAppDefault {
           AccountCacheImpl.live,
           AccountRepositoryImpl.live,
           CompanyRepositoryImpl.live,
-          CostcenterRepositoryImpl.live,
-          CostcenterCacheImpl.live,
+          //CostcenterRepositoryImpl.live,
+          //CostcenterCacheImpl.live,
           ImportFileCacheImpl.live,
           CustomerRepositoryImpl.live,
           CustomerCacheImpl.live,
           EmployeeRepositoryImpl.live,
           EmployeeCacheImpl.live,
+          MasterfileRepositoryImpl.live,
+          MasterfileCacheImpl.live,
           SupplierRepositoryImpl.live,
           SupplierCacheImpl.live,
           StoreRepositoryImpl.live,
           StoreCacheImpl.live,
-          BankRepositoryImpl.live,
+          //BankRepositoryImpl.live,
           ImportFileRepositoryImpl.live,
-          BankCacheImpl.live,
+          //BankCacheImpl.live,
           ModuleRepositoryImpl.live,
           ModuleCacheImpl.live,
           FModuleRepositoryImpl.live,
@@ -124,6 +128,7 @@ object Main extends ZIOAppDefault {
           JournalRepositoryImpl.live,
           BankStatementServiceImpl.live,
           FinancialsServiceImpl.live,
-          PostTransactionRepositoryImpl.live
+          PostTransactionRepositoryImpl.live,
+          EmployeeServiceImpl.live
         )//.<*( ZIO.logInfo(s"http server started successfully!!!!"))
 }

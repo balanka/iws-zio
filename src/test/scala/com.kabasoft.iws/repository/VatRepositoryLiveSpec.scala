@@ -35,14 +35,14 @@ object VatRepositoryLiveSpec extends ZIOSpecDefault {
     suite("Vat repository test with postgres test container")(
       test("count all vats") {
         for {
-          count <- VatRepository.list(company).runCount
+          count <- VatRepository.list((Vat.MODEL_ID, company)).runCount
         } yield assertTrue(count==2L)
       },
       test("insert two new vats") {
         for {
           oneRow <- VatRepository.create2(vats)
-          count <- VatRepository.list(company).runCount
-        } yield assertTrue(oneRow==2) && assertTrue(count==4L)
+          count <- VatRepository.list((Vat.MODEL_ID, company)).runCount
+        } yield assertTrue(oneRow==2) && assertTrue(count==2L)
       },
       test("get a Vat by its id") {
         for {

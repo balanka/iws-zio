@@ -13,13 +13,13 @@ import zio.schema.DeriveSchema.gen
 object EmployeeEndpoint {
 
   val empCreateAPI      = Endpoint.post("emp").in[Employee].out[Employee].outError[RepositoryError](Status.InternalServerError)
-  val empAllAPI         = Endpoint.get("emp"/ string("company")).out[List[Employee]].outError[RepositoryError](Status.InternalServerError)
+  val empAllAPI         = Endpoint.get("emp"/  int("modelid")/string("company")).out[List[Employee]].outError[RepositoryError](Status.InternalServerError)
   val empByIdAPI        = Endpoint.get("emp" / string("id")/ string("company")).out[Employee].outError[RepositoryError](Status.InternalServerError)
   val empModifyAPI     = Endpoint.put("emp").in[Employee].out[Employee].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI  = Endpoint.delete("emp" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
   val empCreateEndpoint     = empCreateAPI.implement (emp=> ZIO.logInfo(s"Create Employee  ${emp}") *>EmployeeRepository.create(emp).mapError(e => RepositoryError(e.getMessage)))
-  val empAllEndpoint        = empAllAPI.implement (company=> EmployeeCache.all(company).mapError(e => RepositoryError(e.getMessage)))
+  val empAllEndpoint        = empAllAPI.implement (p=> EmployeeCache.all(p).mapError(e => RepositoryError(e.getMessage)))
   val empByIdEndpoint       = empByIdAPI.implement(p => EmployeeCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val ccModifyEndpoint = empModifyAPI.implement(p => ZIO.logInfo(s"Modify Employee  ${p}") *>
     EmployeeRepository.modify(p).mapError(e => RepositoryError(e.getMessage)) *>

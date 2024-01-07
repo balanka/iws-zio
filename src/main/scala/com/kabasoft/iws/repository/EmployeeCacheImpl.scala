@@ -8,10 +8,10 @@ import zio.cache.{Cache, Lookup}
 import java.util.concurrent.TimeUnit
 
 final class EmployeeCacheImpl (repository: EmployeeRepository) extends EmployeeCache  {
-  override def all(companyId: String): ZIO[Any, RepositoryError, List[Employee]] = Cache.make(
+  override def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Employee]] = Cache.make(
     capacity = 100000,
     timeToLive = Duration.apply(15, TimeUnit.HOURS),
-    lookup = Lookup(repository.all)).flatMap(_.get(companyId))
+    lookup = Lookup(repository.all)).flatMap(_.get(Id))
 
   override def getBy(id:(String, String)): ZIO[Any, RepositoryError, Employee] = Cache.make(
     capacity = 100000,

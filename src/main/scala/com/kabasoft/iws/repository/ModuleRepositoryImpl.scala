@@ -65,10 +65,10 @@ final class ModuleRepositoryImpl(pool: ConnectionPool) extends ModuleRepository 
         .mapError(e => RepositoryError(e.getMessage))
   }
 
-  override def all(companyId: String): ZIO[Any, RepositoryError, List[Module]]                  =
-    list(companyId).runCollect.map(_.toList)
-  override def list(companyId: String): ZStream[Any, RepositoryError, Module]                   = {
-    val selectAll = SELECT.where(company === companyId)
+  override def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Module]]                  =
+    list(Id).runCollect.map(_.toList)
+  override def list(Id:(Int, String)): ZStream[Any, RepositoryError, Module]                   = {
+    val selectAll = SELECT.where(modelid === Id._1 && company === Id._2)
 
     ZStream.fromZIO(
       ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")

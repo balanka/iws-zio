@@ -20,6 +20,7 @@ object BankStmtEndpoint {
   val bsModifyAPI     = Endpoint.put("bs").in[BankStatement].out[BankStatement].outError[RepositoryError](Status.InternalServerError)
   private val bsPostAPI     = Endpoint.get("bs"/literal("post")/string("company")/ string("transid") ).out[List[BankStatement]].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI      = Endpoint.get("bs" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
+  private val bsImportAPI    = Endpoint.get("bs" / string("path")/  string("header")/ string("char")/ string("extension")/string("company") ).out[Int].outError[RepositoryError](Status.InternalServerError)
 
    val createBanktmtEndpoint    = createAPI.implement(bs => BankStatementRepository.create2(List(bs)).mapError(e => RepositoryError(e.getMessage)))
   private val allEndpoint    = allAPI.implement(company => BankStatementRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
@@ -29,7 +30,8 @@ object BankStmtEndpoint {
     //BankStatementRepository.getBy(p.id.toString, p.company).mapError(e => RepositoryError(e.getMessage)))
 
   private val bsDeleteEndpoint = deleteAPI.implement(p => BankStatementRepository.delete(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
-
+  private val bsImportEndpoint = bsImportAPI.implement(p => ZIO.logInfo(s"Import BankStatement p._2 ${p._2} p._3 ${p._3} p._4 ${p._4} p._5 ${p._5} p._1 ${p._1.replace(".", "/")}") *>
+    BankStatementService.importBankStmt(p._1.replace(".", "/"), p._2, "\"", p._4, p._5 ).mapError(e => RepositoryError(e.getMessage)))
 
   private val bsPostAllEndpoint = bsPostAPI.implement(p => {
     val ids = if (p._2.contains(",")){
@@ -40,7 +42,7 @@ object BankStmtEndpoint {
     ZIO.logInfo(s"Post Bank statements  by id ${ids} for company ${p._1}") *>
     BankStatementService.post(ids, p._1).mapError(e => RepositoryError(e.getMessage))})
 
-   val routesBankStmt = allEndpoint ++ byIdEndpoint ++ createBanktmtEndpoint ++bsDeleteEndpoint++bsModifyEndpoint++bsPostAllEndpoint
+   val routesBankStmt = allEndpoint ++ byIdEndpoint ++ createBanktmtEndpoint ++bsDeleteEndpoint++bsModifyEndpoint++bsPostAllEndpoint ++ bsImportEndpoint
 
   val appBankStmt = routesBankStmt//.toApp //@@ bearerAuth(jwtDecode(_).isDefined)
 

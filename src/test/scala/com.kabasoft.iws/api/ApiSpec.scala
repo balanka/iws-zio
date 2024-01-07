@@ -1,18 +1,17 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.api.AccountEndpoint.{accByIdEndpoint, accCreateEndpoint, accDeleteEndpoint}
-import com.kabasoft.iws.api.BankEndpoint.{bankByIdEndpoint, bankCreateEndpoint, bankDeleteEndpoint}
 import zio.json.EncoderOps
-import com.kabasoft.iws.repository.{AccountCache, AccountCacheImpl, AccountRepositoryImpl, BankCache, BankCacheImpl,
-  BankRepositoryImpl, CostcenterCache, CostcenterCacheImpl, CostcenterRepositoryImpl, CustomerCache, CustomerCacheImpl,
-  CustomerRepositoryImpl, FinancialsTransactionCache, FinancialsTransactionCacheImpl, ModuleCache, ModuleCacheImpl,
-  ModuleRepositoryImpl, SupplierCache, SupplierCacheImpl, SupplierRepositoryImpl, FinancialsTransactionRepository,
-  FinancialsTransactionRepositoryImpl, UserRepository, UserRepositoryImpl, VatCache, VatCacheImpl, VatRepositoryImpl}
-import com.kabasoft.iws.api.CostcenterEndpoint.{ccByIdEndpoint, ccCreateEndpoint, ccDeleteEndpoint}
+import com.kabasoft.iws.repository.{AccountCache, AccountCacheImpl, AccountRepositoryImpl, CustomerCache, CustomerCacheImpl,
+  CustomerRepositoryImpl, FinancialsTransactionCache, FinancialsTransactionCacheImpl, FinancialsTransactionRepository,
+  FinancialsTransactionRepositoryImpl, MasterfileCache, MasterfileCacheImpl, MasterfileRepositoryImpl, ModuleCache,
+  ModuleCacheImpl, ModuleRepositoryImpl,
+  SupplierCache, SupplierCacheImpl, SupplierRepositoryImpl, UserRepository, UserRepositoryImpl, VatCache, VatCacheImpl, VatRepositoryImpl}
 import com.kabasoft.iws.api.Protocol._
 import com.kabasoft.iws.domain.BankBuilder.{bank, bankx}
 import com.kabasoft.iws.api.CustomerEndpoint.{custByIdEndpoint, custCreateEndpoint, custDeleteEndpoint}
 import com.kabasoft.iws.api.FinancialsEndpoint.ftrModifyEndpoint
+import com.kabasoft.iws.api.MasterfileEndpoint.{mByIdEndpoint, mCreateEndpoint, mDeleteEndpoint}
 import com.kabasoft.iws.api.ModuleEndpoint.{moduleByIdEndpoint, moduleCreateEndpoint, moduleDeleteEndpoint}
 import com.kabasoft.iws.api.SupplierEndpoint.{supByIdEndpoint, supCreateEndpoint, supDeleteEndpoint}
 import com.kabasoft.iws.api.UserEndpoint.{userByUserNameEndpoint, userDeleteEndpoint}
@@ -48,14 +47,14 @@ object ApiSpec extends ZIOSpecDefault {
     def spec = suite("APISpec")(
       suite("handler")(
         test("Account  integration test ") {
-        val accAll = Endpoint.get(("acc")/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
-                     .implement(company => AccountCache.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
-          val testRoutes = testApi((accAll ++accByIdEndpoint)) _
+        val accAll = Endpoint.get(("acc")/int("modelid")/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
+                     .implement(Id => AccountCache.all(Id).mapBoth(e => RepositoryError(e.getMessage), _.size))
+          val testRoutes = testApi(accAll ++accByIdEndpoint) _
           val deleteRoutes = testDeleteApi(accDeleteEndpoint) _
           val postRoutes = testPostApi(accCreateEndpoint) _
-            testRoutes("/acc/1000", "17") && testRoutes("/acc/"+acc.id+"/"+acc.company, acc.toJson)&&
-            deleteRoutes("/acc/"+acc.id+"/"+acc.company, "1")&&
-            postRoutes("/acc", accx.toJson, accx.toJson)
+            testRoutes("/acc/"+acc.modelid+"/" +acc.company, "17") && //testRoutes("/acc/"+acc.id+"/"+acc.company, acc.toJson)&&
+            deleteRoutes("/acc/"+acc.id+"/"+acc.company, "1") && postRoutes("/acc",  accx.toJson,  accx.toJson)
+
         },
 
         test("financials integration test") {
@@ -81,57 +80,61 @@ object ApiSpec extends ZIOSpecDefault {
           // deleteRoutes("/bank/" + bank.id + "/" + bank.company, "1") && testRoutes1("/bank", bankx.to)Json, "1")
         },
         test("Bank integration test") {
-          val bankAll = Endpoint.get("bank"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
-            .implement ( company => BankCache.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
-          val testRoutes = testApi(bankAll ++ bankByIdEndpoint++bankCreateEndpoint) _
-          val deleteRoutes = testDeleteApi(bankDeleteEndpoint) _
-          val testRoutes1 = testPostApi(bankCreateEndpoint) _
-          testRoutes("/bank/"+bank.company, "2") && testRoutes("/bank/"+bank.id+"/"+bank.company, bank.toJson) &&
-            deleteRoutes("/bank/"+bank.id+"/"+bank.company, "1")&& testRoutes1("/bank", bankx.toJson, bankx.toJson)
+          val bankAll = Endpoint.get("mf"/int("modelid")/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
+            .implement ( p => MasterfileCache.all(p).mapBoth(e => RepositoryError(e.getMessage), _.size))
+          val testRoutes = testApi(bankAll ++ mByIdEndpoint++mCreateEndpoint) _
+          val deleteRoutes = testDeleteApi(mDeleteEndpoint) _
+          val testRoutes1 = testPostApi(mCreateEndpoint) _
+          testRoutes("/mf/"+bank.modelid+"/"+bank.company, "2") && testRoutes("/mf/"+bank.id+"/"+bank.modelid+"/"+bank.company, bank.toJson) &&
+            deleteRoutes("/mf/"+bank.id+"/"+bank.modelid+"/"+bank.company, "2")&& testRoutes1("/mf", bankx.toJson, bankx.toJson)
         },
          test("Customer integration test") {
-          val custAllEndpoint = Endpoint.get("cust"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
-            .implement(company => CustomerCache.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
+          val custAllEndpoint = Endpoint.get("cust"/int("modelid")/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
+            .implement(Id => CustomerCache.all(Id).mapBoth(e => RepositoryError(e.getMessage), _.size))
           val testRoutes = testApi(custByIdEndpoint ++ custAllEndpoint) _
            val deleteRoutes = testDeleteApi(custDeleteEndpoint) _
           val testRoutes1 = testPostApi(custCreateEndpoint) _
-          testRoutes("/cust/"+cust.company, "3") && testRoutes("/cust/"+cust.id+"/"+cust.company, cust.toJson)&&
+          //testRoutes("/cust/"+cust.modelid+"/"+cust.company, "3") &&
+            testRoutes("/cust/"+cust.id+"/"+cust.company, cust.toJson)&&
           deleteRoutes("/cust/"+cust.id+"/"+cust.company, "1")&&testRoutes1("/cust", custx.toJson, custx.toJson)
         },
         test("Supplier integration test") {
-          val supAllEndpoint = Endpoint.get("sup"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
-            .implement(company => SupplierCache.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
+          val supAllEndpoint = Endpoint.get("sup"/int("modelid")/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
+            .implement(p => SupplierCache.all(p).mapBoth(e => RepositoryError(e.getMessage), _.size))
           val testRoutes = testApi(supByIdEndpoint ++ supAllEndpoint) _
           val deleteRoutes = testDeleteApi(supDeleteEndpoint) _
           val testRoutes1 = testPostApi(supCreateEndpoint) _
-          testRoutes("/sup/"+sup.company, "6") && testRoutes("/sup/"+sup.id+"/"+sup.company, sup.toJson)&&
+          //testRoutes("/sup/"+sup.modelid+"/"+sup.company, "6") &&
+            testRoutes("/sup/"+sup.id+"/"+sup.company, sup.toJson)&&
           deleteRoutes("/sup/"+sup.id+"/"+sup.company, "1")&&testRoutes1("/sup", supx.toJson, supx.toJson)
         },
         test("Cost center integration test") {
-          val ccAllEndpoint = Endpoint.get("cc"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
-            .implement((company:String) => CostcenterCache.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
-          val testRoutes = testApi(ccByIdEndpoint ++ ccAllEndpoint) _
-          val deleteRoutes = testDeleteApi(ccDeleteEndpoint) _
-          val testRoutes1 = testPostApi(ccCreateEndpoint) _
-          testRoutes("/cc/"+cc.company, "2") && testRoutes("/cc/"+cc.id+"/"+cc.company, cc.toJson)&&
-            deleteRoutes("/cc/"+cc.id+"/"+cc.company, "1")&&testRoutes1("/cc", ccx.toJson, ccx.toJson)
+          val ccAllEndpoint = Endpoint.get("mf"/int("company")/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
+            .implement(p => MasterfileCache.all(p).mapBoth(e => RepositoryError(e.getMessage), _.size))
+          val testRoutes = testApi(mByIdEndpoint ++ ccAllEndpoint) _
+          val deleteRoutes = testDeleteApi(mDeleteEndpoint) _
+          val testRoutes1 = testPostApi(mCreateEndpoint) _
+          testRoutes("/mf/"+cc.modelid+"/"+cc.company, "2") && testRoutes("/mf/"+cc.id+"/"+cc.modelid+"/"+cc.company, cc.toJson)&&
+            deleteRoutes("/mf/"+cc.id+"/"+cc.modelid+"/"+cc.company, "2")&&testRoutes1("/mf", ccx.toJson, ccx.toJson)
         },
           test("Module integration test") {
-          val moduleAllEndpoint = Endpoint.get("module"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
-            .implement((company:String) => ModuleCache.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
+          val moduleAllEndpoint = Endpoint.get("module"/int("modelid")/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
+            .implement(p => ModuleCache.all(p).mapBoth(e => RepositoryError(e.getMessage), _.size))
           val testRoutes = testApi(moduleByIdEndpoint ++ moduleAllEndpoint) _
             val deleteRoutes = testDeleteApi(moduleDeleteEndpoint) _
           val testRoutes1 = testPostApi(moduleCreateEndpoint) _
-          testRoutes("/module/"+m.company, "1") && testRoutes("/module/"+m.id+"/"+m.company, m.toJson)&&
+          //testRoutes("/module/"+m.modelid+"/"++m.company, "1") &&
+            testRoutes("/module/"+m.id+"/"+m.company, m.toJson)&&
             deleteRoutes("/module/"+m.id+"/"+m.company, "1")&&testRoutes1("/module", mx.toJson, mx.toJson)
         },
         test("Vat integration test") {
-          val vatAllEndpoint = Endpoint.get("vat"/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
-            .implement((company:String) => VatCache.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
+          val vatAllEndpoint = Endpoint.get("vat"/int("modelid")/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
+            .implement(p => VatCache.all(p).mapBoth(e => RepositoryError(e.getMessage), _.size))
           val testRoutes = testApi(vatByIdEndpoint ++ vatAllEndpoint) _
           val deleteRoutes = testDeleteApi(vatDeleteEndpoint) _
           val testRoutes1 = testPostApi(vatCreateEndpoint) _
-          testRoutes("/vat/1000", "2") && testRoutes("/vat/"+vat1.id+"/"+vat1.company, vat1.toJson) &&
+          //testRoutes("/vat/"+vat1.modelid+"/"+vat1.company,  "2") &&
+          testRoutes("/vat/"+vat1.id+"/"+vat1.company, vat1.toJson) &&
           deleteRoutes("/vat/"+vat1.id+"/"+vat1.company, "1")&&testRoutes1("/vat", vat1x.toJson, vat1x.toJson)
         },
         test("User integration test") {
@@ -143,12 +146,11 @@ object ApiSpec extends ZIOSpecDefault {
           testRoutes("/user/1000", "2") && testRoutes("/user/" + user.userName + "/" + user.company, user.toJson) &&
             deleteRoutes("/user/" + userx.id + "/" + userx.company, "1") //&& testRoutes1("/user", userx.toJson, "1")
         }
-    ).provideShared(ConnectionPool.live,  AccountRepositoryImpl.live, AccountCacheImpl.live,BankRepositoryImpl.live,
-        BankCacheImpl.live, CostcenterRepositoryImpl.live, CostcenterCacheImpl.live, CustomerRepositoryImpl.live,
+    ).provideShared(ConnectionPool.live,  AccountRepositoryImpl.live, AccountCacheImpl.live, CustomerRepositoryImpl.live,
         CustomerCacheImpl.live, SupplierRepositoryImpl.live, SupplierCacheImpl.live, VatRepositoryImpl.live, VatCacheImpl.live,
         ModuleRepositoryImpl.live, ModuleCacheImpl.live, UserRepositoryImpl.live, PostgresContainer.connectionPoolConfigLayer,
-        FinancialsTransactionRepositoryImpl.live, FinancialsTransactionCacheImpl.live,
-        PostgresContainer.createContainer)
+        FinancialsTransactionRepositoryImpl.live, FinancialsTransactionCacheImpl.live,  MasterfileRepositoryImpl.live,
+        MasterfileCacheImpl.live, PostgresContainer.createContainer)
     )
 
   def testApi[R, E](service: Routes[R, E, None])(
@@ -174,8 +176,8 @@ object ApiSpec extends ZIOSpecDefault {
     val request = Request.post(Body.fromString(body), URL.decode(url).toOption.get)
     for {
       response <- routes.toApp.runZIO(request).mapError(_.get)
-      body <- response.body.asString.orDie
-    } yield assertTrue(body == expected)
+      body_ <- response.body.asString.orDie
+    } yield assertTrue(body_ == expected)
   }
   def testPutApi[R, E](routes:  Routes[R, E, None] )(
     url: String, body:String, expected: String): ZIO[R, Response, TestResult] = {

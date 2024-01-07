@@ -1,4 +1,6 @@
 package com.kabasoft.iws.domain
+
+
 import java.util.Locale
 import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 import zio.prelude._
@@ -64,6 +66,7 @@ import common._
 final case class Store(id: String,
                        name: String,
                        description: String,
+                       account: String,
                        enterdate: Instant = Instant.now(),
                        changedate: Instant = Instant.now(),
                        postingdate: Instant = Instant.now(),
@@ -606,6 +609,16 @@ final case class Asset (id: String,
 sealed trait IWS {
   def id: String
 }
+final case class Masterfile(id: String,
+                             name: String = "",
+                             description: String = "",
+                             parent: String = "",
+                             enterdate: Instant = Instant.now(),
+                             changedate: Instant = Instant.now(),
+                             postingdate: Instant = Instant.now(),
+                             modelid: Int,
+                             company: String
+                           ) extends IWS
 final case class Costcenter(
   id: String,
   name: String = "",
@@ -614,13 +627,17 @@ final case class Costcenter(
   enterdate: Instant = Instant.now(),
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now(),
-  modelid: Int = 6,
+  modelid: Int = Costcenter.MODEL_ID,
   company: String
 ) extends IWS
+object Costcenter {
+  val MODEL_ID = 6
+}
 
 final case class ImportFile( id: String,
                              name: String,
                              description: String,
+                             extension: String,
                              enterdate: Instant = Instant.now(),
                              changedate: Instant = Instant.now(),
                              postingdate: Instant = Instant.now(),
@@ -632,12 +649,15 @@ final case class SalaryItem(id: String,
                             description: String = "",
                             account:String,
                             amount:BigDecimal,
+                            percentile:BigDecimal,
                             enterdate: Instant = Instant.now(),
                             changedate: Instant = Instant.now(),
                             postingdate: Instant = Instant.now(),
                             modelid: Int = 171,
                             company: String
                            ) extends IWS
+final case class EmployeeSalaryItem(id: String, owner: String, account: String, amount: BigDecimal, text:String, company: String)
+
 final case class Bank(
   id: String,
   name: String = "",
@@ -645,10 +665,12 @@ final case class Bank(
   enterdate: Instant = Instant.now(),
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now(),
-  modelid: Int = 11,
+  modelid: Int = Bank.MODEL_ID,
   company: String
 ) extends IWS
-
+object Bank {
+  val MODEL_ID = 11
+}
 final case class BankAccount(id: String, bic: String, owner: String, company: String, modelid: Int /*= 12 */ )
 object BankAccount    {
   import scala.math.Ordering
@@ -839,8 +861,11 @@ final case class Vat(
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now(),
   company: String,
-  modelid: Int = 14
+  modelid: Int = Vat.MODEL_ID
 )
+object Vat {
+  val MODEL_ID = 14
+}
 
 final case class TPeriodicAccountBalance(
   id: String,
@@ -1300,6 +1325,7 @@ final case class Employee_(
                             oaccount: String,
                             vatcode: String,
                             company: String,
+                            salary:BigDecimal,
                             modelid: Int = Employee.MODELID,
                             enterdate: Instant = Instant.now(),
                             changedate: Instant = Instant.now(),
@@ -1320,6 +1346,7 @@ object Employee_ {
     c.oaccount,
     c.vatcode,
     c.company,
+    c.salary,
     c.modelid,
     c.enterdate,
     c.changedate,
@@ -1340,12 +1367,13 @@ final case class Employee(
                            oaccount: String,
                            vatcode: String,
                            company: String,
+                           salary:BigDecimal,
                            modelid: Int = Employee.MODELID,
                            enterdate: Instant = Instant.now(),
                            changedate: Instant = Instant.now(),
                            postingdate: Instant = Instant.now(),
                            bankaccounts: List[BankAccount] = List.empty[BankAccount],
-                           salaryItems: List[SalaryItem] = List.empty[SalaryItem]
+                           salaryItems: List[EmployeeSalaryItem] = List.empty[EmployeeSalaryItem]
                          ) extends BusinessPartner
 object Employee                      {
   val MODELID = 33
@@ -1364,6 +1392,7 @@ object Employee                      {
       String,
       String,
       String,
+      BigDecimal,
       Int,
       Instant,
       Instant,
@@ -1390,7 +1419,7 @@ object Employee                      {
       c._16,
       c._17,
       c._18,
-      //c._19,
+      c._19,
       List.empty[BankAccount]
     )
 }
@@ -1707,7 +1736,7 @@ object User_ {
 }
 final case class LoginRequest(userName: String, password: String, company: String, language:String)
 final case class Role(id:Int, name:String, description:String,
-                      transdate: Instant,
+                      changedate: Instant,
                       postingdate: Instant,
                       enterdate: Instant,
                       modelid:Int = Role.MODELID,
@@ -1715,7 +1744,7 @@ final case class Role(id:Int, name:String, description:String,
                       rights:List[UserRight]=List.empty[UserRight]
                           )
 final case class Role_(id:Int, name:String, description:String,
-                       transdate: Instant,
+                       changedate: Instant,
                        postingdate: Instant,
                        enterdate: Instant,
                        modelid:Int = Role.MODELID,
@@ -1727,18 +1756,21 @@ object Role {
 }
 final case class  UserRight (moduleid:Int,  roleid:Int, short:String, company:String, modelid:Int = 131)
 final case class  UserRole (userid:Int,  roleid:Int, company:String, modelid:Int = 161)
-final case class  Permission (id:Int,  name:String, description:String,
-                              transdate: Instant,
+final case class  Permission (id:Int, name:String, description:String,
+                              changedate: Instant,
                               postingdate: Instant,
                               enterdate: Instant,
                               modelid:Int =141,
                               company:String )
 
-final case class  Fmodule (id:Int,  name:String, description:String,
-                              transdate: Instant,
-                              postingdate: Instant,
-                              enterdate: Instant,
-                              account:String,
-                              isDebit:Boolean,
-                              modelid:Int =151,
-                              company:String )
+final case class  Fmodule (id:Int, name:String, description:String,
+                           changedate: Instant,
+                           postingdate: Instant,
+                           enterdate: Instant,
+                           account:String,
+                           isDebit:Boolean,
+                           modelid:Int = Fmodule.MODEL_ID,
+                           company:String )
+object Fmodule {
+  val MODEL_ID = 151
+}

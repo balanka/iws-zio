@@ -162,11 +162,12 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     val result = for {
       _ <- ZIO.logInfo(s"Create transaction stmt models      ${models}")
       //_ <-ZIO.logInfo(s"Create line transaction stmt   ${allLines.map(buildInsertNewLine).map(renderInsert)} ")
-      insertNewLines_ = buildInsertNewLines(allLines, accounts).map(_.run).flip.map(_.size)
+      newLines = buildInsertNewLines(allLines, accounts)
+      insertNewLines_ = newLines.map(_.run).flip.map(_.size)
       x <- buildInsertQuery(models).run
       y <- insertNewLines_
-      _ <- ZIO.logInfo(s"Create transaction stmt       ${renderInsert(buildInsertQuery(models))} ")
-      //*>ZIO.logInfo(s"Create line transaction stmt   ${insertNewLines_.map(renderInsert)} ")
+      _ <- ZIO.logInfo(s"Create transaction stmt       ${renderInsert(buildInsertQuery(models))} "+
+         s"Create line transaction stmt   ${newLines.map(l=>renderInsert(l))} ")
     } yield x + y
     result.mapError(e => new Exception(e))
   }

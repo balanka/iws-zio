@@ -30,7 +30,7 @@ services:
       - IWS_API_HOST=${IWS_API_HOST}
       - IWS_API_PORT=${IWS_API_PORT_TO}
      # - IWS_WEB_URL=http://${IWS_WEB_HOST}:${IWS_WEB_PORT}
-      - IWS_WEB_URL=http://${IWS_WEB_HOST}/80
+      - IWS_WEB_URL=http://${IWS_WEB_HOST}/${IWS_WEB_PORT_TO}
     volumes:
       - ./iws-db-vol:/var/lib/data
     links:
@@ -45,7 +45,7 @@ services:
       node-network:
         #ipv6_address: 2001:3984:3989::10
     ports:
-      - ${IWS_WEB_PORT}:${IWS_WEB_PORT}
+      - ${IWS_WEB_PORT_FROM}:${IWS_WEB_PORT_TO}
     container_name: ${IWS_WEB_CONTAINER}
     environment:
       - NODE_ENV=production

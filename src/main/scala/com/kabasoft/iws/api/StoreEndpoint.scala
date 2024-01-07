@@ -12,12 +12,12 @@ import zio.http.endpoint.Endpoint
 object StoreEndpoint {
 
   val storeCreateAPI     = Endpoint.post("store").in[Store].out[Store].outError[RepositoryError](Status.InternalServerError)
-  val storeAllAPI        = Endpoint.get("store" / string("company")).out[List[Store]].outError[RepositoryError](Status.InternalServerError)
+  val storeAllAPI        = Endpoint.get("store" / int("modelid")/string("company")).out[List[Store]].outError[RepositoryError](Status.InternalServerError)
   val storeByIdAPI       = Endpoint.get("bank" / string("id")/ string("company")).out[Store].outError[RepositoryError](Status.InternalServerError)
   val storeModifyAPI     = Endpoint.put(literal("store")).in[Store].out[Store].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI = Endpoint.delete("store" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
-  private val storeAllEndpoint        = storeAllAPI.implement(company => StoreCache.all(company).mapError(e => RepositoryError(e.getMessage)))
+  private val storeAllEndpoint        = storeAllAPI.implement(p => StoreCache.all(p).mapError(e => RepositoryError(e.getMessage)))
   val storeCreateEndpoint = storeCreateAPI.implement(store =>
     ZIO.logDebug(s"Insert store  ${store}") *>
       StoreRepository.create(store).mapError(e => RepositoryError(e.getMessage)))

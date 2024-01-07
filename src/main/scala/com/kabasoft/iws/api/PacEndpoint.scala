@@ -1,8 +1,7 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.repository.Schema.pacSchema
-import com.kabasoft.iws.repository.Schema.repositoryErrorSchema
+import com.kabasoft.iws.repository.Schema.{pacSchema, repositoryErrorSchema}
 import com.kabasoft.iws.domain.PeriodicAccountBalance
 import com.kabasoft.iws.repository.PacRepository
 import zio.ZIO
@@ -17,16 +16,18 @@ object PacEndpoint {
     .outError[RepositoryError](Status.InternalServerError)
    val pacByAccountPeriodAPI       = Endpoint.get("pac"/string("company")/ string("accId")/int("fromPeriod")/int("toPeriod"))
      .out[List[PeriodicAccountBalance]].outError[RepositoryError](Status.InternalServerError)
+  val pac4PeriodAPI       = Endpoint.get("pac"/string("company")/int("fromPeriod")/int("toPeriod"))
+    .out[List[PeriodicAccountBalance]].outError[RepositoryError](Status.InternalServerError)
 
-  //private val pacByIdAPI      = Endpoint.get("pac" / string("id")).out[PeriodicAccountBalance].outError[RepositoryError](Status.InternalServerError)
   private val allPacEndpoint  = allPacAPI.implement(company => PacRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
- // private val pacByIdEndpoint = pacByIdAPI.implement(id => PacRepository.getBy(id, "1000").mapError(e => RepositoryError(e.getMessage)))
+  private val pac4PeriodEndpoint = pac4PeriodAPI.implement(p => PacRepository.getBalances4Period(p._2, p._3, p._1)
+    .mapError(e => RepositoryError(e.getMessage)).runCollect.map(_.toList))
  private val pacByAccountPeriodAEndpoint = pacByAccountPeriodAPI.implement{ case (company:String, accId:String, fromPeriod:Int,toPeriod:Int) =>
-   ZIO.logInfo(s"Get periodic account balance by  accId:  ${accId} company: ${company} from: ${fromPeriod} to: ${toPeriod}") *>{
+   ZIO.logInfo(s"Get periodic account balance by  accId:  $accId company: ${company} from: ${fromPeriod} to: ${toPeriod}") *>{
       PacRepository.find4Period(accId, fromPeriod, toPeriod, company).runCollect.mapBoth(e => RepositoryError(e.getMessage), _.toList)
        }}
 
-  val routesPac = allPacEndpoint ++pacByAccountPeriodAEndpoint
+  val routesPac = allPacEndpoint ++pacByAccountPeriodAEndpoint ++ pac4PeriodEndpoint
 
   val appPac = routesPac//.toApp //@@ bearerAuth(jwtDecode(_).isDefined)
 

@@ -10,10 +10,10 @@ import java.util.concurrent.TimeUnit
 
 final class AssetCacheImpl (repository: AssetRepository) extends AssetCache  {
 
-  override def all(companyId: String): ZIO[Any, RepositoryError, List[Asset]] = Cache.make(
+  override def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Asset]] = Cache.make(
     capacity = 100000,
     timeToLive = Duration.apply(15, TimeUnit.HOURS),
-    lookup = Lookup(repository.all)).flatMap(_.get(companyId))
+    lookup = Lookup(repository.all)).flatMap(_.get(Id))
 
   override def getBy(id:(String, String)): ZIO[Any, RepositoryError, Asset] = Cache.make(
     capacity = 100000,

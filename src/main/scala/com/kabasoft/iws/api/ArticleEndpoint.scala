@@ -12,12 +12,12 @@ import zio.http.endpoint.Endpoint
 object ArticleEndpoint {
 
   val articleCreateAPI     = Endpoint.post("art").in[Article].out[Article].outError[RepositoryError](Status.InternalServerError)
-  val articleAllAPI        = Endpoint.get("art" / string("company")).out[List[Article]].outError[RepositoryError](Status.InternalServerError)
+  val articleAllAPI        = Endpoint.get("art" / int("company")/string("company")).out[List[Article]].outError[RepositoryError](Status.InternalServerError)
   val articleByIdAPI       = Endpoint.get("art" / string("id")/ string("company")).out[Article].outError[RepositoryError](Status.InternalServerError)
   val articleModifyAPI     = Endpoint.put(literal("art")).in[Article].out[Article].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI = Endpoint.delete("art" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
-  private val articleAllEndpoint        = articleAllAPI.implement(company => ArticleCache.all(company).mapError(e => RepositoryError(e.getMessage)))
+  private val articleAllEndpoint        = articleAllAPI.implement(p => ArticleCache.all(p).mapError(e => RepositoryError(e.getMessage)))
   val articleCreateEndpoint = articleCreateAPI.implement(article =>
     ZIO.logDebug(s"Insert article  ${article}") *>
       ArticleRepository.create(article).mapError(e => RepositoryError(e.getMessage)))

@@ -20,7 +20,7 @@ object BankEndpoint {
 
   private val bankAllEndpoint        = bankAllAPI.implement(company => BankCache.all(company).mapError(e => RepositoryError(e.getMessage)))
   val bankCreateEndpoint = bankCreateAPI.implement(bank =>
-    ZIO.logDebug(s"Insert bank  ${bank}") *>
+    ZIO.logInfo(s"Insert bank  ${bank}") *>
     BankRepository.create(bank).mapError(e => RepositoryError(e.getMessage)))
   val bankByIdEndpoint = bankByIdAPI.implement( p => BankCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val bankModifyEndpoint = bankModifyAPI.implement(p => ZIO.logInfo(s"Modify bank  ${p}") *>
