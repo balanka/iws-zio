@@ -157,8 +157,8 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
     val insertBankAccounts = buildInsertBankAccount(newBankAccounts)
     val result = for {
       insertedBankAccounts <- ZIO.when(newBankAccounts.nonEmpty)(insertBankAccounts.run)<*
-        ZIO.logInfo(s" insert bank accounts stmt ${renderInsert(insertBankAccounts)}")
-      inserted <- insertAll.run <* ZIO.logInfo(s"insert supplier  stmt ${renderInsert(insertAll)}")
+        ZIO.logDebug(s" insert bank accounts stmt ${renderInsert(insertBankAccounts)}")
+      inserted <- insertAll.run <* ZIO.logDebug(s"insert supplier  stmt ${renderInsert(insertAll)}")
     } yield insertedBankAccounts.getOrElse(0)  + inserted
     transact(result).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
   }
@@ -251,7 +251,7 @@ final class SupplierRepositoryImpl(pool: ConnectionPool) extends SupplierReposit
   override def getByIban(iban: String, companyId: String): ZIO[Any, RepositoryError, Supplier]    = {
     val selectAll = SELECT2.where((id_ === iban) && (company === companyId))
 
-    ZIO.logInfo(s"Query to execute getByIban is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute getByIban is ${renderRead(selectAll)}") *>
       execute(selectAll.to[Supplier](c => Supplier.apply(c)))
         .findFirst(driverLayer, iban)
   }

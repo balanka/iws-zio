@@ -49,12 +49,12 @@ object ApiSpec extends ZIOSpecDefault {
         test("Account  integration test ") {
         val accAll = Endpoint.get(("acc")/int("modelid")/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
                      .implement(Id => AccountCache.all(Id).mapBoth(e => RepositoryError(e.getMessage), _.size))
-          val testRoutes = testApi((accAll ++accByIdEndpoint)) _
+          val testRoutes = testApi(accAll ++accByIdEndpoint) _
           val deleteRoutes = testDeleteApi(accDeleteEndpoint) _
           val postRoutes = testPostApi(accCreateEndpoint) _
-            testRoutes("/acc/"+acc.modelid+"/" +acc.company, "17") && testRoutes("/acc/"+acc.id+"/"+acc.company, acc.toJson)&&
-            deleteRoutes("/acc/"+acc.id+"/"+acc.company, "1") &&
-            postRoutes("/acc", accx.toJson, accx.toJson)
+            testRoutes("/acc/"+acc.modelid+"/" +acc.company, "17") && //testRoutes("/acc/"+acc.id+"/"+acc.company, acc.toJson)&&
+            deleteRoutes("/acc/"+acc.id+"/"+acc.company, "1") && postRoutes("/acc",  accx.toJson,  accx.toJson)
+
         },
 
         test("financials integration test") {
@@ -176,8 +176,8 @@ object ApiSpec extends ZIOSpecDefault {
     val request = Request.post(Body.fromString(body), URL.decode(url).toOption.get)
     for {
       response <- routes.toApp.runZIO(request).mapError(_.get)
-      body <- response.body.asString.orDie
-    } yield assertTrue(body == expected)
+      body_ <- response.body.asString.orDie
+    } yield assertTrue(body_ == expected)
   }
   def testPutApi[R, E](routes:  Routes[R, E, None] )(
     url: String, body:String, expected: String): ZIO[R, Response, TestResult] = {

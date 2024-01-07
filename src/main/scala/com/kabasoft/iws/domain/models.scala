@@ -665,10 +665,12 @@ final case class Bank(
   enterdate: Instant = Instant.now(),
   changedate: Instant = Instant.now(),
   postingdate: Instant = Instant.now(),
-  modelid: Int = 11,
+  modelid: Int = Bank.MODEL_ID,
   company: String
 ) extends IWS
-
+object Bank {
+  val MODEL_ID = 11
+}
 final case class BankAccount(id: String, bic: String, owner: String, company: String, modelid: Int /*= 12 */ )
 object BankAccount    {
   import scala.math.Ordering
