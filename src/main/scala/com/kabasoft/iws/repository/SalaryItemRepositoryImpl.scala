@@ -60,7 +60,7 @@ final class SalaryItemRepositoryImpl(pool: ConnectionPool) extends SalaryItemRep
       .set(description, model.description)
       .set(account, model.account)
       .set(amount, model.amount)
-      .set(percentile, model.percentile)
+      .set(percentile, model.percentage)
       .where(whereClause( model.id,  model.company))
     ZIO.logDebug(s"Query Update salaryItem is ${renderUpdate(update_)}") *>
       execute(update_)

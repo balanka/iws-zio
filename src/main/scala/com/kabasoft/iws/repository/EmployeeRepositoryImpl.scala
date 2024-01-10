@@ -17,8 +17,7 @@ final class EmployeeRepositoryImpl(pool: ConnectionPool) extends EmployeeReposit
   val bankAccount                             = defineTable[BankAccount]("bankaccount")
   val salaryItem                             = defineTable[EmployeeSalaryItem]("employee_salary_item")
   val (id_, bic, owner, company_, modelid_) = bankAccount.columns
-  val (id2, owner2, account2, amount, text, company2) = salaryItem.columns
-
+  val (id2, owner2, account2, amount, percentage, text, company2) = salaryItem.columns
 
   def whereClause(Ids: List[String], companyId: String) =
     List(company === companyId, id  in Ids).fold(Expr.literal(true))(_ && _)
@@ -27,7 +26,7 @@ final class EmployeeRepositoryImpl(pool: ConnectionPool) extends EmployeeReposit
     List(company === companyId, id === Idx ).fold(Expr.literal(true))(_ && _)
 
   val SELECT_BANK_ACCOUNT = select(id_, bic, owner, company_, modelid_).from(bankAccount)
-  val SELECT_SALARY_ITEM = select(id2, owner2, account2, amount, text, company2).from(salaryItem)
+  val SELECT_SALARY_ITEM = select(id2, owner2, account2, amount, percentage, text, company2).from(salaryItem)
   val (
     id,
     name,
@@ -116,7 +115,7 @@ final class EmployeeRepositoryImpl(pool: ConnectionPool) extends EmployeeReposit
   )
 
   private def buildInsertSalaryItem(ba: List[EmployeeSalaryItem]) =
-    insertInto(salaryItem)(id2, owner2, account2, amount, text, company2).values(ba.map(EmployeeSalaryItem.unapply(_).get))
+    insertInto(salaryItem)(id2, owner2, account2, amount, percentage, text, company2).values(ba.map(EmployeeSalaryItem.unapply(_).get))
   private def buildInsertBankAccount(ba: List[BankAccount]) =
     insertInto(bankAccount)(id_, bic, owner, company_, modelid_).values(ba.map(BankAccount.unapply(_).get))
 
@@ -125,6 +124,7 @@ final class EmployeeRepositoryImpl(pool: ConnectionPool) extends EmployeeReposit
       .set(account2, model.account)
       .set(owner2, model.owner)
       .set(amount, model.amount)
+      .set(percentage, model.percentage)
       .set(text, model.text)
       .set(company2, model.company)
       .where(id2 === model.id)
