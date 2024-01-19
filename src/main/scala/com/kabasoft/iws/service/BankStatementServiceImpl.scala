@@ -136,8 +136,13 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
         .flatMap { files =>
           ZStream
             .fromPath(files)
+//           .via(ZPipeline.utf8Decode)
+//            .map(_.replaceAll("ü", "ue")
+//              .replaceAll("Ü", "Ue")
+//              .replaceAll("ö", "oe")
+//              .replaceAll("Ö", "Oe"))
+//            .via (ZPipeline.splitLines)
             .via(ZPipeline.utf8Decode >>> ZPipeline.splitLines)
-            //.via(ZPipeline.utf8Decode >>> ZPipeline.splitLines)
             .tap(e => ZIO.logInfo(s"Element ${e}"))
             .filterNot(p => p.replaceAll(char, "").startsWith(header))
             //.map(p => buildFn(p))

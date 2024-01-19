@@ -1,7 +1,7 @@
 package com.kabasoft.iws
 
-import com.kabasoft.iws.api.LoginRoutes.jwtDecode
 import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.api.Utils
 import com.kabasoft.iws.domain.User
 import zio._
 import zio.http.{Body, Client, Header, Headers, Method}
@@ -33,7 +33,7 @@ object AuthenticationClient extends ZIOAppDefault {
                .tapError(e => ZIO.logInfo(s"Unparseable body ${e}"))
                .either
     token = r.getOrElse(defaultUser).hash
-    _     <- Console.printLine(s"Token >>>>> ${token} >>>${jwtDecode(token).toList.head.content}")
+    _     <- Console.printLine(s"Token >>>>> ${token} >>>${Utils.jwtDecode(token).toList.head.content}")
 
     // Once the jwt token is procured, adding it as a Barer token in Authorization header while accessing a protected route.
  //   response0 <- Client.request(s"${url}/bank/1000", headers = Headers.bearerAuthorizationHeader(token))//++accessControlAllowOrigin("*"))
