@@ -18,6 +18,8 @@ object FinancialsEndpoint {
   val ftrByTransIdAPI  = Endpoint.get("ftr" / string("company")/ int("transid")).out[FinancialsTransaction].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI = Endpoint.delete("ftr" / string("company")/ int("transid")).out[Int].outError[RepositoryError](Status.InternalServerError)
   val ftrModifyAPI     = Endpoint.put(literal("ftr")).in[FinancialsTransaction].out[FinancialsTransaction].outError[RepositoryError](Status.InternalServerError)
+  val ftrCancelnAPI     = Endpoint.put("cancelnFtr").in[FinancialsTransaction].out[FinancialsTransaction].outError[RepositoryError](Status.InternalServerError)
+  val ftrDuplicateAPI     = Endpoint.put("duplicateFtr").in[FinancialsTransaction].out[FinancialsTransaction].outError[RepositoryError](Status.InternalServerError)
   //private val ftrPostAPI     = Endpoint.get("ftr"/literal("post")/ int("transid")/string("company")).out[FinancialsTransaction].outError[RepositoryError](Status.InternalServerError)
   private val ftrPostAllAPI     = Endpoint.get("ftr"/literal("post")/ string("transids")/string("company")).out[List[FinancialsTransaction]].outError[RepositoryError](Status.InternalServerError)
   private val ftrPost4PeriodAPI     = Endpoint.get("ftr/post"/ string("company")/ int("from") / int("to")).out[Int].outError[RepositoryError](Status.InternalServerError)
@@ -39,6 +41,11 @@ object FinancialsEndpoint {
     FinancialsService.postAll(p._1.split(',').map(_.toLong).toList, p._2).mapError(e => RepositoryError(e.getMessage)) *>
     FinancialsTransactionRepository.getByIds(p._1.split(' ').map(_.toLong).toList, p._2).mapError(e => RepositoryError(e.getMessage)))
 
+  private val ftrCancelnEndpoint = ftrCancelnAPI.implement(ftr => ZIO.logInfo(s" Canceln  transaction ${ftr}") *>
+    FinancialsTransactionRepository.create(ftr.canceln).mapError(e => RepositoryError(e.getMessage)))
+  private val ftrDuplicateEndpoint = ftrDuplicateAPI.implement(ftr => ZIO.logInfo(s" Duplicate  transaction ${ftr}") *>
+    FinancialsTransactionRepository.create(ftr.duplicate).mapError(e => RepositoryError(e.getMessage)))
+
   private val ftrByModelIdEndpoint = ftrByModelIdAPI.implement(p => FinancialsTransactionCache.getByModelId((p._2,p._1)).mapError(e => RepositoryError(e.getMessage)))
 
   private val ftrPost4PeriodEndpoint = ftrPost4PeriodAPI.implement(p => FinancialsService.postTransaction4Period(p._2, p._3, p._1).mapError(e => RepositoryError(e.getMessage)))
@@ -49,6 +56,6 @@ object FinancialsEndpoint {
   private val ftrDeleteEndpoint = deleteAPI.implement(p => FinancialsTransactionRepository.delete(p._2.toLong, p._1).mapError(e => RepositoryError(e.getMessage)))
 
   val appFtr = ftrModifyEndpoint++ftrAllEndpoint  ++ftrByModelIdEndpoint ++ ftrCreateEndpoint ++ftrDeleteEndpoint++
-               ftrPost4PeriodEndpoint++ ftrByTransIdEndpoint++ftrPostAllEndpoint
+               ftrPost4PeriodEndpoint++ ftrByTransIdEndpoint++ftrPostAllEndpoint++ftrCancelnEndpoint++ftrDuplicateEndpoint
 
 }

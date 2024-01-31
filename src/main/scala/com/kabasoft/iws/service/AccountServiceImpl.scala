@@ -40,8 +40,8 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
                         .map { case (_, v) => reduce(v, PeriodicAccountBalance.dummy) }
                         .filterNot(x => x.id == PeriodicAccountBalance.dummy.id)
                         .toList
-      filteredList = initpacList//.filterNot(x => list.map(_.id ).contains(x.account))
-      //filteredList = initpacList//.filterNot(x => list.find(_.id == x.account).fold(false)(_ => true))
+      filteredList = initpacList.filterNot(x => list.map(_.id ).contains(x.account))
+      //filteredList1 = initpacList.filterNot(x => list.find(_.id == x.account).fold(false)(_ => true))
 
       pacList      = filteredList
                        .filterNot(x => x.dbalance == zeroAmount || x.cbalance == zeroAmount)
