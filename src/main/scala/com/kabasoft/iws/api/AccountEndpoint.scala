@@ -16,7 +16,7 @@ object AccountEndpoint {
 
   val accCreateAPI = Endpoint.post("acc").in[Account].out[Account].outError[RepositoryError](Status.InternalServerError)
   val accAllAPI = Endpoint.get("acc"/ int("modelid")/ string("company")).out[List[Account]].outError[RepositoryError](Status.InternalServerError)
-  val balanceAPI = Endpoint.get("balance" / string("company")/string("accId") / int("from") / int("to")).out[List[Account]]
+  val balanceAPI = Endpoint.get("balance" / string("company")/string("accId") / int("to")).out[List[Account]]
     .outError[RepositoryError](Status.InternalServerError)
   val accByIdAPI = Endpoint.get("acc" / string("id")/ string("company")).out[Account].outError[RepositoryError](Status.InternalServerError)
 
@@ -30,13 +30,13 @@ object AccountEndpoint {
   val accCreateEndpoint = accCreateAPI.implement(account =>
     ZIO.logInfo(s"Insert Account  ${account}") *>
     AccountRepository.create(account).mapError(e => RepositoryError(e.getMessage)))
-  val balanceEndpoint = balanceAPI.implement { case (company:String, accId: String, from: Int, to: Int) =>
-    ZIO.logInfo(s"get balance  period from ${from}  to ${to}  ${accId}") *>
-    AccountService.getBalance(accId, from, to, company).mapError(e => RepositoryError(e.getMessage))}
+  val balanceEndpoint = balanceAPI.implement { case (company:String, accId: String, to: Int) =>
+    ZIO.logInfo(s"get balance  period at ${to}  ${accId}") *>
+    AccountService.getBalance(accId,  to, company).mapError(e => RepositoryError(e.getMessage))}
   val accByIdEndpoint = accByIdAPI.implement (p => AccountCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val closePeriodEndpoint = closePeriodAPI.implement { case (accId: String, from: Int, to: Int, company:String) =>
     ZIO.logInfo(s"closing period from ${from}  to ${to}  ${accId}") *>
-    AccountService. closePeriod(from, to, accId, company).mapError(e => RepositoryError(e.getMessage))}
+    AccountService. closePeriod(to, accId, company).mapError(e => RepositoryError(e.getMessage))}
   val accModifyEndpoint = accModifyAPI.implement(p => ZIO.logInfo(s"Modify account  ${p}") *>
     AccountRepository.modify(p).mapError(e => RepositoryError(e.getMessage))*>
     AccountRepository.getBy((p.id, p.company)).mapError(e => RepositoryError(e.getMessage)))

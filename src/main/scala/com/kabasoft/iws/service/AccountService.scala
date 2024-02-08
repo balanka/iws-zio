@@ -5,19 +5,15 @@ import com.kabasoft.iws.domain.AppError.RepositoryError
 import zio._
 
 trait AccountService {
-  def getBalance(accId: String, fromPeriod: Int, toPeriod: Int, companyId: String): ZIO[Any, RepositoryError, List[Account]]
-  def closePeriod(fromPeriod: Int, toPeriod: Int, inStmtAccId: String, company: String): ZIO[Any, RepositoryError, Int]
+  def getBalance(accId: String, toPeriod: Int, companyId: String): ZIO[Any, RepositoryError, List[Account]]
+  def closePeriod(toPeriod: Int, inStmtAccId: String, company: String): ZIO[Any, RepositoryError, Int]
 }
 
 object AccountService {
-  def getBalance(accId: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[AccountService, RepositoryError, List[Account]] =
-    ZIO.service[AccountService].flatMap(_.getBalance(accId, fromPeriod, toPeriod, company))
+  def getBalance(accId: String, toPeriod: Int, company: String): ZIO[AccountService, RepositoryError, List[Account]] =
+    ZIO.service[AccountService].flatMap(_.getBalance(accId,  toPeriod, company))
 
-  def closePeriod(
-    fromPeriod: Int,
-    toPeriod: Int,
-    inStmtAccId: String,
-    company: String
+  def closePeriod(toPeriod: Int, inStmtAccId: String, company: String
   ): ZIO[AccountService, RepositoryError, Int] =
-    ZIO.service[AccountService].flatMap(_.closePeriod(fromPeriod, toPeriod, inStmtAccId, company))
+    ZIO.service[AccountService].flatMap(_.closePeriod( toPeriod, inStmtAccId, company))
 }

@@ -168,8 +168,8 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
       .orderBy(account.descending)
 
     ZStream.fromZIO(
-      ZIO.logDebug(s"Query to execute find4Period is ${renderRead(selectAll)}")
-    ) *> execute(selectAll.to((PeriodicAccountBalance.apply _).tupled))
+      ZIO.logInfo(s"Query to execute find4Period is ${renderRead(selectAll)}")
+    ) *> execute(selectAll.to((PeriodicAccountBalance.apply _).tupled)).debug("find4Period")
       .filter(e=>e.cbalance.compareTo(zeroAmount) !=0 || e.dbalance.compareTo(zeroAmount)!=0)
       .provideDriver(driverLayer)
   }
