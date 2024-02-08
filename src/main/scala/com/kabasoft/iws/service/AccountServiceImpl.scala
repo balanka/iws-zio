@@ -9,8 +9,7 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
     (for {
       accounts <- accRepo.all((Account.MODELID, companyId))
       period00 = toPeriod.toString.slice(0, 4).concat("00").toInt
-      periodFrom = toPeriod.toString.slice(0, 4).concat("01").toInt
-      pacBalances <- pacRepo.getBalances4Period(periodFrom, toPeriod, companyId).runCollect.map(_.toList)
+      pacBalances <- pacRepo.getBalances4Period(toPeriod, companyId).runCollect.map(_.toList)
       pacs <- pacRepo.find4Period(period00, period00, companyId).runCollect.map(_.toList)
     } yield {
       val accountsWithBalances = pacBalances.flatMap(pac =>

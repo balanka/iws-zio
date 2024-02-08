@@ -142,7 +142,9 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
         .provideDriver(driverLayer)
   }
 
-  def getBalances4Period(fromPeriod: Int, toPeriod: Int, companyId: String): ZStream[Any, RepositoryError, PeriodicAccountBalance] = {
+  def getBalances4Period(toPeriod: Int, companyId: String): ZStream[Any, RepositoryError, PeriodicAccountBalance] = {
+    val year   = toPeriod.toString.slice(0, 4)
+    val fromPeriod   = year.concat("01").toInt
     val query = getBalancesQuery(fromPeriod, toPeriod, companyId)
     ZStream.fromZIO(
       ZIO.logDebug(s"Query to execute getBalances4Period is ${renderRead(query)}")
