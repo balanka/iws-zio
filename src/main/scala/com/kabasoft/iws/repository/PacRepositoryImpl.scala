@@ -162,7 +162,9 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
       .provideDriver(driverLayer)
   }
 
-  def find4Period(accountId: String, fromPeriod: Int, toPeriod: Int, companyId: String): ZStream[Any, RepositoryError, PeriodicAccountBalance] = {
+  def find4Period(accountId: String,  toPeriod: Int, companyId: String): ZStream[Any, RepositoryError, PeriodicAccountBalance] = {
+    val year   = toPeriod.toString.slice(0, 4)
+    val fromPeriod   = year.concat("01").toInt
     val selectAll = SELECT
       .where(whereClause(accountId, companyId, fromPeriod, toPeriod ))
       .orderBy(account.descending)
