@@ -20,6 +20,7 @@ trait UserRepository {
   def getByModelId(modelid: Int, company: String): ZIO[Any, RepositoryError, User]
   def modify(model: User): ZIO[Any, RepositoryError, Int]
   def modify(models: List[User]): ZIO[Any, RepositoryError, Int]
+  def modifyPwd(model: User): ZIO[Any, RepositoryError, Int]
 }
 
 object UserRepository {
@@ -53,4 +54,6 @@ object UserRepository {
   def modify(models: List[User]): ZIO[UserRepository, RepositoryError, Int]                   =
     ZIO.service[UserRepository] flatMap (_.modify(models))
 
+  def modifyPwd(model: User): ZIO[UserRepository, RepositoryError, Int]                   =
+    ZIO.service[UserRepository] flatMap (_.modifyPwd(model))
 }

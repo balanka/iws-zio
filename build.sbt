@@ -20,8 +20,9 @@ ThisBuild / scalacOptions += "-Wconf:any:wv"
 maintainer := "batexy@gmail.com"
 //dockerBaseImage := "adoptopenjdk:11-jre-hotspot"
 //dockerBaseImage := "openjdk:17-alpine"
-dockerBaseImage := "eclipse-temurin:21-alpine"
-//dockerBaseImage := "openjdk:21-jdk"
+//dockerBaseImage := "eclipse-temurin:21-alpine"
+//dockerBaseImage := "amazoncorretto:21.0.2-alpine"
+dockerBaseImage := "openjdk:21-jdk"
 
 assemblyMergeStrategy in assembly := {
   case PathList("META-INF", xs @ _*) => MergeStrategy.discard
@@ -36,7 +37,7 @@ lazy val root = (project in file("."))
       List(
         name         := "iws-zio",
         organization := "KABA Soft GmbH",
-        version      := "1.1.7",
+        version      := "1.2.3",
         scalaVersion := "2.13.10"
          //scalaVersion := "3.1.1"
       )

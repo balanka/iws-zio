@@ -73,13 +73,22 @@ final class UserRepositoryImpl(pool: ConnectionPool) extends UserRepository with
       .provideLayer(driverLayer).mapBoth(e => RepositoryError(e.getMessage), _.sum)
   }
 
+  override def modifyPwd(model: User): ZIO[Any, RepositoryError, Int] = {
+    val update_ = buildPwd(model)
+    executeBatchUpdate(List(update_))
+      .provideLayer(driverLayer).mapBoth(e => RepositoryError(e.getMessage), _.sum)
+  }
+  private def buildPwd(model: User) =
+    update(usersx)
+      .set(hash, model.hash)
+      .where(whereClause(model.id, model.company))
   private def build(model: User) =
     update(usersx)
       .set(userName, model.userName)
       .set(firstName, model.firstName)
       .set(lastName, model.lastName)
       .set(email, model.email)
-      .set(hash, model.hash)
+      //.set(hash, model.hash)
       .set(phone, model.phone)
       .set(department, model.department)
       .set(menu, model.menu)

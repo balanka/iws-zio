@@ -24,7 +24,7 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
 
   private def postBankStmtCreateTransaction(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, Int] =
     for {
-      accounts <- ZIO.logInfo(s"get company by id  ${companyId}  ") *>accountRepo.all((Account.MODELID, companyId))
+      accounts <- ZIO.logInfo(s"get account by modelid  ${companyId}  ") *>accountRepo.all((Account.MODELID, companyId))
       company <- ZIO.logInfo(s"get company by id  ${companyId}  ") *> companyRepo.getBy(companyId)
       bankStmt <- ZIO.logInfo(s"get bankStmt by ids  ${ids}  ") *> bankStmtRepo.getById(ids).runCollect.map(_.toList)
       vat <- vatRepo.all((Vat.MODEL_ID, company.id))
@@ -130,14 +130,20 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
                                buildFn: String => BankStatement = BankStatement.from
                              ): ZIO[Any, RepositoryError, Int] = {
     for {
-      bs <- ZStream
+      bs <- ZIO.logInfo(s"path ${path}") *>
+        ZStream
         .fromJavaStream(Files.walk(Paths.get(path)))
         .filter(p => !Files.isDirectory(p) && p.toString.endsWith(extension))
         .flatMap { files =>
           ZStream
             .fromPath(files)
+//           .via(ZPipeline.utf8Decode)
+//            .map(_.replaceAll("ü", "ue")
+//              .replaceAll("Ü", "Ue")
+//              .replaceAll("ö", "oe")
+//              .replaceAll("Ö", "Oe"))
+//            .via (ZPipeline.splitLines)
             .via(ZPipeline.utf8Decode >>> ZPipeline.splitLines)
-            //.via(ZPipeline.utf8Decode >>> ZPipeline.splitLines)
             .tap(e => ZIO.logInfo(s"Element ${e}"))
             .filterNot(p => p.replaceAll(char, "").startsWith(header))
             //.map(p => buildFn(p))

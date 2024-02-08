@@ -4,8 +4,9 @@ import com.kabasoft.iws.api.AccountEndpoint.appAcc
 import com.kabasoft.iws.api.ArticleEndpoint.appArticle
 import com.kabasoft.iws.api.AssetEndpoint.appAsset
 import com.kabasoft.iws.api.JournalEndpoint.appJournal
-import com.kabasoft.iws.api.LoginRoutes.{appLogin, jwtDecode}
+import com.kabasoft.iws.api.LoginRoutes.appLogin
 import com.kabasoft.iws.api.BankStmtEndpoint.appBankStmt
+import com.kabasoft.iws.api.Utils
 //import com.kabasoft.iws.api.CostcenterEndpoint.appCC
 import com.kabasoft.iws.api.PacEndpoint.appPac
 //import com.kabasoft.iws.api.BankEndpoint.appBank
@@ -77,7 +78,7 @@ object Main extends ZIOAppDefault {
 
     ZIO.logInfo(s"Starting http server") *> // @@//@@ LogKeys.portKey(port)
       Server
-        .serve((appLogin++expose.toApp).withDefaultErrorResponse ++httpApp.toApp@@ bearerAuth(jwtDecode(_).isDefined)@@cors(config) /*@@ZIO.addFinalizer(ZIO.logInfo("Shutting down http server"))*/ )
+        .serve((appLogin++expose.toApp).withDefaultErrorResponse ++httpApp.toApp@@ bearerAuth(Utils.jwtDecode(_).isDefined)@@cors(config) /*@@ZIO.addFinalizer(ZIO.logInfo("Shutting down http server"))*/ )
         .provide(
           serverLayer,
           connectionPoolConfig,

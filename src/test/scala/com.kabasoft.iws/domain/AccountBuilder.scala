@@ -45,15 +45,15 @@ object AccountBuilder {
   val INST_ACC2 =  Account(paccountId2, "Bilanz Passiva","Bilanz Passiva",t , t, t, companyId, Account.MODELID, paccountId0, false, true, ccy, zero, zero, zero, zero, Nil.toSet)
   val REV_ACC8 =  Account(raccountId8, "Jahresueberschuss","Jahresueberschuss", t, t, t, companyId, Account.MODELID, paccountId0, false, true, "EUR", zero,zero,zero,zero, Nil.toSet)
   val REV_ACC =  Account(raccountId, "G.u.V","G.u.V", t, t, t, companyId, Account.MODELID, paccountId0, false, true, "EUR", zero,zero,zero,zero, Nil.toSet)
-  val REV_ACC1 =  Account(raccountId1, "G.u.V Aktiva","G.u.V Aktiva", t, t, t, companyId, Account.MODELID, paccountId0, false, true, "EUR", zero,zero,zero,zero, Nil.toSet)
-  val REV_ACC2 =  Account(raccountId2, "G.u.V Passiva","G.u.V Passiva", t, t, t, companyId, Account.MODELID, paccountId0, false, true, "EUR", zero,zero,zero,zero, Nil.toSet)
+  val REV_ACC1 =  Account(raccountId1, "G.u.V Aktiva","G.u.V Aktiva", t, t, t, companyId, Account.MODELID, raccountId, false, true, "EUR", zero,zero,zero,zero, Nil.toSet)
+  val REV_ACC2 =  Account(raccountId2, "G.u.V Passiva","G.u.V Passiva", t, t, t, companyId, Account.MODELID, raccountId, false, true, "EUR", zero,zero,zero,zero, Nil.toSet)
   val faccount =  Account(faccountId, fname,fname, t, t, t, companyId, Account.MODELID, paccountId1, true, true, ccy, zero,zero,zero,zero, Nil.toSet)
   val baccount =  Account(bankaccountId, "Bank","Bank", t, t, t, companyId,
      Account.MODELID, paccountId1, true, true, ccy, zero,zero,zero,zero, Nil.toSet)
   val baccount1 =  Account(accountId, name,"Giro SPK Bielefeld", t, t, t, companyId,
     Account.MODELID, bankaccountId, true, true, ccy, zero,zero,zero,zero, Nil.toSet)
   val receivaccount =
-    Account(accountRecvId, "Forderung", "Forderung", t, t, t, companyId, Account.MODELID, raccountId1, true, true, ccy, zero, zero, zero, zero, Nil.toSet)
+    Account(accountRecvId, "Forderung", "Forderung", t, t, t, companyId, Account.MODELID, paccountId1, true, true, ccy, zero, zero, zero, zero, Nil.toSet)
 
   val liabilityAccount =
     Account(accountLiabId, "Verbindlichkeiten", "Verbindlichkeiten", t, t, t, companyId, Account.MODELID, paccountId2, true, true, ccy, zero, zero, zero, zero, Nil.toSet)

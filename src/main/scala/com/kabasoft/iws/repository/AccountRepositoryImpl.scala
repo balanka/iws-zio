@@ -187,15 +187,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
 
   override def getBy(ids: List[String], company: String): ZIO[Any, RepositoryError, List[Account]] =
     ids.map(id=>getBy((id, company))).flip
-//    for {
-//    accounts <- getBy_(ids, company).runCollect.map(_.toList)
-//  } yield accounts
 
-//  def getBy_(ids: List[String], company: String): ZStream[Any, RepositoryError, Account] = {
-//    val selectAll = SELECT.where(whereClause(ids, company))
-//    execute(selectAll.to[Account](c => Account.apply(c)))
-//      .provideDriver(driverLayer)
-//  }
 
   def getByModelId(id: (Int,  String)): ZIO[Any, RepositoryError, List[Account]]= for {
     accounts <- getByModelIdStream(id._1, id._2).runCollect.map(_.toList)

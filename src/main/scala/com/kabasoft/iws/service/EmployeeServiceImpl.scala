@@ -5,6 +5,7 @@ import com.kabasoft.iws.domain._
 import com.kabasoft.iws.repository.{AccountRepository, EmployeeRepository, FinancialsTransactionRepository}
 import zio._
 import java.time.Instant
+import java.math.RoundingMode
 
 final class EmployeeServiceImpl (empRepo: EmployeeRepository,  accountRepo: AccountRepository, ftrRepo: FinancialsTransactionRepository) extends EmployeeService {
 
@@ -20,8 +21,9 @@ final class EmployeeServiceImpl (empRepo: EmployeeRepository,  accountRepo: Acco
     accounts<- accountRepo.all((Account.MODELID, company))
   }yield employee.map(emp => buildTransaction(emp,  modelid, buildTransactionDetails (emp, emp.salaryItems, accounts) ))
 
-  private def buildTransactionDetails(emp:Employee, salaryItems: List[EmployeeSalaryItem], accounts:List[Account]): List[FinancialsTransactionDetails] = {
-    salaryItems.map(item => FinancialsTransactionDetails(-1L, -1L, emp.account, true, item.account, item.amount
+  private def buildTransactionDetails(emp:Employee, salaryItems: List[EmployeeSalaryItem], accounts:List[Account]) = {
+    salaryItems.map(item => FinancialsTransactionDetails(-1L, -1L, emp.account, true, item.account
+      , emp.salary.multiply(item.percentage).setScale(6, RoundingMode.HALF_UP)
       , Instant.now(), item.text, "EUR", getName(accounts, emp.account), getName(accounts, item.account)))
   }
   def getName (accounts:List[Account], id:String): String =

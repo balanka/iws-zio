@@ -649,15 +649,14 @@ final case class SalaryItem(id: String,
                             description: String = "",
                             account:String,
                             amount:BigDecimal,
-                            percentile:BigDecimal,
+                            percentage:BigDecimal,
                             enterdate: Instant = Instant.now(),
                             changedate: Instant = Instant.now(),
                             postingdate: Instant = Instant.now(),
                             modelid: Int = 171,
                             company: String
                            ) extends IWS
-final case class EmployeeSalaryItem(id: String, owner: String, account: String, amount: BigDecimal, text:String, company: String)
-
+final case class EmployeeSalaryItem(id: String, owner: String, account: String, amount: BigDecimal, percentage: BigDecimal, text:String, company: String)
 final case class Bank(
   id: String,
   name: String = "",
@@ -1534,6 +1533,9 @@ final case class FinancialsTransaction(
 
   def total2: BigDecimal = lines2.map(l=>l.quantity.multiply(l.price)) reduce ((l1, l2) =>
     l2.add(l1).setScale(2, RoundingMode.HALF_UP))
+  def canceln: FinancialsTransaction = copy(oid = id, id = 0, posted = false, lines=lines.map(line=>line.copy( amount = line.amount.negate())))
+  def duplicate: FinancialsTransaction = copy(oid = id, id = 0, posted = false)
+
 }
 object FinancialsTransactionDetails  {
 

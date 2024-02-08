@@ -14,17 +14,17 @@ object PacEndpoint {
 
   private val allPacAPI       = Endpoint.get("pac"/ string("company")).out[List[PeriodicAccountBalance]]
     .outError[RepositoryError](Status.InternalServerError)
-   val pacByAccountPeriodAPI       = Endpoint.get("pac"/string("company")/ string("accId")/int("fromPeriod")/int("toPeriod"))
+   val pacByAccountPeriodAPI       = Endpoint.get("pac"/string("company")/ string("accId")/int("toPeriod"))
      .out[List[PeriodicAccountBalance]].outError[RepositoryError](Status.InternalServerError)
-  val pac4PeriodAPI       = Endpoint.get("pac"/string("company")/int("fromPeriod")/int("toPeriod"))
+  val pac4PeriodAPI       = Endpoint.get("pac"/string("company")/int("toPeriod"))
     .out[List[PeriodicAccountBalance]].outError[RepositoryError](Status.InternalServerError)
 
   private val allPacEndpoint  = allPacAPI.implement(company => PacRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
-  private val pac4PeriodEndpoint = pac4PeriodAPI.implement(p => PacRepository.getBalances4Period(p._2, p._3, p._1)
+  private val pac4PeriodEndpoint = pac4PeriodAPI.implement(p => PacRepository.getBalances4Period(p._2,  p._1)
     .mapError(e => RepositoryError(e.getMessage)).runCollect.map(_.toList))
- private val pacByAccountPeriodAEndpoint = pacByAccountPeriodAPI.implement{ case (company:String, accId:String, fromPeriod:Int,toPeriod:Int) =>
-   ZIO.logInfo(s"Get periodic account balance by  accId:  $accId company: ${company} from: ${fromPeriod} to: ${toPeriod}") *>{
-      PacRepository.find4Period(accId, fromPeriod, toPeriod, company).runCollect.mapBoth(e => RepositoryError(e.getMessage), _.toList)
+ private val pacByAccountPeriodAEndpoint = pacByAccountPeriodAPI.implement{ case (company:String, accId:String, toPeriod:Int) =>
+   ZIO.logInfo(s"Get periodic account balance by  accId:  $accId company: ${company}  at: ${toPeriod}") *>{
+      PacRepository.find4Period(accId,  toPeriod, company).runCollect.mapBoth(e => RepositoryError(e.getMessage), _.toList)
        }}
 
   val routesPac = allPacEndpoint ++pacByAccountPeriodAEndpoint ++ pac4PeriodEndpoint

@@ -1,7 +1,7 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.common
-import com.kabasoft.iws.domain.AccountBuilder.{companyId, paccountId0}
+import com.kabasoft.iws.domain.AccountBuilder.{companyId, paccountId0, raccountId}
 import com.kabasoft.iws.repository.container.PostgresContainer
 import com.kabasoft.iws.repository.{AccountRepositoryImpl, PacRepositoryImpl}
 import zio.ZLayer
@@ -28,19 +28,17 @@ object AccountServiceLiveSpec extends ZIOSpecDefault {
     suite("Account service  test with postgres test container")(
       test("Get the balance 4 an accounting at the end of a period") {
         val currentYear  =  common.getYear(LocalDateTime.now().toInstant(ZoneOffset.UTC))
-        val fromPeriod    = currentYear.toString.concat("01").toInt
         val toPeriod    =  currentYear.toString.concat("12").toInt
         val amount = new BigDecimal("1050.00").setScale(2, RoundingMode.UNNECESSARY)
         for {
-          account      <-AccountService.getBalance(paccountId0, fromPeriod, toPeriod,  companyId).head
+          account      <-AccountService.getBalance(paccountId0, toPeriod,  companyId).head
         } yield  assertTrue(account.id == paccountId0) &&assertTrue(account.balance.equals(amount) )
       },
       test("Close an accounting  period") {
         val previousYear  =  common.getYear(LocalDateTime.now().minusYears(1).toInstant(ZoneOffset.UTC))
-        val fromPeriod    = previousYear.toString.concat("01").toInt
         val toPeriod    =  previousYear.toString.concat("12").toInt
         for {
-          nrOfAccounts       <-AccountService.closePeriod(fromPeriod, toPeriod, paccountId0, companyId)
+          nrOfAccounts       <-AccountService.closePeriod(toPeriod, raccountId, companyId)
         } yield  assertTrue(nrOfAccounts == 2)
       }
     ).provideLayerShared(testServiceLayer.orDie) @@ sequential

@@ -142,7 +142,9 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
         .provideDriver(driverLayer)
   }
 
-  def getBalances4Period(fromPeriod: Int, toPeriod: Int, companyId: String): ZStream[Any, RepositoryError, PeriodicAccountBalance] = {
+  def getBalances4Period(toPeriod: Int, companyId: String): ZStream[Any, RepositoryError, PeriodicAccountBalance] = {
+    val year   = toPeriod.toString.slice(0, 4)
+    val fromPeriod   = year.concat("01").toInt
     val query = getBalancesQuery(fromPeriod, toPeriod, companyId)
     ZStream.fromZIO(
       ZIO.logDebug(s"Query to execute getBalances4Period is ${renderRead(query)}")
@@ -162,14 +164,16 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
       .provideDriver(driverLayer)
   }
 
-  def find4Period(accountId: String, fromPeriod: Int, toPeriod: Int, companyId: String): ZStream[Any, RepositoryError, PeriodicAccountBalance] = {
+  def find4Period(accountId: String,  toPeriod: Int, companyId: String): ZStream[Any, RepositoryError, PeriodicAccountBalance] = {
+    val year   = toPeriod.toString.slice(0, 4)
+    val fromPeriod   = year.concat("01").toInt
     val selectAll = SELECT
       .where(whereClause(accountId, companyId, fromPeriod, toPeriod ))
       .orderBy(account.descending)
 
     ZStream.fromZIO(
-      ZIO.logDebug(s"Query to execute find4Period is ${renderRead(selectAll)}")
-    ) *> execute(selectAll.to((PeriodicAccountBalance.apply _).tupled))
+      ZIO.logInfo(s"Query to execute find4Period is ${renderRead(selectAll)}")
+    ) *> execute(selectAll.to((PeriodicAccountBalance.apply _).tupled)).debug("find4Period")
       .filter(e=>e.cbalance.compareTo(zeroAmount) !=0 || e.dbalance.compareTo(zeroAmount)!=0)
       .provideDriver(driverLayer)
   }
