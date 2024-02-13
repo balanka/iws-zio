@@ -52,7 +52,7 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
           accountEntry <- FinancialsService.journal(line1.account, period, period, companyId).map(_.size)
           vatEntry       <- FinancialsService.journal(line2.oaccount, period, period, companyId).map(_.size)
           nrOfAccounts       <-AccountService.closePeriod(toPPeriod, paccountId0, companyId)
-          nrOfPacs       <-PacRepository.find4Period(line1.account, period, companyId).runCollect.map(_.size)
+          nrOfPacs       <-PacRepository.find4Period(line1.account, period, companyId).map(_.size)
           balances4P     <-PacRepository.getBalances4Period(period, companyId).runCollect.map(_.toList)
           balance       <-AccountService.getBalance(paccountId0, toPeriod, companyId).map(_.head)
         } yield {

@@ -24,7 +24,7 @@ object PacEndpoint {
     .mapError(e => RepositoryError(e.getMessage)).runCollect.map(_.toList))
  private val pacByAccountPeriodAEndpoint = pacByAccountPeriodAPI.implement{ case (company:String, accId:String, toPeriod:Int) =>
    ZIO.logInfo(s"Get periodic account balance by  accId:  $accId company: ${company}  at: ${toPeriod}") *>{
-      PacRepository.find4Period(accId,  toPeriod, company).runCollect.mapBoth(e => RepositoryError(e.getMessage), _.toList)
+      PacRepository.find4Period(accId,  toPeriod, company)
        }}
 
   val routesPac = allPacEndpoint ++pacByAccountPeriodAEndpoint ++ pac4PeriodEndpoint

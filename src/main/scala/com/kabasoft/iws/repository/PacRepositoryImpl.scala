@@ -2,10 +2,10 @@ package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.common.zeroAmount
-import com.kabasoft.iws.domain.PeriodicAccountBalance
+import com.kabasoft.iws.domain.{Account, Account_, PeriodicAccountBalance}
 import zio._
 import zio.prelude.FlipOps
-import com.kabasoft.iws.repository.Schema.pacSchema
+import com.kabasoft.iws.repository.Schema.{account_schema, pacSchema}
 import zio.sql.ConnectionPool
 import zio.stream._
 
@@ -16,6 +16,43 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
 
   val pac = defineTable[PeriodicAccountBalance]("periodic_account_balance")
+  val accounts = defineTable[Account_]("account")
+  val (
+    acc_id,
+    acc_name,
+    descriptionx,
+    enterdatex,
+    changedatex,
+    postingdatex,
+    acc_company,
+    acc_modelid,
+    accountidx,
+    isDebitx,
+    balancesheetx,
+    currencyx,
+    idebitx,
+    icreditx,
+    debitx,
+    creditx
+    ) = accounts.columns
+  val SELECT_ACC = select(
+    acc_id,
+    acc_name,
+    descriptionx,
+    enterdatex,
+    changedatex,
+    postingdatex,
+    acc_company,
+    acc_modelid,
+    accountidx,
+    isDebitx,
+    balancesheetx,
+    currencyx,
+    idebitx,
+    icreditx,
+    debitx,
+    creditx
+  ).from(accounts)
 
   val (id, account, period, idebit, icredit, debit, credit, currency, company, name, modelid) = pac.columns
 
@@ -99,6 +136,12 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
         .mapBoth(e => RepositoryError(e.getMessage), _.sum)
     }
 
+   def listAccounts(modelId:Int, companyId: String): ZStream[Any, RepositoryError, Account] =
+    ZStream.fromZIO(ZIO.logInfo(s"Query to execute findAll accounts is ${renderRead(SELECT_ACC)}")) *>
+      execute(SELECT_ACC.where(acc_modelid === modelId && acc_company === companyId)
+        .to {c=>Account.apply(c)})
+        .provideDriver(driverLayer)
+
   override def list(companyId: String): ZStream[Any, RepositoryError, PeriodicAccountBalance] = {
     val selectAll = SELECT.where(company === companyId)
     ZStream.fromZIO(
@@ -107,8 +150,10 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
         .provideDriver(driverLayer)
   }
 
-  override def all(companyId: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]] =
-    list(companyId).runCollect.map(_.toList)
+  override def all(companyId: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]] = for {
+   pacs <- list(companyId).runCollect.map(_.toList)
+   accounts <- listAccounts(Account.MODELID, companyId).runCollect.map(_.toList)
+  }yield  pacs.map(pac=>pac.copy(name= accounts.find(acc=>acc.id ==pac.account).getOrElse(Account.dummy).name))
 
   override def getBy(idx: String, companyId: String): ZIO[Any, RepositoryError, PeriodicAccountBalance] = {
     val selectAll = SELECT.where( company === companyId && id === idx )
@@ -152,7 +197,6 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
       execute(query.to((PeriodicAccountBalance.apply _).tupled))
         .provideDriver(driverLayer)
   }
-
   def find4Period(fromPeriod: Int, toPeriod: Int, companyId: String): ZStream[Any, RepositoryError, PeriodicAccountBalance] = {
     val selectAll = SELECT
       .where(whereClause(fromPeriod, toPeriod, companyId))
@@ -164,7 +208,11 @@ final class PacRepositoryImpl(pool: ConnectionPool) extends PacRepository with I
       .provideDriver(driverLayer)
   }
 
-  def find4Period(accountId: String,  toPeriod: Int, companyId: String): ZStream[Any, RepositoryError, PeriodicAccountBalance] = {
+  def find4Period(accountId: String, toPeriod: Int, companyId: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]] = for{
+    pacs <- find4PeriodZ(accountId, toPeriod, companyId).runCollect.map(_.toList)
+    accounts <- listAccounts(Account.MODELID, companyId).runCollect.map(_.toList)
+  } yield  pacs.map(pac=> pac.copy( name = accounts.find(acc=>acc.id == pac.account).getOrElse(Account.dummy).name))
+  def find4PeriodZ(accountId: String,  toPeriod: Int, companyId: String): ZStream[Any, RepositoryError, PeriodicAccountBalance] = {
     val year   = toPeriod.toString.slice(0, 4)
     val fromPeriod   = year.concat("01").toInt
     val selectAll = SELECT
