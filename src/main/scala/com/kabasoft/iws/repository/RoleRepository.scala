@@ -14,8 +14,8 @@ trait RoleRepository {
   def delete(id: Int, company: String): ZIO[Any, RepositoryError, Int]
   def delete(ids: List[Int], company: String): ZIO[Any, RepositoryError, List[Int]] =
     ZIO.collectAll(ids.map(delete(_, company)))
-  def all(companyId: String): ZIO[Any, RepositoryError, List[Role]]
-  def list(company: String): ZStream[Any, RepositoryError, Role]
+  def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Role]]
+  def list(Id:(Int, String)): ZStream[Any, RepositoryError, Role]
   def getBy(id: (Int,String)): ZIO[Any, RepositoryError, Role]
   def getByModelId(modelid:(Int,String)): ZIO[Any, RepositoryError, List[Role]]
   def getByModelIdStream(modelid: Int, company: String): ZStream[Any, RepositoryError, Role]
@@ -37,10 +37,10 @@ object RoleRepository {
     ZIO.service[RoleRepository] flatMap (_.delete(id, company))
   def delete(ids: List[Int], company: String): ZIO[RoleRepository, RepositoryError, List[Int]] =
     ZIO.collectAll(ids.map(delete(_, company)))
-  def all(companyId: String): ZIO[RoleRepository, RepositoryError, List[Role]]                      =
-    ZIO.service[RoleRepository] flatMap (_.all(companyId))
-  def list(company: String): ZStream[RoleRepository, RepositoryError, Role]                        =
-    ZStream.service[RoleRepository] flatMap (_.list(company))
+  def all(Id:(Int, String)): ZIO[RoleRepository, RepositoryError, List[Role]]                      =
+    ZIO.service[RoleRepository] flatMap (_.all(Id))
+  def list(Id:(Int, String)): ZStream[RoleRepository, RepositoryError, Role]                        =
+    ZStream.service[RoleRepository] flatMap (_.list(Id))
   def getBy(id: (Int,String)): ZIO[RoleRepository, RepositoryError, Role]               =
     ZIO.service[RoleRepository] flatMap (_.getBy(id))
   def getByModelId(modelid: (Int,String)): ZIO[RoleRepository, RepositoryError, List[Role]]      =

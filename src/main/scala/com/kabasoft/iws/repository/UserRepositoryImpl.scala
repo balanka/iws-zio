@@ -94,14 +94,14 @@ final class UserRepositoryImpl(pool: ConnectionPool) extends UserRepository with
       .set(menu, model.menu)
       .where(whereClause(model.id, model.company))
 
-  override def all(companyId: String): ZIO[Any, RepositoryError, List[User]] = for {
-    users_ <- list(companyId).runCollect.map(_.toList)
-    user_roles <- listUserRoles(companyId).runCollect.map(_.toList)
+  override def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[User]] = for {
+    users_ <- list(Id).runCollect.map(_.toList)
+    user_roles <- listUserRoles(Id._2).runCollect.map(_.toList)
     _ <-ZIO.logDebug(s"listUserRoles is ${user_roles}")
     _ <-ZIO.foreachDiscard(users_)(u => ZIO.logDebug(s"user_role is ${ u.copy(rights = u.roles.flatMap(_.rights))}"))
-    roles_ <- listRoles(companyId).runCollect.map(_.toList)
+    roles_ <- listRoles(Id._2).runCollect.map(_.toList)
     _ <-ZIO.logDebug(s"Roles is ${roles_}")
-    user_rights <- listUserRight(companyId).runCollect.map(_.toList)
+    user_rights <- listUserRight(Id._2).runCollect.map(_.toList)
     _ <-ZIO.logDebug(s"user_rights is ${user_rights}")
     _ <-ZIO.foreachDiscard(roles_)(r => ZIO.logDebug(s"user_role is ${r.copy(rights = user_rights.filter(rt => rt.roleid == r.id))}"))
   } yield {
@@ -110,8 +110,8 @@ final class UserRepositoryImpl(pool: ConnectionPool) extends UserRepository with
     val users  = users_.map(u => u.copy(roles = roles)).map(u=>  u.copy(rights = u.roles.flatMap(_.rights)))
       users
   }
-  override def list(companyId: String): ZStream[Any, RepositoryError, User]                    = {
-    val selectAll = SELECT.where(company === companyId)
+  override def list(Id:(Int, String)): ZStream[Any, RepositoryError, User]                    = {
+    val selectAll = SELECT.where(company === Id._2 && modelid ===Id._1)
 
     ZStream.fromZIO(
       ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")

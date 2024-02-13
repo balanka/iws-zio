@@ -30,7 +30,7 @@ object LoginRoutes {
   private def checkLogin(loginRequest: LoginRequest): ZIO[UserRepository, RepositoryError, Response] = for {
     _ <- ZIO.logInfo(s"checkLogin >>>>>>")
     _ <- ZIO.logInfo(s"pwd >>>>>> ${Utils.jwtEncode(loginRequest.password,defaultLifeSpan)}")
-    r <- UserRepository.all(loginRequest.company)
+    r <- UserRepository.all((User.MODELID, loginRequest.company))
     user = r.find(_.userName.equals(loginRequest.userName)).getOrElse(DummyUser)
     _ <- ZIO.logDebug(s"all Users >>>>>> ${user}")
     content   = Utils.jwtDecode(user.hash).toList.head.content.replace("{","").replace("}","")

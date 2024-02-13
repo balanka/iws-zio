@@ -71,13 +71,13 @@ final class RoleRepositoryImpl(pool: ConnectionPool) extends RoleRepository with
         .mapError(e => RepositoryError(e.getMessage))
   }
 
-  override def all(companyId: String): ZIO[Any, RepositoryError, List[Role]] = for {
-    roles <- list(companyId).runCollect.map(_.toList)
-    rights_ <- listUserRight(companyId).runCollect.map(_.toList)
+  override def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Role]] = for {
+    roles <- list(Id).runCollect.map(_.toList)
+    rights_ <- listUserRight(Id._2).runCollect.map(_.toList)
   } yield roles.map(c => c.copy(rights = rights_.filter(_.roleid == c.id)))
 
-  override def list(companyId: String): ZStream[Any, RepositoryError, Role]                   = {
-    val selectAll = SELECT.where(company === companyId)
+  override def list(Id:(Int, String)): ZStream[Any, RepositoryError, Role]                   = {
+    val selectAll = SELECT.where(company === Id._2 && modelid === Id._1)
     ZStream.fromZIO(
       ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")
     ) *> execute(selectAll.to[Role](c => Role.apply(c)))
