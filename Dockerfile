@@ -1,6 +1,6 @@
-FROM adoptopenjdk:11-jre-hotspot as stage0
+FROM openjdk:21-jdk as stage0
 LABEL snp-multi-stage="intermediate"
-LABEL snp-multi-stage-id="8c5c154c-6c31-4523-a11a-903082227fb7"
+LABEL snp-multi-stage-id="fb82ce36-50f4-4c60-a6c1-5c4adca7f883"
 WORKDIR /opt/docker
 COPY 2/opt /2/opt
 COPY 4/opt /4/opt
@@ -10,13 +10,15 @@ RUN ["chmod", "-R", "u=rX,g=rX", "/4/opt/docker"]
 RUN ["chmod", "u+x,g+x", "/4/opt/docker/bin/iws-zio"]
 RUN ["chmod", "u+x,g+x", "/4/opt/docker/bin/layer-example"]
 RUN ["chmod", "u+x,g+x", "/4/opt/docker/bin/stream-app"]
+RUN ["chmod", "u+x,g+x", "/4/opt/docker/bin/app-zalando"]
 RUN ["chmod", "u+x,g+x", "/4/opt/docker/bin/server-sent-event-endpoint"]
 RUN ["chmod", "u+x,g+x", "/4/opt/docker/bin/stm-lock"]
+RUN ["chmod", "u+x,g+x", "/4/opt/docker/bin/csv-app"]
 RUN ["chmod", "u+x,g+x", "/4/opt/docker/bin/my-stm-app"]
 RUN ["chmod", "u+x,g+x", "/4/opt/docker/bin/authentication-client"]
 RUN ["chmod", "u+x,g+x", "/4/opt/docker/bin/bank-stmt-import-app"]
 
-FROM adoptopenjdk:11-jre-hotspot as mainstage
+FROM openjdk:21-jdk as mainstage
 LABEL MAINTAINER="batexy@gmail.com"
 USER root
 RUN id -u demiourgos728 1>/dev/null 2>&1 || (( getent group 0 1>/dev/null 2>&1 || ( type groupadd 1>/dev/null 2>&1 && groupadd -g 0 root || addgroup -g 0 -S root )) && ( type useradd 1>/dev/null 2>&1 && useradd --system --create-home --uid 1001 --gid 0 demiourgos728 || adduser -S -u 1001 -G root demiourgos728 ))
