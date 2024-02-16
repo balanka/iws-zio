@@ -24,30 +24,26 @@ final class AccountServiceImpl(accRepo: AccountRepository, pacRepo: PacRepositor
     })
 
   def closePeriod(toPeriod: Int, inStmtAccId: String, company: String): ZIO[Any, RepositoryError, Int] = {
-    val currentYear   = toPeriod.toString.slice(0, 4)
-    val fromPeriod   = currentYear.concat("01").toInt
+    val currentYear   = toPeriod.toString.slice(0, 4).toInt
+    val fromPeriod = currentYear.toString.concat("01").toInt
     val nr = for {
-      pacs <- pacRepo.findBalance4Period(fromPeriod, toPeriod, company).runCollect.map(_.toList)
-      allAccounts <- accRepo.list(Account.MODELID, company).runCollect.map(_.toList)
-      currentPeriod = currentYear.concat("00").toInt
-      nextPeriod = (currentYear + 1).concat("00").toInt
-      initial <- pacRepo.find4Period(currentPeriod, currentPeriod, company).runCollect.map(_.toList)
-      list = Account.flattenTailRec(Set(Account.withChildren(inStmtAccId, allAccounts)))
-      initpacList = (pacs ++: initial)
-        .groupBy(_.account)
-        .map { case (_, v) => reduce(v, PeriodicAccountBalance.dummy) }
-        .filterNot(x => x.id == PeriodicAccountBalance.dummy.id)
-        .toList
-      filteredList = initpacList.filterNot(x => list.map(_.id).contains(x.account))
-      pacList = filteredList
-        .filterNot(x => x.dbalance == zeroAmount || x.cbalance == zeroAmount)
-        .map(pac => allAccounts.find(_.id == pac.account).fold(pac)(acc => net(acc, pac, nextPeriod)))
-      _<-ZIO.logInfo(s"initpacList${initpacList}")
-      _<-ZIO.logInfo(s"filteredList${filteredList}")
-      _<-ZIO.logInfo(s"list ${list}")
-      _<-ZIO.logInfo(s"list.map(_.id ) ${list.map(_.id )}")
-      _<-ZIO.logInfo(s"Income statement accounts ${initpacList.filter(x => list.map(_.id ).contains(x.account))}")
-      _<-ZIO.logInfo(s"Balance sheet accounts ${initpacList.filterNot(x => list.map(_.id ).contains(x.account))}")
+      pacs         <- pacRepo.findBalance4Period(fromPeriod, toPeriod, company).runCollect.map(_.toList)
+      allAccounts  <- accRepo.list(Account.MODELID, company).runCollect.map(_.toList)
+      currentPeriod = currentYear.toString.concat("00").toInt
+      nextPeriod    = (currentYear + 1).toString.concat("00").toInt
+      initial      <- pacRepo.find4Period(currentPeriod, currentPeriod, company).runCollect.map(_.toList)
+      list          = Account.flattenTailRec(Set(Account.withChildren(inStmtAccId, allAccounts)))
+      initpacList   = (pacs ++: initial)
+                        .groupBy(_.account)
+                        .map { case (_, v) => reduce(v, PeriodicAccountBalance.dummy) }
+                        .filterNot(x => x.id == PeriodicAccountBalance.dummy.id)
+                        .toList
+      filteredList = initpacList.filterNot(x => list.map(_.id ).contains(x.account))
+      //filteredList1 = initpacList.filterNot(x => list.find(_.id == x.account).fold(false)(_ => true))
+
+      pacList      = filteredList
+                       .filterNot(x => x.dbalance == zeroAmount || x.cbalance == zeroAmount)
+                       .map(pac => allAccounts.find(_.id == pac.account).fold(pac)(acc => net(acc, pac, nextPeriod)))
       oldPacs     <- pacRepo.getByIds(pacList.map(_.id), company).map(_.filterNot(x => x.id == PeriodicAccountBalance.dummy.id))
       newPacs      = pacList.filterNot(oldPacs.contains)
       pac_created <- if (newPacs.isEmpty) ZIO.succeed(0) else pacRepo.create(newPacs).debug("pac_created")
