@@ -14,8 +14,10 @@ import zio.json.{DecoderOps, EncoderOps}
 object LoginRoutes {
   private val defaultLifeSpan = 15*24*60*60L
   def appLogin = Http.collectZIO[Request] {
+
     case req@Method.POST -> Root / "users" / "login" =>
       for {
+        _<-ZIO.logInfo(s"Request >>>>>>n ${req}")
         body <- req.body.asString
           .flatMap(request =>
             ZIO
@@ -52,6 +54,7 @@ object LoginRoutes {
       Response.json(user.toJson).addHeader(Custom("authorization", token))
         .addHeader(Custom("Access-Control-Allow-Origin", "*"))
         .addHeader(Custom("Origin", webUrl))
+        .addHeader(Custom("Origin", "http://mac-Studio.fritz.box:3000"))
 
     } else {
       Response.text("Invalid  user name or password "

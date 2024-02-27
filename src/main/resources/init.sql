@@ -785,6 +785,15 @@ values
     ('v101','Dummy','Dummy',0.07, '0650', '0651', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '1000',14),
     ('4711','myFirstVat','myFirstVat',1, '1406', '3806', current_timestamp, current_timestamp, current_timestamp, '1000',14);
 
+INSERT INTO public."module"
+(id, name, description, postingdate, changedate, enterdate, company, modelid, path, parent)
+VALUES('36', 'menu.AccountClass', './MasterfileForm', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, '1000', 400, '/class', 20);
+--insert into user_right select 36 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
+INSERT INTO public."module"
+(id, name, description, postingdate, changedate, enterdate, company, modelid, path, parent)
+VALUES('37', 'menu.AccountGroup', './MasterfileForm', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, '1000', 400, '/group', 20);
+--insert into user_right select 37 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
+
 
 insert into users(user_name, first_name, last_name,  hash, email, phone, department, menu, company, modelid)
 values('jdegoes011','John','dgoes', '$21a$10$0IZtq3wGiRQSMIuoIgNKrePjQfmGFRgkpnHwyY9RcbUhZxU9Ha1mCX', 'whatYourGrandma1Name@gmail.com'

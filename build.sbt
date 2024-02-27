@@ -25,20 +25,21 @@ maintainer := "batexy@gmail.com"
 dockerBaseImage := "openjdk:21-jdk"
 
 assemblyMergeStrategy in assembly := {
-  case PathList("META-INF", xs @ _*) => MergeStrategy.discard
+  case PathList("META-INF", xs*) => MergeStrategy.discard
   case x => MergeStrategy.first
 }
 
 lazy val root = (project in file("."))
   .settings(
-    Docker / packageName := "iws",
-    Compile / mainClass := Some("com.kabasoft.iws.Main"),
+    Docker / packageName := "iws-api",
+    Compile / mainClass := Some("com.kabasoft.iws.IwsApp"),
+    //dockerEnvVars ++= Map(("REACT_APP_HOST_IP_ADDRESS", "localhost")),
     inThisBuild(
       List(
         name         := "iws-zio",
         organization := "KABA Soft GmbH",
-        version      := "1.2.4",
-        scalaVersion := "2.13.10"
+        version      := "1.2.8",
+        scalaVersion := "2.13.13"
          //scalaVersion := "3.1.1"
       )
     ),
