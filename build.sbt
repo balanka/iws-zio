@@ -18,14 +18,9 @@ ThisBuild / resolvers +=
   "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 ThisBuild / scalacOptions += "-Wconf:any:wv"
 maintainer := "batexy@gmail.com"
-//dockerBaseImage := "adoptopenjdk:11-jre-hotspot"
-//dockerBaseImage := "openjdk:17-alpine"
 //dockerBaseImage := "eclipse-temurin:21-alpine"
-//dockerBaseImage := "amazoncorretto:21.0.2-alpine"
 //dockerBaseImage := "amazoncorretto:21.0.2-alpine3.19"
-//dockerBaseImage := "openjdk:21-jdk"
 dockerBaseImage := "openjdk:23-slim"
-
 
 assemblyMergeStrategy in assembly := {
   case PathList("META-INF", xs @ _*) => MergeStrategy.discard
