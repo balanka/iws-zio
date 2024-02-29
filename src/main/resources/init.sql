@@ -773,7 +773,10 @@ values('4711','myFirstBank','myFirstBank', '', current_timestamp, current_timest
 insert into masterfile (id, name, description, parent, enterdate,changedate,postingdate, modelid, company)
 values('300','Production','Production','800' ,'2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z',6,'1000' ),
       ('000','Dummy','Dummy','Dummy' ,'2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', 6,'1000' );
-
+insert into masterfile (id, name, description, parent, enterdate,changedate,postingdate, modelid, company)
+values('stk','Stueck','Stueck','' ,current_timestamp, current_timestamp, current_timestamp, 15,'1000' ),
+      ('ltr','Liter','Liter','' ,current_timestamp, current_timestamp, current_timestamp, 15,'1000' ),
+      ('kg','Kilogramm','Kilogramm','' ,current_timestamp, current_timestamp, current_timestamp, 15,'1000' );
 
 insert into module (id, name, description,path, parent, enterdate,changedate,postingdate, modelid, company)
 values('0000','Dummy','Dummy', '', '', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z',300,'1000' );
@@ -793,6 +796,11 @@ INSERT INTO public."module"
 (id, name, description, postingdate, changedate, enterdate, company, modelid, path, parent)
 VALUES('37', 'menu.AccountGroup', './MasterfileForm', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, '1000', 400, '/group', 20);
 --insert into user_right select 37 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
+
+INSERT INTO public."module"
+(id, name, description, postingdate, changedate, enterdate, company, modelid, path, parent)
+VALUES('15', 'menu.quantityUnit', './MasterfileForm', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, '1000', 400, '/qty', 20);
+--insert into user_right select 15 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
 
 
 insert into users(user_name, first_name, last_name,  hash, email, phone, department, menu, company, modelid)
