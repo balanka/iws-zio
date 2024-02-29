@@ -7,7 +7,8 @@ import com.kabasoft.iws.repository._
 import zio.ZIO
 import zio.http.Status
 import zio.http.codec.HttpCodec._
-import zio.http.endpoint.Endpoint
+import zio.http.endpoint.EndpointMiddleware.None
+import zio.http.endpoint.{Endpoint, Routes}
 
 object ArticleEndpoint {
 
@@ -30,8 +31,6 @@ object ArticleEndpoint {
     ArticleRepository.getBy((p.id, p.company)).mapError(e => RepositoryError(e.getMessage)))
   val articleDeleteEndpoint = deleteAPI.implement(p => ArticleRepository.delete(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
 
-  val routes = articleAllEndpoint ++ articleByIdEndpoint  ++ articleCreateEndpoint ++articleDeleteEndpoint++ articleModifyEndpoint
-
-  val appArticle = routes//.toApp //@@ bearerAuth(jwtDecode(_).isDefined)
-
+  val appArticle: Routes[ArticleRepository with ArticleCache, RepositoryError, None] =
+     articleAllEndpoint ++ articleByIdEndpoint  ++ articleCreateEndpoint ++articleDeleteEndpoint++ articleModifyEndpoint
 }

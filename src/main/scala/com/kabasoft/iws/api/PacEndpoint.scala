@@ -7,8 +7,9 @@ import com.kabasoft.iws.repository.PacRepository
 import zio.ZIO
 import zio.http.codec.HttpCodec._
 import zio.http.codec.HttpCodec.{int, string}
-import zio.http.endpoint.Endpoint
+import zio.http.endpoint.{Endpoint, Routes}
 import zio.http.Status
+import zio.http.endpoint.EndpointMiddleware.None
 
 object PacEndpoint {
 
@@ -23,13 +24,10 @@ object PacEndpoint {
   private val pac4PeriodEndpoint = pac4PeriodAPI.implement(p => PacRepository.getBalances4Period(p._2,  p._1)
     .mapError(e => RepositoryError(e.getMessage)).runCollect.map(_.toList))
  private val pacByAccountPeriodAEndpoint = pacByAccountPeriodAPI.implement{ case (company:String, accId:String, toPeriod:Int) =>
-   ZIO.logInfo(s"Get periodic account balance by  accId:  $accId company: ${company}  at: ${toPeriod}") *>{
+   ZIO.logDebug(s"Get periodic account balance by  accId:  $accId company: ${company}  at: ${toPeriod}") *>{
       PacRepository.find4Period(accId,  toPeriod, company)
        }}
 
-  val routesPac = allPacEndpoint ++pacByAccountPeriodAEndpoint ++ pac4PeriodEndpoint
-
-  val appPac = routesPac//.toApp //@@ bearerAuth(jwtDecode(_).isDefined)
-
+  val appPac: Routes[PacRepository, RepositoryError, None] = allPacEndpoint ++pacByAccountPeriodAEndpoint ++ pac4PeriodEndpoint
 
 }
