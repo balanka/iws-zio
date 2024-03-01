@@ -45,6 +45,7 @@ object Schema {
   implicit val bomSchema                 = DeriveSchema.gen[Bom]
   implicit val salaryItemSchema          = DeriveSchema.gen[SalaryItem]
   implicit val employeeSalaryItemSchema  = DeriveSchema.gen[EmployeeSalaryItem]
+  implicit val employeeSalaryItemDTOSchema  = DeriveSchema.gen[EmployeeSalaryItemDTO]
   implicit val storeSchema               = DeriveSchema.gen[Store]
   implicit val stockSchema               = DeriveSchema.gen[Stock]
   implicit val userSchema                = DeriveSchema.gen[User]

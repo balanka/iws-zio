@@ -19,7 +19,7 @@ final class EmployeeServiceImpl (empRepo: EmployeeRepository,  accountRepo: Acco
     //<- ZIO.logInfo(s" Posting transaction with id ${id} of company ${company}")
     employee <- empRepo.all((Employee.MODELID, company))
     accounts<- accountRepo.all((Account.MODELID, company))
-  }yield employee.map(emp => buildTransaction(emp,  modelid, buildTransactionDetails (emp, emp.salaryItems, accounts) ))
+  }yield employee.map(emp => buildTransaction(emp,  modelid, buildTransactionDetails (emp, emp.salaryItems.map(EmployeeSalaryItem.apply), accounts) ))
 
   private def buildTransactionDetails(emp:Employee, salaryItems: List[EmployeeSalaryItem], accounts:List[Account]) = {
     salaryItems.map(item => FinancialsTransactionDetails(-1L, -1L, emp.account, true, item.account

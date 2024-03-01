@@ -2,10 +2,7 @@ package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Account, Article, Asset, Bank, BankAccount, BankStatement, Bom, Company, Costcenter,
-  Customer, Employee, EmployeeSalaryItem, FinancialsTransaction, FinancialsTransactionDetails, Fmodule, ImportFile,
-  Journal, LoginRequest, Masterfile, PeriodicAccountBalance, Permission, Role, SalaryItem, Store, Supplier,
-  TransactionDetails, User, UserRight, User_, Vat}
+import com.kabasoft.iws.domain.{Account, Article, Asset, Bank, BankAccount, BankStatement, Bom, Company, Costcenter, Customer, Employee, EmployeeSalaryItem, EmployeeSalaryItemDTO, FinancialsTransaction, FinancialsTransactionDetails, Fmodule, ImportFile, Journal, LoginRequest, Masterfile, PeriodicAccountBalance, Permission, Role, SalaryItem, Store, Supplier, TransactionDetails, User, UserRight, User_, Vat}
 import zio.json._
 
 object Protocol {
@@ -16,7 +13,7 @@ object Protocol {
   implicit val assetCodec: JsonCodec[Asset] = DeriveJsonCodec.gen[Asset]
   implicit val customerCodec: JsonCodec[Customer] = DeriveJsonCodec.gen[Customer]
   implicit  val salaryItemCodec: JsonCodec[SalaryItem] = DeriveJsonCodec.gen[SalaryItem]
-  implicit  val employeeSalaryItemCodec: JsonCodec[EmployeeSalaryItem] = DeriveJsonCodec.gen[EmployeeSalaryItem]
+  implicit  val employeeSalaryItemDTOCodec: JsonCodec[EmployeeSalaryItemDTO] = DeriveJsonCodec.gen[EmployeeSalaryItemDTO]
   implicit lazy val employeeCodec: JsonCodec[Employee] = DeriveJsonCodec.gen[Employee]
   implicit val moduleCodec: JsonCodec[domain.Module] = DeriveJsonCodec.gen[domain.Module]
   implicit val supplierCodec: JsonCodec[Supplier] = DeriveJsonCodec.gen[Supplier]

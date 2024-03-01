@@ -657,6 +657,23 @@ final case class SalaryItem(id: String,
                             company: String
                            ) extends IWS
 final case class EmployeeSalaryItem(id: String, owner: String, account: String, amount: BigDecimal, percentage: BigDecimal, text:String, company: String)
+object EmployeeSalaryItem {
+type  ESI_Type =(String, String, String, BigDecimal, BigDecimal, String, String)
+  def apply(bs: ESI_Type): EmployeeSalaryItem = EmployeeSalaryItem(
+    bs._1,
+    bs._2,
+    bs._3,
+    bs._4,
+    bs._5,
+    bs._6,
+    bs._7)
+def apply(item:EmployeeSalaryItemDTO):EmployeeSalaryItem =EmployeeSalaryItem(item.id, item.owner, item.account, item.amount, item.percentage, item.text, item.company)
+}
+final case class EmployeeSalaryItemDTO(id: String, owner: String, account: String, accountName: String, amount: BigDecimal, percentage: BigDecimal, text:String, company: String)
+
+object EmployeeSalaryItemDTO {
+  def apply(item:EmployeeSalaryItem):EmployeeSalaryItemDTO =EmployeeSalaryItemDTO(item.id, item.owner, item.account, "", item.amount, item.percentage, item.text, item.company)
+}
 final case class Bank(
   id: String,
   name: String = "",
@@ -1359,7 +1376,7 @@ final case class Employee(
                            changedate: Instant = Instant.now(),
                            postingdate: Instant = Instant.now(),
                            bankaccounts: List[BankAccount] = List.empty[BankAccount],
-                           salaryItems: List[EmployeeSalaryItem] = List.empty[EmployeeSalaryItem]
+                           salaryItems: List[EmployeeSalaryItemDTO] = List.empty[EmployeeSalaryItemDTO]
                          ) extends BusinessPartner
 object Employee                      {
   val MODELID = 33
