@@ -670,9 +670,10 @@ final case class Bank(
 object Bank {
   val MODEL_ID = 11
 }
-final case class BankAccount(id: String, bic: String, owner: String, company: String, modelid: Int /*= 12 */ )
+final case class BankAccount(id: String, bic: String, owner: String, company: String, modelid: Int = BankAccount.MODEL_ID )
 object BankAccount    {
   import scala.math.Ordering
+  val MODEL_ID = 12
   implicit def ordering[A <: BankAccount]: Ordering[A] = Ordering.by(e => (e.id, e.bic, e.owner, e.company))
 }
 
@@ -691,10 +692,11 @@ final case class BankStatement_(
   company: String,
   companyIban: String,
   posted: Boolean = false,
-  modelid: Int = 18,
+  modelid: Int = BankStatement_.MODEL_ID,
   period: Int //= common.getPeriod(Instant.now())
 )
 object BankStatement_ {
+  val MODEL_ID = 18
   def apply(bs: BankStatement): BankStatement_ = new BankStatement_(
     bs.depositor,
     bs.postingdate,
@@ -730,7 +732,7 @@ final case class BankStatement(
   company: String,
   companyIban: String,
   posted: Boolean = false,
-  modelid: Int = 18,
+  modelid: Int = BankStatement.MODELID,
   period: Int //= common.getPeriod(Instant.now())
 )
 object BankStatement  {
@@ -924,7 +926,7 @@ object TPeriodicAccountBalance {
   } yield TPeriodicAccountBalance(pac.id, pac.account, pac.period, idebit, icredit, debit, credit, pac.currency, pac.company, pac.name, pac.modelid)
 
   def create(model: FinancialsTransaction): List[PeriodicAccountBalance] =
-    model.lines.flatMap { line: FinancialsTransactionDetails => //{
+    model.lines.flatMap { line: FinancialsTransactionDetails =>
       val debited = PeriodicAccountBalance(
         PeriodicAccountBalance.createId(model.period, line.account),
         line.account,
@@ -960,23 +962,9 @@ object TPeriodicAccountBalance {
         _ <- from.credit.update(_.add(amount))
         _ <- to.debit.update(_.add(amount))
       } yield ()
-      //self.debit.update(_.add(amount)).*>(from.credit.update(_.add(amount)))
     }
-   // List(from,to)
   }
 }
-final case class PeriodicAccountBalance_(
-                                         id: String,
-                                         account: String,
-                                         period: Int,
-                                         idebit: BigDecimal,
-                                         icredit: BigDecimal,
-                                         debit: BigDecimal,
-                                         credit: BigDecimal,
-                                         currency: String,
-                                         company: String,
-                                         name: String,
-                                         modelid: Int = PeriodicAccountBalance.MODELID)
 
 final case class PeriodicAccountBalance(
   id: String,
@@ -1106,7 +1094,6 @@ final case class Supplier_(
   email: String,
   account: String,
   oaccount: String,
-  //iban: String,
   vatcode: String,
   company: String,
   modelid: Int = Supplier.MODELID,

@@ -777,6 +777,27 @@ insert into masterfile (id, name, description, parent, enterdate,changedate,post
 values('stk','Stueck','Stueck','' ,current_timestamp, current_timestamp, current_timestamp, 15,'1000' ),
       ('ltr','Liter','Liter','' ,current_timestamp, current_timestamp, current_timestamp, 15,'1000' ),
       ('kg','Kilogramm','Kilogramm','' ,current_timestamp, current_timestamp, current_timestamp, 15,'1000' );
+-- ALTER TABLE masterfile ADD UNIQUE (modelid, company);
+-- ALTER TABLE module ADD UNIQUE (modelid, company);
+-- ALTER TABLE vat ADD UNIQUE (modelid, company);
+-- ALTER TABLE account ADD UNIQUE (modelid, company);
+-- ALTER TABLE customer ADD UNIQUE (modelid, company);
+-- ALTER TABLE supplier ADD UNIQUE (modelid, company);
+-- ALTER TABLE employee ADD UNIQUE (modelid, company);
+-- ALTER TABLE users ADD UNIQUE (modelid, company);
+-- ALTER TABLE bankaccount ADD UNIQUE (modelid, company);
+-- ALTER TABLE salary_item ADD UNIQUE (modelid, company);
+-- ALTER TABLE Permission ADD UNIQUE (modelid, company);
+-- ALTER TABLE role ADD UNIQUE (modelid, company);
+-- ALTER TABLE user_role ADD UNIQUE (modelid, company);
+-- ALTER TABLE user_right ADD UNIQUE (modelid, company);
+-- ALTER TABLE fmofule ADD UNIQUE (modelid, company);
+-- ALTER TABLE store ADD UNIQUE (modelid, company);
+-- ALTER TABLE article ADD UNIQUE (modelid, company);
+-- ALTER TABLE asset ADD UNIQUE (modelid, company);
+-- ALTER TABLE journal ADD UNIQUE (modelid, company);
+-- ALTER TABLE periodic_account_balance ADD UNIQUE (modelid, company);
+-- ALTER TABLE master_compta ADD UNIQUE (modelid, company);
 
 insert into module (id, name, description,path, parent, enterdate,changedate,postingdate, modelid, company)
 values('0000','Dummy','Dummy', '', '', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z',300,'1000' );
