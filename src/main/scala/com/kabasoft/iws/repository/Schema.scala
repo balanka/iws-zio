@@ -52,6 +52,7 @@ object Schema {
   implicit val userSchema_               = DeriveSchema.gen[User_]
   implicit val userSchemax               = DeriveSchema.gen[Userx]
   implicit val vatSchema                 = DeriveSchema.gen[Vat]
+  implicit val payrollTaxRangeSchema     = DeriveSchema.gen[PayrollTaxRange]
   implicit val loginRequestSchema        = DeriveSchema.gen[LoginRequest]
 
 }

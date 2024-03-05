@@ -1,5 +1,6 @@
 package com.kabasoft.iws.domain
 
+import com.kabasoft.iws.domain.AccountClass.dummy
 
 import java.util.Locale
 import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
@@ -29,6 +30,12 @@ object common {
   implicit val accMonoid: Identity[Account] = new Identity[Account] {
     def identity: Account                       = Account.dummy
     def combine(m1: => Account, m2: => Account) =
+      m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
+  }
+
+  implicit val accountClassMonoid: Identity[AccountClass] = new Identity[AccountClass] {
+    def identity: AccountClass                       = AccountClass.dummy
+    def combine(m1: => AccountClass, m2: => AccountClass) =
       m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
   }
 
@@ -329,7 +336,21 @@ object Account_ {
   )
 
 }
-final case class Account(
+trait AccountT extends IWS {
+  //def parent:String
+  def debiting(amount: BigDecimal):AccountT
+  def crediting(amount: BigDecimal):AccountT
+  def idebiting(amount: BigDecimal):AccountT
+  def icrediting(amount: BigDecimal):AccountT
+  def fdebit:BigDecimal
+  def fcredit:BigDecimal
+  def dbalance:BigDecimal
+  def cbalance:BigDecimal
+  def balance:BigDecimal
+
+  def getBalance:Balance
+}
+final case class Account (
   id: String,
   name: String,
   description: String,
@@ -347,26 +368,29 @@ final case class Account(
   debit: BigDecimal = zeroAmount,
   credit: BigDecimal = zeroAmount,
   subAccounts: Set[Account] = Nil.toSet
-) {
-  def debiting(amount: BigDecimal) = copy(debit = debit.add(amount))
+) /*extends AccountT*/ {
 
-  def crediting(amount: BigDecimal) = copy(credit = credit.add(amount))
+   def report(child: List[Account]): Account =
+     reduce(child.filter(acc=>acc.account == id).map(acc => acc.report(child)), Account.dummy)
+  def debiting(amount: BigDecimal): Account = copy(debit = debit.add(amount))
 
-  def idebiting(amount: BigDecimal) = copy(idebit = idebit.add(amount))
+  def crediting(amount: BigDecimal): Account = copy(credit = credit.add(amount))
 
-  def icrediting(amount: BigDecimal) = copy(icredit = icredit.add(amount))
+  def idebiting(amount: BigDecimal): Account = copy(idebit = idebit.add(amount))
 
-  def fdebit = debit.add(idebit)
+  def icrediting(amount: BigDecimal): Account = copy(icredit = icredit.add(amount))
 
-  def fcredit = credit.add(icredit)
+  def fdebit: BigDecimal = debit.add(idebit)
 
-  def dbalance = fdebit.subtract(fcredit)
+  def fcredit: BigDecimal = credit.add(icredit)
 
-  def cbalance = fcredit.subtract(fdebit)
+  def dbalance: BigDecimal = fdebit.subtract(fcredit)
 
-  def balance = if (isDebit) dbalance else cbalance
+  def cbalance: BigDecimal = fcredit.subtract(fdebit)
 
-  def getBalance = Balance(id, idebit, icredit, debit, credit)
+  def balance: BigDecimal = if (isDebit) dbalance else cbalance
+
+  def getBalance: Balance = Balance(id, idebit, icredit, debit, credit)
 
   def add(acc: Account): Account =
     copy(subAccounts = subAccounts + acc);
@@ -390,21 +414,19 @@ final case class Account(
   def updateBalanceParent(all: List[Account]): List[Account] =
     all.find(acc => acc.id == account) match {
       case Some(parent) =>
-        val y: Account       = parent.updateBalance(this)
+        val y: Account = parent.updateBalance(this)
         val z: List[Account] = all.filterNot(acc => acc.id == parent.id) :+ y
         y.updateBalanceParent(z)
-      case None         => all
+      case None => all
     }
 
   def getChildren: Set[Account] = subAccounts.toList match {
-    case Nil     => Set(copy(id = id))
+    case Nil => Set(copy(id = id))
     case x :: xs => Set(x) ++ xs.flatMap(_.getChildren)
   }
 
   def addSubAccounts(accounts: List[Account]): Account =
     copy(subAccounts = accounts.filter(_.account == id).map(_.addSubAccounts(accounts)).toSet)
-
-
 
 }
 object Account {
@@ -609,7 +631,7 @@ final case class Asset (id: String,
 sealed trait IWS {
   def id: String
 }
-final case class Masterfile(id: String,
+ case class Masterfile(id: String,
                              name: String = "",
                              description: String = "",
                              parent: String = "",
@@ -619,6 +641,64 @@ final case class Masterfile(id: String,
                              modelid: Int,
                              company: String
                            ) extends IWS
+   object AccountClass{
+     val dummy                                         = AccountClass(
+       "",
+       "",
+       "",
+       "",
+       Instant.now(),
+       Instant.now(),
+       Instant.now(),
+       36,
+       "1000",
+       true,
+       zeroAmount,
+       zeroAmount,
+       zeroAmount,
+       zeroAmount
+     )
+   }
+  final case  class AccountClass ( id: String,
+                                  name: String = "",
+                                  description: String = "",
+                                  parent: String = "",
+                                  enterdate: Instant = Instant.now(),
+                                  changedate: Instant = Instant.now(),
+                                  postingdate: Instant = Instant.now(),
+                                  modelid: Int,
+                                  company: String,
+                                   isDebit: Boolean,
+                                   idebit: BigDecimal = zeroAmount,
+                                   icredit: BigDecimal = zeroAmount,
+                                   debit: BigDecimal = zeroAmount,
+                                   credit: BigDecimal = zeroAmount,
+                                 ) extends  AccountT{
+
+      def report(child: List[AccountClass]): AccountClass =
+       reduce(child.filter(acc=>acc.parent==id).map(acc => acc.report(child)), dummy)
+
+    def debiting(amount: BigDecimal): AccountClass = copy(debit = debit.add(amount))
+    def crediting(amount: BigDecimal): AccountClass = copy(credit = credit.add(amount))
+    def idebiting(amount: BigDecimal): AccountClass = copy(idebit = idebit.add(amount))
+    def icrediting(amount: BigDecimal): AccountClass = copy(icredit = icredit.add(amount))
+    def fdebit: BigDecimal = debit.add(idebit)
+    def fcredit: BigDecimal = credit.add(icredit)
+    def dbalance: BigDecimal = fdebit.subtract(fcredit)
+    def cbalance: BigDecimal = fcredit.subtract(fdebit)
+    def balance: BigDecimal = if (isDebit) dbalance else cbalance
+    def getBalance: Balance = Balance(id, idebit, icredit, debit, credit)
+  }
+//final case  class AccountGroup (override val id: String,
+//                                override val name: String = "",
+//                                override val description: String = "",
+//                                override val parent: String = "",
+//                                override val enterdate: Instant = Instant.now(),
+//                                override val changedate: Instant = Instant.now(),
+//                                override val postingdate: Instant = Instant.now(),
+//                                override val modelid: Int,
+//                                override val company: String
+//                               ) extends  Masterfile (id, name, description, parent, enterdate, changedate, postingdate, modelid, company)
 final case class Costcenter(
   id: String,
   name: String = "",
@@ -656,6 +736,7 @@ final case class SalaryItem(id: String,
                             modelid: Int = 171,
                             company: String
                            ) extends IWS
+ final case class PayrollTaxRange (id: String, fromAmount:BigDecimal, toAmount:BigDecimal, tax:BigDecimal, taxClass:String, modelid: Int = 172, company: String)
 final case class EmployeeSalaryItem(id: String, owner: String, account: String, amount: BigDecimal, percentage: BigDecimal, text:String, company: String)
 object EmployeeSalaryItem {
 type  ESI_Type =(String, String, String, BigDecimal, BigDecimal, String, String)

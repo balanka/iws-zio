@@ -534,6 +534,19 @@ CREATE TABLE IF NOT EXISTS public.employee_salary_item
     company character varying(50) COLLATE pg_catalog."default" NOT NULL,
     CONSTRAINT employee_salary_item_pkey PRIMARY KEY (id, owner, account, company)
 );
+DROP table if exists payroll_tax_range;
+CREATE TABLE IF NOT EXISTS public.payroll_tax_range
+(
+    id character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    from_amount numeric(12,2) DEFAULT 0,
+    to_amount numeric(12,2) DEFAULT 0,
+    tax numeric(12,2) DEFAULT 0,
+    taxClass character varying(50) COLLATE pg_catalog."default",
+    company character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    modelid integer NOT NULL DEFAULT 172,
+    CONSTRAINT payroll_tax_range_pkey PRIMARY KEY (id, company)
+    );
+CREATE INDEX payroll_tax_range_idx ON payroll_tax_range (modelid, company);
 
 insert into article (id,  name, description, parent, sprice, pprice, avg_price,currency, stocked, quantit_unit, pack_unit, company, modelid) values
                                                                                                                                                  ('iws001', 'Licence IWS base', 'Licence IWS base including masterfile, and administration', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '1000', 35),
@@ -824,10 +837,21 @@ VALUES('15', 'menu.quantityUnit', './MasterfileForm', CURRENT_DATE, CURRENT_DATE
 --insert into user_right select 15 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
 
 
+INSERT INTO public."module"
+(id, name, description, postingdate, changedate, enterdate, company, modelid, path, parent)
+VALUES('172', 'menu.payrollTaxRange', './MasterfileForm', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, '1000', 400, '/payrollTax', 20);
+--insert into user_right select 15 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
+--ALTER TABLE payroll_tax_range RENAME COLUMN taxClass TO tax_class;
+insert into payroll_tax_range(id, from_amount, to_amount, tax_class, tax, company, modelid)
+values('1', 4968.00, 5003.99, 'I', 0, '1000', 172),('2', 4968.00, 5003.99, 'II', 0, '1000', 172),
+    ('3', 4968.00, 5003.99, 'III', 0, '1000', 172),('4', 4968.00, 5003.99, 'IV', 0, '1000', 172),
+    ('5', 4968.00, 5003.99, 'V', 373, '1000', 172),('6', 4968.00, 5003.99, 'VI', 551, '1000', 172);
+
 insert into users(user_name, first_name, last_name,  hash, email, phone, department, menu, company, modelid)
 values('jdegoes011','John','dgoes', '$21a$10$0IZtq3wGiRQSMIuoIgNKrePjQfmGFRgkpnHwyY9RcbUhZxU9Ha1mCX', 'whatYourGrandma1Name@gmail.com'
       , '11-4711-0123','Admin', '1300,9,1120,3,14,1000,18,1,112,106,11,6,10', '1000',111),
       ('myUserName','myUserFirstName','myUserLastName', 'hash1', 'myEmail@email.com', '+49-1111-11100','Accountant', '1,10', '1000',111);
+--insert into user_right select 172 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
 
 
 INSERT INTO master_compta (id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content)
