@@ -541,7 +541,7 @@ CREATE TABLE IF NOT EXISTS public.payroll_tax_range
     from_amount numeric(12,2) DEFAULT 0,
     to_amount numeric(12,2) DEFAULT 0,
     tax numeric(12,2) DEFAULT 0,
-    taxClass character varying(50) COLLATE pg_catalog."default",
+    tax_class character varying(50) COLLATE pg_catalog."default",
     company character varying(50) COLLATE pg_catalog."default" NOT NULL,
     modelid integer NOT NULL DEFAULT 172,
     CONSTRAINT payroll_tax_range_pkey PRIMARY KEY (id, company)
