@@ -2,11 +2,7 @@ package com.kabasoft.iws.api
 
 import com.kabasoft.iws.api.AccountEndpoint.{accByIdEndpoint, accCreateEndpoint, accDeleteEndpoint}
 import zio.json.EncoderOps
-import com.kabasoft.iws.repository.{AccountCache, AccountCacheImpl, AccountRepositoryImpl, CustomerCache, CustomerCacheImpl,
-  CustomerRepositoryImpl, FinancialsTransactionCache, FinancialsTransactionCacheImpl, FinancialsTransactionRepository,
-  FinancialsTransactionRepositoryImpl, MasterfileCache, MasterfileCacheImpl, MasterfileRepositoryImpl, ModuleCache,
-  ModuleCacheImpl, ModuleRepositoryImpl,
-  SupplierCache, SupplierCacheImpl, SupplierRepositoryImpl, UserRepository, UserRepositoryImpl, VatCache, VatCacheImpl, VatRepositoryImpl}
+import com.kabasoft.iws.repository.{AccountCache, AccountCacheImpl, AccountRepositoryImpl, CustomerCache, CustomerCacheImpl, CustomerRepositoryImpl, FinancialsTransactionCache, FinancialsTransactionCacheImpl, FinancialsTransactionRepository, FinancialsTransactionRepositoryImpl, MasterfileCache, MasterfileCacheImpl, MasterfileRepositoryImpl, ModuleCache, ModuleCacheImpl, ModuleRepositoryImpl, SupplierCache, SupplierCacheImpl, SupplierRepositoryImpl, UserRepository, UserRepositoryImpl, VatCache, VatCacheImpl, VatRepositoryImpl}
 import com.kabasoft.iws.api.Protocol._
 import com.kabasoft.iws.domain.BankBuilder.{bank, bankx}
 import com.kabasoft.iws.api.CustomerEndpoint.{custByIdEndpoint, custCreateEndpoint, custDeleteEndpoint}
@@ -29,6 +25,7 @@ import zio.http.{Body, Response}
 import com.kabasoft.iws.domain.CostcenterBuilder.cc
 import com.kabasoft.iws.domain.ModuleBuilder.m
 import com.kabasoft.iws.domain.SupplierBuilder.sup
+import com.kabasoft.iws.domain.User
 import com.kabasoft.iws.domain.UserBuilder.user
 import com.kabasoft.iws.domain.VatBuilder.vat1
 import zio._
@@ -139,7 +136,7 @@ object ApiSpec extends ZIOSpecDefault {
         },
         test("User integration test") {
           val userAllEndpoint = Endpoint.get("user" / string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
-            .implement((company: String) => UserRepository.all(company).mapBoth(e => RepositoryError(e.getMessage), _.size))
+            .implement((company: String) => UserRepository.all((User.MODELID, company)).mapBoth(e => RepositoryError(e.getMessage), _.size))
           val testRoutes = testApi(userByUserNameEndpoint ++ userAllEndpoint) _
           val deleteRoutes = testDeleteApi(userDeleteEndpoint) _
           //val testRoutes1 = testPostApi(userCreateEndpoint) _

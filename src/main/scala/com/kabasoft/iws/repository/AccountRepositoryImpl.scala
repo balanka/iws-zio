@@ -106,12 +106,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
     _ <- ZIO.logInfo(s" ${nr}  accounts inserted ")
    result <- getBy(c.map(_.id), c.head.company)
   }yield result
-   // create2(c) *> getBy(c.map(_.id), c.head.company)
-//    if(c.isEmpty) {
-//      ZIO.succeed(List.empty[Account])
-//    }else {
-//      create2(c) *> getBy(c.map(_.id), c.head.company)
-//    }
+
 
   override def create2(models: List[Account]): ZIO[Any, RepositoryError, Int] = {
     val query = buildInsertQuery(models)
@@ -119,14 +114,7 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
       execute(query)
         .provideLayer(driverLayer)
         .mapError(e => RepositoryError(e.getMessage))
-        //.provideAndLog(driverLayer)
   }
-//  override def create2(c: Account): ZIO[Any, RepositoryError, Unit]                     = {
-//    val query = buildInsertQuery(List(c))
-//      execute(query)
-//        .provideAndLog(driverLayer)
-//        .unit
-//  }
 
   override def delete(idx: String, companyId: String): ZIO[Any, RepositoryError, Int] = {
     val delete_ = deleteFrom(accounts).where(company === companyId && id === idx  )
@@ -135,7 +123,6 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
       .provideLayer(driverLayer)
       .mapError(e => RepositoryError(e.getMessage))
   }
-
 
   private def build(model: Account_) =
     update(accounts)

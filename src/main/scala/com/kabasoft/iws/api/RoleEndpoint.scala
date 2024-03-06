@@ -12,12 +12,12 @@ import zio.http.endpoint.Endpoint
 object RoleEndpoint {
 
   val roleCreateAPI     = Endpoint.post("role").in[Role].out[Role].outError[RepositoryError](Status.InternalServerError)
-  val roleAllAPI        = Endpoint.get("role" / string("company")).out[List[Role]].outError[RepositoryError](Status.InternalServerError)
+  val roleAllAPI        = Endpoint.get("role"/ int("modelid") / string("company")).out[List[Role]].outError[RepositoryError](Status.InternalServerError)
   val roleByIdAPI       = Endpoint.get("role" / string("id")/ string("company")).out[Role].outError[RepositoryError](Status.InternalServerError)
   val roleModifyAPI     = Endpoint.put(literal("role")).in[Role].out[Role].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI = Endpoint.delete("role" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
-  private val roleAllEndpoint        = roleAllAPI.implement(company => RoleCache.all(company).mapError(e => RepositoryError(e.getMessage)))
+  private val roleAllEndpoint        = roleAllAPI.implement(p => RoleCache.all(p).mapError(e => RepositoryError(e.getMessage)))
   val roleCreateEndpoint = roleCreateAPI.implement(role =>
     ZIO.logDebug(s"Insert user role  ${role}") *>
     RoleRepository.create(role).mapError(e => RepositoryError(e.getMessage)))

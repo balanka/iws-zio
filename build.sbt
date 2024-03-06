@@ -1,4 +1,4 @@
-val zioVersion                 = "2.0.20"
+val zioVersion                 = "2.0.21"
 
 val zioHttpVersion             = "3.0.0-RC2"
 val zioJsonVersion             = "0.3.0"
@@ -18,11 +18,9 @@ ThisBuild / resolvers +=
   "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 ThisBuild / scalacOptions += "-Wconf:any:wv"
 maintainer := "batexy@gmail.com"
-//dockerBaseImage := "adoptopenjdk:11-jre-hotspot"
-//dockerBaseImage := "openjdk:17-alpine"
 //dockerBaseImage := "eclipse-temurin:21-alpine"
-//dockerBaseImage := "amazoncorretto:21.0.2-alpine"
-dockerBaseImage := "openjdk:21-jdk"
+//dockerBaseImage := "amazoncorretto:21.0.2-alpine3.19"
+dockerBaseImage := "openjdk:23-slim"
 
 assemblyMergeStrategy in assembly := {
   case PathList("META-INF", xs @ _*) => MergeStrategy.discard
@@ -31,14 +29,15 @@ assemblyMergeStrategy in assembly := {
 
 lazy val root = (project in file("."))
   .settings(
-    Docker / packageName := "iws",
-    Compile / mainClass := Some("com.kabasoft.iws.Main"),
+    Docker / packageName := "iws-api",
+    Compile / mainClass := Some("com.kabasoft.iws.IwsApp"),
+    //dockerEnvVars ++= Map(("REACT_APP_HOST_IP_ADDRESS", "localhost")),
     inThisBuild(
       List(
         name         := "iws-zio",
         organization := "KABA Soft GmbH",
-        version      := "1.2.3",
-        scalaVersion := "2.13.10"
+        version      := "1.3.0",
+        scalaVersion := "2.13.13"
          //scalaVersion := "3.1.1"
       )
     ),

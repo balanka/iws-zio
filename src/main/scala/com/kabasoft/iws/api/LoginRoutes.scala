@@ -14,8 +14,10 @@ import zio.json.{DecoderOps, EncoderOps}
 object LoginRoutes {
   private val defaultLifeSpan = 15*24*60*60L
   def appLogin = Http.collectZIO[Request] {
+
     case req@Method.POST -> Root / "users" / "login" =>
       for {
+        _<-ZIO.logInfo(s"Request >>>>>>n ${req}")
         body <- req.body.asString
           .flatMap(request =>
             ZIO
@@ -30,7 +32,7 @@ object LoginRoutes {
   private def checkLogin(loginRequest: LoginRequest): ZIO[UserRepository, RepositoryError, Response] = for {
     _ <- ZIO.logInfo(s"checkLogin >>>>>>")
     _ <- ZIO.logInfo(s"pwd >>>>>> ${Utils.jwtEncode(loginRequest.password,defaultLifeSpan)}")
-    r <- UserRepository.all(loginRequest.company)
+    r <- UserRepository.all((User.MODELID, loginRequest.company))
     user = r.find(_.userName.equals(loginRequest.userName)).getOrElse(DummyUser)
     _ <- ZIO.logDebug(s"all Users >>>>>> ${user}")
     content   = Utils.jwtDecode(user.hash).toList.head.content.replace("{","").replace("}","")
@@ -52,6 +54,7 @@ object LoginRoutes {
       Response.json(user.toJson).addHeader(Custom("authorization", token))
         .addHeader(Custom("Access-Control-Allow-Origin", "*"))
         .addHeader(Custom("Origin", webUrl))
+        .addHeader(Custom("Origin", "http://mac-Studio.fritz.box:3000"))
 
     } else {
       Response.text("Invalid  user name or password "
