@@ -9,7 +9,7 @@ import zio.stream._
 
 import scala.annotation.nowarn
 
-final class FinancialsTransactionRepositoryImpl(pool: ConnectionPool, accRepo: AccountRepository) extends FinancialsTransactionRepository with TransactionTableDescription {
+final class FinancialsTransactionRepositoryImpl(pool: ConnectionPool, accRepo: AccountRepository) extends FinancialsTransactionRepository with FinancialsTransactionTableDescription {
 
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
 

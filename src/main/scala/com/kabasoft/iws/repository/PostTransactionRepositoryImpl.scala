@@ -11,7 +11,7 @@ import zio.{ZIO, _}
 import scala.annotation.nowarn
 
 
-final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTransactionRepository with TransactionTableDescription {
+final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTransactionRepository with FinancialsTransactionTableDescription {
 
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
   val pac = defineTable[PeriodicAccountBalance]("periodic_account_balance")

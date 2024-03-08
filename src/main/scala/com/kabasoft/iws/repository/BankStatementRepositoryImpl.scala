@@ -10,7 +10,7 @@ import java.time.Instant
 import scala.annotation.nowarn
 
 final class BankStatementRepositoryImpl(pool: ConnectionPool, accRepo: AccountRepository ) extends BankStatementRepository with BankStatementTableDescription
-with TransactionTableDescription {
+with FinancialsTransactionTableDescription {
 type TYPE = (TableName, Instant, Instant, TableName, TableName, TableName, TableName, TableName, java.math.BigDecimal, TableName, TableName, TableName, TableName, Boolean, Int, Int)
   lazy val driverLayer = ZLayer
     .make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))

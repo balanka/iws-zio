@@ -244,6 +244,52 @@ create table if not exists periodic_account_balance
         constraint periodic_account_balance_pk
             primary key
 );
+DROP SEQUENCE IF EXISTS transaction_id_seq ;
+CREATE SEQUENCE transaction_id_seq
+    INCREMENT 1
+    MINVALUE 1 --5633
+    MAXVALUE 9223372036854775807
+    START 2
+    CACHE 1;
+DROP table if exists transaction;
+create table if not exists transaction
+(
+    id           bigint  default nextval('transaction_id_seq'::regclass) not null
+    primary key,
+    oid          bigint                            not null,
+    id1          bigint                            not null,
+    store   varchar(50)                       not null,
+    account      varchar(50)                       not null,
+    text   varchar(380) default ''::character varying,
+    transdate    timestamp    default CURRENT_DATE not null,
+    postingdate  timestamp    default CURRENT_DATE not null,
+    enterdate    timestamp    default CURRENT_DATE not null,
+    company      varchar(50)                       not null,
+    posted       boolean      default false,
+    modelid      integer                           not null,
+    period       integer
+    );
+DROP SEQUENCE IF EXISTS transaction_details_id_seq ;
+CREATE SEQUENCE transaction_details_id_seq
+    INCREMENT 1
+    MINVALUE 1
+    MAXVALUE 9223372036854775807
+    START 1
+    CACHE 1;
+DROP table if exists transaction_details;
+create table if not exists transaction_details
+(
+    id       bigint  default nextval('transaction_details_id_seq'::regclass) not null
+    constraint transaction_details_pkey primary key,
+    transid  bigint                                      not null,
+    article  varchar(50) default NULL::character varying not null,
+    quantity   numeric(12, 2)                              not null,
+    unit varchar(50) default NULL::character varying not null,
+    price   numeric(12, 2)                              not null,
+    currency varchar(10)                                 not null,
+    duedate  timestamp   default CURRENT_DATE            not null,
+    text     varchar(380)
+    );
 /*
  ALTER SEQUENCE public.master_compta_id_seq
 	START 5634
