@@ -1,0 +1,1 @@
+curl -X GET http://localhost:8091/close/9800/202212/1000 -H 'authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJleHAiOjE3MDc1NTc0NzMsImlhdCI6MTcwNjI2MTQ3Myx3dWR1d2FsaTJ4fQ.8E8dokJGWfgqi4O1H3SpRhmYkq94iUCOwcQlN05OXioboAqCv8IZ7ERCBmEIWbkp5q99MNNXZVcMX9zYFYaR_Q'
