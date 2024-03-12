@@ -1116,6 +1116,37 @@ object PeriodicAccountBalance {
       PeriodicAccountBalance.MODELID
     )
 
+  def create(model: Transaction): List[PeriodicAccountBalance] =List.empty[PeriodicAccountBalance]
+//    model.lines.flatMap { line =>
+//      List(
+//        PeriodicAccountBalance.apply(
+//          PeriodicAccountBalance.createId(model.period, line.account),
+//          line.account,
+//          model.period,
+//          zeroAmount,
+//          zeroAmount,
+//          line.amount,
+//          zeroAmount,
+//          line.currency,
+//          model.company,
+//          line.accountName,
+//          PeriodicAccountBalance.MODELID
+//        ),
+//        PeriodicAccountBalance.apply(
+//          PeriodicAccountBalance.createId(model.period, line.oaccount),
+//          line.oaccount,
+//          model.period,
+//          zeroAmount,
+//          zeroAmount,
+//          zeroAmount,
+//          line.amount,
+//          line.currency,
+//          model.company,
+//          line.oaccountName,
+//          PeriodicAccountBalance.MODELID
+//        )
+//      )
+//    }
   def create(model: FinancialsTransaction): List[PeriodicAccountBalance] =
     model.lines.flatMap { line =>
       List(
