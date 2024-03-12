@@ -26,6 +26,8 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
     art.stocked,
     art.quantityUnit,
     art.packUnit,
+    art.stockAccount,
+    art.expenseAccount,
     art.company,
     art.modelid,
     art.enterdate,
@@ -46,6 +48,8 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
     stocked,
     quantityUnit,
     packUnit,
+    stockAccount,
+    expenseAccount,
     company,
     modelid,
     enterdate,
@@ -65,6 +69,8 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
     stocked,
     quantityUnit,
     packUnit,
+    stockAccount,
+    expenseAccount,
     company,
     modelid,
     enterdate,
@@ -91,6 +97,8 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
       stocked,
       quantityUnit,
       packUnit,
+      stockAccount,
+      expenseAccount,
       company,
       modelid,
       enterdate,
@@ -142,6 +150,8 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
       .set(stocked, model.stocked)
       .set(quantityUnit, model.quantityUnit)
       .set(packUnit, model.packUnit)
+      .set(stockAccount, model.stockAccount)
+      .set(expenseAccount, model.expenseAccount)
       .set(company, model.company)
       .where(whereClause(model.id, model.company))
 

@@ -93,6 +93,8 @@ final case class Article_(id: String,
                           stocked: Boolean = false,
                           quantityUnit: String,
                           packUnit: String,
+                          stockAccount: String,
+                          expenseAccount: String,
                           company: String,
                           modelid: Int = Article.MODELID,
                           enterdate: Instant = Instant.now(),
@@ -111,6 +113,8 @@ object Article_ {
     art.stocked,
     art.quantityUnit,
     art.packUnit,
+    art.stockAccount,
+    art.expenseAccount,
     art.company,
     art.modelid,
     art.enterdate,
@@ -129,6 +133,8 @@ final case class Article(id: String,
                          stocked: Boolean = false,
                          quantityUnit:String,
                          packUnit:String,
+                         stockAccount: String,
+                         expenseAccount: String,
                          company: String,
                          modelid: Int = Article.MODELID,
                          enterdate: Instant = Instant.now(),
@@ -152,6 +158,8 @@ object Article {
       String,
       String,
       String,
+      String,
+      String,
       Int,
       Instant,
       Instant,
@@ -170,6 +178,8 @@ object Article {
     art.stocked,
     art.quantityUnit,
     art.packUnit,
+    art.stockAccount,
+    art.expenseAccount,
     art.company,
     art.modelid,
     art.enterdate,
@@ -196,6 +206,8 @@ object Article {
       acc._14,
       acc._15,
       acc._16,
+      acc._17,
+      acc._18,
       Nil
     )
 }
@@ -736,7 +748,10 @@ final case class SalaryItem(id: String,
                             modelid: Int = 171,
                             company: String
                            ) extends IWS
- final case class PayrollTaxRange (id: String, fromAmount:BigDecimal, toAmount:BigDecimal, tax:BigDecimal, taxClass:String, modelid: Int = 172, company: String)
+ final case class PayrollTaxRange (id: String, fromAmount:BigDecimal, toAmount:BigDecimal, tax:BigDecimal, taxClass:String, modelid: Int = PayrollTaxRange.MODELID, company: String)
+object PayrollTaxRange {
+  val MODELID = 172
+}
 final case class EmployeeSalaryItem(id: String, owner: String, account: String, amount: BigDecimal, percentage: BigDecimal, text:String, company: String)
 object EmployeeSalaryItem {
 type  ESI_Type =(String, String, String, BigDecimal, BigDecimal, String, String)

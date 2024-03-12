@@ -2,26 +2,29 @@ package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain._
-import com.kabasoft.iws.repository.{AccountRepository, EmployeeRepository, FinancialsTransactionRepository}
+import com.kabasoft.iws.repository.{AccountRepository, EmployeeRepository, FinancialsTransactionRepository, PayrollTaxRangeRepository}
 import zio._
+
 import java.time.Instant
 import java.math.RoundingMode
 
-final class EmployeeServiceImpl (empRepo: EmployeeRepository,  accountRepo: AccountRepository, ftrRepo: FinancialsTransactionRepository) extends EmployeeService {
+final class EmployeeServiceImpl (empRepo: EmployeeRepository,  accountRepo: AccountRepository,
+                                 ptrRepo: PayrollTaxRangeRepository, ftrRepo: FinancialsTransactionRepository) extends EmployeeService {
 
   override def generate(modelid:Int, company: String): ZIO[Any, RepositoryError, Int] = for {
-    //<- ZIO.logInfo(s" Posting transaction with id ${id} of company ${company}")
+    _<- ZIO.logInfo(s" Posting transaction with id ${modelid} of company ${company}")
     transactions <- build(modelid, company)
     nr<-  ftrRepo.create(transactions).map(_.size)
   }yield nr
 
   private def build(modelid:Int, company: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
     //<- ZIO.logInfo(s" Posting transaction with id ${id} of company ${company}")
-    employee <- empRepo.all((Employee.MODELID, company))
-    accounts<- accountRepo.all((Account.MODELID, company))
-  }yield employee.map(emp => buildTransaction(emp,  modelid, buildTransactionDetails (emp, emp.salaryItems.map(EmployeeSalaryItem.apply), accounts) ))
+    employee <- empRepo.all((Employee.MODELID, company)).debug("employee")
+    accounts<- accountRepo.all((Account.MODELID, company)).debug("accounts")
+    ptr <- ptrRepo.all((PayrollTaxRange.MODELID, company)).debug("payroll transactions ")
+  }yield employee.map(emp => buildTransaction(emp,  modelid, buildTransactionDetails (emp, emp.salaryItems.map(EmployeeSalaryItem.apply), accounts, ptr) ))
 
-  private def buildTransactionDetails(emp:Employee, salaryItems: List[EmployeeSalaryItem], accounts:List[Account]) = {
+  private def buildTransactionDetails(emp:Employee, salaryItems: List[EmployeeSalaryItem], accounts:List[Account], ptr:List[PayrollTaxRange]) = {
     salaryItems.map(item => FinancialsTransactionDetails(-1L, -1L, emp.account, true, item.account
       , emp.salary.multiply(item.percentage).setScale(6, RoundingMode.HALF_UP)
       , Instant.now(), item.text, "EUR", getName(accounts, emp.account), getName(accounts, item.account)))
@@ -53,7 +56,8 @@ final class EmployeeServiceImpl (empRepo: EmployeeRepository,  accountRepo: Acco
   }
 }
 object EmployeeServiceImpl {
-  val live: ZLayer[EmployeeRepository  with AccountRepository with FinancialsTransactionRepository,  RepositoryError, EmployeeService] =
-    ZLayer.fromFunction(new EmployeeServiceImpl(_, _, _))
+  val live: ZLayer[EmployeeRepository  with AccountRepository with FinancialsTransactionRepository
+                                       with PayrollTaxRangeRepository,  RepositoryError, EmployeeService] =
+    ZLayer.fromFunction(new EmployeeServiceImpl(_, _, _, _))
 }
 

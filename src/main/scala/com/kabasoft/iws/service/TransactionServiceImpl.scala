@@ -44,7 +44,9 @@ final class TransactionServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionR
         .getByTransId((id, company))
         .flatMap(trans => postTransaction(trans, company))
 
-  private[this] def postTransaction(transaction: Transaction, company: String): ZIO[Any, RepositoryError, Int] = {
+  private[this] def postTransaction(transaction: Transaction, company: String): ZIO[Any, RepositoryError, Int] =
+    ZIO.succeed(0)
+  /*{
     val model = transaction.copy(period = common.getPeriod(transaction.transdate))
     val pacids = buildPacIds(model)
     for {
@@ -58,17 +60,19 @@ final class TransactionServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionR
       post <- repository4PostingTransaction.post(List(model), newRecords.toList, oldPacs.flip, journalEntries)
 
     } yield post
-
-  }
+ }
+   */
 
   private[this] def buildPacId(period: Int, accountId: String): String =
     PeriodicAccountBalance.createId(period, accountId)
 
-  private[this] def buildPacIds(model: FinancialsTransaction): List[String] = {
+  private[this] def buildPacIds(model: Transaction): List[String] = List.empty[String]
+  /*{
     val pacIds: List[String] = model.lines.map(line => buildPacId(model.getPeriod, line.account))
     val pacOids: List[String] = model.lines.map(line => buildPacId(model.getPeriod, line.oaccount))
     (pacIds ++ pacOids).distinct
   }
+   */
 
   private def updatePac(model: Transaction, tpacs: List[TPeriodicAccountBalance]): ZIO[Any, Nothing, List[TPeriodicAccountBalance]] = {
   val result = for{
@@ -94,7 +98,9 @@ final class TransactionServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionR
     pacList.find(pac_ => pac_.id == pacId).getOrElse(PeriodicAccountBalance.dummy.copy(id = pacId, period = period_))
 
 
-  private def makeJournal(model: Transaction,  pacListx: List[PeriodicAccountBalance], tpacList: List[UIO[PeriodicAccountBalance]]): ZIO[Any, Nothing, List[Journal]] = for {
+  private def makeJournal(model: Transaction,  pacListx: List[PeriodicAccountBalance], tpacList: List[UIO[PeriodicAccountBalance]]): ZIO[Any, Nothing, List[Journal]] =
+    ZIO.succeed(List.empty[Journal])
+  /*  for {
     pacList<-tpacList.flip
     journal = model.lines.flatMap { line =>
       val pacId = buildPacId(model.getPeriod, line.account)
@@ -131,6 +137,8 @@ final class TransactionServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionR
       model.company,
       model.modelid
     )
+
+   */
 }
 
 object TransactionServiceImpl {
