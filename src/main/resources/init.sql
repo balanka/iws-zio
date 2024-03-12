@@ -882,11 +882,27 @@ INSERT INTO public."module"
 VALUES('15', 'menu.quantityUnit', './MasterfileForm', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, '1000', 400, '/qty', 20);
 --insert into user_right select 15 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
 
+INSERT INTO public."module"
+(id, name, description, postingdate, changedate, enterdate, company, modelid, path, parent)
+VALUES('38', 'menu.closeAccountingPeriod', './MasterfileForm', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, '1000', 400, '/close', 30);
+insert into user_right select 38 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
+
+INSERT INTO public."module"
+(id, name, description, postingdate, changedate, enterdate, company, modelid, path, parent)
+VALUES('39', 'menu.createPayrollTransaction', './MasterfileForm', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, '1000', 400, '/ptr', 30);
+insert into user_right select 39 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
+
+INSERT INTO public."module"
+(id, name, description, postingdate, changedate, enterdate, company, modelid, path, parent)
+VALUES('136', 'menu.createPayrollTransaction', './MasterfileForm', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, '1000', 400, '/ftr', 30);
+insert into user_right select 136 as moduleid, roleid, short, company, modelid from user_right where moduleid='112';
+
+insert into fmodule (id, name, description, account, is_debit, company, modelid) values ('136','Payroll','Payroll','1810',true,'1000', 151);
 
 INSERT INTO public."module"
 (id, name, description, postingdate, changedate, enterdate, company, modelid, path, parent)
 VALUES('172', 'menu.payrollTaxRange', './MasterfileForm', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, '1000', 400, '/payrollTax', 20);
---insert into user_right select 15 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
+--insert into user_right select 172 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
 --ALTER TABLE payroll_tax_range RENAME COLUMN taxClass TO tax_class;
 insert into payroll_tax_range(id, from_amount, to_amount, tax_class, tax, company, modelid)
 values('1', 4968.00, 5003.99, 'I', 0, '1000', 172),('2', 4968.00, 5003.99, 'II', 0, '1000', 172),
