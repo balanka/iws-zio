@@ -4,7 +4,7 @@ import com.kabasoft.iws.domain.{PeriodicAccountBalance, common}
 import com.kabasoft.iws.domain.AccountBuilder.{companyId, paccountId0}
 import com.kabasoft.iws.domain.TransactionBuilder.{ftr1, ftr2, line1, line2}
 import com.kabasoft.iws.repository.container.PostgresContainer
-import com.kabasoft.iws.repository.{AccountRepository, AccountRepositoryImpl, JournalRepositoryImpl, PacRepository, PacRepositoryImpl, PostTransactionRepositoryImpl, FinancialsTransactionRepository, FinancialsTransactionRepositoryImpl}
+import com.kabasoft.iws.repository.{AccountRepository, AccountRepositoryImpl, FinancialsTransactionRepository, FinancialsTransactionRepositoryImpl, JournalRepositoryImpl, PacRepository, PacRepositoryImpl, PostFinancialsTransactionRepositoryImpl, PostTransactionRepositoryImpl}
 import zio.ZLayer
 import zio.sql.ConnectionPool
 import zio.test.TestAspect._
@@ -23,7 +23,7 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
     JournalRepositoryImpl.live,
     FinancialsTransactionRepositoryImpl.live,
     FinancialsServiceImpl.live,
-    PostTransactionRepositoryImpl.live,
+    PostFinancialsTransactionRepositoryImpl.live,
     PostgresContainer.connectionPoolConfigLayer,
     ConnectionPool.live,
     PostgresContainer.createContainer

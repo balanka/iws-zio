@@ -69,6 +69,18 @@ object common {
     year.toString.concat(getMonthAsString(instant)).toInt
   }
 }
+
+object TransactionModelId extends Enumeration {
+  type modelId = Value
+  val PAYABLES = Value(112)
+  val PAYMENT = Value(114)
+  val RECEIVABLES = Value(122)
+  val SETTLEMENT = Value(124)
+  val GENERAL_LEDGER = Value(134)
+  val PAYROLL = Value(136)
+  val CASH = Value(144)
+}
+
 import common._
 final case class Store(id: String,
                        name: String,
@@ -631,7 +643,7 @@ final case class Asset (id: String,
                         changedate: Instant = Instant.now(),
                         postingdate: Instant = Instant.now(),
                         company: String,
-                        modelid: Int = 19,
+                        modelid: Int = Asset.MODELID,
                         account: String,
                         oaccount: String,
                         depMethod:Int,
@@ -640,6 +652,10 @@ final case class Asset (id: String,
                         scrapValue: BigDecimal = zeroAmount,
                         frequency:Int,
                         currency: String = "EUR ")
+object Asset {
+  val MODELID = 19
+}
+
 sealed trait IWS {
   def id: String
 }
@@ -995,18 +1011,7 @@ final case class TPeriodicAccountBalance(
   modelid: Int = PeriodicAccountBalance.MODELID
 ) {
   self =>
-
-def transferX(from: TPeriodicAccountBalance, to: TPeriodicAccountBalance, amount: BigDecimal): IO[Nothing, Unit] = {
-  STM.atomically {
-    for {
-      _ <- from.credit.update(_.add(amount))
-      _ <- to.debit.update(_.add(amount))
-    } yield ()
-    //self.debit.update(_.add(amount)).*>(from.credit.update(_.add(amount)))
-  }
-  //List(from, to)
-}
-  def transferZ(from: TPeriodicAccountBalance, to: TPeriodicAccountBalance): ZIO[Any, Nothing, Unit] =
+  def transfer(from: TPeriodicAccountBalance, to: TPeriodicAccountBalance): ZIO[Any, Nothing, Unit] =
     STM.atomically {
       for {
         fidebit <- from.idebit.get
@@ -1019,11 +1024,6 @@ def transferX(from: TPeriodicAccountBalance, to: TPeriodicAccountBalance, amount
         _ <- to.credit.update(_.add(fcredit))
       } yield ()
     }
-
-  def transfer(from: TPeriodicAccountBalance, amount: BigDecimal): IO[Nothing, Unit] =
-    STM.atomically {
-      self.debit.update(_.add(amount)).*>(from.credit.update(_.add(amount)))
-    }//.flatMap(x=>x.succeed).as(List(self, from))
 }
 
 
@@ -1131,37 +1131,6 @@ object PeriodicAccountBalance {
       PeriodicAccountBalance.MODELID
     )
 
-  def create(model: Transaction): List[PeriodicAccountBalance] =List.empty[PeriodicAccountBalance]
-//    model.lines.flatMap { line =>
-//      List(
-//        PeriodicAccountBalance.apply(
-//          PeriodicAccountBalance.createId(model.period, line.account),
-//          line.account,
-//          model.period,
-//          zeroAmount,
-//          zeroAmount,
-//          line.amount,
-//          zeroAmount,
-//          line.currency,
-//          model.company,
-//          line.accountName,
-//          PeriodicAccountBalance.MODELID
-//        ),
-//        PeriodicAccountBalance.apply(
-//          PeriodicAccountBalance.createId(model.period, line.oaccount),
-//          line.oaccount,
-//          model.period,
-//          zeroAmount,
-//          zeroAmount,
-//          zeroAmount,
-//          line.amount,
-//          line.currency,
-//          model.company,
-//          line.oaccountName,
-//          PeriodicAccountBalance.MODELID
-//        )
-//      )
-//    }
   def create(model: FinancialsTransaction): List[PeriodicAccountBalance] =
     model.lines.flatMap { line =>
       List(

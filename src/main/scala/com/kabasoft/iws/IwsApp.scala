@@ -11,7 +11,6 @@ import com.kabasoft.iws.api.PacEndpoint.appPac
 import com.kabasoft.iws.api.CompanyEndpoint.appComp
 import com.kabasoft.iws.api.CustomerEndpoint.appCust
 import com.kabasoft.iws.api.EmployeeEndpoint.routesEmp
-import com.kabasoft.iws.api.EmployeeServiceEndpoint.appCreatePayrollTransaction
 import com.kabasoft.iws.api.FModuleEndpoint.appFModule
 import com.kabasoft.iws.api.FinancialsEndpoint.appFtr
 import com.kabasoft.iws.api.ImportFileEndpoint.appImportFile
@@ -71,7 +70,7 @@ object IwsApp extends ZIOAppDefault {
     )
 
   private val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc  ++ appComp  ++ appFtr ++ appFModule
-    ++ routesEmp ++ appArticle ++ appStore ++ appSalaryItem ++ appPayroll ++ appMasterfile ++appPayrollTaxRange++appCreatePayrollTransaction
+    ++ routesEmp ++ appArticle ++ appStore ++ appSalaryItem ++ appPayroll ++ appMasterfile ++appPayrollTaxRange
     ++ appImportFile ++appBankStmt ++  appUser ++ appPac ++ appJournal  ++appPerm ++ appRole ++ appAsset)
 
   @nowarn val run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
@@ -128,6 +127,6 @@ object IwsApp extends ZIOAppDefault {
           JournalRepositoryImpl.live,
           BankStatementServiceImpl.live,
           FinancialsServiceImpl.live,
-          PostTransactionRepositoryImpl.live
+          PostFinancialsTransactionRepositoryImpl.live
         ).<*( ZIO.logInfo(s"http server started successfully!!!!"))
 }

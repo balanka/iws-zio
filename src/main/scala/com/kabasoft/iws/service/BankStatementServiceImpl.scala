@@ -1,9 +1,10 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.domain.TransactionModelId.{PAYABLES, PAYMENT, RECEIVABLES, SETTLEMENT}
 import com.kabasoft.iws.domain.common.zeroAmount
 import com.kabasoft.iws.domain.{Account, BankStatement, BusinessPartner, Company, FinancialsTransaction, FinancialsTransactionDetails, Vat, common}
-import com.kabasoft.iws.repository.{AccountRepository, BankStatementRepository, CompanyRepository, CustomerRepository, SupplierRepository, FinancialsTransactionRepository, VatRepository}
+import com.kabasoft.iws.repository.{AccountRepository, BankStatementRepository, CompanyRepository, CustomerRepository, FinancialsTransactionRepository, SupplierRepository, VatRepository}
 import zio.prelude.FlipOps
 import zio.stream._
 import zio._
@@ -56,7 +57,7 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
   })
   private def buildReceivablesPayables(bs: BankStatement, partner: BusinessPartner, optVat: Option[Vat], accounts:List[Account]): FinancialsTransaction = {
 
-    val modelid = if (bs.amount.compareTo(zeroAmount) >= 0) 122 else 112
+    val modelid = if (bs.amount.compareTo(zeroAmount) >= 0) RECEIVABLES.id else PAYABLES.id
 
     def buildLines(): List[FinancialsTransactionDetails] = {
       val emptyLines = List.empty[FinancialsTransactionDetails]
@@ -78,9 +79,9 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
 
     def buildDetails(account: String, accountName:String, oaccount: String, oaccountName:String, amount: BigDecimal): FinancialsTransactionDetails =
       if (bs.amount.compareTo(zeroAmount) < 0) {
-        FinancialsTransactionDetails(-1L, -1L, account, true, oaccount, amount.abs(), bs.valuedate, bs.purpose, bs.currency, accountName, oaccountName)
+        FinancialsTransactionDetails(-1L, -1L, account, side = true, oaccount, amount.abs(), bs.valuedate, bs.purpose, bs.currency, accountName, oaccountName)
       } else {
-        FinancialsTransactionDetails(-1L, -1L, oaccount, true, account, amount.abs(), bs.valuedate, bs.purpose, bs.currency, oaccountName, accountName)
+        FinancialsTransactionDetails(-1L, -1L, oaccount, side = true, account, amount.abs(), bs.valuedate, bs.purpose, bs.currency, oaccountName, accountName)
       }
 
     buildTransaction(bs, partner, modelid, buildLines())
@@ -89,11 +90,11 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
   private[this] def buildPaymentSettlement(bs: BankStatement, partner: BusinessPartner, company: Company, accounts:List[Account]): FinancialsTransaction = {
     val bankAccountName = accounts.find(_.id == company.bankAcc).fold(s"Bank account with id ${company.bankAcc} not found!!!")(_.name)
     val accountName = accounts.find(_.id == partner.account).fold(s"Account with id ${partner.account} not found!!!")(_.name)
-    val modelid = if (bs.amount.compareTo(zeroAmount) >= 0) 124 else 114
-    val line = if(modelid ==114) {
-      FinancialsTransactionDetails(-1L, -1L, partner.account , true, company.bankAcc, bs.amount.abs(), bs.valuedate, bs.purpose, bs.currency, accountName, bankAccountName)
+    val modelid = if (bs.amount.compareTo(zeroAmount) >= 0) SETTLEMENT.id else PAYMENT.id
+    val line = if(modelid ==PAYMENT.id) {
+      FinancialsTransactionDetails(-1L, -1L, partner.account , side = true, company.bankAcc, bs.amount.abs(), bs.valuedate, bs.purpose, bs.currency, accountName, bankAccountName)
     } else {
-      FinancialsTransactionDetails(-1L, -1L, company.bankAcc,  true, partner.account, bs.amount.abs(), bs.valuedate, bs.purpose, bs.currency, bankAccountName, accountName)
+      FinancialsTransactionDetails(-1L, -1L, company.bankAcc,  side = true, partner.account, bs.amount.abs(), bs.valuedate, bs.purpose, bs.currency, bankAccountName, accountName)
     }
     buildTransaction(bs, partner, modelid, List(line))
   }
@@ -111,7 +112,7 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
       date,
       date,
       period,
-      false,
+      posted = false,
       modelid,
       bs.company,
       bs.purpose,

@@ -3,11 +3,12 @@ package com.kabasoft.iws.service
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.common._
 import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, Journal, PeriodicAccountBalance, TPeriodicAccountBalance, common}
-import com.kabasoft.iws.repository.{JournalRepository, PacRepository, PostTransactionRepository, FinancialsTransactionRepository}
+import com.kabasoft.iws.repository.{FinancialsTransactionRepository, JournalRepository, PacRepository, PostFinancialsTransactionRepository}
 import zio._
 import zio.prelude.FlipOps
 
-final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: FinancialsTransactionRepository, journalRepo: JournalRepository, repository4PostingTransaction:PostTransactionRepository) extends FinancialsService {
+final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: FinancialsTransactionRepository,
+                                  journalRepo: JournalRepository, repository4PostingTransaction:PostFinancialsTransactionRepository) extends FinancialsService {
 
   override def journal(accountId: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[Journal]] =
     for {
@@ -79,12 +80,12 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: FinancialsTra
 }
 
   private def transfer( pac:TPeriodicAccountBalance,  tpacs:List[TPeriodicAccountBalance]): ZIO[Any, Nothing, Option[Unit]] =
-    tpacs.find(_.id ==  pac.id).map(pac_ => pac_.transferZ(pac, pac_)).flip
+    tpacs.find(_.id ==  pac.id).map(pac_ => pac_.transfer(pac, pac_)).flip
 
   private def groupById(r: List[PeriodicAccountBalance]) = {
    val r0 = (r.groupBy(_.id) map { case (_, v) =>
       common.reduce(v, PeriodicAccountBalance.dummy)
-    }).toList//.filterNot(_.id == PeriodicAccountBalance.dummy.id)
+    }).toList
     r0
   }
 
@@ -134,6 +135,7 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: FinancialsTra
 }
 
 object FinancialsServiceImpl {
-  val live: ZLayer[PacRepository with FinancialsTransactionRepository with JournalRepository with PostTransactionRepository, RepositoryError, FinancialsService] =
+  val live: ZLayer[PacRepository with FinancialsTransactionRepository with JournalRepository
+    with PostFinancialsTransactionRepository, RepositoryError, FinancialsService] =
     ZLayer.fromFunction(new FinancialsServiceImpl(_, _, _, _))
 }

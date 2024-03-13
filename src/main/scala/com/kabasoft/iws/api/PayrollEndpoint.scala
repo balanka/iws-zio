@@ -6,16 +6,17 @@ import com.kabasoft.iws.service.EmployeeService
 import zio.ZIO
 import zio.http.Status
 import zio.http.codec.HttpCodec._
-import zio.http.endpoint.Endpoint
+import zio.http.endpoint.EndpointMiddleware.None
+import zio.http.endpoint.{Endpoint, Routes}
 
 object PayrollEndpoint {
 
-  val createPayrollAPI       = Endpoint.get("payroll" / int("modelid")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
+  val createPayrollAPI       = Endpoint.get("ptr" /  string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
   val createPayrollEndpoint = createPayrollAPI.implement(p =>
     ZIO.logInfo(s"Create payroll transaction from salary item ${p}") *>
-      EmployeeService.generate(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
+      EmployeeService.generate(p).mapError(e => RepositoryError(e.getMessage)))
 
-  val appPayroll = createPayrollEndpoint
+  val appPayroll: Routes[EmployeeService, RepositoryError, None] = createPayrollEndpoint
 
 }

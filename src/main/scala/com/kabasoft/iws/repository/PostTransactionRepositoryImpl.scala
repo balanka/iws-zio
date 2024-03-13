@@ -3,15 +3,14 @@ package com.kabasoft.iws.repository
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.repository.Schema.journal_Schema
 import com.kabasoft.iws.repository.Schema.pacSchema
-import com.kabasoft.iws.domain.{FinancialsTransaction, Journal, Journal_, PeriodicAccountBalance}
+import com.kabasoft.iws.domain.{Transaction, Journal, Journal_, PeriodicAccountBalance}
 import zio.prelude.FlipOps
 import zio.sql.ConnectionPool
 import zio.{ZIO, _}
 
 import scala.annotation.nowarn
 
-
-final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTransactionRepository with FinancialsTransactionTableDescription {
+final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTransactionRepository with TransactionTableDescription {
 
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
   val pac = defineTable[PeriodicAccountBalance]("periodic_account_balance")
@@ -45,7 +44,7 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
       id_,
       oid_,
       id1_,
-      costcenter_,
+      store_,
       account_,
       transdate_,
       enterdate_,
@@ -54,9 +53,7 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
       posted_,
       modelid_,
       company_,
-      text_,
-      type_journal_,
-      file_content_
+      text_
     )
       .from(transactions)
 
@@ -103,8 +100,6 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
       .set(debit_pac, model.debit)
       .set(icredit_pac, model.icredit)
       .set(credit_pac, model.credit)
-      //.set(currency, model.currency)
-      //.set(company, model.company)
       .where(whereClause(model.id, model.company))
 
    def delete(id : Long, companyId: String): ZIO[Any, RepositoryError, Int] = {
@@ -116,7 +111,7 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
   }
 
   @nowarn
-  override  def post(models: List[FinancialsTransaction], pac2Insert:List[PeriodicAccountBalance], pac2update:UIO[List[PeriodicAccountBalance]],
+  override  def post(models: List[Transaction], pac2Insert:List[PeriodicAccountBalance], pac2update:UIO[List[PeriodicAccountBalance]],
                      journals:List[Journal]): ZIO[Any, RepositoryError, Int] =  for {
     pac2updatex<-pac2update
     _ <- ZIO.logInfo(s" New Pacs  to insert into DB ${pac2Insert}")
@@ -129,9 +124,9 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
              .zipWith(ZIO.when(journals.nonEmpty)(createJ4T(journals)))((i1, i2)=>i1 +i2.getOrElse(0))
 
     nr<-  transact(z).mapError(e=>RepositoryError(e.getMessage)).provideLayer(driverLayer)
-  }yield nr//transact(z).mapError(e=>RepositoryError(e.getMessage)).provideLayer(driverLayer)
+  }yield nr
 
-  private def  updatePostedField4T(models: List[FinancialsTransaction]): ZIO[SqlTransaction, Exception, Int] = {
+  private def  updatePostedField4T(models: List[Transaction]): ZIO[SqlTransaction, Exception, Int] = {
     val updateSQL = models.map(model =>
                  update(transactions).set(posted_, true).where((id_ === model.id) && (company_ === model.company)))
     val result = for {
@@ -140,8 +135,6 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
     } yield m
     result
   }
-
-
 
     def tuple2(c: Journal) = (
       c.transid,
