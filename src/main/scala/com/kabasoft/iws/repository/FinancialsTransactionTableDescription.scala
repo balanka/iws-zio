@@ -110,16 +110,13 @@ trait FinancialsTransactionTableDescription extends IWSTableDescriptionPostgres 
      println(s"accounts >>>>> ${accounts}")
      val model = model_.copy(accountName = acc.fold(model_.accountName)(acc=>acc.name),
                              oaccountName = oacc.fold(model_.oaccountName)(acc=>acc.name))
-    val insertStmt = insertInto(ftransactionDetailsInsert)(transidx, laccountx, sidex, oaccountx, amountx, duedatex, ltextx, currencyx__, accountNamex, oaccountNamex)
-      .values(toTuple(model))
-     println(s"renderInsert(insertStmt ${renderInsert(insertStmt)}")
+    val insertStmt = insertInto(ftransactionDetailsInsert)(transidx, laccountx, sidex, oaccountx, amountx, duedatex,
+                        ltextx, currencyx__, accountNamex, oaccountNamex).values(toTuple(model))
      insertStmt
    }
 
   def buildInsertNewLines(models: List[FinancialsTransactionDetails], accounts:List[Account]): List[Insert[FinancialsTransactionDetails_, (Long, TableName, Boolean, TableName, java.math.BigDecimal, Instant, TableName, TableName, TableName, TableName)]] =
-     models.map( model =>buildInsertNewLine(model, accounts))//.map(_.run).flip.map(_.size)
-     //insertInto(transactionDetailsInsert)(transidx, laccountx, sidex, oaccountx, amountx, duedatex, ltextx, currencyx__, accountNamex, oaccountNamex)
-     // .values(models.map(toTuple))
+     models.map( model =>buildInsertNewLine(model, accounts))
 
    def buildInsertQuery(models: List[FinancialsTransaction]): Insert[FinancialsTransaction_, (Long, Long, String, String, Instant, Instant, Instant, Int, Boolean, Int, String, String, Int, Int)] =
     insertInto(transactionInsert)(
@@ -142,8 +139,8 @@ trait FinancialsTransactionTableDescription extends IWSTableDescriptionPostgres 
   private def newCreate(): Long = {
     var time = Instant.now().getEpochSecond
     time *= 1000000000L //convert to nanoseconds
-    val transid1x = time & ~9223372036854251520L
-    transid1x
+    val transid = time & ~9223372036854251520L
+    transid
   }
 
   def buildId1(transactions: List[FinancialsTransaction]): List[FinancialsTransaction] =
@@ -152,19 +149,12 @@ trait FinancialsTransactionTableDescription extends IWSTableDescriptionPostgres 
       ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
     }
   def create2s(models: List[FinancialsTransaction], accounts:List[Account]): ZIO[SqlTransaction, Exception, Int] = {
-//    val models = transactions.zipWithIndex.map { case (ftr, i) =>
-//      val idx = newCreate()+i.toLong
-//      ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx )), period=common.getPeriod(ftr.transdate))
-//    }
     val allLines = models.flatMap(_.lines)
-    //val ids = transactions.flatMap(tr=>tr.lines.map(_.account))++transactions.flatMap(tr=>tr.lines.map(_.oaccount))
     val result = for {
       _ <- ZIO.logInfo(s"Create transaction stmt models      ${models}")
-      //_ <-ZIO.logInfo(s"Create line transaction stmt   ${allLines.map(buildInsertNewLine).map(renderInsert)} ")
       newLines = buildInsertNewLines(allLines, accounts)
-      insertNewLines_ = newLines.map(_.run).flip.map(_.size)
+      y <-  newLines.map(_.run).flip.map(_.size)
       x <- buildInsertQuery(models).run
-      y <- insertNewLines_
       _ <- ZIO.logInfo(s"Create transaction stmt       ${renderInsert(buildInsertQuery(models))} "+
          s"Create line transaction stmt   ${newLines.map(l=>renderInsert(l))} ")
     } yield x + y
