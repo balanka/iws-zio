@@ -88,6 +88,7 @@ object IwsApp extends ZIOAppDefault {
           ArticleRepositoryImpl.live,
           AssetCacheImpl.live,
           AssetRepositoryImpl.live,
+          AssetsServiceImpl.live,
           AccountServiceImpl.live,
           AccountCacheImpl.live,
           AccountRepositoryImpl.live,

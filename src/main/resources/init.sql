@@ -522,16 +522,17 @@ create table if not exists asset
     scrap_value   numeric(12, 2),
     life_span     int,
     dep_method int,
-    rate         decimal(5, 2),
+    amount       decimal(12, 2),
+    rate         decimal(12, 2),
     frequency    int,
     currency     varchar(50) not null
 );
-insert into asset(id,  name, description, changedate, enterdate, postingdate, company, modelid, account, oaccount, scrap_value, life_span, dep_method, rate, frequency, currency) values
-                                                                                                                                                                                      ('1804', 'BMW-220D', 'BMW-220D', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '1000', 19, '0520', '6222', 1.0, 5, 2, 0.30, 12, 'EUR'),
-                                                                                                                                                                                      ('IWS-01', 'IWS', 'Integriertes Finanzbuchhaltungssystem', '2019-04-11 00:00:00','2019-04-11 00:00:00', '2019-04-11 00:00:00', '1000', 19, '0135', '6222', 1.0, 5, 2, 1.0, 12, 'EUR'),
-                                                                                                                                                                                      ('MACB001', 'MacBook Pro 2017', 'MacBook Pro 2017', '2019-03-15 00:00:00', '2019-03-15 00:00:00','2019-03-15 00:00:00', '1000', 19, '0651', '4830', 1.0, 3, 2, 1.0, 12, 'EUR' ),
-                                                                                                                                                                                      ('MACB002', 'MackBookPro 2019', 'MackBookPro 2019', '2019-08-09 15:53:37', '2019-08-09 15:53:37', '2019-08-09 15:53:37', '1000', 19, '0652', '4830', 1.0, 3, 2, 1.0, 12, 'EUR'),
-                                                                                                                                                                                      ('MACB003', 'MackBookPro 2019-2', 'MackBookPro 2019-2', '2019-11-25 12:32:00', '2019-11-25 12:32:00', '2019-11-25 12:32:00', '1000', 19, '0653', '4830', 1.0, 3, 2, 1.0, 12, 'EUR');
+insert into asset(id,  name, description, changedate, enterdate, postingdate, company, modelid, account, oaccount, scrap_value, life_span, dep_method, amount, rate, frequency, currency) values
+                                                                                                                                                                                      ('1804', 'BMW-220D', 'BMW-220D', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '1000', 19, '0520', '6222', 1.0, 5, 2, 33000.00, 0.30, 12, 'EUR'),
+                                                                                                                                                                                      ('IWS-01', 'IWS', 'Integriertes Finanzbuchhaltungssystem', '2019-04-11 00:00:00','2019-04-11 00:00:00', '2019-04-11 00:00:00', '1000', 19, '0135', '6222', 1.0, 5, 2, 10000.00, 1.0, 12, 'EUR'),
+                                                                                                                                                                                      ('MACB001', 'MacBook Pro 2017', 'MacBook Pro 2017', '2019-03-15 00:00:00', '2019-03-15 00:00:00','2019-03-15 00:00:00', '1000', 19, '0651', '4830', 1.0, 3, 2, 1000.00, 1.0, 12, 'EUR' ),
+                                                                                                                                                                                      ('MACB002', 'MackBookPro 2019', 'MackBookPro 2019', '2019-08-09 15:53:37', '2019-08-09 15:53:37', '2019-08-09 15:53:37', '1000', 19, '0652', '4830', 1.0, 3, 2, 1000.00, 1.0, 12, 'EUR'),
+                                                                                                                                                                                      ('MACB003', 'MackBookPro 2019-2', 'MackBookPro 2019-2', '2019-11-25 12:32:00', '2019-11-25 12:32:00', '2019-11-25 12:32:00', '1000', 19, '0653', '4830', 1.0, 3, 2, 1000.00, 1.0, 12, 'EUR');
 
 drop table  if  exists article;
 create table if not exists article
@@ -547,6 +548,8 @@ create table if not exists article
     stocked  boolean,
     quantit_unit  varchar(50) not null,
     pack_unit  varchar(50) not null,
+    stock_account  varchar(50) not null,
+    expense_account  varchar(50) not null,
     changedate    timestamp default CURRENT_DATE not null,
     enterdate    timestamp default CURRENT_DATE not null,
     postingdate  timestamp default CURRENT_DATE not null,
@@ -594,23 +597,23 @@ CREATE TABLE IF NOT EXISTS public.payroll_tax_range
     );
 CREATE INDEX payroll_tax_range_idx ON payroll_tax_range (modelid, company);
 
-insert into article (id,  name, description, parent, sprice, pprice, avg_price,currency, stocked, quantit_unit, pack_unit, company, modelid) values
-                                                                                                                                                 ('iws001', 'Licence IWS base', 'Licence IWS base including masterfile, and administration', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '1000', 35),
-                                                                                                                                                 ('iws002', 'Licence IWS sales', 'Licence IWS sales including 1 Y customer care', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '1000', 35),
-                                                                                                                                                 ('iws003', 'Licence IWS purchasing', 'Licence IWS purchasing including 1 Y customer care''', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '1000', 35),
-                                                                                                                                                 ('iws004', 'Licence IWS financials', 'Licence IWS financials including 1 Y customer care''', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '1000', 35);
+insert into article (id,  name, description, parent, sprice, pprice, avg_price,currency, stocked, quantit_unit, pack_unit, stock_account, expense_account, company, modelid) values
+                                                                                                                                                 ('iws001', 'Licence IWS base', 'Licence IWS base including masterfile, and administration', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35),
+                                                                                                                                                 ('iws002', 'Licence IWS sales', 'Licence IWS sales including 1 Y customer care', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35),
+                                                                                                                                                 ('iws003', 'Licence IWS purchasing', 'Licence IWS purchasing including 1 Y customer care''', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35),
+                                                                                                                                                 ('iws004', 'Licence IWS financials', 'Licence IWS financials including 1 Y customer care''', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35);
 
 insert into store (id,  name, description, account, company, modelid) values
                                                                           ('001', 'Zentral-Lager', 'Zentral-Lager', '', '1000', 35),
                                                                           ('002', 'Nebenlager', 'Nebenlager', '','1000', 35);
 insert into fmodule (id,  name, description, account, is_debit, company, modelid) values
-                                                                                      (112, 'Payables', 'Payables/Supplier invoices', '1810', false, '1000', 112),
-                                                                                      (114, 'Payment', 'Payment', '1810', false, '1000', 114),
-                                                                                      (122, 'Receivables', 'Receivables/Customer invoices', '1810', false, '1000', 122),
-                                                                                      (124, 'Settlement', 'Settlement', '1810', false, '1000', 124),
-                                                                                      (134, 'General ledger', 'General ledger', '1810', false, '1000', 134);
-
-
+                                                                                      (112, 'Payables', 'Payables/Supplier invoices', '1810', false, '1000', 151),
+                                                                                      (114, 'Payment', 'Payment', '1810', false, '1000', 151),
+                                                                                      (122, 'Receivables', 'Receivables/Customer invoices', '1810', false, '1000', 151),
+                                                                                      (124, 'Settlement', 'Settlement', '1810', false, '1000', 151),
+                                                                                      (134, 'General ledger', 'General ledger', '1810', false, '1000', 151),
+                                                                                      (136, 'Payroll', 'Payroll', '1810', false, '1000', 151);
+                                                                                      
 insert into role (id,  name, description, company, modelid) values
                                                                 (-1, 'devops', 'DevOps', '1000', 121),
                                                                 (1, 'admin', 'Administrator', '1000', 121),
@@ -896,8 +899,6 @@ INSERT INTO public."module"
 (id, name, description, postingdate, changedate, enterdate, company, modelid, path, parent)
 VALUES('136', 'menu.createPayrollTransaction', './MasterfileForm', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, '1000', 400, '/ftr', 30);
 insert into user_right select 136 as moduleid, roleid, short, company, modelid from user_right where moduleid='112';
-
-insert into fmodule (id, name, description, account, is_debit, company, modelid) values ('136','Payroll','Payroll','1810',true,'1000', 151);
 
 INSERT INTO public."module"
 (id, name, description, postingdate, changedate, enterdate, company, modelid, path, parent)

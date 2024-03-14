@@ -27,13 +27,14 @@ final class AssetsServiceImpl (assetRepo: AssetRepository,  accountRepo: Account
 
 
   private def buildTransactionDetails(asset:Asset, accounts:List[Account], company: Company) = {
-     FinancialsTransactionDetails(-1L, -1L, asset.oaccount, side = true, asset.account, zeroAmount,
+     val amount = zeroAmount // ToDo replace this implement the calculation of the amount to depreciate
+     FinancialsTransactionDetails(-1L, -1L, asset.oaccount, side = true, asset.account, amount,
       Instant.now(), asset.name, company.currency, getName(accounts, asset.oaccount), getName(accounts, asset.account))
   }
   def getName (accounts:List[Account], id:String): String =
     accounts.find(_.id == id).fold(s"Account with id ${id} not found!!!")(_.name)
 
-  private def buildTransaction(emp:Asset, lines: List[FinancialsTransactionDetails]) = {
+  private def buildTransaction(ass:Asset, lines: List[FinancialsTransactionDetails]) = {
     val date = Instant.now()
     val period = common.getPeriod(date)
     FinancialsTransaction(
@@ -41,15 +42,15 @@ final class AssetsServiceImpl (assetRepo: AssetRepository,  accountRepo: Account
       -1L,
       -1L,
       "100",
-      emp.account,
+      ass.oaccount,
       date,
       date,
       date,
       period,
       posted = false,
       TransactionModelId.GENERAL_LEDGER.id,
-      emp.company,
-      "Salary "+period,
+      ass.company,
+      "Depreciation of asset "+period,
       0,
       0,
       lines

@@ -12,9 +12,9 @@ final class AssetRepositoryImpl(pool: ConnectionPool) extends AssetRepository wi
 
   val asset = defineTable[Asset]("asset")
 
-  val (id, name, description, changedate, enterdate, postingdate, company, modelid, account, oaccount, dep_method, rate, life_span, scrap_value, frequency, currency) = asset.columns
+  val (id, name, description, changedate, enterdate, postingdate, company, modelid, account, oaccount, dep_method, amount, rate, life_span, scrap_value, frequency, currency) = asset.columns
 
-  val SELECT= select(id, name, description, changedate, enterdate, postingdate, company, modelid, account, oaccount, dep_method, rate, life_span, scrap_value, frequency, currency).from(asset)
+  val SELECT= select(id, name, description, changedate, enterdate, postingdate, company, modelid, account, oaccount, dep_method, amount, rate, life_span, scrap_value, frequency, currency).from(asset)
 
 
   def whereClause(Id: String, companyId: String) =
@@ -34,7 +34,7 @@ final class AssetRepositoryImpl(pool: ConnectionPool) extends AssetRepository wi
 
   override def create2(c: Asset): ZIO[Any, RepositoryError, Unit]                        = {
     val query = insertInto(asset)(id, name, description, changedate, enterdate, postingdate, company, modelid, account
-      , oaccount, dep_method, rate, life_span, scrap_value, frequency, currency).values(Asset.unapply(c).get)
+      , oaccount, dep_method, amount, rate, life_span, scrap_value, frequency, currency).values(Asset.unapply(c).get)
 
     ZIO.logDebug(s"Query to insert asset is ${renderInsert(query)}") *>
       execute(query)
@@ -44,7 +44,7 @@ final class AssetRepositoryImpl(pool: ConnectionPool) extends AssetRepository wi
   override def create2(models: List[Asset]): ZIO[Any, RepositoryError, Int]              = {
     val data  = models.map(Asset.unapply(_).get)
     val query = insertInto(asset)(id, name, description, changedate, enterdate, postingdate, company, modelid, account
-      , oaccount, dep_method, rate, life_span,  scrap_value, frequency, currency).values(data)
+      , oaccount, dep_method, amount, rate, life_span,  scrap_value, frequency, currency).values(data)
 
     ZIO.logDebug(s"Query to insert asset is ${renderInsert(query)}") *>
       execute(query)
@@ -67,6 +67,7 @@ final class AssetRepositoryImpl(pool: ConnectionPool) extends AssetRepository wi
       .set(scrap_value, model.scrapValue)
       .set(life_span, model.lifeSpan)
       .set(dep_method, model.depMethod)
+      .set(amount, model.amount)
       .set(rate, model.rate)
       .set(frequency, model.frequency)
       .set(currency, model.currency)
