@@ -11,8 +11,8 @@ import java.time.Instant
 final class AssetsServiceImpl (assetRepo: AssetRepository,  accountRepo: AccountRepository, companyRepo: CompanyRepository,
                                   ftrRepo: FinancialsTransactionRepository) extends AssetsService {
 
-  override def generate( company: String): ZIO[Any, RepositoryError, Int] = for {
-    _<- ZIO.logInfo(s" Posting transaction for the  company ${company}")
+  override def generate( period:Int, company: String): ZIO[Any, RepositoryError, Int] = for {
+    _<- ZIO.logInfo(s" Generating  transaction for the period  ${period} and   company ${company}")
     transactions <- build(company).debug("transactions")
     nr<-  ZIO.succeed(transactions).map(_.size) //ftrRepo.create(transactions).map(_.size)
   }yield nr

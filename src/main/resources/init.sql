@@ -5,10 +5,10 @@ create table if not exists customer
         primary key,
     name            varchar(255)                     not null,
     description     varchar(255)                     not null,
-    street          varchar(255),
-    city            varchar(255),
-    state           varchar(255),
-    zip             varchar(255),
+    street          varchar(50),
+    city            varchar(50),
+    state           varchar(50),
+    zip             varchar(50),
     phone           varchar(50),
     email           varchar(50),
     account         varchar(50),
@@ -19,7 +19,7 @@ create table if not exists customer
     enterdate      timestamp   default CURRENT_TIMESTAMP not null,
     company         varchar(50)                      not null,
     modelid         integer     default 3            not null,
-    country         varchar(50) default ''::character varying
+    country         varchar(50) default 'DE'::character varying
 );
 DROP table if exists supplier;
 create table if not exists supplier(
@@ -27,10 +27,10 @@ create table if not exists supplier(
                                            primary key,
                                        name           varchar(255)                               not null,
                                        description    varchar(255)                               not null,
-                                       street         varchar(255),
-                                       city           varchar(255),
-                                       state          varchar(255),
-                                       zip            varchar(255),
+                                       street         varchar(50),
+                                       city           varchar(50),
+                                       state          varchar(50),
+                                       zip            varchar(50),
                                        phone          varchar(50),
                                        email          varchar(50),
                                        account        varchar(50),
@@ -40,18 +40,18 @@ create table if not exists supplier(
                                        changedate  timestamp        default CURRENT_TIMESTAMP           not null,
                                        enterdate     timestamp        default CURRENT_TIMESTAMP           not null,
                                        company        varchar(50)                                not null,
-                                       modelid        integer     default 5                      not null,
-                                       country        varchar(50) default 'X'::character varying not null
+                                       modelid        integer     default 1                      not null,
+                                       country        varchar(50) default 'DE'::character varying not null
 );
 DROP table if exists employee;
 create table if not exists employee(
                                        id             varchar(50)  not null  primary key,
                                        name           varchar(255) not null,
                                        description    varchar(255) not null,
-                                       street         varchar(255),
-                                       city           varchar(255),
-                                       state          varchar(255),
-                                       zip            varchar(255),
+                                       street         varchar(50),
+                                       city           varchar(50),
+                                       state          varchar(50),
+                                       zip            varchar(50),
                                        phone          varchar(50),
                                        email          varchar(50),
                                        account        varchar(50),
@@ -62,7 +62,7 @@ create table if not exists employee(
                                        enterdate     timestamp        default CURRENT_TIMESTAMP           not null,
                                        company        varchar(50)                                not null,
                                        modelid        integer     default 5                      not null,
-                                       country        varchar(50) default 'X'::character varying not null,
+                                       country        varchar(50) default 'DE'::character varying not null,
                                        salary        numeric(12, 2) default 0
 );
 
@@ -613,7 +613,7 @@ insert into fmodule (id,  name, description, account, is_debit, company, modelid
                                                                                       (124, 'Settlement', 'Settlement', '1810', false, '1000', 151),
                                                                                       (134, 'General ledger', 'General ledger', '1810', false, '1000', 151),
                                                                                       (136, 'Payroll', 'Payroll', '1810', false, '1000', 151);
-                                                                                      
+
 insert into role (id,  name, description, company, modelid) values
                                                                 (-1, 'devops', 'DevOps', '1000', 121),
                                                                 (1, 'admin', 'Administrator', '1000', 121),
@@ -897,8 +897,8 @@ insert into user_right select 39 as moduleid, roleid, short, company, modelid fr
 
 INSERT INTO public."module"
 (id, name, description, postingdate, changedate, enterdate, company, modelid, path, parent)
-VALUES('136', 'menu.createPayrollTransaction', './MasterfileForm', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, '1000', 400, '/ftr', 30);
-insert into user_right select 136 as moduleid, roleid, short, company, modelid from user_right where moduleid='112';
+VALUES('41', 'menu.createDepreciationTransaction', './MasterfileForm', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, '1000', 400, '/ftr', 30);
+insert into user_right select 41 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
 
 INSERT INTO public."module"
 (id, name, description, postingdate, changedate, enterdate, company, modelid, path, parent)
