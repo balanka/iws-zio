@@ -45,30 +45,11 @@ final class TransactionServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionR
         .getByTransId((id, company))
         .flatMap(trans => postTransaction(trans, company))
 
-  private[this] def postTransaction(transaction: Transaction, company: String): ZIO[Any, RepositoryError, Int] =
-    /*{
-  val model = transaction.copy(period = common.getPeriod(transaction.transdate))
-  val pacids = buildPacIds(model)
-  for {
-
-    pacs <- pacRepo.getByIds(pacids, company).map(_.filterNot(_.id.equals(PeriodicAccountBalance.dummy.id)))
-    newRecords = PeriodicAccountBalance.create(model).filterNot(pac => pacs.map(_.id).contains(pac.id))
-      .groupBy(_.id) map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy)}
-    tpacs <- pacs.map(TPeriodicAccountBalance.apply).flip
-    oldPacs <- updatePac(model, tpacs).map(e=>e.map(PeriodicAccountBalance.applyT))
-    journalEntries <- makeJournal(model, newRecords.toList, oldPacs)
-    post <- repository4PostingTransaction.post(List(model), newRecords.toList, oldPacs.flip, journalEntries)
-
-  } yield post
-}
- */
-  {
+  private[this] def postTransaction(transaction: Transaction, company: String): ZIO[Any, RepositoryError, Int] = {
     val model = transaction.copy(period = common.getPeriod(transaction.transdate))
-    //val pacids = buildPacIds(model)
     for {
-      //
       accounts <- accRepo.all(Account.MODELID, company)
-      accountIds <- artRepo.getBy(transaction.lines.map(_.article), company).map(x=>x.map(art=>(art.stockAccount, art.expenseAccount)))
+      accountIds <- artRepo.getBy(transaction.lines.map(_.article), company).map(_.map(art=>(art.stockAccount, art.expenseAccount)))
       pacids = accountIds.flatMap(id => buildPacId(model.period, id))
       pacs <- pacRepo.getByIds(pacids, company).map(_.filterNot(_.id.equals(PeriodicAccountBalance.dummy.id)))
       articles <- artRepo.getBy(transaction.lines.map(_.article), company)
@@ -79,9 +60,9 @@ final class TransactionServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionR
       oldPacs <- updatePac(allPacsx, tpacs).map(e=>e.map(PeriodicAccountBalance.applyT))
       journalEntries <- makeJournal(model, newRecords.toList, oldPacs)
       post <- repository4PostingTransaction.post(List(model), newRecords.toList, oldPacs.flip, journalEntries)
-
     } yield post
- }
+  }
+ 
   def articleId2AccountId( articleId:String, articles:List[Article], accounts:List[Account]): (List[String], List[String]) =
     (articles.filter(_.id == articleId).flatMap(art=>accounts.filter(_.id == art.stockAccount).map(_.id)),
     articles.filter(_.id == articleId).flatMap(art=>accounts.filter(_.id == art.expenseAccount).map(_.id)))
