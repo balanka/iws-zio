@@ -21,6 +21,7 @@ import com.kabasoft.iws.api.PermissionEndpoint.appPerm
 import com.kabasoft.iws.api.RoleEndpoint.appRole
 import com.kabasoft.iws.api.SalaryItemEndpoint.appSalaryItem
 import com.kabasoft.iws.api.PayrollTaxRangeEndpoint.appPayrollTaxRange
+import com.kabasoft.iws.api.StockEndpoint.appStock
 import com.kabasoft.iws.api.StoreEndpoint.appStore
 import com.kabasoft.iws.api.SupplierEndpoint.appSup
 import com.kabasoft.iws.api.UserEndpoint.appUser
@@ -71,7 +72,7 @@ object IwsApp extends ZIOAppDefault {
 
   private val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc  ++ appComp  ++ appFtr ++ appFModule
     ++ routesEmp ++ appArticle ++ appStore ++ appSalaryItem ++ appPayroll ++ appMasterfile ++appPayrollTaxRange
-    ++ appImportFile ++appBankStmt ++  appUser ++ appPac ++ appJournal  ++appPerm ++ appRole ++ appAsset)
+    ++ appImportFile ++appBankStmt ++  appUser ++ appPac ++ appJournal  ++appPerm ++ appRole ++ appAsset ++ appStock)
 
   @nowarn val run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
 
@@ -107,6 +108,7 @@ object IwsApp extends ZIOAppDefault {
           SupplierCacheImpl.live,
           StoreRepositoryImpl.live,
           StoreCacheImpl.live,
+          StockRepositoryImpl.live,
           ImportFileRepositoryImpl.live,
           ModuleRepositoryImpl.live,
           ModuleCacheImpl.live,

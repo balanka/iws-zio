@@ -597,15 +597,31 @@ CREATE TABLE IF NOT EXISTS public.payroll_tax_range
     );
 CREATE INDEX payroll_tax_range_idx ON payroll_tax_range (modelid, company);
 
+DROP table if exists stock;
+CREATE TABLE IF NOT EXISTS public.stock
+(
+    store character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    article character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    quantity numeric(12,2) DEFAULT 0,
+    charge character varying(50) DEFAULT '',
+    company character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    modelid integer NOT NULL DEFAULT 172,
+    CONSTRAINT stock_pkey PRIMARY KEY (store, article, company)
+);
+CREATE INDEX stock_idx ON stock (store, article, company, company, modelid );
+
 insert into article (id,  name, description, parent, sprice, pprice, avg_price,currency, stocked, quantit_unit, pack_unit, stock_account, expense_account, company, modelid) values
-                                                                                                                                                 ('iws001', 'Licence IWS base', 'Licence IWS base including masterfile, and administration', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35),
-                                                                                                                                                 ('iws002', 'Licence IWS sales', 'Licence IWS sales including 1 Y customer care', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35),
-                                                                                                                                                 ('iws003', 'Licence IWS purchasing', 'Licence IWS purchasing including 1 Y customer care''', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35),
-                                                                                                                                                 ('iws004', 'Licence IWS financials', 'Licence IWS financials including 1 Y customer care''', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35);
+ ('iws001', 'Licence IWS base', 'Licence IWS base including masterfile, and administration', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35),
+ ('iws002', 'Licence IWS sales', 'Licence IWS sales including 1 Y customer care', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35),
+ ('iws003', 'Licence IWS purchasing', 'Licence IWS purchasing including 1 Y customer care''', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35),
+ ('iws004', 'Licence IWS financials', 'Licence IWS financials including 1 Y customer care''', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35),
+ ('MACS001', 'Mac Studio 2023', 'Mac Studio 2023', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35);
 
 insert into store (id,  name, description, account, company, modelid) values
                                                                           ('001', 'Zentral-Lager', 'Zentral-Lager', '', '1000', 35),
                                                                           ('002', 'Nebenlager', 'Nebenlager', '','1000', 35);
+insert into stock (store, article, quantity, company, modelid) values ('001', 'MACS001', 1, '1000', 37);
+
 insert into fmodule (id,  name, description, account, is_debit, company, modelid) values
                                                                                       (112, 'Payables', 'Payables/Supplier invoices', '1810', false, '1000', 151),
                                                                                       (114, 'Payment', 'Payment', '1810', false, '1000', 151),

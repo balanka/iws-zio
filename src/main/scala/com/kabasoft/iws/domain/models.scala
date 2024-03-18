@@ -228,7 +228,6 @@ object Bom {
   val MODELID= 34
   val dummy = Bom("-1", "", zeroAmount, "", "",36)
 }
-final case class Stock(storeId:String, artId:String, quantity:BigDecimal, chargeId:String, modelid: Int =37)
 final case class Company_(
                           id: String,
                           name: String,
@@ -997,7 +996,49 @@ final case class Vat(
 object Vat {
   val MODEL_ID = 14
 }
+final case class Stock(store:String, article:String, quantity:BigDecimal, charge:String, company:String, modelid: Int = Stock.MODELID)
+final case class TStock(store:String, article:String, quantity:TRef[BigDecimal], charge:String, company:String
+                        , modelid: Int = Stock.MODELID) {
+  self =>
+  def transfer(from: TStock,  quantity: BigDecimal): ZIO[Any, Nothing, Unit] =
+    STM.atomically {
+      for {
+        _ <- self.quantity.update(_.add(quantity))
+        _ <- from.quantity.update(_.subtract(quantity))
+      } yield ()
+    }
 
+  def add( quantity: BigDecimal): ZIO[Any, Nothing, Unit] =
+    STM.atomically {
+      for {
+        _ <- self.quantity.update(_.add(quantity))
+      } yield ()
+    }
+
+  def substract( quantity: BigDecimal): ZIO[Any, Nothing, Unit] =
+    STM.atomically {
+      for {
+        _ <- self.quantity.update(_.subtract(quantity))
+      } yield ()
+    }
+
+  def multiply( quantity: BigDecimal): ZIO[Any, Nothing, Unit] =
+    STM.atomically {
+      for {
+        _ <- self.quantity.update(_.multiply(quantity))
+      } yield ()
+    }
+}
+object Stock {
+  val MODELID = 37
+  val dummy: Stock =   Stock("-1", "-1", zeroAmount, "-1",  "", Stock.MODELID)
+  private type STOCK_Type = (String, String,  BigDecimal, String, String, Int)
+
+  def apply(stock: STOCK_Type): Stock = Stock(stock._1, stock._2,stock._3,stock._4,stock._5,stock._6)
+  def apply(stock: Stock): UIO[TStock] = for {
+    quantity  <- TRef.makeCommit(stock.quantity)
+  } yield TStock(stock.store, stock.article, quantity, stock.charge,  stock.company, stock.modelid)
+}
 final case class TPeriodicAccountBalance(
   id: String,
   account: String,
