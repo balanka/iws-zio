@@ -4,6 +4,7 @@ import com.kabasoft.iws.api.AccountEndpoint.{accByIdEndpoint, accCreateEndpoint,
 import zio.json.EncoderOps
 import com.kabasoft.iws.repository.{AccountCache, AccountCacheImpl, AccountRepositoryImpl, CustomerCache, CustomerCacheImpl, CustomerRepositoryImpl, FinancialsTransactionCache, FinancialsTransactionCacheImpl, FinancialsTransactionRepository, FinancialsTransactionRepositoryImpl, MasterfileCache, MasterfileCacheImpl, MasterfileRepositoryImpl, ModuleCache, ModuleCacheImpl, ModuleRepositoryImpl, SupplierCache, SupplierCacheImpl, SupplierRepositoryImpl, UserRepository, UserRepositoryImpl, VatCache, VatCacheImpl, VatRepositoryImpl}
 import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.api.Protocol2._
 import com.kabasoft.iws.domain.BankBuilder.{bank, bankx}
 import com.kabasoft.iws.api.CustomerEndpoint.{custByIdEndpoint, custCreateEndpoint, custDeleteEndpoint}
 import com.kabasoft.iws.api.FinancialsEndpoint.ftrModifyEndpoint

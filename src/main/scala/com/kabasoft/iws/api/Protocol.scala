@@ -2,7 +2,10 @@ package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Account, Article, Asset, Bank, BankAccount, BankStatement, Bom, Company, Costcenter, Customer, Employee, EmployeeSalaryItem, EmployeeSalaryItemDTO, FinancialsTransaction, FinancialsTransactionDetails, Fmodule, ImportFile, Journal, LoginRequest, Masterfile, PayrollTaxRange, PeriodicAccountBalance, Permission, Role, SalaryItem, Store, Supplier, TransactionDetails, User, UserRight, User_, Vat}
+import com.kabasoft.iws.domain.{Account, Article, Asset, Bank, BankAccount, BankStatement, Bom, Company, Costcenter,
+  Customer, Employee, EmployeeSalaryItemDTO, FinancialsTransaction, FinancialsTransactionDetails, Fmodule, ImportFile,
+  Journal, LoginRequest, Masterfile, PayrollTaxRange, PeriodicAccountBalance, Permission, Role, SalaryItem,
+  Supplier, TransactionDetails, User, UserRight, User_, Vat}
 import zio.json._
 
 object Protocol {
@@ -32,7 +35,6 @@ object Protocol {
   implicit val pacCodec: JsonCodec[PeriodicAccountBalance] = DeriveJsonCodec.gen[PeriodicAccountBalance]
   implicit val permissionCodec: JsonCodec[Permission] = DeriveJsonCodec.gen[Permission]
   implicit val companyCodec: JsonCodec[Company] = DeriveJsonCodec.gen[Company]
-
   implicit val costcenterCodec: JsonCodec[Costcenter] = DeriveJsonCodec.gen[Costcenter]
   implicit val transactionDetailsCodec: JsonCodec[TransactionDetails] = DeriveJsonCodec.gen[TransactionDetails]
   implicit val financialsDetailsCodec: JsonCodec[FinancialsTransactionDetails] = DeriveJsonCodec.gen[FinancialsTransactionDetails]
@@ -41,7 +43,5 @@ object Protocol {
   implicit val repoErrorCodec: JsonCodec[RepositoryError] = DeriveJsonCodec.gen[RepositoryError]
   implicit lazy val articleCodec: JsonCodec[Article] = DeriveJsonCodec.gen[Article]
   implicit lazy val bomCodec: JsonCodec[Bom] = DeriveJsonCodec.gen[Bom]
-  //implicit val stockCodec: JsonCodec[Stock] = DeriveJsonCodec.gen[Stock]
-  implicit val storeCodec: JsonCodec[Store] = DeriveJsonCodec.gen[Store]
 
 }

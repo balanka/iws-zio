@@ -152,8 +152,48 @@ final case class Article(id: String,
                          enterdate: Instant = Instant.now(),
                          changedate: Instant = Instant.now(),
                          postingdate: Instant = Instant.now(),
+                         bom: List[Bom] = List.empty[Bom]) extends IWS
+final case class TArticle(id: String,
+                         name: String,
+                         description: String,
+                         parent: String,
+                         sprice: TRef[BigDecimal],
+                         pprice: TRef[BigDecimal],
+                         avgPrice: TRef[BigDecimal],
+                         currency: String,
+                         stocked: Boolean = false,
+                         quantityUnit:String,
+                         packUnit:String,
+                         stockAccount: String,
+                         expenseAccount: String,
+                         company: String,
+                         modelid: Int = Article.MODELID,
+                         enterdate: Instant = Instant.now(),
+                         changedate: Instant = Instant.now(),
+                         postingdate: Instant = Instant.now(),
                          bom: List[Bom] = List.empty[Bom]
                         ) extends IWS
+{
+  self =>
+  def setSalesPrice( price: BigDecimal): ZIO[Any, Nothing, Unit] =
+    STM.atomically {
+      for {
+        _ <- self.sprice.set(price)
+      } yield ()
+    }
+  def setAvgPrice( price: BigDecimal): ZIO[Any, Nothing, Unit] =
+    STM.atomically {
+      for {
+        _ <- self.avgPrice.set(price)
+      } yield ()
+    }
+  def setPprice( price: BigDecimal): ZIO[Any, Nothing, Unit] =
+    STM.atomically {
+      for {
+        _ <- self.pprice.set(price)
+      } yield ()
+    }
+}
 object Article {
 
   val MODELID = 34
@@ -199,7 +239,6 @@ object Article {
     art.postingdate,
    List.empty[Bom]
   )
-
   def apply(acc: Article_Type): Article =
     new Article(
       acc._1,
@@ -222,6 +261,29 @@ object Article {
       acc._18,
       Nil
     )
+  def apply(art: Article): UIO[TArticle] = for {
+    pprice  <- TRef.makeCommit(art.pprice)
+    sprice  <- TRef.makeCommit(art.sprice)
+    avgPrice  <- TRef.makeCommit(art.avgPrice)
+  } yield TArticle(art.id,
+    art.name,
+    art.description,
+    art.parent,
+    sprice,
+    pprice,
+    avgPrice,
+    art.currency,
+    art.stocked,
+    art.quantityUnit,
+    art.packUnit,
+    art.stockAccount,
+    art.expenseAccount,
+    art.company,
+    art.modelid,
+    art.enterdate,
+    art.changedate,
+    art.postingdate,
+    art.bom)
 }
 final case class Bom(id:String, parent:String, quantity:BigDecimal, description:String, company:String, modelid: Int =Bom.MODELID)
 object Bom {
@@ -1038,6 +1100,16 @@ object Stock {
   def apply(stock: Stock): UIO[TStock] = for {
     quantity  <- TRef.makeCommit(stock.quantity)
   } yield TStock(stock.store, stock.article, quantity, stock.charge,  stock.company, stock.modelid)
+
+  def create(model: Transaction): List[Stock] =
+    model.lines.map(line => Stock(model.store, line.article, line.quantity, "", model.company, model.modelid))
+}
+object TStock {
+  def apply(stock: Stock): UIO[TStock] = for {
+    quantity  <- TRef.makeCommit(stock.quantity)
+  } yield TStock(stock.store, stock.article, quantity, stock.charge,  stock.company, stock.modelid)
+
+
 }
 final case class TPeriodicAccountBalance(
   id: String,

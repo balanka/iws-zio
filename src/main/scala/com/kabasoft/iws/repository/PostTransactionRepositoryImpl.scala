@@ -1,10 +1,11 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.repository.Schema.journal_Schema
-import com.kabasoft.iws.repository.Schema.pacSchema
-import com.kabasoft.iws.domain.{Transaction, Journal, Journal_, PeriodicAccountBalance}
+import com.kabasoft.iws.domain.Stock
+import com.kabasoft.iws.repository.Schema.{journal_Schema, pacSchema, stockSchema}
+import com.kabasoft.iws.domain.{Journal, Journal_, PeriodicAccountBalance, Stock, Transaction}
 import zio.prelude.FlipOps
+import zio.prelude.data.Optional.AllValuesAreNullable
 import zio.sql.ConnectionPool
 import zio.{ZIO, _}
 
@@ -14,7 +15,9 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
 
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
   val pac = defineTable[PeriodicAccountBalance]("periodic_account_balance")
+  val stock = defineTable[Stock]("stock")
   val journals_ = defineTable[Journal_]("journal")
+  val (store_st, article_st, quantity_st, charge_st, company_st,  modelid_st) = stock.columns
   val (id_pac, account_pac, period_pac, idebit_pac, icredit_pac, debit_pac, credit_pac, currency_pac, company_pac, name_pac, modelid_pac) = pac.columns
   private val (
     transid_j,
@@ -61,11 +64,19 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
    List(id_pac === idx, company_pac === companyId)
      .fold(Expr.literal(true))(_ && _)
 
+  def whereClause(storeId: String, articleId: String, companyId:String) =
+    List((store_st === storeId), (article_st === articleId), (company_st === companyId))
+      .fold(Expr.literal(true))(_ && _)
 
   private def createPacs4T(models_ : List[PeriodicAccountBalance]): ZIO[SqlTransaction, Exception, Int] = {
         insertInto(pac)(id_pac, account_pac, period_pac, idebit_pac, icredit_pac, debit_pac, credit_pac,
           currency_pac, company_pac, name_pac, modelid_pac).values(models_.map(c => PeriodicAccountBalance.unapply(c).get)).run
     }
+
+  private def createStock4T(models_ : List[Stock]): ZIO[SqlTransaction, Exception, Int] = {
+    insertInto(stock)(store_st, article_st, quantity_st, charge_st, company_st,  modelid_st).values(models_.map(c =>
+      Stock.unapply(c).get)).run
+  }
 
   private def buildJ4T(journal: Journal) = {
     insertInto(journals_)(
@@ -93,7 +104,7 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
   }
   private def createJ4T(journals: List[Journal]): ZIO[SqlTransaction, Exception, Int] = journals.map(buildJ4T).flip.map(_.sum)
   private def modifyPacs4T(models: List[PeriodicAccountBalance]) = models.map(buildPac4T).map(_.run).flip.map(_.sum)
-
+  private def modifyStock4T(stock: List[Stock]) = stock.map(buildStock4T).map(_.run).flip.map(_.sum)
   private def buildPac4T(model: PeriodicAccountBalance): Update[PeriodicAccountBalance] =
     update(pac)
       .set(idebit_pac, model.idebit)
@@ -101,6 +112,12 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
       .set(icredit_pac, model.icredit)
       .set(credit_pac, model.credit)
       .where(whereClause(model.id, model.company))
+
+  private def buildStock4T(model: Stock): Update[Stock] =
+    update(stock)
+      .set(quantity_st, model.quantity)
+      .set(charge_st, model.charge)
+      .where(whereClause(model.store, model.article, model.company))
 
    def delete(id : Long, companyId: String): ZIO[Any, RepositoryError, Int] = {
     val deleteQuery = deleteFrom(transactions).where((id_ === id) && (company_ === companyId))
@@ -112,7 +129,7 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
 
   @nowarn
   override  def post(models: List[Transaction], pac2Insert:List[PeriodicAccountBalance], pac2update:UIO[List[PeriodicAccountBalance]],
-                     journals:List[Journal]): ZIO[Any, RepositoryError, Int] =  for {
+                     journals:List[Journal], stocks:(List[Stock], List[Stock])): ZIO[Any, RepositoryError, Int] =  for {
     pac2updatex<-pac2update
     _ <- ZIO.logInfo(s" New Pacs  to insert into DB ${pac2Insert}")
     _ <- ZIO.logInfo(s" Old Pacs  to update in DB ${pac2updatex}")
@@ -122,6 +139,8 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
              .zipWith(ZIO.when(pac2Insert.nonEmpty)(createPacs4T(pac2Insert)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0))
              .zipWith(ZIO.when(pac2updatex.nonEmpty)(modifyPacs4T(pac2updatex)))((i1, i2)=>i1 +i2.getOrElse(0))
              .zipWith(ZIO.when(journals.nonEmpty)(createJ4T(journals)))((i1, i2)=>i1 +i2.getOrElse(0))
+             .zipWith(ZIO.when(stocks._1.nonEmpty)(createStock4T(stocks._1)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0))
+             .zipWith(ZIO.when(stocks._2.nonEmpty)(modifyStock4T(stocks._2)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0))
 
     nr<-  transact(z).mapError(e=>RepositoryError(e.getMessage)).provideLayer(driverLayer)
   }yield nr
