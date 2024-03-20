@@ -57,6 +57,16 @@ object common {
     }
   }
 
+  implicit val stockMonoid: Identity[Stock] = new Identity[Stock] {
+    def identity: Stock                                      = Stock.dummy
+    def combine(m1: => Stock, m2: => Stock): Stock = {
+      if(m1.article.equals(Stock.dummy.article)){
+        m2.copy( quantity = m2.quantity.add(m1.quantity))
+      }else {
+        m1.copy( quantity = m1.quantity.add(m2.quantity))
+      }
+    }
+  }
   def getMonthAsString(month: Int): String                 =
     if (month <= 9) {
       "0".concat(month.toString)
@@ -261,7 +271,7 @@ object Article {
       acc._18,
       Nil
     )
-  def apply(art: Article): UIO[TArticle] = for {
+  def applyT(art: Article): UIO[TArticle] = for {
     pprice  <- TRef.makeCommit(art.pprice)
     sprice  <- TRef.makeCommit(art.sprice)
     avgPrice  <- TRef.makeCommit(art.avgPrice)

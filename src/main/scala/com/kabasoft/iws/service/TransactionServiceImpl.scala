@@ -62,7 +62,8 @@ final class TransactionServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionR
       oldPacs <- updatePac(allPacsx, tpacs).map(e=>e.map(PeriodicAccountBalance.applyT))
       journalEntries <- makeJournal(model, newRecords.toList, oldPacs, articles, accounts)
       stocks <- updateStock(transaction)
-      post <- repository4PostingTransaction.post(List(model), newRecords.toList, oldPacs.flip, journalEntries, stocks)
+      updatedArticle <- updateAvgPrice(transaction, stocks._1++stocks._2, articles)
+      post <- repository4PostingTransaction.post(List(model), newRecords.toList, oldPacs.flip, journalEntries, stocks, updatedArticle.flatten)
 
     } yield post
   }
@@ -123,6 +124,20 @@ final class TransactionServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionR
     }yield   (oldStocks, newRecords)
     result
   }
+  private def updateArticleAvgPrice(line: TransactionDetails, stocks:List[Stock], articles:List[Article]): ZIO[Any, Nothing, List[Article]] =
+    articles.map ( article => {
+    val purchasedValue = line.price.multiply(line.quantity)
+    val wholeStock = groupByStock(stocks.filter(st=>st.article == line.article))
+    val wholeQuantityBefore = wholeStock.fold(zeroAmount)(_.quantity)
+    val wholeQuantityAfter = wholeQuantityBefore.add(line.quantity)
+    val wholeValue = wholeQuantityBefore.multiply(article.avgPrice)
+    val avgPrice = wholeStock.fold(line.price)(_ =>wholeValue.add(purchasedValue).divide(wholeQuantityAfter))
+    Article.applyT(article).map(_.setAvgPrice(avgPrice))*>ZIO.succeed(article)
+
+  }).flip
+  private def updateAvgPrice(transaction: Transaction, stocks:List[Stock], articles:List[Article]): ZIO[Any, Nothing, List[List[Article]]] =
+    transaction.lines.map(line => updateArticleAvgPrice( line,  stocks, articles.filter(_.id == line.article))).flip
+
   private def buildStock(transaction: Transaction, oldStockIds:List[String]) = for {
     newRecords <-Stock.create(transaction).filterNot(stock=>oldStockIds.contains( (stock.store.concat(stock.article).concat(stock.company))))
   }yield ZIO.succeed(newRecords)
@@ -144,12 +159,15 @@ final class TransactionServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionR
   private def transfer( pac:TPeriodicAccountBalance,  tpacs:List[TPeriodicAccountBalance]): ZIO[Any, Nothing, Option[Unit]] =
     tpacs.find(_.id ==  pac.id).map(pac_ => pac_.transfer(pac, pac_)).flip
 
-  private def groupById(r: List[PeriodicAccountBalance]) = {
-   val r0 = (r.groupBy(_.id) map { case (_, v) =>
+  private def groupById(r: List[PeriodicAccountBalance]) =
+  (r.groupBy(_.id) map { case (_, v) =>
       common.reduce(v, PeriodicAccountBalance.dummy)
     }).toList
-    r0
-  }
+
+  private def groupByStock(r: List[Stock]) =
+    (r.groupBy(_.article) map { case (_, v) =>
+      common.reduce(v, Stock.dummy)
+    }).filterNot(_.article == Stock.dummy.article).headOption
 
   def findOrBuildPac(pacId: String, period_ : Int, pacList: List[PeriodicAccountBalance]): PeriodicAccountBalance =
     pacList.find(pac_ => pac_.id == pacId).getOrElse(PeriodicAccountBalance.dummy.copy(id = pacId, period = period_))
