@@ -29,6 +29,15 @@ object AccountBuilder {
   val vataccountName = "MWst 19"
   val oaccountId2 = "4714"
   val faccountId = "1200"
+  val stockaccountParentId = "1100"
+  val stockaccountId = "5000"
+  val expenseaccountParentId = "6"
+  val expenseaccountId = "5400"
+  val stockaccountParentName = "Umlaufvermoegen"
+  val stockaccountName = "Wareneingang 19 % Vorsteuer"
+  val expenseaccountParentName = "Aufwendungen"
+  val expenseaccountName = "Wareneinsatz"
+  val costaccountId = "6"
   val faccountName = "Forderung"
   val name = "Giro SPK Bielefeld"
   val fname = "Forderungen aus Lieferungen und Leistungen"
@@ -68,11 +77,17 @@ object AccountBuilder {
   val raccount1 =  Account(incaccountId1, "Umsatzerloese 19%","Umsatzerloese 19%",t,t,t, companyId,
     Account.MODELID, incaccountId, false, true, "EUR", zero, zero, zero, zero, Nil.toSet)
 
+  val stockParentAcc = Account(stockaccountParentId, stockaccountParentName, stockaccountParentName, vtime, vtime, vtime, companyId, Account.MODELID, paccountId1, true, true, "EUR", zero, zero, zero, zero, Nil.toSet)
+  val expenseParentAcc = Account(expenseaccountParentId, expenseaccountParentName, expenseaccountParentName, vtime, vtime, vtime, companyId, Account.MODELID, raccountId1, true, true, "EUR", zero, zero, zero, zero, Nil.toSet)
+
+  val stockAcc = Account(stockaccountId, stockaccountName, stockaccountName, vtime, vtime, vtime, companyId, Account.MODELID, stockaccountParentId, true, true, "EUR", zero, zero, zero, zero, Nil.toSet)
+  val expenseAcc = Account(expenseaccountId, expenseaccountName, expenseaccountName, vtime, vtime, vtime, companyId, Account.MODELID, expenseaccountParentId, true, true, "EUR", zero, zero, zero, zero, Nil.toSet)
+
   val acc = Account("00000", "Dummy", "Dummy", vtime, vtime, vtime, companyId, Account.MODELID, "5", true, true, "EUR", zero, zero, zero, zero, Nil.toSet)
   val accx = Account("000001", "Dummy", "Dummy", vtime, vtime, vtime, companyId, Account.MODELID, "5", true, true, "EUR", zero, zero, zero, zero, Nil.toSet)
 
-
-  val list =List(INST_ACC, INST_ACC1, INST_ACC2, REV_ACC8, REV_ACC, REV_ACC1, REV_ACC2, faccount
-    , baccount, baccount1,raccount,raccount1, vataccount, liabilityAccount, liabilityAccount1)
+  expenseaccountName
+  val list = List(INST_ACC, INST_ACC1, INST_ACC2, REV_ACC8, REV_ACC, REV_ACC1, REV_ACC2, faccount, baccount, baccount1, raccount
+    , raccount1, vataccount, liabilityAccount, liabilityAccount1, stockParentAcc, expenseParentAcc, stockAcc, expenseAcc)
 
 }

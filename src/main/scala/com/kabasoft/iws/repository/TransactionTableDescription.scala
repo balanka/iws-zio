@@ -93,12 +93,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     c.text
   )
    def buildInsertNewLine(model_ : TransactionDetails): Insert[TransactionDetails_, (Long, TableName, java.math.BigDecimal, TableName, java.math.BigDecimal, TableName, Instant, TableName)] = {
-//     val acc = accounts.find(acc => acc.id == model_.account)
-//     val oacc = accounts.find(acc => acc.id == model_.oaccount)
      println(s"model_ ${model_} ")
-
-    // val model = model_.copy(accountName = acc.fold(model_.accountName)(acc=>acc.name),
-    //                         oaccountName = oacc.fold(model_.oaccountName)(acc=>acc.name))
     val insertStmt = insertInto(transactionDetailsInsert)(transidx, articlex, quantityx, unitx, pricex, currencyx, duedatex, textx)
       .values(toTuple(model_))
      println(s"renderInsert(insertStmt ${renderInsert(insertStmt)}")
@@ -107,7 +102,6 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
 
   def buildInsertNewLines(models: List[TransactionDetails]): List[Insert[TransactionDetails_, (Long, TableName, java.math.BigDecimal, TableName, java.math.BigDecimal, TableName, Instant, TableName)]] =
      models.map( model =>buildInsertNewLine(model))
-
 
    def buildInsertQuery(models: List[Transaction]): Insert[Transaction_, (Long, Long, TableName, TableName, Instant, Instant, Instant, Int, Boolean, Int, TableName, TableName)] =
     insertInto(transactionInsert)(
@@ -138,18 +132,17 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
       ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
     }
   def create2s(models: List[Transaction]): ZIO[SqlTransaction, Exception, Int] = {
-
     val allLines = models.flatMap(_.lines)
 
     val result = for {
       _ <- ZIO.logInfo(s"Create transaction stmt models      ${models}")
-      //_ <-ZIO.logInfo(s"Create line transaction stmt   ${allLines.map(buildInsertNewLine).map(renderInsert)} ")
       newLines = buildInsertNewLines(allLines)
       insertNewLines_ = newLines.map(_.run).flip.map(_.size)
       x <- buildInsertQuery(models).run
       y <- insertNewLines_
       _ <- ZIO.logInfo(s"Create transaction stmt       ${renderInsert(buildInsertQuery(models))} "+
-         s"Create line transaction stmt   ${newLines.map(l=>renderInsert(l))} ")
+         s"Create line transaction stmt   ${newLines.map(l=>renderInsert(l))} " +
+        s" x ==   ${x}  y ==${y}")
     } yield x + y
     result.mapError(e => new Exception(e))
   }
