@@ -2,7 +2,7 @@ package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.{PeriodicAccountBalance, common}
 import com.kabasoft.iws.domain.AccountBuilder.{companyId, paccountId0}
-import com.kabasoft.iws.domain.TransactionBuilder.{ftr1, ftr2, line1, line2}
+import com.kabasoft.iws.domain.FinancialsTransactionBuilder.{ftr1, ftr2, line1, line2}
 import com.kabasoft.iws.repository.container.PostgresContainer
 import com.kabasoft.iws.repository.{AccountRepository, AccountRepositoryImpl, FinancialsTransactionRepository, FinancialsTransactionRepositoryImpl, JournalRepositoryImpl, PacRepository, PacRepositoryImpl, PostFinancialsTransactionRepositoryImpl, PostTransactionRepositoryImpl}
 import zio.ZLayer

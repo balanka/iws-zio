@@ -35,7 +35,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 
 
   @nowarn
-  def create2(transactions: List[Transaction]): ZIO[Any, RepositoryError, Int] =
+  override def create2(transactions: List[Transaction]): ZIO[Any, RepositoryError, Int] =
     transact(create2s(transactions))
       .mapError(e => RepositoryError(e.toString))
       .provideLayer(driverLayer)
@@ -44,27 +44,16 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
   override def create(ftr : Transaction): ZIO[Any, RepositoryError, Transaction] =
     if (ftr.id > 0) {
       update(ftr)
-    } else {
-      //val ids =  ftr.lines.map(_.account) ++ftr.lines.map(_.oaccount)
-      val trs = for {
-        //accounts <- accRepo.getBy(ids, ftr.company)
+    } else  for {
         nr <-  create2(List(ftr)) *> getByTransId1(ftr.id1, ftr.company)
       } yield nr
-      trs
-    }
+
 
 
   @nowarn
-  override def create(models: List[Transaction]): ZIO[Any, RepositoryError, List[Transaction]] = {
-    var company = ""
-    //val ids = models.flatMap(tr=> {company=tr.company; tr.lines.map(_.account)})++models.flatMap(tr=>tr.lines.map(_.oaccount))
-    val trs =for{
-      //accounts        <-  accRepo.getBy(ids, company)
-     nr <-  create2(models) *>
-        getByTransId1x(models.map(m => m.id), models.head.company)
-    }yield nr
-    trs
-  }
+  override def create(models: List[Transaction]): ZIO[Any, RepositoryError, List[Transaction]] = for{
+     nr <-  create2(models) *> getByTransId1x(models.map(m => m.id), models.head.company)
+    } yield nr
 
   private def buildDeleteDetails(ids: List[Long]): Delete[TransactionDetails] =
     deleteFrom(transactionDetails).where(lid_ in ids)
@@ -124,15 +113,15 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
         deletedDetails <- ZIO.when(deletedLineIds.nonEmpty)(buildDeleteDetails(deletedLineIds).run)
         updatedDetails <- ZIO.when(oldLines2Update.nonEmpty)(oldLines2Update.map(d => buildUpdateDetails(d).run).flip.map(_.sum))
         updatedTransactions <- update_.run
-        _<-ZIO.logInfo(s"Update lines transaction update stmt ${oldLines2Update.map(buildUpdateDetails).map(renderUpdate)}")
       } yield insertedDetails.getOrElse(0) + deletedDetails.getOrElse(0) + updatedDetails.getOrElse(0) + updatedTransactions
 
       def buildResult = transact(result).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
 
-      //ZIO.logInfo(s"New lines transaction insert stmt ${buildInsertNewLines(newLines).map(renderInsert)}") *>
-        //ZIO.logInfo(s"Update lines transaction update stmt ${oldLines2Update.map(buildUpdateDetails(_, accounts)).map(renderUpdate)}") *>
-        ZIO.logInfo(s"Delete lines transaction  stmt ${renderDelete(buildDeleteDetails(deletedLineIds))}") *>
-        ZIO.logInfo(s"Modify transaction stmt ${renderUpdate(update_)}") *> buildResult
+       //ZIO.when(newLines.nonEmpty)(ZIO.logInfo(s"New lines transaction insert stmt ${ newLines.map(buildInsertNewLine).map(renderInsert)}")) *>
+       ZIO.when(oldLines2Update.nonEmpty)(ZIO.logInfo(s"Update lines transaction update stmt ${oldLines2Update.map(buildUpdateDetails).map(renderUpdate)}"))*>
+       ZIO.when(oldLines2Update.nonEmpty)(ZIO.logInfo(s"Update lines transaction update stmt ${oldLines2Update.map(buildUpdateDetails).map(renderUpdate)}")) *>
+       ZIO.when(deletedLineIds.nonEmpty)(ZIO.logInfo(s"Delete lines transaction  stmt ${renderDelete(buildDeleteDetails(deletedLineIds))}")) *>
+       ZIO.logInfo(s"Modify transaction stmt ${renderUpdate(update_)}") *> buildResult
     }
 
 
@@ -236,7 +225,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 
   def getById1(id: Long, companyId: String): ZIO[Any, RepositoryError, Transaction] = {
     val selectAll = SELECT2.where((company_ === companyId) && (id1_ === id))
-    ZIO.logDebug(s"Query to execute getById1 ${id} is ${renderRead(selectAll)}") *>
+    ZIO.logInfo(s"Query to execute getById1 ${id} is ${renderRead(selectAll)}") *>
       execute(selectAll.to(x => Transaction.apply(x)))
         .findFirstLong(driverLayer, id)
   }

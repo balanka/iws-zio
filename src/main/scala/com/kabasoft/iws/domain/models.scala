@@ -82,6 +82,17 @@ object common {
 
 object TransactionModelId extends Enumeration {
   type modelId = Value
+  val RQF = Value(100)
+  val OFFER = Value(101)
+  val CONTRACT = Value(103)
+  val ORDER = Value(104)
+  val GOORECEIVING = Value(105)
+  val SUPPLIER_INVOICE = Value(106)
+  val QUOTATION = Value(107)
+  val SALES_CONTRACT = Value(108)
+  val SALES_ORDER = Value(109)
+  val BILL_OF_DELIVERY = Value(110)
+  val CUSTOMER_INVOICE = Value(111)
   val PAYABLES = Value(112)
   val PAYMENT = Value(114)
   val RECEIVABLES = Value(122)
@@ -89,6 +100,7 @@ object TransactionModelId extends Enumeration {
   val GENERAL_LEDGER = Value(134)
   val PAYROLL = Value(136)
   val CASH = Value(144)
+
 }
 
 import common._
