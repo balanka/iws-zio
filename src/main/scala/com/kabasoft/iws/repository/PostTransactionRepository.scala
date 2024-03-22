@@ -6,12 +6,12 @@ import zio._
 
 trait PostTransactionRepository {
 def post(models: List[Transaction], pac2Insert: List[PeriodicAccountBalance], pac2update: UIO[List[PeriodicAccountBalance]],
-         journals: List[Journal], stocks:(List[Stock], List[Stock]), articles: List[Article]): ZIO[Any, RepositoryError, Int]
+         journals: List[Journal], stocks:List[Stock], newStock:List[Stock], articles: List[Article]): ZIO[Any, RepositoryError, Int]
 }
 object PostTransactionRepository {
 
   def post(models: List[Transaction], pac2Insert:List[PeriodicAccountBalance], pac2update:UIO[List[PeriodicAccountBalance]],
-           journals:List[Journal], stocks:(List[Stock], List[Stock]), articles: List[Article]): ZIO[PostTransactionRepository, RepositoryError, Int] =
-    ZIO.serviceWithZIO[PostTransactionRepository](_.post(models, pac2Insert, pac2update, journals, stocks, articles))
+           journals:List[Journal], stocks:List[Stock], newStock:List[Stock], articles: List[Article]): ZIO[PostTransactionRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[PostTransactionRepository](_.post(models, pac2Insert, pac2update, journals, stocks, newStock, articles))
 }
 

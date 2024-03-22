@@ -17,22 +17,8 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
   val stock = defineTable[Stock]("stock")
   val journals_ = defineTable[Journal_]("journal")
   val articles = defineTable[Article_]("article")
-  val (id_a, _, _, _,
-  sprice,
-  pprice,
-  avgPrice,
-  _,
-  _,
-  _,
-  _,
-  _,
-  _,
-  company_a,
-  _,
-  _,
-  _,
-  _) = articles.columns
-  val (store_st, article_st, quantity_st, charge_st, company_st,  modelid_st) = stock.columns
+  val (id_a, _, _, _, sprice, pprice, avgPrice, _, _, _, _, _, _, company_a, _, _, _, _) = articles.columns
+  val (id_st, store_st, article_st, quantity_st, charge_st, company_st,  modelid_st) = stock.columns
   val (id_pac, account_pac, period_pac, idebit_pac, icredit_pac, debit_pac, credit_pac, currency_pac, company_pac, name_pac, modelid_pac) = pac.columns
   private val (
     transid_j,
@@ -89,7 +75,7 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
     }
 
   private def createStock4T(models_ : List[Stock]): ZIO[SqlTransaction, Exception, Int] = {
-    insertInto(stock)(store_st, article_st, quantity_st, charge_st, company_st,  modelid_st).values(models_.map(c =>
+    insertInto(stock)(id_st, store_st, article_st, quantity_st, charge_st, company_st,  modelid_st).values(models_.map(c =>
       Stock.unapply(c).get)).run
   }
 
@@ -132,7 +118,6 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
   private def buildStock4T(model: Stock): Update[Stock] =
     update(stock)
       .set(quantity_st, model.quantity)
-      .set(charge_st, model.charge)
       .where(whereClause(model.store, model.article, model.company))
 
   private def buildUpdatePrices(model: Article_): Update[Article_] =
@@ -153,19 +138,19 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
 
   @nowarn
   override  def post(models: List[Transaction], pac2Insert:List[PeriodicAccountBalance], pac2update:UIO[List[PeriodicAccountBalance]],
-                     journals:List[Journal], stocks:(List[Stock], List[Stock]), articles:List[Article]): ZIO[Any, RepositoryError, Int] =  for {
+                     journals:List[Journal], stocks:List[Stock], newStock:List[Stock], articles:List[Article]): ZIO[Any, RepositoryError, Int] =  for {
     pac2updatex<-pac2update
-    _ <- ZIO.logInfo(s" New Pacs  to insert into DB ${pac2Insert}")
-    _ <- ZIO.logInfo(s" Old Pacs  to update in DB ${pac2updatex}")
-    _ <- ZIO.logInfo(s" journals  ${journals}")
+    _ <- ZIO.when(pac2Insert.nonEmpty)(ZIO.logInfo(s" New Pacs  to insert into DB ${pac2Insert}"))
+    _ <- ZIO.when(pac2updatex.nonEmpty)(ZIO.logInfo(s" Old Pacs  to update in DB ${pac2updatex}"))
+    _ <- ZIO.when(journals.nonEmpty)(ZIO.logInfo(s" journals  ${journals}"))
     _ <- ZIO.logInfo(s" Transaction posted  ${models}")
      z = ZIO.when(models.nonEmpty)(updatePostedField4T(models))
              .zipWith(ZIO.when(pac2Insert.nonEmpty)(createPacs4T(pac2Insert)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0))
              .zipWith(ZIO.when(pac2updatex.nonEmpty)(modifyPacs4T(pac2updatex)))((i1, i2)=>i1 +i2.getOrElse(0))
              .zipWith(ZIO.when(journals.nonEmpty)(createJ4T(journals)))((i1, i2)=>i1 +i2.getOrElse(0))
-             .zipWith(ZIO.when(stocks._1.nonEmpty)(createStock4T(stocks._1)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0))
-             .zipWith(ZIO.when(stocks._2.nonEmpty)(modifyStock4T(stocks._2)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0))
-             .zipWith(ZIO.when(articles.nonEmpty)(modifyPrices4T(articles)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0))
+             .zipWith(ZIO.when(newStock.nonEmpty)(createStock4T(newStock)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0))
+             .zipWith(ZIO.when(stocks.nonEmpty)(modifyStock4T(stocks)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0))
+             .zipWith(ZIO.when(articles.nonEmpty)(modifyPrices4T(articles)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0)).debug(s"Article>> ${articles}")
 
     nr<-  transact(z).mapError(e=>RepositoryError(e.getMessage)).provideLayer(driverLayer)
   }yield nr

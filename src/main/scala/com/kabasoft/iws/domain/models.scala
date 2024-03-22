@@ -283,6 +283,31 @@ object Article {
       acc._18,
       Nil
     )
+
+  def apply(art: TArticle): ZIO[Any, Nothing, Article] = for {
+    pprice  <- art.pprice.get.commit
+    sprice  <- art.sprice.get.commit
+    avgPrice  <- art.avgPrice.get.commit
+  } yield  Article (art.id,
+    art.name,
+    art.description,
+    art.parent,
+    sprice,
+    pprice,
+    avgPrice,
+    art.currency,
+    art.stocked,
+    art.quantityUnit,
+    art.packUnit,
+    art.stockAccount,
+    art.expenseAccount,
+    art.company,
+    art.modelid,
+    art.enterdate,
+    art.changedate,
+    art.postingdate,
+    art.bom)
+
   def applyT(art: Article): UIO[TArticle] = for {
     pprice  <- TRef.makeCommit(art.pprice)
     sprice  <- TRef.makeCommit(art.sprice)
@@ -294,6 +319,30 @@ object Article {
     sprice,
     pprice,
     avgPrice,
+    art.currency,
+    art.stocked,
+    art.quantityUnit,
+    art.packUnit,
+    art.stockAccount,
+    art.expenseAccount,
+    art.company,
+    art.modelid,
+    art.enterdate,
+    art.changedate,
+    art.postingdate,
+    art.bom)
+
+  def applyT(art: Article, avgPrice:BigDecimal): UIO[TArticle] = for {
+    pprice  <- TRef.makeCommit(art.pprice)
+    sprice  <- TRef.makeCommit(art.sprice)
+    avgPriceNew  <- TRef.makeCommit(avgPrice)
+  } yield TArticle(art.id,
+    art.name,
+    art.description,
+    art.parent,
+    sprice,
+    pprice,
+    avgPriceNew,
     art.currency,
     art.stocked,
     art.quantityUnit,
@@ -1080,8 +1129,9 @@ final case class Vat(
 object Vat {
   val MODEL_ID = 14
 }
-final case class Stock(store:String, article:String, quantity:BigDecimal, charge:String, company:String, modelid: Int = Stock.MODELID)
-final case class TStock(store:String, article:String, quantity:TRef[BigDecimal], charge:String, company:String
+final case class Stock(id:String, store:String, article:String, quantity:BigDecimal, charge:String, company:String, modelid: Int = Stock.MODELID)
+
+final case class TStock(id:String, store:String, article:String, quantity:TRef[BigDecimal], charge:String, company:String
                         , modelid: Int = Stock.MODELID) {
   self =>
   def transfer(from: TStock,  quantity: BigDecimal): ZIO[Any, Nothing, Unit] =
@@ -1115,23 +1165,43 @@ final case class TStock(store:String, article:String, quantity:TRef[BigDecimal],
 }
 object Stock {
   val MODELID = 37
-  val dummy: Stock =   Stock("-1", "-1", zeroAmount, "-1",  "", Stock.MODELID)
-  private type STOCK_Type = (String, String,  BigDecimal, String, String, Int)
+  val dummy: Stock =   make("-1", "-1", zeroAmount, "-1",  "")
+  private type STOCK_Type = (String, String, String,  BigDecimal, String, String, Int)
+   def buildId(store:String, article:String, charge:String, company:String) =
+    store.concat(article).concat(company).concat(charge)
+    def make (store:String, article:String, quantity:BigDecimal, charge:String, company:String): Stock =
+      Stock( buildId(store, article,  charge, company), store, article, quantity, charge, company)
+  def apply(stock: STOCK_Type): Stock = Stock(stock._1, stock._2,stock._3,stock._4,stock._5,stock._6,stock._7)
 
-  def apply(stock: STOCK_Type): Stock = Stock(stock._1, stock._2,stock._3,stock._4,stock._5,stock._6)
-  def apply(stock: Stock): UIO[TStock] = for {
-    quantity  <- TRef.makeCommit(stock.quantity)
-  } yield TStock(stock.store, stock.article, quantity, stock.charge,  stock.company, stock.modelid)
+  def apply(stock: TStock): ZIO[Any, Nothing, Stock] = for {
+    quantity_  <- stock.quantity.get.commit
+  } yield Stock(stock.id, stock.store, stock.article, quantity_, stock.charge,  stock.company, stock.modelid)
 
   def create(model: Transaction): List[Stock] =
-    model.lines.map(line => Stock(model.store, line.article, line.quantity, "", model.company, model.modelid))
+    model.lines.map(line => Stock.make(model.store, line.article, line.quantity, "", model.company))
+
+  def create(models: List[Transaction]): List[Stock] = {
+    val x = models.flatMap(m=>m.lines.map(line => Stock.make(m.store, line.article, line.quantity, "", m.company)))
+    groupByStock( x)
+  }
+
+  private def groupByStock(r: List[Stock]) =
+    (r.groupBy(st=>st.article.concat(st.store).concat(st.company)) map { case (_, v) =>
+      common.reduce(v, Stock.dummy)
+    }).filterNot(_.article == Stock.dummy.article).toList
+
 }
 object TStock {
+  def make (store:String, article:String, quantity:BigDecimal, charge:String, company:String):  UIO[TStock] =
+    apply(Stock(Stock.buildId(store, article,  charge, company), store, article, quantity, charge, company))
+
   def apply(stock: Stock): UIO[TStock] = for {
     quantity  <- TRef.makeCommit(stock.quantity)
-  } yield TStock(stock.store, stock.article, quantity, stock.charge,  stock.company, stock.modelid)
+  } yield TStock(stock.id, stock.store, stock.article, quantity, stock.charge,  stock.company, stock.modelid)
 
-
+  def apply(stock: Stock, quantity:BigDecimal): UIO[TStock] = for {
+    quantity_  <- TRef.makeCommit(stock.quantity.add(quantity))
+  } yield TStock(stock.id, stock.store, stock.article, quantity_, stock.charge,  stock.company, stock.modelid)
 }
 final case class TPeriodicAccountBalance(
   id: String,

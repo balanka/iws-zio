@@ -33,10 +33,9 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 
   private val SELECT_LINE = select(lid_, transid, article_, quantity_, unit_, price_, currency_, duedate_, ltext_ ).from(transactionDetails)
 
-
   @nowarn
   override def create2(transactions: List[Transaction]): ZIO[Any, RepositoryError, Int] =
-    transact(create2s(transactions))
+    transact(create2s( buildId1(transactions)))
       .mapError(e => RepositoryError(e.toString))
       .provideLayer(driverLayer)
 

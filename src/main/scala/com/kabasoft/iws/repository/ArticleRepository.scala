@@ -16,6 +16,9 @@ trait ArticleRepository {
     ZIO.collectAll(items.map(delete(_, company)))
   def list(Id:(Int,  String)): ZStream[Any, RepositoryError, Article]
   def all(Id:(Int,  String)): ZIO[Any, RepositoryError, List[Article]]
+
+//  def getById(Ids:List[String]): ZIO[Any, RepositoryError, List[Article]]
+//  def getById(Id:String): ZIO[Any, RepositoryError, Option[Article]]
   def getBy(id: (String,String)): ZIO[Any, RepositoryError, Article]
   def getBy(ids: List[String], company: String): ZIO[Any, RepositoryError, List[Article]]
   def getByModelId(id: (Int,  String)): ZIO[Any, RepositoryError, List[Article]]

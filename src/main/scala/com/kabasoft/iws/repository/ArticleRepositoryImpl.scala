@@ -154,6 +154,13 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
       .set(expenseAccount, model.expenseAccount)
       .set(company, model.company)
       .where(whereClause(model.id, model.company))
+   def buildUpdatePrices(model: Article_) =
+    update(articles)
+      .set(sprice, model.sprice)
+      .set(pprice, model.pprice)
+      .set(avgPrice, model.avgPrice)
+      .where(whereClause(model.id, model.company))
+
 
   override def modify(model: Article): ZIO[Any, RepositoryError, Int]        = {
     val update_ = build(Article_(model))

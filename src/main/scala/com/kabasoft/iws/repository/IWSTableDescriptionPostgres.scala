@@ -16,14 +16,13 @@ trait IWSTableDescriptionPostgres extends PostgresSqlModule with PostgresJdbcMod
 
     def findFirst(driver: ULayer[SqlDriver], id: String): ZIO[Any, RepositoryError, T] =
       zstream.runHead.some.tapError {
-        case None    => ZIO.unit
-        case Some(e) => println("Message:" + e.getMessage); ZIO.logError(e.getMessage())
-      }.mapError {
-        case None    => RepositoryError(s"Object with id/name $id does not exists")
-        case Some(e) => RepositoryError(e.getMessage)
-      }
+          case None    => ZIO.unit
+          case Some(e) => println("Message:" + e.getMessage); ZIO.logError(e.getMessage())
+        }.mapError {
+          case None    => RepositoryError(s"Object with id/name $id does not exists")
+          case Some(e) => RepositoryError(e.getMessage)
+        }
         .provide(driver)
-
     def findFirst(driver: ULayer[SqlDriver], id: String, dummy: T): ZIO[Any, RepositoryError, T] =
       zstream.runHead.some.tapError {
         case None    => ZIO.unit
