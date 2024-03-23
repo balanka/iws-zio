@@ -30,6 +30,6 @@ object TransactionBuilder {
 
   val ftr1 = Transaction(0,-1, -1,  store, accountId, vtime, vtime, vtime, period, posted = false, modelid, company, terms
           ,  List(line1, line2))
-  val ftr2 = ftr1.copy(modelid = modelid2)
+  val ftr2 = ftr1.copy(modelid = modelid2, lines = ftr1.lines.map(l=>TransactionDetails(l)))
 
 }

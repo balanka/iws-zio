@@ -29,11 +29,11 @@ object TransactionRepositoryLiveSpec extends ZIOSpecDefault {
           all <- TransactionRepository.all(companyId)
           ftr <- TransactionRepository.getByTransId((all.head.id, companyId))
           count <- TransactionRepository.all(companyId).map(_.size)
-          nrUpdatedLines <- TransactionRepository.modify(ftr1.copy(lines=ftr1.lines.map(l=>l.copy(text="Modified"))))
+          nrUpdatedLines <- TransactionRepository.modify(ftr.copy(lines=ftr.lines.map(l=>l.copy(text="Modified"))))
           nrUpdated <- TransactionRepository.modify(ftr.copy(text=terms))
           ftr2 <- TransactionRepository.getByTransId((ftr.id, companyId))
           ftrByModelIdCount <- TransactionRepository.getByModelId((modelid2, companyId)).map(_.size)
-        } yield assertTrue(oneRow == 6,  nrUpdated == 1, count == 2, nrUpdatedLines == 2, ftr2.text == terms, ftrByModelIdCount == 1)
+        } yield assertTrue(oneRow == 6,  nrUpdated == 3, count == 2, nrUpdatedLines == 3, ftr2.text == terms, ftrByModelIdCount == 1)
       }
     ).provideLayerShared(testLayer.orDie) @@ sequential
 }

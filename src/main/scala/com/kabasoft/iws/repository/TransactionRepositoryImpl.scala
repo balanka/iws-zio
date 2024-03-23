@@ -72,7 +72,6 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       .set(quantity_, details.quantity)
       .set(unit_, details.unit)
       .set(price_, details.price)
-      .set(quantity_, details.quantity)
       .set(currency_, details.currency)
       .set(duedate_, details.duedate)
       .set(ltext_, details.text)
@@ -95,9 +94,6 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       .where((id_ === trans.id) && (company_ === trans.company))
   }
 
-  override def modify(models: List[Transaction]): ZIO[Any, RepositoryError, Int] =
-    models.map(modify).flip.map(_.sum)
-
   @nowarn
   override def modify(model:Transaction): ZIO[Any, RepositoryError, Int] = {
 
@@ -105,24 +101,41 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       val deletedLineIds = model.lines.filter(_.transid == -2L).map(line => line.id)
       val oldLines2Update = model.lines.filter(_.id > 0L).map(l=>l.copy(transid = model.id))
       val update_ = build(model)
-      //val ids     = newLines.map(_.account)++newLines.map(_.oaccount)++oldLines2Update.map(_.account)++oldLines2Update.map(_.oaccount)
       val result = for {
-        //accounts        <-  accRepo.getBy(ids, model.company)
         insertedDetails <- ZIO.when(newLines.nonEmpty)(buildInsertNewLines(newLines).map(_.run).flip.map(_.size))
         deletedDetails <- ZIO.when(deletedLineIds.nonEmpty)(buildDeleteDetails(deletedLineIds).run)
         updatedDetails <- ZIO.when(oldLines2Update.nonEmpty)(oldLines2Update.map(d => buildUpdateDetails(d).run).flip.map(_.sum))
         updatedTransactions <- update_.run
       } yield insertedDetails.getOrElse(0) + deletedDetails.getOrElse(0) + updatedDetails.getOrElse(0) + updatedTransactions
 
-      def buildResult = transact(result).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
-
-       //ZIO.when(newLines.nonEmpty)(ZIO.logInfo(s"New lines transaction insert stmt ${ newLines.map(buildInsertNewLine).map(renderInsert)}")) *>
-       ZIO.when(oldLines2Update.nonEmpty)(ZIO.logInfo(s"Update lines transaction update stmt ${oldLines2Update.map(buildUpdateDetails).map(renderUpdate)}"))*>
-       ZIO.when(oldLines2Update.nonEmpty)(ZIO.logInfo(s"Update lines transaction update stmt ${oldLines2Update.map(buildUpdateDetails).map(renderUpdate)}")) *>
-       ZIO.when(deletedLineIds.nonEmpty)(ZIO.logInfo(s"Delete lines transaction  stmt ${renderDelete(buildDeleteDetails(deletedLineIds))}")) *>
-       ZIO.logInfo(s"Modify transaction stmt ${renderUpdate(update_)}") *> buildResult
+      def buildResult =
+        transact(result).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
+        LogStatement(deletedLineIds, oldLines2Update, List(update_)) *> buildResult
     }
 
+  @nowarn
+  override def modify(models:List[Transaction]): ZIO[Any, RepositoryError, Int] = {
+    val newLines = models.flatMap(m=>m.lines.filter(_.id == -1L).map(l=>l.copy(transid = m.id)))
+    val deletedLineIds = models.flatMap(m=>m.lines.filter(_.transid == -2L).map(line => line.id))
+    val oldLines2Update = models.flatMap(m=>m.lines.filter(_.id > 0L).map(l=>l.copy(transid = m.id)))
+    val update_ = models.map(build)
+    val result = for {
+      insertedDetails <- ZIO.when(newLines.nonEmpty)(buildInsertNewLines(newLines).map(_.run).flip.map(_.size))
+      deletedDetails <- ZIO.when(deletedLineIds.nonEmpty)(buildDeleteDetails(deletedLineIds).run)
+      updatedDetails <- ZIO.when(oldLines2Update.nonEmpty)(oldLines2Update.map(d => buildUpdateDetails(d).run).flip.map(_.sum))
+      updatedTransactions <- update_.map(_.run).flip.map(_.size)
+    } yield insertedDetails.getOrElse(0) + deletedDetails.getOrElse(0) + updatedDetails.getOrElse(0) + updatedTransactions
+
+    def buildResult =
+      transact(result).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
+      LogStatement(deletedLineIds, oldLines2Update, update_) *> buildResult
+  }
+
+  private def LogStatement(deletedLineIds: List[Long], oldLines2Update: List[TransactionDetails], trans2Update: List[Update[Transactionx]]) = {
+    ZIO.when(oldLines2Update.nonEmpty)(ZIO.logInfo(s"Update lines transaction update stmt ${oldLines2Update.map(buildUpdateDetails).map(renderUpdate)}")) *>
+      ZIO.when(deletedLineIds.nonEmpty)(ZIO.logInfo(s"Delete lines transaction  stmt ${renderDelete(buildDeleteDetails(deletedLineIds))}")) *>
+      ZIO.logInfo(s"Modify transaction stmt ${trans2Update.map(renderUpdate)}")
+  }
 
   @nowarn
   override def update(model: Transaction): ZIO[Any, RepositoryError, Transaction] =

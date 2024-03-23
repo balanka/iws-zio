@@ -43,8 +43,6 @@ final class TransactionServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionR
        stockIds = Stock.create(models).map(_.id).distinct
       oldStocks <-  stockRepo.getById(stockIds)
       newStock <-  buildNewStock(models, oldStocks ).flip
-      articles <- artRepo.getBy(models.flatMap(m=>m.lines.map(_.article)), company)
-
       nr <-  postTransaction(models, company, newStock, oldStocks)
     } yield nr
 

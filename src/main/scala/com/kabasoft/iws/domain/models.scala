@@ -1747,7 +1747,8 @@ object TransactionDetails  {
 
   def apply(tr: TransactionDetails_Type): TransactionDetails =
     new TransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9)
-
+  def apply(tr: TransactionDetails): TransactionDetails =
+    new TransactionDetails(tr.id, tr.transid, tr.article, tr.quantity, tr.unit, tr.price, tr.currency, tr.duedate, tr.text)
 }
 final case class FinancialsTransactionDetails(
   id: Long,
