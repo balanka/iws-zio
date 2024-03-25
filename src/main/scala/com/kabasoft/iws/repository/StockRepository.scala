@@ -7,7 +7,6 @@ import zio.stream._
 
 trait StockRepository {
   def create(item: Stock): ZIO[Any, RepositoryError, Option[Stock]]
-
   def create(models: List[Stock]): ZIO[Any, RepositoryError, List[Stock]]
   def create2(item: Stock): ZIO[Any, RepositoryError, Unit]
   def create2(models: List[Stock]): ZIO[Any, RepositoryError, Int]
@@ -16,7 +15,6 @@ trait StockRepository {
     ZIO.collectAll(items.map(ids=>delete(ids._1, ids._2, company)))
   def all(Id:(Int,  String)): ZIO[Any, RepositoryError, List[Stock]]
   def list(Id:(Int,  String)): ZStream[Any, RepositoryError, Stock]
-
   def getById(Ids:List[String]): ZIO[Any, RepositoryError, List[Stock]]
   def getById(Id:String): ZIO[Any, RepositoryError, Option[Stock]]
   def getBy(Id:(String, String)): ZIO[Any, RepositoryError, Stock]

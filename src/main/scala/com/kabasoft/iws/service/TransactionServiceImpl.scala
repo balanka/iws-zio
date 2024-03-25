@@ -3,22 +3,17 @@ package com.kabasoft.iws.service
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.common._
 import com.kabasoft.iws.domain._
-import com.kabasoft.iws.repository.{AccountRepository, ArticleRepository, JournalRepository, PacRepository, PostTransactionRepository, StockRepository, TransactionRepository}
+import com.kabasoft.iws.repository.{AccountRepository, ArticleRepository, JournalRepository, PacRepository, PostTransactionRepository, StockRepository, TransactionLogRepository, TransactionRepository}
 import zio._
 import zio.prelude.FlipOps
 
 import java.math.RoundingMode
-import scala.collection.immutable
 
-final class TransactionServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRepository, journalRepo: JournalRepository,
-            accRepo: AccountRepository,  artRepo: ArticleRepository, stockRepo: StockRepository,
+final class TransactionServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionRepository, journalRepo: JournalRepository
+       , transLogRepo: TransactionLogRepository, accRepo: AccountRepository, artRepo: ArticleRepository, stockRepo: StockRepository,
                                    repository4PostingTransaction:PostTransactionRepository) extends TransactionService {
-
   override def journal(accountId: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[Journal]] =
-    for {
-      queries <- journalRepo.find4Period(accountId, fromPeriod, toPeriod, company).runCollect.map(_.toList)
-    } yield queries
-
+   journalRepo.find4Period(accountId, fromPeriod, toPeriod, company).runCollect.map(_.toList)
   def getBy(id: String, company: String): ZIO[Any, RepositoryError, PeriodicAccountBalance] =
     pacRepo.getBy(id, company)
 
@@ -52,51 +47,30 @@ final class TransactionServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionR
         .getByTransId((id, company))
         .flatMap(trans => postTransaction(List(trans), company, Nil, Nil))
 
-  private[this] def postTransaction(transactions: List[Transaction], company: String, newStock:List[Stock], oldStocks:List[Stock]): ZIO[Any, RepositoryError, Int] = {
-    for {
-      accounts <- accRepo.all(Account.MODELID, company)
-      articles <- artRepo.getBy(transactions.flatMap(m=>m.lines.map(_.article)), company)
-      accountIds = articles.map(art=>(art.stockAccount, art.expenseAccount))
-      pacids = accountIds.flatMap(id => transactions.map(tr=>buildPacId(tr.period, id))).flatten
-      pacs <- pacRepo.getByIds(pacids, company).map(_.filterNot(_.id.equals(PeriodicAccountBalance.dummy.id)))
-      allPacsx = transactions.flatMap(tr =>buildPacsFromTransaction(tr, articles, accounts))
-      newRecords = allPacsx.filterNot(pac => pacs.map(_.id).contains(pac.id))
+  private[this] def postTransaction(transactions: List[Transaction], company: String, newStock:List[Stock],
+                                    oldStocks:List[Stock]): ZIO[Any, RepositoryError, Int] = for {
+    accounts <- accRepo.all(Account.MODELID, company)
+    articles <- artRepo.getBy(transactions.flatMap(m=>m.lines.map(_.article)), company)
+    accountIds = articles.map(art=>(art.stockAccount, art.expenseAccount))
+    pacids = accountIds.flatMap(id => transactions.map(tr=>buildPacId(tr.period, id))).flatten
+    pacs <- pacRepo.getByIds(pacids, company).map(_.filterNot(_.id.equals(PeriodicAccountBalance.dummy.id)))
+    allPacs = transactions.flatMap(tr =>buildPacsFromTransaction(tr, articles, accounts))
+    newRecords = allPacs.filterNot(pac => pacs.map(_.id).contains(pac.id))
         .groupBy(_.id) map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy)}
-      tpacs <- pacs.map(TPeriodicAccountBalance.apply).flip
-      oldPacs <- updatePac(allPacsx, tpacs).map(e=>e.map(PeriodicAccountBalance.applyT))
-      journalEntries <- makeJournal(transactions, newRecords.toList, oldPacs, articles)
-      stocks <- updateStock(transactions, oldStocks)
-      updatedArticle <- updateAvgPrice(transactions, stocks, articles)
-      post <- repository4PostingTransaction.post(transactions, newRecords.toList, oldPacs.flip, journalEntries, stocks, newStock, updatedArticle)
+    tpacs <- pacs.map(TPeriodicAccountBalance.apply).flip
+    oldPacs <- updatePac(allPacs, tpacs).map(e=>e.map(PeriodicAccountBalance.applyT))
 
+    journalEntries <- makeJournal(transactions, newRecords.toList, oldPacs, articles)
+    stocks <- updateStock(transactions, oldStocks)
+    transLogEntries <- buildTransactionLog(transactions,  stocks, newStock, articles)
+    updatedArticle <- updateAvgPrice(transactions, stocks, articles)
+    post <- repository4PostingTransaction.post(transactions, newRecords.toList, oldPacs.flip,
+      transLogEntries, journalEntries, stocks, newStock, updatedArticle)
     } yield post
-  }
-
-//  private[this] def postTransaction(transaction: Transaction, company: String, newStock:List[Stock], oldStocks:List[Stock]): ZIO[Any, RepositoryError, Int] = {
-//    val model = transaction.copy(period = common.getPeriod(transaction.transdate))
-//    for {
-//      accounts <- accRepo.all(Account.MODELID, company)
-//      articles <- artRepo.getBy(model.lines.map(_.article), company)
-//      accountIds = articles.map(art=>(art.stockAccount, art.expenseAccount))
-//      pacids = accountIds.flatMap(id => buildPacId(model.period, id))
-//      pacs <- pacRepo.getByIds(pacids, company).map(_.filterNot(_.id.equals(PeriodicAccountBalance.dummy.id)))
-//      allPacsx = buildPacsFromTransaction(model, articles, accounts)
-//      newRecords = allPacsx.filterNot(pac => pacs.map(_.id).contains(pac.id))
-//        .groupBy(_.id) map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy)}
-//      tpacs <- pacs.map(TPeriodicAccountBalance.apply).flip
-//      oldPacs <- updatePac(allPacsx, tpacs).map(e=>e.map(PeriodicAccountBalance.applyT))
-//      journalEntries <- makeJournal(model, newRecords.toList, oldPacs, articles, accounts)
-//      stocks <- updateStock(model, oldStocks)
-//      updatedArticle <- updateAvgPrice(model, stocks._1++stocks._2, articles)
-//      post <- repository4PostingTransaction.post(List(model), newRecords.toList, oldPacs.flip, journalEntries, stocks, newStock, updatedArticle.flatten)
-//
-//    } yield post
-//  }
- 
+  private def filterIWS[A <: IWS](list: List[A], param: String): List[A] = list.filter(_.id == param)
   private def articleId2AccountId(articleId:String, articles:List[Article], accounts:List[Account]): (List[String], List[String]) =
-    (articles.filter(_.id == articleId).flatMap(art=>accounts.filter(_.id == art.stockAccount).map(_.id)),
-    articles.filter(_.id == articleId).flatMap(art=>accounts.filter(_.id == art.expenseAccount).map(_.id)))
-
+    (filterIWS(articles,  articleId).flatMap(art=>filterIWS(accounts, art.stockAccount).map(_.id)),
+     filterIWS(articles,  articleId).flatMap(art=>filterIWS(accounts, art.expenseAccount).map(_.id)))
 
   private[this] def buildPacsFromTransaction(model:Transaction, articles:List[Article], accounts:List[Account]) =
     model.lines.flatMap { line =>
@@ -154,10 +128,9 @@ final class TransactionServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionR
     val avgPrice_ = wholeStock.fold(line.price)(_ =>avgPriceAfter)
       ZIO.succeed(article.copy(avgPrice = avgPrice_))
   }).flip
-  private def updateAvgPrice(transactions: List[Transaction], stocks:List[Stock], articles:List[Article]): ZIO[Any, Nothing, List[Article]] = {
-    val x = transactions.flatMap(tr => tr.lines.map(line => updateArticleAvgPrice( line,  stocks, articles.filter(_.id == line.article).distinct)))
-    x.flip.map(_.flatten)
-  }
+  private def updateAvgPrice(transactions: List[Transaction], stocks:List[Stock], articles:List[Article]): ZIO[Any, Nothing, List[Article]] =
+    transactions.flatMap(tr => tr.lines.map(line => updateArticleAvgPrice( line,  stocks, articles.filter(_.id == line.article).distinct)))
+    .flip.map(_.flatten)
 
   private def buildNewStock(transactions: List[Transaction], stocks:List[Stock]) = for {
     newRecords <-Stock.create(transactions).filterNot(stock=>stocks.map(_.id).contains(stock.id))
@@ -168,13 +141,11 @@ final class TransactionServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionR
       .map(st=>TStock.apply(st, ts.quantity))).flip
   }yield updatedStock
 
-  private def updatePac(oldPacs: List[PeriodicAccountBalance], tpacs: List[TPeriodicAccountBalance]): ZIO[Any, Nothing, List[TPeriodicAccountBalance]] = {
-  val result = for{
+  private def updatePac(oldPacs: List[PeriodicAccountBalance], tpacs: List[TPeriodicAccountBalance]): ZIO[Any, Nothing, List[TPeriodicAccountBalance]] =
+  for{
     newRecords<- groupById(oldPacs).map(TPeriodicAccountBalance.apply).flip
              _<- newRecords.map ( pac =>transfer(pac, tpacs)).flip
   }yield ( if(tpacs.nonEmpty) tpacs  else newRecords)
-  result
-}
 
   private def transfer( pac:TPeriodicAccountBalance,  tpacs:List[TPeriodicAccountBalance]): ZIO[Any, Nothing, Option[Unit]] =
     tpacs.find(_.id ==  pac.id).map(pac_ => pac_.transfer(pac, pac_)).flip
@@ -235,10 +206,22 @@ final class TransactionServiceImpl(pacRepo: PacRepository, ftrRepo: TransactionR
       model.company,
       model.modelid
     )
+
+  private def buildTransactionLog(models: List[Transaction], stocks:List[Stock], newStock: List[Stock],
+                          articles:List[Article] ): ZIO[Any, Nothing, List[TransactionLog]] = ZIO.succeed {
+    val allStock = stocks++newStock
+    models.flatMap(tr => tr.lines.map( line =>
+      allStock.find(_.id == tr.store.concat(line.article).concat(tr.company).concat("")) // Find stock for article  in  store
+      .flatMap(st=> articles.find(_.id == st.article).map( article =>                    // Find article for the line
+     TransactionLog(0L, tr.id, tr.oid, tr.store, tr.account, line.article, line.quantity // build TransactionLog
+       , st.quantity, /*article.wholeStock*/ zeroAmount, article.quantityUnit , article.pprice , article.avgPrice
+       , article.currency, line.duedate, line.text, tr.transdate, tr.postingdate, tr.enterdate, tr.period, tr.company, tr.modelid)
+      ))).map(_.toList)).flatten
+  }
 }
 
 object TransactionServiceImpl {
-  val live: ZLayer[PacRepository with TransactionRepository with JournalRepository with AccountRepository
-    with ArticleRepository with StockRepository with PostTransactionRepository, RepositoryError, TransactionService] =
-    ZLayer.fromFunction(new TransactionServiceImpl(_, _, _, _, _, _, _))
+  val live: ZLayer[PacRepository with TransactionRepository with TransactionLogRepository with AccountRepository
+    with JournalRepository with ArticleRepository with StockRepository with PostTransactionRepository, RepositoryError, TransactionService] =
+    ZLayer.fromFunction(new TransactionServiceImpl(_, _, _, _, _, _, _, _))
 }

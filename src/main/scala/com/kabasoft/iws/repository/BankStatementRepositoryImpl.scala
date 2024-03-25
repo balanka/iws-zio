@@ -35,7 +35,6 @@ type TYPE = (TableName, Instant, Instant, TableName, TableName, TableName, Table
     period
   ).from(bankStatements)
 
-  //private def buildInsertQuery(bs: BankStatement): Insert[BankStatement_,  TYPE]  = buildInsertQuery(List(bs))
   private def  buildInsertQueryBS(bs: List[BankStatement]) =
     insertInto(bankStatementInsert)(
       depositor_bs,
@@ -91,7 +90,7 @@ type TYPE = (TableName, Instant, Instant, TableName, TableName, TableName, Table
       .set(info, model.info)
       .set(period, common.getPeriod(model.valuedate))
       .where((id === model.id) && (company === model.company))
-    ZIO.logInfo(s"Query Update bankStatement is ${renderUpdate(update_)}") *>
+    ZIO.logDebug(s"Query Update bankStatement is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
         .mapError(e => RepositoryError(e.getMessage))
@@ -124,7 +123,7 @@ type TYPE = (TableName, Instant, Instant, TableName, TableName, TableName, Table
   override def getById(Ids: List[Long]): ZStream[Any, RepositoryError, BankStatement] = {
     val selectAll = SELECT.where(id in Ids)
     ZStream.fromZIO(
-    ZIO.logInfo(s"Query to execute findBy is ${renderRead(selectAll)}")) *>
+    ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}")) *>
       execute(selectAll.to(BankStatement.apply))
         .provideDriver(driverLayer)
   }
@@ -147,9 +146,9 @@ type TYPE = (TableName, Instant, Instant, TableName, TableName, TableName, Table
     val ids = transactions.flatMap(tr=>{ company = tr.company; tr.lines.map(_.account)})++transactions.flatMap(tr=>tr.lines.map(_.oaccount))
     val result = for {
       accounts        <-  accRepo.getBy(ids, company)
-      posted <- ZIO.logInfo(s"Update stmt bank statement  ${updateSQL.map(renderUpdate)}  ") *>updateSQL.map(_.run).flip.map(_.sum)
-      created <- ZIO.logInfo(s"Posted bank statement  ${posted}  ") *> create2s( buildId1(transactions), accounts)
-      _<- ZIO.logInfo(s"Created transactions  ${posted}  ")
+      posted <- ZIO.logDebug(s"Update stmt bank statement  ${updateSQL.map(renderUpdate)}  ") *>updateSQL.map(_.run).flip.map(_.sum)
+      created <- ZIO.logDebug(s"Posted bank statement  ${posted}  ") *> create2s( buildId1(transactions), accounts)
+      _<- ZIO.logDebug(s"Created transactions  ${posted}  ")
     } yield posted+created
     transact(result)
       .mapError(e => RepositoryError(e.toString))

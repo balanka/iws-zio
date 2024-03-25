@@ -44,7 +44,6 @@ import java.time.Clock
 import java.util
 import scala.annotation.nowarn
 
-
 object IwsApp extends ZIOAppDefault {
 
   implicit val clock: Clock = Clock.systemUTC
@@ -130,6 +129,7 @@ object IwsApp extends ZIOAppDefault {
           JournalRepositoryImpl.live,
           BankStatementServiceImpl.live,
           FinancialsServiceImpl.live,
-          PostFinancialsTransactionRepositoryImpl.live
+          PostFinancialsTransactionRepositoryImpl.live,
+          TransactionLogRepositoryImpl.live
         ).<*( ZIO.logInfo(s"http server started successfully!!!!"))
 }

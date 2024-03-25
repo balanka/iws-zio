@@ -196,7 +196,7 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
   override def list(Id:(Int, String)): ZStream[Any, RepositoryError, Article]                   = {
     val selectAll = SELECT.where(modelid === Id._1 && company === Id._2)
     ZStream.fromZIO(
-      ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")
+      ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")
     ) *>
       execute(selectAll.to ( c =>Article.apply(c)))
         .provideDriver(driverLayer)

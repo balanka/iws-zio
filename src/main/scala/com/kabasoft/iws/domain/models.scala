@@ -524,7 +524,7 @@ final case class Account (
   debit: BigDecimal = zeroAmount,
   credit: BigDecimal = zeroAmount,
   subAccounts: Set[Account] = Nil.toSet
-) /*extends AccountT*/ {
+) extends IWS {
 
    def report(child: List[Account]): Account =
      reduce(child.filter(acc=>acc.account == id).map(acc => acc.report(child)), Account.dummy)
@@ -1908,6 +1908,37 @@ object Transaction {
       tr._13,
       Nil
     )
+}
+
+final case class TransactionLog(id:Long, transid:Long, oid:Long, store:String, account:String, article:String,
+quantity:BigDecimal, stock:BigDecimal, wholeStock:BigDecimal, unit:String, price:BigDecimal, avgPrice:BigDecimal,
+currency:String, duedate:Instant, text:String, transdate:Instant, postingdate:Instant, enterdate:Instant,
+ period:Int, company:String, modelid:Int)
+final case class TransactionLog_(transid:Long, oid:Long, store:String, account:String, article:String,
+                                quantity:BigDecimal, stock:BigDecimal, wholeStock:BigDecimal, unit:String, price:BigDecimal, avgPrice:BigDecimal,
+                                currency:String, duedate:Instant, text:String, transdate:Instant, postingdate:Instant, enterdate:Instant,
+                                period:Int, company:String, modelid:Int)
+object TransactionLog_ {
+  def apply(c:TransactionLog):TransactionLog_ = TransactionLog_( c.transid,
+    c.oid,
+    c.store,
+    c.account,
+    c.article,
+    c.quantity,
+    c.stock,
+    c.wholeStock,
+    c.unit,
+    c.price,
+    c.avgPrice,
+    c.currency,
+    c.duedate,
+    c.text,
+    c.transdate,
+    c.postingdate,
+    c.enterdate,
+    c.period,
+    c.company,
+    c.modelid)
 }
 final case class FinancialsTransaction(
   id: Long,

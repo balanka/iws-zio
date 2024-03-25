@@ -290,11 +290,42 @@ create table if not exists transaction_details
     duedate  timestamp   default CURRENT_DATE            not null,
     text     varchar(380)
     );
-/*
- ALTER SEQUENCE public.master_compta_id_seq
-	START 5634
-	RESTART 5634;
- */
+
+DROP SEQUENCE IF EXISTS transaction_log_id_seq ;
+CREATE SEQUENCE transaction_log_id_seq
+    INCREMENT 1
+    MINVALUE 1
+    MAXVALUE 9223372036854775807
+    START 1
+    CACHE 1;
+DROP table if exists transaction_log;
+create table if not exists transaction_log
+(
+    id           bigint  default nextval('transaction_log_id_seq'::regclass) not null primary key,
+    transid      bigint                            not null,
+    oid          bigint                            ,
+    store   varchar(50)                       not null,
+    account      varchar(50)                       not null,
+    article  varchar(50)  not null,
+    quantity   numeric(12, 2)                              not null,
+    stock   numeric(12, 2)                              not null,
+    whole_stock   numeric(12, 2)                              not null,
+    unit varchar(50)  not null,
+    price   numeric(12, 2)                              not null,
+    avg_price   numeric(12, 2)                          not null,
+    currency varchar(10)                                 not null,
+    duedate  timestamp               not null,
+    text     varchar(380)  ,
+    transdate    timestamp     not null,
+    postingdate  timestamp     not null,
+    enterdate    timestamp     not null,
+    company      varchar(50)                       not null,
+    modelid      integer                           not null,
+    period       integer
+
+);
+CREATE INDEX CONCURRENTLY ON transaction_log (store, article, company);
+
 DROP SEQUENCE IF EXISTS master_compta_id_seq ;
 CREATE SEQUENCE master_compta_id_seq
     INCREMENT 1
