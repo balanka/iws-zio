@@ -103,14 +103,14 @@ final class AccountRepositoryImpl(pool: ConnectionPool) extends AccountRepositor
 
   override def create(c: List[Account]): ZIO[Any, RepositoryError, List[Account]] = for{
    nr <- create2(c)
-    _ <- ZIO.logInfo(s" ${nr}  accounts inserted ")
+    _ <- ZIO.logDebug(s" ${nr}  accounts inserted ")
    result <- getBy(c.map(_.id), c.head.company)
   }yield result
 
 
   override def create2(models: List[Account]): ZIO[Any, RepositoryError, Int] = {
     val query = buildInsertQuery(models)
-    ZIO.logInfo(s" insert Account stmt ${renderInsert(query)}") *>
+    ZIO.logDebug(s" insert Account stmt ${renderInsert(query)}") *>
       execute(query)
         .provideLayer(driverLayer)
         .mapError(e => RepositoryError(e.getMessage))

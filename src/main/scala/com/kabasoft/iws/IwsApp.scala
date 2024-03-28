@@ -21,8 +21,10 @@ import com.kabasoft.iws.api.PermissionEndpoint.appPerm
 import com.kabasoft.iws.api.RoleEndpoint.appRole
 import com.kabasoft.iws.api.SalaryItemEndpoint.appSalaryItem
 import com.kabasoft.iws.api.PayrollTaxRangeEndpoint.appPayrollTaxRange
+import com.kabasoft.iws.api.StockEndpoint.appStock
 import com.kabasoft.iws.api.StoreEndpoint.appStore
 import com.kabasoft.iws.api.SupplierEndpoint.appSup
+import com.kabasoft.iws.api.TransactionEndpoint.appLtr
 import com.kabasoft.iws.api.UserEndpoint.appUser
 import com.kabasoft.iws.api.VatEndpoint.appVat
 import com.kabasoft.iws.config.DbConfig.connectionPoolConfig
@@ -42,7 +44,6 @@ import java.lang.System
 import java.time.Clock
 import java.util
 import scala.annotation.nowarn
-
 
 object IwsApp extends ZIOAppDefault {
 
@@ -69,9 +70,9 @@ object IwsApp extends ZIOAppDefault {
       allowedMethods = AccessControlAllowMethods(Method.GET, Method.POST, Method.PUT, Method.PATCH, Method.DELETE)
     )
 
-  private val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc  ++ appComp  ++ appFtr ++ appFModule
+  private val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc  ++ appComp  ++ appFtr ++ appLtr ++appFModule
     ++ routesEmp ++ appArticle ++ appStore ++ appSalaryItem ++ appPayroll ++ appMasterfile ++appPayrollTaxRange
-    ++ appImportFile ++appBankStmt ++  appUser ++ appPac ++ appJournal  ++appPerm ++ appRole ++ appAsset)
+    ++ appImportFile ++appBankStmt ++  appUser ++ appPac ++ appJournal  ++appPerm ++ appRole ++ appAsset ++ appStock)
 
   @nowarn val run: ZIO[Any with ZIOAppArgs with Scope, Any, Any] =
 
@@ -88,6 +89,7 @@ object IwsApp extends ZIOAppDefault {
           ArticleRepositoryImpl.live,
           AssetCacheImpl.live,
           AssetRepositoryImpl.live,
+          AssetsServiceImpl.live,
           AccountServiceImpl.live,
           AccountCacheImpl.live,
           AccountRepositoryImpl.live,
@@ -95,14 +97,18 @@ object IwsApp extends ZIOAppDefault {
           ImportFileCacheImpl.live,
           CustomerRepositoryImpl.live,
           CustomerCacheImpl.live,
+          PayrollTaxRangeRepositoryImpl.live,
+          PayrollTaxRangeCacheImpl.live,
           EmployeeRepositoryImpl.live,
           EmployeeCacheImpl.live,
+          EmployeeServiceImpl.live,
           MasterfileRepositoryImpl.live,
           MasterfileCacheImpl.live,
           SupplierRepositoryImpl.live,
           SupplierCacheImpl.live,
           StoreRepositoryImpl.live,
           StoreCacheImpl.live,
+          StockRepositoryImpl.live,
           ImportFileRepositoryImpl.live,
           ModuleRepositoryImpl.live,
           ModuleCacheImpl.live,
@@ -124,9 +130,9 @@ object IwsApp extends ZIOAppDefault {
           JournalRepositoryImpl.live,
           BankStatementServiceImpl.live,
           FinancialsServiceImpl.live,
-          PostTransactionRepositoryImpl.live,
-          EmployeeServiceImpl.live,
-          PayrollTaxRangeRepositoryImpl.live,
-          PayrollTaxRangeCacheImpl.live
+          PostFinancialsTransactionRepositoryImpl.live,
+          TransactionRepositoryImpl.live,
+          TransactionCacheImpl.live,
+          TransactionLogRepositoryImpl.live
         ).<*( ZIO.logInfo(s"http server started successfully!!!!"))
 }

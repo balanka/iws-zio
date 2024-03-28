@@ -5,10 +5,10 @@ create table if not exists customer
         primary key,
     name            varchar(255)                     not null,
     description     varchar(255)                     not null,
-    street          varchar(255),
-    city            varchar(255),
-    state           varchar(255),
-    zip             varchar(255),
+    street          varchar(50),
+    city            varchar(50),
+    state           varchar(50),
+    zip             varchar(50),
     phone           varchar(50),
     email           varchar(50),
     account         varchar(50),
@@ -19,7 +19,7 @@ create table if not exists customer
     enterdate      timestamp   default CURRENT_TIMESTAMP not null,
     company         varchar(50)                      not null,
     modelid         integer     default 3            not null,
-    country         varchar(50) default ''::character varying
+    country         varchar(50) default 'DE'::character varying
 );
 DROP table if exists supplier;
 create table if not exists supplier(
@@ -27,10 +27,10 @@ create table if not exists supplier(
                                            primary key,
                                        name           varchar(255)                               not null,
                                        description    varchar(255)                               not null,
-                                       street         varchar(255),
-                                       city           varchar(255),
-                                       state          varchar(255),
-                                       zip            varchar(255),
+                                       street         varchar(50),
+                                       city           varchar(50),
+                                       state          varchar(50),
+                                       zip            varchar(50),
                                        phone          varchar(50),
                                        email          varchar(50),
                                        account        varchar(50),
@@ -40,18 +40,18 @@ create table if not exists supplier(
                                        changedate  timestamp        default CURRENT_TIMESTAMP           not null,
                                        enterdate     timestamp        default CURRENT_TIMESTAMP           not null,
                                        company        varchar(50)                                not null,
-                                       modelid        integer     default 5                      not null,
-                                       country        varchar(50) default 'X'::character varying not null
+                                       modelid        integer     default 1                      not null,
+                                       country        varchar(50) default 'DE'::character varying not null
 );
 DROP table if exists employee;
 create table if not exists employee(
                                        id             varchar(50)  not null  primary key,
                                        name           varchar(255) not null,
                                        description    varchar(255) not null,
-                                       street         varchar(255),
-                                       city           varchar(255),
-                                       state          varchar(255),
-                                       zip            varchar(255),
+                                       street         varchar(50),
+                                       city           varchar(50),
+                                       state          varchar(50),
+                                       zip            varchar(50),
                                        phone          varchar(50),
                                        email          varchar(50),
                                        account        varchar(50),
@@ -62,7 +62,7 @@ create table if not exists employee(
                                        enterdate     timestamp        default CURRENT_TIMESTAMP           not null,
                                        company        varchar(50)                                not null,
                                        modelid        integer     default 5                      not null,
-                                       country        varchar(50) default 'X'::character varying not null,
+                                       country        varchar(50) default 'DE'::character varying not null,
                                        salary        numeric(12, 2) default 0
 );
 
@@ -244,11 +244,89 @@ create table if not exists periodic_account_balance
         constraint periodic_account_balance_pk
             primary key
 );
-/*
- ALTER SEQUENCE public.master_compta_id_seq
-	START 5634
-	RESTART 5634;
- */
+DROP SEQUENCE IF EXISTS transaction_id_seq ;
+CREATE SEQUENCE transaction_id_seq
+    INCREMENT 1
+    MINVALUE 1 --5633
+    MAXVALUE 9223372036854775807
+    START 2
+    CACHE 1;
+DROP table if exists transaction;
+create table if not exists transaction
+(
+    id           bigint  default nextval('transaction_id_seq'::regclass) not null
+    primary key,
+    oid          bigint                            not null,
+    id1          bigint                            not null,
+    store   varchar(50)                       not null,
+    costcenter      varchar(50)                       not null,
+    text   varchar(380) default ''::character varying,
+    transdate    timestamp    default CURRENT_DATE not null,
+    postingdate  timestamp    default CURRENT_DATE not null,
+    enterdate    timestamp    default CURRENT_DATE not null,
+    company      varchar(50)                       not null,
+    posted       boolean      default false,
+    modelid      integer                           not null,
+    period       integer
+    );
+DROP SEQUENCE IF EXISTS transaction_details_id_seq ;
+CREATE SEQUENCE transaction_details_id_seq
+    INCREMENT 1
+    MINVALUE 1
+    MAXVALUE 9223372036854775807
+    START 1
+    CACHE 1;
+DROP table if exists transaction_details;
+create table if not exists transaction_details
+(
+    id       bigint  default nextval('transaction_details_id_seq'::regclass) not null
+    constraint transaction_details_pkey primary key,
+    transid  bigint                                      not null,
+    article  varchar(50) default NULL::character varying not null,
+    article_name  varchar(50) default NULL::character varying not null,
+    quantity   numeric(12, 2)                              not null,
+    unit varchar(50) default NULL::character varying not null,
+    price   numeric(12, 2)                              not null,
+    currency varchar(10)                                 not null,
+    duedate  timestamp   default CURRENT_DATE            not null,
+    text     varchar(380)
+    );
+
+DROP SEQUENCE IF EXISTS transaction_log_id_seq ;
+CREATE SEQUENCE transaction_log_id_seq
+    INCREMENT 1
+    MINVALUE 1
+    MAXVALUE 9223372036854775807
+    START 1
+    CACHE 1;
+DROP table if exists transaction_log;
+create table if not exists transaction_log
+(
+    id           bigint  default nextval('transaction_log_id_seq'::regclass) not null primary key,
+    transid      bigint                            not null,
+    oid          bigint                            ,
+    store   varchar(50)                       not null,
+    costcenter      varchar(50)                       not null,
+    article  varchar(50)  not null,
+    quantity   numeric(12, 2)                              not null,
+    stock   numeric(12, 2)                              not null,
+    whole_stock   numeric(12, 2)                              not null,
+    unit varchar(50)  not null,
+    price   numeric(12, 2)                              not null,
+    avg_price   numeric(12, 2)                          not null,
+    currency varchar(10)                                 not null,
+    duedate  timestamp               not null,
+    text     varchar(380)  ,
+    transdate    timestamp     not null,
+    postingdate  timestamp     not null,
+    enterdate    timestamp     not null,
+    company      varchar(50)                       not null,
+    modelid      integer                           not null,
+    period       integer
+
+);
+CREATE INDEX CONCURRENTLY ON transaction_log (store, article, company);
+
 DROP SEQUENCE IF EXISTS master_compta_id_seq ;
 CREATE SEQUENCE master_compta_id_seq
     INCREMENT 1
@@ -476,16 +554,17 @@ create table if not exists asset
     scrap_value   numeric(12, 2),
     life_span     int,
     dep_method int,
-    rate         decimal(5, 2),
+    amount       decimal(12, 2),
+    rate         decimal(12, 2),
     frequency    int,
     currency     varchar(50) not null
 );
-insert into asset(id,  name, description, changedate, enterdate, postingdate, company, modelid, account, oaccount, scrap_value, life_span, dep_method, rate, frequency, currency) values
-                                                                                                                                                                                      ('1804', 'BMW-220D', 'BMW-220D', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '1000', 19, '0520', '6222', 1.0, 5, 2, 0.30, 12, 'EUR'),
-                                                                                                                                                                                      ('IWS-01', 'IWS', 'Integriertes Finanzbuchhaltungssystem', '2019-04-11 00:00:00','2019-04-11 00:00:00', '2019-04-11 00:00:00', '1000', 19, '0135', '6222', 1.0, 5, 2, 1.0, 12, 'EUR'),
-                                                                                                                                                                                      ('MACB001', 'MacBook Pro 2017', 'MacBook Pro 2017', '2019-03-15 00:00:00', '2019-03-15 00:00:00','2019-03-15 00:00:00', '1000', 19, '0651', '4830', 1.0, 3, 2, 1.0, 12, 'EUR' ),
-                                                                                                                                                                                      ('MACB002', 'MackBookPro 2019', 'MackBookPro 2019', '2019-08-09 15:53:37', '2019-08-09 15:53:37', '2019-08-09 15:53:37', '1000', 19, '0652', '4830', 1.0, 3, 2, 1.0, 12, 'EUR'),
-                                                                                                                                                                                      ('MACB003', 'MackBookPro 2019-2', 'MackBookPro 2019-2', '2019-11-25 12:32:00', '2019-11-25 12:32:00', '2019-11-25 12:32:00', '1000', 19, '0653', '4830', 1.0, 3, 2, 1.0, 12, 'EUR');
+insert into asset(id,  name, description, changedate, enterdate, postingdate, company, modelid, account, oaccount, scrap_value, life_span, dep_method, amount, rate, frequency, currency) values
+                                                                                                                                                                                      ('1804', 'BMW-220D', 'BMW-220D', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '1000', 19, '0520', '6222', 1.0, 5, 2, 33000.00, 0.30, 12, 'EUR'),
+                                                                                                                                                                                      ('IWS-01', 'IWS', 'Integriertes Finanzbuchhaltungssystem', '2019-04-11 00:00:00','2019-04-11 00:00:00', '2019-04-11 00:00:00', '1000', 19, '0135', '6222', 1.0, 5, 2, 10000.00, 1.0, 12, 'EUR'),
+                                                                                                                                                                                      ('MACB001', 'MacBook Pro 2017', 'MacBook Pro 2017', '2019-03-15 00:00:00', '2019-03-15 00:00:00','2019-03-15 00:00:00', '1000', 19, '0651', '4830', 1.0, 3, 2, 1000.00, 1.0, 12, 'EUR' ),
+                                                                                                                                                                                      ('MACB002', 'MackBookPro 2019', 'MackBookPro 2019', '2019-08-09 15:53:37', '2019-08-09 15:53:37', '2019-08-09 15:53:37', '1000', 19, '0652', '4830', 1.0, 3, 2, 1000.00, 1.0, 12, 'EUR'),
+                                                                                                                                                                                      ('MACB003', 'MackBookPro 2019-2', 'MackBookPro 2019-2', '2019-11-25 12:32:00', '2019-11-25 12:32:00', '2019-11-25 12:32:00', '1000', 19, '0653', '4830', 1.0, 3, 2, 1000.00, 1.0, 12, 'EUR');
 
 drop table  if  exists article;
 create table if not exists article
@@ -499,8 +578,10 @@ create table if not exists article
     avg_price   numeric(12, 2),
     currency  varchar(50) not null,
     stocked  boolean,
-    quantit_unit  varchar(50) not null,
+    quantity_unit  varchar(50) not null,
     pack_unit  varchar(50) not null,
+    stock_account  varchar(50) not null,
+    expense_account  varchar(50) not null,
     changedate    timestamp default CURRENT_DATE not null,
     enterdate    timestamp default CURRENT_DATE not null,
     postingdate  timestamp default CURRENT_DATE not null,
@@ -548,22 +629,41 @@ CREATE TABLE IF NOT EXISTS public.payroll_tax_range
     );
 CREATE INDEX payroll_tax_range_idx ON payroll_tax_range (modelid, company);
 
-insert into article (id,  name, description, parent, sprice, pprice, avg_price,currency, stocked, quantit_unit, pack_unit, company, modelid) values
-                                                                                                                                                 ('iws001', 'Licence IWS base', 'Licence IWS base including masterfile, and administration', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '1000', 35),
-                                                                                                                                                 ('iws002', 'Licence IWS sales', 'Licence IWS sales including 1 Y customer care', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '1000', 35),
-                                                                                                                                                 ('iws003', 'Licence IWS purchasing', 'Licence IWS purchasing including 1 Y customer care''', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '1000', 35),
-                                                                                                                                                 ('iws004', 'Licence IWS financials', 'Licence IWS financials including 1 Y customer care''', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '1000', 35);
+DROP table if exists stock;
+CREATE TABLE IF NOT EXISTS public.stock
+(   id character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    store character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    article character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    quantity numeric(12,2) DEFAULT 0,
+    charge character varying(50) DEFAULT '',
+    company character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    modelid integer NOT NULL DEFAULT 37,
+    CONSTRAINT stock_pkey PRIMARY KEY (id,  company)
+);
+CREATE INDEX stock_idx ON stock (store, article, company );
+
+insert into article (id,  name, description, parent, sprice, pprice, avg_price,currency, stocked, quantity_unit, pack_unit, stock_account, expense_account, company, modelid) values
+ ('iws001', 'Licence IWS base', 'Licence IWS base including masterfile, and administration', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35),
+ ('iws002', 'Licence IWS sales', 'Licence IWS sales including 1 Y customer care', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35),
+ ('iws003', 'Licence IWS purchasing', 'Licence IWS purchasing including 1 Y customer care''', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35),
+ ('iws004', 'Licence IWS financials', 'Licence IWS financials including 1 Y customer care''', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35),
+ ('MACS001', 'Mac Studio 2023', 'Mac Studio 2023', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35),
+ ('0000', 'Atikel_0', 'Atikel_0', '-1', 0,0,0,'EUR', true, 'stk', 'stk', '5400', '5000', '1000', 35),
+ ('0001', 'Atikel_1', 'Atikel_1', '-1', 0,0,0,'EUR', true, 'stk', 'stk', '5400', '5000', '1000', 35);
+
 
 insert into store (id,  name, description, account, company, modelid) values
                                                                           ('001', 'Zentral-Lager', 'Zentral-Lager', '', '1000', 35),
                                                                           ('002', 'Nebenlager', 'Nebenlager', '','1000', 35);
-insert into fmodule (id,  name, description, account, is_debit, company, modelid) values
-                                                                                      (112, 'Payables', 'Payables/Supplier invoices', '1810', false, '1000', 112),
-                                                                                      (114, 'Payment', 'Payment', '1810', false, '1000', 114),
-                                                                                      (122, 'Receivables', 'Receivables/Customer invoices', '1810', false, '1000', 122),
-                                                                                      (124, 'Settlement', 'Settlement', '1810', false, '1000', 124),
-                                                                                      (134, 'General ledger', 'General ledger', '1810', false, '1000', 134);
+insert into stock (id, store, article, quantity, charge, company, modelid) values ('31100011000', '311', '0001', 0, '', '1000', 37);
 
+insert into fmodule (id,  name, description, account, is_debit, company, modelid) values
+                                                                                      (112, 'Payables', 'Payables/Supplier invoices', '1810', false, '1000', 151),
+                                                                                      (114, 'Payment', 'Payment', '1810', false, '1000', 151),
+                                                                                      (122, 'Receivables', 'Receivables/Customer invoices', '1810', false, '1000', 151),
+                                                                                      (124, 'Settlement', 'Settlement', '1810', false, '1000', 151),
+                                                                                      (134, 'General ledger', 'General ledger', '1810', false, '1000', 151),
+                                                                                      (136, 'Payroll', 'Payroll', '1810', false, '1000', 151);
 
 insert into role (id,  name, description, company, modelid) values
                                                                 (-1, 'devops', 'DevOps', '1000', 121),
@@ -708,6 +808,8 @@ insert into account
                                                                                                                                                              ('1601','Kasse','Kasse',current_timestamp, current_timestamp, current_timestamp, '1000',9, '1600', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
                                                                                                                                                              ('331031','Verbbindlichkeiten 1','Verbbindlichkeiten 1',current_timestamp, current_timestamp, current_timestamp, '1000',9, '331030', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
                                                                                                                                                              ('3806','MWst 19%','MWst 19%',current_timestamp, current_timestamp, current_timestamp, '1000',9, '6', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
+                                                                                                                                                             ('5000','Warenbestand','Warenbestand',current_timestamp, current_timestamp, current_timestamp, '1000',9, '9901', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
+                                                                                                                                                             ('5400','Wareneinsatz 19%','Wareneinsatz 19%',current_timestamp, current_timestamp, current_timestamp, '1000',9, '6', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
                                                                                                                                                              ('00000','Dummy','Dummy','2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '1000',9, '5', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0);
 
 
@@ -836,11 +938,30 @@ INSERT INTO public."module"
 VALUES('15', 'menu.quantityUnit', './MasterfileForm', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, '1000', 400, '/qty', 20);
 --insert into user_right select 15 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
 
+INSERT INTO public."module"
+(id, name, description, postingdate, changedate, enterdate, company, modelid, path, parent)
+VALUES('38', 'menu.closeAccountingPeriod', './MasterfileForm', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, '1000', 400, '/close', 30);
+insert into user_right select 38 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
+
+INSERT INTO public."module"
+(id, name, description, postingdate, changedate, enterdate, company, modelid, path, parent)
+VALUES('39', 'menu.createPayrollTransaction', './MasterfileForm', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, '1000', 400, '/ptr', 30);
+insert into user_right select 39 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
+
+INSERT INTO public."module"
+(id, name, description, postingdate, changedate, enterdate, company, modelid, path, parent)
+VALUES('41', 'menu.createDepreciationTransaction', './MasterfileForm', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, '1000', 400, '/ftr', 30);
+insert into user_right select 41 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
+
+INSERT INTO public."module"
+(id, name, description, postingdate, changedate, enterdate, company, modelid, path, parent)
+VALUES('1301', 'menu.transaction', './TransactionMainForm', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, '1000', 400, '/ltr', 30);
+insert into user_right select 1301 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
 
 INSERT INTO public."module"
 (id, name, description, postingdate, changedate, enterdate, company, modelid, path, parent)
 VALUES('172', 'menu.payrollTaxRange', './MasterfileForm', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, '1000', 400, '/payrollTax', 20);
---insert into user_right select 15 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
+--insert into user_right select 172 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
 --ALTER TABLE payroll_tax_range RENAME COLUMN taxClass TO tax_class;
 insert into payroll_tax_range(id, from_amount, to_amount, tax_class, tax, company, modelid)
 values('1', 4968.00, 5003.99, 'I', 0, '1000', 172),('2', 4968.00, 5003.99, 'II', 0, '1000', 172),

@@ -26,6 +26,8 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
     art.stocked,
     art.quantityUnit,
     art.packUnit,
+    art.stockAccount,
+    art.expenseAccount,
     art.company,
     art.modelid,
     art.enterdate,
@@ -46,6 +48,8 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
     stocked,
     quantityUnit,
     packUnit,
+    stockAccount,
+    expenseAccount,
     company,
     modelid,
     enterdate,
@@ -65,6 +69,8 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
     stocked,
     quantityUnit,
     packUnit,
+    stockAccount,
+    expenseAccount,
     company,
     modelid,
     enterdate,
@@ -91,6 +97,8 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
       stocked,
       quantityUnit,
       packUnit,
+      stockAccount,
+      expenseAccount,
       company,
       modelid,
       enterdate,
@@ -142,8 +150,17 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
       .set(stocked, model.stocked)
       .set(quantityUnit, model.quantityUnit)
       .set(packUnit, model.packUnit)
+      .set(stockAccount, model.stockAccount)
+      .set(expenseAccount, model.expenseAccount)
       .set(company, model.company)
       .where(whereClause(model.id, model.company))
+   def buildUpdatePrices(model: Article_) =
+    update(articles)
+      .set(sprice, model.sprice)
+      .set(pprice, model.pprice)
+      .set(avgPrice, model.avgPrice)
+      .where(whereClause(model.id, model.company))
+
 
   override def modify(model: Article): ZIO[Any, RepositoryError, Int]        = {
     val update_ = build(Article_(model))
@@ -179,7 +196,7 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
   override def list(Id:(Int, String)): ZStream[Any, RepositoryError, Article]                   = {
     val selectAll = SELECT.where(modelid === Id._1 && company === Id._2)
     ZStream.fromZIO(
-      ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")
+      ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")
     ) *>
       execute(selectAll.to ( c =>Article.apply(c)))
         .provideDriver(driverLayer)

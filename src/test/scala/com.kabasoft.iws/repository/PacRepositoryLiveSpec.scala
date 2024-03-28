@@ -1,7 +1,7 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AccountBuilder.companyId
-import com.kabasoft.iws.domain.TransactionBuilder.pacs
+import com.kabasoft.iws.domain.FinancialsTransactionBuilder.pacs
 import com.kabasoft.iws.repository.container.PostgresContainer
 import zio.ZLayer
 import zio.sql.ConnectionPool

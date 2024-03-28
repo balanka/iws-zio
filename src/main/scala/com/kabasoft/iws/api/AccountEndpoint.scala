@@ -42,8 +42,8 @@ object AccountEndpoint {
     AccountRepository.getBy((p.id, p.company)).mapError(e => RepositoryError(e.getMessage)))
   val accDeleteEndpoint = deleteAPI.implement { case (id,company) => AccountRepository.delete(id, company).mapError(e => RepositoryError(e.getMessage))}
 
-  val routes = accAllEndpoint ++ accByIdEndpoint ++ balanceEndpoint ++ closePeriodEndpoint ++ accCreateEndpoint ++ accDeleteEndpoint++accModifyEndpoint
-
-  val appAcc = routes //.toApp @@ bearerAuth(jwtDecode(_).isDefined)
+  val appAcc =
+    accAllEndpoint ++ accByIdEndpoint ++ balanceEndpoint ++ closePeriodEndpoint ++ accCreateEndpoint ++
+      accDeleteEndpoint++accModifyEndpoint
 
 }

@@ -23,7 +23,7 @@ object LoginRoutes {
             ZIO
               .fromEither(request.fromJson[LoginRequest])
               .mapError(e => RepositoryError(e))
-              .tapError(e => ZIO.logInfo(s"Unparseable body ${e}"))
+              .tapError(e => ZIO.logInfo(s"Unparseable body ${e.message}"))
           )
           .flatMap (checkLogin)
       } yield body
@@ -54,7 +54,6 @@ object LoginRoutes {
       Response.json(user.toJson).addHeader(Custom("authorization", token))
         .addHeader(Custom("Access-Control-Allow-Origin", "*"))
         .addHeader(Custom("Origin", webUrl))
-        .addHeader(Custom("Origin", "http://mac-Studio.fritz.box:3000"))
 
     } else {
       Response.text("Invalid  user name or password "
