@@ -39,7 +39,6 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       .mapError(e => { println(e.getMessage)
         RepositoryError(e.toString)})
       .provideLayer(driverLayer)
-
   @nowarn
   override def create(ftr : Transaction): ZIO[Any, RepositoryError, Transaction] =
     if (ftr.id > 0) {
@@ -48,8 +47,6 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
         nr <-  create2(List(ftr)) *> getByTransId1(ftr.id1, ftr.company)
       } yield nr
 
-
-
   @nowarn
   override def create(models: List[Transaction]): ZIO[Any, RepositoryError, List[Transaction]] = for{
      nr <-  create2(models) *> getByTransId1x(models.map(m => m.id), models.head.company)
@@ -57,7 +54,6 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 
   private def buildDeleteDetails(ids: List[Long]): Delete[TransactionDetails] =
     deleteFrom(transactionDetails).where(lid_ in ids)
-
   override def delete(id : Long, companyId: String): ZIO[Any, RepositoryError, Int] = {
     val deleteQuery = deleteFrom(transactions).where((id_ === id) && (company_ === companyId))
     ZIO.logDebug(s"Delete  FinancialsTransactionDetails  ${renderDelete(deleteQuery)}")*>
@@ -95,7 +91,6 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       .set(posted_, trans.posted)
       .where((id_ === trans.id) && (company_ === trans.company))
   }
-
   @nowarn
   override def modify(model:Transaction): ZIO[Any, RepositoryError, Int] = {
 
@@ -231,7 +226,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
 
   override def getByIds(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, List[Transaction]] = {
     val selectAll = SELECT2.where((company_ === companyId) && (id_ in  ids))
-   // ZStream.fromZIO(ZIO.logDebug(s"Query to execute getById ${ids} is ${renderRead(selectAll)}")) *>
+     ZIO.logDebug(s"Query to execute getByIds ${ids} is ${renderRead(selectAll)}") *>
       execute(selectAll.to[Transaction](c => Transaction.applyC(c)))
         .provideDriver(driverLayer)
         .runCollect.map(_.toList)

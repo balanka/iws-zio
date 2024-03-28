@@ -534,6 +534,7 @@ create table if not exists fmodule
     postingdate  timestamp default CURRENT_DATE not null,
     account varchar(50)  not null,
     is_debit boolean,
+    parent varchar(50)  not null,
     company varchar(50)  not null,
     modelid integer  not null
 );
@@ -653,28 +654,31 @@ insert into article (id,  name, description, parent, sprice, pprice, avg_price,c
 
 
 insert into store (id,  name, description, account, company, modelid) values
-                                                                          ('001', 'Zentral-Lager', 'Zentral-Lager', '', '1000', 35),
-                                                                          ('002', 'Nebenlager', 'Nebenlager', '','1000', 35);
+                   ('001', 'Zentral-Lager', 'Zentral-Lager', '', '1000', 35),
+                   ('002', 'Nebenlager', 'Nebenlager', '','1000', 35);
 insert into stock (id, store, article, quantity, charge, company, modelid) values ('31100011000', '311', '0001', 0, '', '1000', 37);
 
-insert into fmodule (id,  name, description, account, is_debit, company, modelid) values
-                                                                                      (112, 'Payables', 'Payables/Supplier invoices', '1810', false, '1000', 151),
-                                                                                      (114, 'Payment', 'Payment', '1810', false, '1000', 151),
-                                                                                      (122, 'Receivables', 'Receivables/Customer invoices', '1810', false, '1000', 151),
-                                                                                      (124, 'Settlement', 'Settlement', '1810', false, '1000', 151),
-                                                                                      (134, 'General ledger', 'General ledger', '1810', false, '1000', 151),
-                                                                                      (136, 'Payroll', 'Payroll', '1810', false, '1000', 151);
+insert into fmodule (id,  name, description, account, is_debit, parent, company, modelid) values
+                    (112, 'Payables', 'Payables/Supplier invoices', '1810', false, '1300', '1000', 151),
+                    (114, 'Payment', 'Payment', '1810', false, '1300', '1000', 151),
+                    (122, 'Receivables', 'Receivables/Customer invoices', '1810', false, '1300', '1000', 151),
+                    (124, 'Settlement', 'Settlement', '1810', false, '1300', '1000', 151),
+                    (134, 'General ledger', 'General ledger', '1810', false, '1300', '1000', 151),
+                    (136, 'Payroll', 'Payroll', '1810', false, '1300', '1000', 151),
+                    (137,'Purchase order', 'Purchase order', '-1', false,'1301', '1000', 151),
+                    (138,'Goodreceiving', 'Goodreceiving', '-1', false,'1301', '1000', 151),
+                    (139,'Supplier invoice', 'Supplier invoice', '-1', false,'1301', '1000', 151);
 
 insert into role (id,  name, description, company, modelid) values
-                                                                (-1, 'devops', 'DevOps', '1000', 121),
-                                                                (1, 'admin', 'Administrator', '1000', 121),
-                                                                (2, 'dev', 'Developer', '1000', 121),
-                                                                (3, 'acc', 'Accountant', '1000', 121),
-                                                                (4, 'acc_senior', 'Senior Accountant', '1000', 121),
-                                                                (5, 'acc_assist', 'Accountant assistant', '1000', 121),
-                                                                (6, 'logistic', 'Logistic', '1000', 121),
-                                                                (7, 'logistic_senior', 'Senior Logistic', '1000', 121),
-                                                                (8, 'logistic_assist', 'Logistic assistant', '1000', 121);
+                 (-1, 'devops', 'DevOps', '1000', 121),
+                 (1, 'admin', 'Administrator', '1000', 121),
+                 (2, 'dev', 'Developer', '1000', 121),
+                 (3, 'acc', 'Accountant', '1000', 121),
+                 (4, 'acc_senior', 'Senior Accountant', '1000', 121),
+                 (5, 'acc_assist', 'Accountant assistant', '1000', 121),
+                 (6, 'logistic', 'Logistic', '1000', 121),
+                 (7, 'logistic_senior', 'Senior Logistic', '1000', 121),
+                 (8, 'logistic_assist', 'Logistic assistant', '1000', 121);
 
 insert into user_role (userid,  roleid,  company, modelid) values
                                                                (1, -1,  1000, 161),
@@ -980,3 +984,8 @@ VALUES (1, -1, 1, '300', '1600', '2023-04-08T14:46:44.173Z', '2023-04-08T15:07:2
 INSERT INTO details_compta (transid,  account, side, oaccount, amount, duedate, text, currency, account_name, oaccount_name)
 VALUES (1,  '1200', true, '4400', 81.00, '2023-04-09T15:50:17.598252Z', 'terms', 'EUR', 'Forderungen aus Lieferungen und Leistungen', 'Umsatzerloese 19%' ),
        (1,  '1200', true, '3806', 19.00, '2023-04-09T15:50:17.598270Z', 'terms', 'EUR','Forderungen aus Lieferungen und Leistungen', 'MWSt 19%' );
+
+
+-- insert  into transaction (oid, id1, store, costcenter, text, company, modelid, period) values(-1, -1, '001', '200', 'Test', '1000', 101, 202403);
+-- insert  into transaction (oid, id1, store, costcenter, text, company, modelid, period) values(-1, -1, '001', '200', 'Test', '1000', 105, 202403);
+-- insert  into transaction (oid, id1, store, costcenter, text, company, modelid, period) values(-1, -1, '001', '200', 'Test', '1000', 139, 202403);

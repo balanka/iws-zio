@@ -4,7 +4,7 @@ import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.Transaction
 import com.kabasoft.iws.repository.Schema._
 import com.kabasoft.iws.repository._
-import com.kabasoft.iws.service.FinancialsService
+import com.kabasoft.iws.service.TransactionService
 import zio.ZIO
 import zio.http.Status
 import zio.http.codec.HttpCodec.{int, _}
@@ -34,7 +34,7 @@ object TransactionEndpoint {
 
   private val trPostAllEndpoint = trPostAllAPI.implement(p => //ZIO.logInfo(s"Post all transaction by id ${p}") *>
     ZIO.logInfo(s"Post all transaction by id ${p._1.split(',').map(_.toLong).toList}") *>
-    FinancialsService.postAll(p._1.split(',').map(_.toLong).toList, p._2).mapError(e => RepositoryError(e.getMessage)) *>
+    TransactionService.postAll(p._1.split(',').map(_.toLong).toList, p._2).mapError(e => RepositoryError(e.getMessage)) *>
     TransactionRepository.getByIds(p._1.split(' ').map(_.toLong).toList, p._2).mapError(e => RepositoryError(e.getMessage)))
 
   private val trCancelnEndpoint = trCancelnAPI.implement(ftr => ZIO.logInfo(s" Canceln  transaction ${ftr}") *>
@@ -45,7 +45,7 @@ object TransactionEndpoint {
   private val trByModelIdEndpoint = trByModelIdAPI.implement(p =>  ZIO.logInfo(s" get transaction by ModelId ${p}") *>
      TransactionCache.getByModelId((p._2,p._1)).mapError(e => RepositoryError(e.getMessage)))
 
-  private val trPost4PeriodEndpoint = trPost4PeriodAPI.implement(p => FinancialsService.postTransaction4Period(p._2, p._3, p._1).mapError(e => RepositoryError(e.getMessage)))
+  private val trPost4PeriodEndpoint = trPost4PeriodAPI.implement(p => TransactionService.postTransaction4Period(p._2, p._3, p._1).mapError(e => RepositoryError(e.getMessage)))
 
   val trModifyEndpoint = trModifyAPI.implement(ftr => ZIO.logInfo(s"Modify Transaction  ${ftr}") *>
     TransactionRepository.update(ftr).mapError(e => RepositoryError(e.getMessage)))
