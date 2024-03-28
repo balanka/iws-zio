@@ -36,7 +36,8 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
   @nowarn
   override def create2(transactions: List[Transaction]): ZIO[Any, RepositoryError, Int] =
     transact(create2s( buildId1(transactions)))
-      .mapError(e => RepositoryError(e.toString))
+      .mapError(e => { println(e.getMessage)
+        RepositoryError(e.toString)})
       .provideLayer(driverLayer)
 
   @nowarn
