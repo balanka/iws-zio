@@ -1728,27 +1728,27 @@ object Employee                      {
       List.empty[BankAccount]
     )
 }
-final case class TransactionDetails( id: Long, transid: Long, article: String, quantity: BigDecimal, unit: String, price: BigDecimal,
+final case class TransactionDetails( id: Long, transid: Long, article: String, articleName:String, quantity: BigDecimal, unit: String, price: BigDecimal,
                                      currency: String, duedate: Instant = Instant.now(), text: String)
-final case class TransactionDetails_(transid: Long, article: String, quantity: BigDecimal, unit: String, price: BigDecimal,
+final case class TransactionDetails_(transid: Long, article: String, articleName:String, quantity: BigDecimal, unit: String, price: BigDecimal,
                                      currency: String, duedate: Instant = Instant.now(), text: String)
 
 object TransactionDetails  {
 
-  val dummy                                                   = TransactionDetails(0, 0, "", zeroAmount, "", zeroAmount, "", Instant.now(), "")
+  val dummy                                                   = TransactionDetails(0, 0, "", "", zeroAmount, "", zeroAmount, "", Instant.now(), "")
   implicit val monoid: Identity[TransactionDetails] =
     new Identity[TransactionDetails] {
-      def identity                                                                          = dummy
-      def combine(m1: => TransactionDetails, m2: => TransactionDetails) =
+      def identity: TransactionDetails = dummy
+      def combine(m1: => TransactionDetails, m2: => TransactionDetails): TransactionDetails =
         m2.copy(quantity = m2.quantity.add(m1.quantity))
     }
 
-  type TransactionDetails_Type = (Long, Long, String, BigDecimal, String, BigDecimal, String, Instant,  String)
+  type TransactionDetails_Type = (Long, Long, String, String, BigDecimal, String, BigDecimal, String, Instant,  String)
 
   def apply(tr: TransactionDetails_Type): TransactionDetails =
-    new TransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9)
+    new TransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10)
   def apply(tr: TransactionDetails): TransactionDetails =
-    new TransactionDetails(tr.id, tr.transid, tr.article, tr.quantity, tr.unit, tr.price, tr.currency, tr.duedate, tr.text)
+    new TransactionDetails(tr.id, tr.transid, tr.article, tr.articleName, tr.quantity, tr.unit, tr.price, tr.currency, tr.duedate, tr.text)
 }
 final case class FinancialsTransactionDetails(
   id: Long,
@@ -1832,24 +1832,24 @@ object FinancialsTransaction_        {
     tr.file_content
   )
 }
-final case class Transaction_( oid: Long,
-                               id1: Long,
-                               store: String,
-                               account: String,
-                               transdate: Instant = Instant.now(),
-                               enterdate: Instant = Instant.now(),
-                               postingdate: Instant = Instant.now(),
-                               period: Int = common.getPeriod(Instant.now()),
-                               posted: Boolean = false,
-                               modelid: Int,
-                               company: String,
-                               text: String = ""
+final case class Transaction_(oid: Long,
+                              id1: Long,
+                              store: String,
+                              costcenter: String,
+                              transdate: Instant = Instant.now(),
+                              enterdate: Instant = Instant.now(),
+                              postingdate: Instant = Instant.now(),
+                              period: Int = common.getPeriod(Instant.now()),
+                              posted: Boolean = false,
+                              modelid: Int,
+                              company: String,
+                              text: String = ""
                              )
-final case class Transactionx( id: Long,
+final case class Transactionx(id: Long,
                               oid: Long,
                               id1: Long,
                               store: String,
-                              account: String,
+                              costcenter: String,
                               transdate: Instant = Instant.now(),
                               enterdate: Instant = Instant.now(),
                               postingdate: Instant = Instant.now(),
@@ -1860,20 +1860,20 @@ final case class Transactionx( id: Long,
                               text: String = ""
                             )
 final case class Transaction(
-                                        id: Long,
-                                        oid: Long,
-                                        id1: Long,
-                                        store: String,
-                                        account: String,
-                                        transdate: Instant = Instant.now(),
-                                        enterdate: Instant = Instant.now(),
-                                        postingdate: Instant = Instant.now(),
-                                        period: Int = common.getPeriod(Instant.now()),
-                                        posted: Boolean = false,
-                                        modelid: Int,
-                                        company: String,
-                                        text: String = "",
-                                        lines: List[TransactionDetails] = Nil
+                              id: Long,
+                              oid: Long,
+                              id1: Long,
+                              store: String,
+                              costcenter: String,
+                              transdate: Instant = Instant.now(),
+                              enterdate: Instant = Instant.now(),
+                              postingdate: Instant = Instant.now(),
+                              period: Int = common.getPeriod(Instant.now()),
+                              posted: Boolean = false,
+                              modelid: Int,
+                              company: String,
+                              text: String = "",
+                              lines: List[TransactionDetails] = Nil
                                       ) {
   def month: String = common.getMonthAsString(transdate)
   def year: Int     = common.getYear(transdate)
@@ -1910,19 +1910,19 @@ object Transaction {
     )
 }
 
-final case class TransactionLog(id:Long, transid:Long, oid:Long, store:String, account:String, article:String,
-quantity:BigDecimal, stock:BigDecimal, wholeStock:BigDecimal, unit:String, price:BigDecimal, avgPrice:BigDecimal,
-currency:String, duedate:Instant, text:String, transdate:Instant, postingdate:Instant, enterdate:Instant,
- period:Int, company:String, modelid:Int)
-final case class TransactionLog_(transid:Long, oid:Long, store:String, account:String, article:String,
+final case class TransactionLog(id:Long, transid:Long, oid:Long, store:String, costcenter:String, article:String,
                                 quantity:BigDecimal, stock:BigDecimal, wholeStock:BigDecimal, unit:String, price:BigDecimal, avgPrice:BigDecimal,
                                 currency:String, duedate:Instant, text:String, transdate:Instant, postingdate:Instant, enterdate:Instant,
                                 period:Int, company:String, modelid:Int)
+final case class TransactionLog_(transid:Long, oid:Long, store:String, costcenter:String, article:String,
+                                 quantity:BigDecimal, stock:BigDecimal, wholeStock:BigDecimal, unit:String, price:BigDecimal, avgPrice:BigDecimal,
+                                 currency:String, duedate:Instant, text:String, transdate:Instant, postingdate:Instant, enterdate:Instant,
+                                 period:Int, company:String, modelid:Int)
 object TransactionLog_ {
   def apply(c:TransactionLog):TransactionLog_ = TransactionLog_( c.transid,
     c.oid,
     c.store,
-    c.account,
+    c.costcenter,
     c.article,
     c.quantity,
     c.stock,
@@ -1957,7 +1957,7 @@ final case class FinancialsTransaction(
   typeJournal: Int = 0,
   file_content: Int = 0,
   lines: List[FinancialsTransactionDetails] = Nil,
-  lines2: List[TransactionDetails] = Nil
+  //lines2: List[TransactionDetails] = Nil
   // ,copyFlag: Boolean = false
 ) {
   def month: String = common.getMonthAsString(transdate)
@@ -1966,8 +1966,8 @@ final case class FinancialsTransaction(
 
   def total: BigDecimal = lines.map(_.amount) reduce ((l1, l2) => l2.add(l1).setScale(2, RoundingMode.HALF_UP))
 
-  def total2: BigDecimal = lines2.map(l=>l.quantity.multiply(l.price)) reduce ((l1, l2) =>
-    l2.add(l1).setScale(2, RoundingMode.HALF_UP))
+//  def total2: BigDecimal = lines2.map(l=>l.quantity.multiply(l.price)) reduce ((l1, l2) =>
+//    l2.add(l1).setScale(2, RoundingMode.HALF_UP))
   def canceln: FinancialsTransaction = copy(oid = id, id = 0, posted = false, lines=lines.map(line=>line.copy( amount = line.amount.negate())))
   def duplicate: FinancialsTransaction = copy(oid = id, id = 0, posted = false)
 
@@ -2189,6 +2189,7 @@ final case class  Fmodule (id:Int, name:String, description:String,
                            enterdate: Instant,
                            account:String,
                            isDebit:Boolean,
+                           parent:String,
                            modelid:Int = Fmodule.MODEL_ID,
                            company:String )
 object Fmodule {

@@ -24,6 +24,7 @@ import com.kabasoft.iws.api.PayrollTaxRangeEndpoint.appPayrollTaxRange
 import com.kabasoft.iws.api.StockEndpoint.appStock
 import com.kabasoft.iws.api.StoreEndpoint.appStore
 import com.kabasoft.iws.api.SupplierEndpoint.appSup
+import com.kabasoft.iws.api.TransactionEndpoint.appLtr
 import com.kabasoft.iws.api.UserEndpoint.appUser
 import com.kabasoft.iws.api.VatEndpoint.appVat
 import com.kabasoft.iws.config.DbConfig.connectionPoolConfig
@@ -69,7 +70,7 @@ object IwsApp extends ZIOAppDefault {
       allowedMethods = AccessControlAllowMethods(Method.GET, Method.POST, Method.PUT, Method.PATCH, Method.DELETE)
     )
 
-  private val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc  ++ appComp  ++ appFtr ++ appFModule
+  private val httpApp =   (appVat ++ appSup ++ appCust ++ appModule ++ appAcc  ++ appComp  ++ appFtr ++ appLtr ++appFModule
     ++ routesEmp ++ appArticle ++ appStore ++ appSalaryItem ++ appPayroll ++ appMasterfile ++appPayrollTaxRange
     ++ appImportFile ++appBankStmt ++  appUser ++ appPac ++ appJournal  ++appPerm ++ appRole ++ appAsset ++ appStock)
 
@@ -130,6 +131,8 @@ object IwsApp extends ZIOAppDefault {
           BankStatementServiceImpl.live,
           FinancialsServiceImpl.live,
           PostFinancialsTransactionRepositoryImpl.live,
+          TransactionRepositoryImpl.live,
+          TransactionCacheImpl.live,
           TransactionLogRepositoryImpl.live
         ).<*( ZIO.logInfo(s"http server started successfully!!!!"))
 }

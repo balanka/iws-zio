@@ -12,17 +12,17 @@ import zio.http.endpoint.Endpoint
 
 object TransactionEndpoint {
 
-  val trCreateAPI     = Endpoint.post(literal("tr")).in[Transaction].out[Transaction].outError[RepositoryError](Status.InternalServerError)
-  private val trAllAPI        = Endpoint.get("tr" / string("company")).out[List[Transaction]].outError[RepositoryError](Status.InternalServerError)
-  private val trByModelIdAPI  = Endpoint.get("tr"/ literal("model")/ string("company")/int("modelid")).out[List[Transaction]].outError[RepositoryError](Status.InternalServerError)
-  val trByTransIdAPI  = Endpoint.get("tr" / string("company")/ int("transid")).out[Transaction].outError[RepositoryError](Status.InternalServerError)
-  private val deleteAPI = Endpoint.delete("tr" / string("company")/ int("transid")).out[Int].outError[RepositoryError](Status.InternalServerError)
-  val trModifyAPI     = Endpoint.put(literal("tr")).in[Transaction].out[Transaction].outError[RepositoryError](Status.InternalServerError)
-  val trCancelnAPI     = Endpoint.put("cancelnTr").in[Transaction].out[Transaction].outError[RepositoryError](Status.InternalServerError)
-  val trDuplicateAPI     = Endpoint.put("duplicateTr").in[Transaction].out[Transaction].outError[RepositoryError](Status.InternalServerError)
+  val trCreateAPI     = Endpoint.post(literal("ltr")).in[Transaction].out[Transaction].outError[RepositoryError](Status.InternalServerError)
+  private val trAllAPI        = Endpoint.get("ltr" / string("company")).out[List[Transaction]].outError[RepositoryError](Status.InternalServerError)
+  private val trByModelIdAPI  = Endpoint.get("ltr"/ literal("model")/ string("company")/int("modelid")).out[List[Transaction]].outError[RepositoryError](Status.InternalServerError)
+  val trByTransIdAPI  = Endpoint.get("ltr" / string("company")/ int("transid")).out[Transaction].outError[RepositoryError](Status.InternalServerError)
+  private val deleteAPI = Endpoint.delete("ltr" / string("company")/ int("transid")).out[Int].outError[RepositoryError](Status.InternalServerError)
+  val trModifyAPI     = Endpoint.put(literal("ltr")).in[Transaction].out[Transaction].outError[RepositoryError](Status.InternalServerError)
+  val trCancelnAPI     = Endpoint.put("cancelnLTr").in[Transaction].out[Transaction].outError[RepositoryError](Status.InternalServerError)
+  val trDuplicateAPI     = Endpoint.put("duplicateLTr").in[Transaction].out[Transaction].outError[RepositoryError](Status.InternalServerError)
   //private val ftrPostAPI     = Endpoint.get("ftr"/literal("post")/ int("transid")/string("company")).out[FinancialsTransaction].outError[RepositoryError](Status.InternalServerError)
-  private val trPostAllAPI     = Endpoint.get("tr"/literal("post")/ string("transids")/string("company")).out[List[Transaction]].outError[RepositoryError](Status.InternalServerError)
-  private val trPost4PeriodAPI     = Endpoint.get("tr/post"/ string("company")/ int("from") / int("to")).out[Int].outError[RepositoryError](Status.InternalServerError)
+  private val trPostAllAPI     = Endpoint.get("ltr"/literal("post")/ string("transids")/string("company")).out[List[Transaction]].outError[RepositoryError](Status.InternalServerError)
+  private val trPost4PeriodAPI     = Endpoint.get("ltr/post"/ string("company")/ int("from") / int("to")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
 
   private val trAllEndpoint        = trAllAPI.implement(company => TransactionCache.all(company).mapError(e => RepositoryError(e.getMessage)))
@@ -42,7 +42,8 @@ object TransactionEndpoint {
   private val trDuplicateEndpoint = trDuplicateAPI.implement(ftr => ZIO.logInfo(s" Duplicate  transaction ${ftr}") *>
     TransactionRepository.create(ftr.duplicate).mapError(e => RepositoryError(e.getMessage)))
 
-  private val trByModelIdEndpoint = trByModelIdAPI.implement(p => TransactionCache.getByModelId((p._2,p._1)).mapError(e => RepositoryError(e.getMessage)))
+  private val trByModelIdEndpoint = trByModelIdAPI.implement(p =>  ZIO.logInfo(s" get transaction by ModelId ${p}") *>
+     TransactionCache.getByModelId((p._2,p._1)).mapError(e => RepositoryError(e.getMessage)))
 
   private val trPost4PeriodEndpoint = trPost4PeriodAPI.implement(p => FinancialsService.postTransaction4Period(p._2, p._3, p._1).mapError(e => RepositoryError(e.getMessage)))
 
@@ -51,7 +52,7 @@ object TransactionEndpoint {
 
   private val trDeleteEndpoint = deleteAPI.implement(p => FinancialsTransactionRepository.delete(p._2.toLong, p._1).mapError(e => RepositoryError(e.getMessage)))
 
-  val appFtr = trModifyEndpoint++trAllEndpoint  ++trByModelIdEndpoint ++ trCreateEndpoint ++trDeleteEndpoint++
+  val appLtr = trModifyEndpoint++trAllEndpoint  ++trByModelIdEndpoint ++ trCreateEndpoint ++trDeleteEndpoint++
                trPost4PeriodEndpoint++ trByTransIdEndpoint++trPostAllEndpoint++trCancelnEndpoint++trDuplicateEndpoint
 
 }

@@ -13,9 +13,9 @@ final class FModuleRepositoryImpl(pool: ConnectionPool) extends FModuleRepositor
 
   val fmodule = defineTable[Fmodule]("fmodule")
 
-  val (id, name, description, enterdate, changedate, postingdate, account, is_debit, modelid, company) = fmodule.columns
+  val (id, name, description, enterdate, changedate, postingdate, account, is_debit, parent, modelid, company) = fmodule.columns
 
-  val SELECT                                                                           = select(id, name, description, enterdate, changedate, postingdate, account, is_debit, modelid, company).from(fmodule)
+  val SELECT = select(id, name, description, enterdate, changedate, postingdate, account, is_debit, parent, modelid, company).from(fmodule)
 
 
   def whereClause(Id: Int, companyId: String) =
@@ -34,7 +34,7 @@ final class FModuleRepositoryImpl(pool: ConnectionPool) extends FModuleRepositor
     }
 
   override def create2(c: Fmodule): ZIO[Any, RepositoryError, Unit]                        = {
-    val query = insertInto(fmodule)(id, name, description, enterdate, changedate, postingdate, account, is_debit, modelid, company).values(Fmodule.unapply(c).get)
+    val query = insertInto(fmodule)(id, name, description, enterdate, changedate, postingdate, account, is_debit, parent, modelid, company).values(Fmodule.unapply(c).get)
 
     ZIO.logDebug(s"Query to insert Bank is ${renderInsert(query)}") *>
       execute(query)
@@ -43,7 +43,7 @@ final class FModuleRepositoryImpl(pool: ConnectionPool) extends FModuleRepositor
   }
   override def create2(models: List[Fmodule]): ZIO[Any, RepositoryError, Int]              = {
     val data  = models.map(Fmodule.unapply(_).get)
-    val query = insertInto(fmodule)(id, name, description, enterdate, changedate, postingdate, account, is_debit, modelid, company).values(data)
+    val query = insertInto(fmodule)(id, name, description, enterdate, changedate, postingdate, account, is_debit, parent, modelid, company).values(data)
 
     ZIO.logDebug(s"Query to insert Bank is ${renderInsert(query)}") *>
       execute(query)
@@ -60,6 +60,7 @@ final class FModuleRepositoryImpl(pool: ConnectionPool) extends FModuleRepositor
   override def modify(model: Fmodule): ZIO[Any, RepositoryError, Int] = {
     val update_ = update(fmodule)
       .set(name, model.name)
+      .set(parent, model.parent)
       .set(description, model.description)
       .where(whereClause( model.id,  model.company))
     ZIO.logDebug(s"Query Update Bank is ${renderUpdate(update_)}") *>
@@ -68,11 +69,11 @@ final class FModuleRepositoryImpl(pool: ConnectionPool) extends FModuleRepositor
         .mapError(e => RepositoryError(e.getMessage))
   }
 
-  override def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Fmodule]] =
+  override def all(Id:(Int, String, String)): ZIO[Any, RepositoryError, List[Fmodule]] =
     list(Id).runCollect.map(_.toList)
 
-  override def list(Id:(Int, String)): ZStream[Any, RepositoryError, Fmodule]                   = {
-    val selectAll = SELECT.where(modelid === Id._1 && company === Id._2)
+  override def list(Id:(Int, String, String)): ZStream[Any, RepositoryError, Fmodule]                   = {
+    val selectAll = SELECT.where(modelid === Id._1 && company === Id._2 && parent === Id._3)
     ZStream.fromZIO(
       ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")
     ) *>

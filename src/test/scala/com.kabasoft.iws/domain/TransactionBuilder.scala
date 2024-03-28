@@ -1,7 +1,7 @@
 package com.kabasoft.iws.domain
 
 import com.kabasoft.iws.domain.AccountBuilder._
-import com.kabasoft.iws.domain.ArticleBuilder.{artId0, artId1}
+import com.kabasoft.iws.domain.ArticleBuilder.{artId0, artId1, artName0, artName1}
 
 import java.math.{BigDecimal, RoundingMode}
 import java.time.Instant
@@ -25,8 +25,8 @@ object TransactionBuilder {
   val store = "311"
   val qttyUnit = "stk"
 
-  val line1=  TransactionDetails(-1L, 0L,  artId0 , quantity0, qttyUnit, pprice0, currency, vtime, terms )
-  val line2=  TransactionDetails(-1L, 0L,  artId1 , quantity1, qttyUnit, pprice1, currency, vtime, terms )
+  val line1=  TransactionDetails(-1L, 0L,  artId0, artName0 , quantity0, qttyUnit, pprice0, currency, vtime, terms )
+  val line2=  TransactionDetails(-1L, 0L,  artId1, artName1 , quantity1, qttyUnit, pprice1, currency, vtime, terms )
 
   val ftr1 = Transaction(0,-1, -1,  store, accountId, vtime, vtime, vtime, period, posted = false, modelid, company, terms
           ,  List(line1, line2))

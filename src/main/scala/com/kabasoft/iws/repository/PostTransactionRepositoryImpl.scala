@@ -71,7 +71,7 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
       oid_,
       id1_,
       store_,
-      account_,
+      costcenter_,
       transdate_,
       enterdate_,
       postingdate_,

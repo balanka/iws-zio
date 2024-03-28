@@ -18,7 +18,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     oidx,
     id1,
     storex,
-    accountx,
+    costcenterx,
     transdatex,
     enterdatex,
     postingdatex,
@@ -34,7 +34,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     oid_,
     id1_,
     store_,
-    account_,
+    costcenter_,
     transdate_,
     enterdate_,
     postingdate_,
@@ -50,6 +50,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     lid_,
     transid,
     article_,
+    article_name_,
     quantity_,
     unit_,
     price_,
@@ -60,6 +61,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
 
   val (transidx,
      articlex,
+     article_namex,
      quantityx,
      unitx,
      pricex,
@@ -72,7 +74,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     c.oid,
     c.id1,
     c.store,
-    c.account,
+    c.costcenter,
     c.transdate,
     c.enterdate,
     c.postingdate,
@@ -85,6 +87,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
   private  def toTuple(c: TransactionDetails) = (
     c.transid,
     c.article,
+    c.articleName,
     c.quantity,
     c.unit,
     c.price,
@@ -92,15 +95,15 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     c.duedate,
     c.text
   )
-   def buildInsertNewLine(model_ : TransactionDetails): Insert[TransactionDetails_, (Long, TableName, java.math.BigDecimal, TableName, java.math.BigDecimal, TableName, Instant, TableName)] = {
+   def buildInsertNewLine(model_ : TransactionDetails): Insert[TransactionDetails_, (Long, TableName, TableName, java.math.BigDecimal, TableName, java.math.BigDecimal, TableName, Instant, TableName)] = {
      println(s"model_ ${model_} ")
-    val insertStmt = insertInto(transactionDetailsInsert)(transidx, articlex, quantityx, unitx, pricex, currencyx, duedatex, textx)
+    val insertStmt = insertInto(transactionDetailsInsert)(transidx, articlex, article_namex, quantityx, unitx, pricex, currencyx, duedatex, textx)
       .values(toTuple(model_))
      println(s"renderInsert(insertStmt ${renderInsert(insertStmt)}")
      insertStmt
    }
 
-  def buildInsertNewLines(models: List[TransactionDetails]): List[Insert[TransactionDetails_, (Long, TableName, java.math.BigDecimal, TableName, java.math.BigDecimal, TableName, Instant, TableName)]] =
+  def buildInsertNewLines(models: List[TransactionDetails]): List[Insert[TransactionDetails_, (Long, TableName, TableName, java.math.BigDecimal, TableName, java.math.BigDecimal, TableName, Instant, TableName)]] =
      models.map( model =>buildInsertNewLine(model))
 
    def buildInsertQuery(models: List[Transaction]): Insert[Transaction_, (Long, Long, TableName, TableName, Instant, Instant, Instant, Int, Boolean, Int, TableName, TableName)] =
@@ -108,7 +111,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
       oidx,
       id1,
       storex,
-      accountx,
+      costcenterx,
       transdatex,
       enterdatex,
       postingdatex,

@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit
 
 final class FModuleCacheImpl (repository: FModuleRepository) extends FModuleCache  {
 
-  override def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Fmodule]] = Cache.make(
+  override def all(Id:(Int, String, String)): ZIO[Any, RepositoryError, List[Fmodule]] = Cache.make(
     capacity = 100000,
     timeToLive = Duration.apply(15, TimeUnit.HOURS),
     lookup = Lookup(repository.all)).flatMap(_.get(Id))

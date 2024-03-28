@@ -954,6 +954,11 @@ insert into user_right select 41 as moduleid, roleid, short, company, modelid fr
 
 INSERT INTO public."module"
 (id, name, description, postingdate, changedate, enterdate, company, modelid, path, parent)
+VALUES('1301', 'menu.transaction', './TransactionMainForm', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, '1000', 400, '/ltr', 30);
+insert into user_right select 1301 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
+
+INSERT INTO public."module"
+(id, name, description, postingdate, changedate, enterdate, company, modelid, path, parent)
 VALUES('172', 'menu.payrollTaxRange', './MasterfileForm', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, '1000', 400, '/payrollTax', 20);
 --insert into user_right select 172 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
 --ALTER TABLE payroll_tax_range RENAME COLUMN taxClass TO tax_class;
