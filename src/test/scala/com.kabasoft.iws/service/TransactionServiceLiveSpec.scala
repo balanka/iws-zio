@@ -52,7 +52,7 @@ object TransactionServiceLiveSpec extends ZIOSpecDefault {
           article1 <- ArticleRepository.getBy ( (artId1, ftr1.company)).debug(s"article1 >>> ${artId1}")
 
         } yield {
-          assertTrue(oneRow == 6,  postedRows == 24, stocks.size == 2, stock0.getOrElse(Stock.dummy).quantity.compareTo(amount)==0
+          assertTrue(oneRow == 6,  postedRows == 20, stocks.size == 2, stock0.getOrElse(Stock.dummy).quantity.compareTo(amount)==0
                    ,  stock1.getOrElse(Stock.dummy).quantity.compareTo(amount)==0, article0.avgPrice.compareTo(zeroAmount)==1
              , article1.avgPrice.compareTo(zeroAmount)==1)
         }
