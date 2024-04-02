@@ -44,6 +44,7 @@ import java.lang.System
 import java.time.Clock
 import java.util
 import scala.annotation.nowarn
+import scala.language.postfixOps
 
 object IwsApp extends ZIOAppDefault {
 
@@ -135,6 +136,9 @@ object IwsApp extends ZIOAppDefault {
           TransactionRepositoryImpl.live,
           TransactionCacheImpl.live,
           TransactionServiceImpl.live,
-          TransactionLogRepositoryImpl.live
+          TransactionLogRepositoryImpl.live,
+          PostOrderImpl.live,
+          PostGoodreceivingImpl.live,
+          PostBillOfDeliveryImpl.live
         ).<*( ZIO.logInfo(s"http server started successfully!!!!"))
 }

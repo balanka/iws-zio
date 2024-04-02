@@ -22,7 +22,7 @@ object TransactionEndpoint {
   val trDuplicateAPI     = Endpoint.put("duplicateLTr").in[Transaction].out[Transaction].outError[RepositoryError](Status.InternalServerError)
   //private val ftrPostAPI     = Endpoint.get("ftr"/literal("post")/ int("transid")/string("company")).out[FinancialsTransaction].outError[RepositoryError](Status.InternalServerError)
   private val trPostAllAPI     = Endpoint.get("ltr"/literal("post")/ string("transids")/string("company")).out[List[Transaction]].outError[RepositoryError](Status.InternalServerError)
-  private val trPost4PeriodAPI     = Endpoint.get("ltr/post"/ string("company")/ int("from") / int("to")).out[Int].outError[RepositoryError](Status.InternalServerError)
+  //private val trPost4PeriodAPI     = Endpoint.get("ltr/post"/ string("company")/ int("from") / int("to")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
 
   private val trAllEndpoint        = trAllAPI.implement(company => TransactionCache.all(company).mapError(e => RepositoryError(e.getMessage)))
@@ -45,7 +45,7 @@ object TransactionEndpoint {
   private val trByModelIdEndpoint = trByModelIdAPI.implement(p =>  ZIO.logInfo(s" get transaction by ModelId ${p}") *>
      TransactionCache.getByModelId((p._2,p._1)).mapError(e => RepositoryError(e.getMessage)))
 
-  private val trPost4PeriodEndpoint = trPost4PeriodAPI.implement(p => TransactionService.postTransaction4Period(p._2, p._3, p._1).mapError(e => RepositoryError(e.getMessage)))
+ // private val trPost4PeriodEndpoint = trPost4PeriodAPI.implement(p => TransactionService.postTransaction4Period(p._2, p._3, p._1).mapError(e => RepositoryError(e.getMessage)))
 
   val trModifyEndpoint = trModifyAPI.implement(ftr => ZIO.logInfo(s"Modify Transaction  ${ftr}") *>
     TransactionRepository.update(ftr).mapError(e => RepositoryError(e.getMessage)))
@@ -53,6 +53,7 @@ object TransactionEndpoint {
   private val trDeleteEndpoint = deleteAPI.implement(p => FinancialsTransactionRepository.delete(p._2.toLong, p._1).mapError(e => RepositoryError(e.getMessage)))
 
   val appLtr = trModifyEndpoint++trAllEndpoint  ++trByModelIdEndpoint ++ trCreateEndpoint ++trDeleteEndpoint++
-               trPost4PeriodEndpoint++ trByTransIdEndpoint++trPostAllEndpoint++trCancelnEndpoint++trDuplicateEndpoint
+               //trPost4PeriodEndpoint++
+           trByTransIdEndpoint++trPostAllEndpoint++trCancelnEndpoint++trDuplicateEndpoint
 
 }
