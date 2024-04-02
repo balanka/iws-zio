@@ -7,7 +7,6 @@ import com.kabasoft.iws.repository._
 import zio._
 import zio.prelude.FlipOps
 
-import java.math.RoundingMode
 
 final class PostBillOfDeliveryImpl(pacRepo: PacRepository, accRepo: AccountRepository, artRepo: ArticleRepository
                                   , stockRepo: StockRepository, repository4PostingTransaction:PostTransactionRepository)
@@ -40,7 +39,6 @@ final class PostBillOfDeliveryImpl(pacRepo: PacRepository, accRepo: AccountRepos
     journalEntries <- makeJournal(transactions, newRecords.toList, oldPacs, articles)
     stocks <- updateStock(transactions, oldStocks)
     transLogEntries <- buildTransactionLog(transactions, stocks, newStock, articles)
-    //updatedArticle <- updateAvgPrice(transactions, stocks, articles)
 
   } yield (transactions, newRecords.toList, oldPacs.flip,
       transLogEntries, journalEntries, stocks, newStock, Nil)
@@ -95,25 +93,6 @@ final class PostBillOfDeliveryImpl(pacRepo: PacRepository, accRepo: AccountRepos
       updatedStock <- updateOldStock(Stock.create(transactions).map(stock =>stock.copy(quantity = stock.quantity.negate())), oldStocks)
         .map(_.map(Stock.apply).flip).flatten
     }yield   updatedStock
-
-
-//  private def updateArticleAvgPrice(line: TransactionDetails, stocks:List[Stock], articles:List[Article]): ZIO[Any, Nothing, List[Article]] =
-//    articles.map ( article => {
-//    val purchasedValue = line.price.multiply(line.quantity)
-//    val wholeStock = groupByStockFirst(stocks.filter(st=>st.article == line.article))
-//    val wholeQuantityBefore = wholeStock.fold(zeroAmount)(_.quantity)
-//    val wholeValueBefore = wholeQuantityBefore.multiply(article.avgPrice)
-//    val wholeValueAfter = wholeValueBefore.add(purchasedValue)
-//    val wholeQuantityAfter = wholeQuantityBefore.add(line.quantity)
-//    val avgPriceAfter = if(wholeQuantityAfter.compareTo(zeroAmount)>0) wholeValueAfter.divide(wholeQuantityAfter, 2, RoundingMode.HALF_UP)  else line.price
-//    val avgPrice_ = wholeStock.fold(line.price)(_ =>avgPriceAfter)
-//      ZIO.succeed(article.copy(avgPrice = avgPrice_))
-//  }).flip
-//  private def updateAvgPrice(transactions: List[Transaction], stocks:List[Stock], articles:List[Article]): ZIO[Any, Nothing, List[Article]] =
-//    transactions.flatMap(tr => tr.lines.map(line => updateArticleAvgPrice( line,  stocks, articles.filter(_.id == line.article).distinct)))
-//    .flip.map(_.flatten)
-
-
 
   private def updateOldStock(stocksNew:List[Stock], oldStocks:List[Stock]): ZIO[Any, Nothing, List[TStock]] = for {
     updatedStock <- stocksNew

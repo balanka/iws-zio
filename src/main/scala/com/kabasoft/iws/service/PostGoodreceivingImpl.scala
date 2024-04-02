@@ -12,22 +12,6 @@ import java.math.RoundingMode
 final class PostGoodreceivingImpl(pacRepo: PacRepository, accRepo: AccountRepository, artRepo: ArticleRepository
                                   , stockRepo: StockRepository, repository4PostingTransaction:PostTransactionRepository)
                                     extends PostGoodreceiving {
-//  override def journal(accountId: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[Journal]] =
-//   journalRepo.find4Period(accountId, fromPeriod, toPeriod, company).runCollect.map(_.toList)
-//  def getBy(id: String, company: String): ZIO[Any, RepositoryError, PeriodicAccountBalance] =
-//    pacRepo.getBy(id, company)
-//
-//  def getByIds(ids: List[String], company: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]] =
-//    pacRepo.getByIds(ids, company)
-
-//  override def postTransaction4Period(fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, Int] =
-//    for {
-//      models <- ftrRepo
-//        .find4Period(fromPeriod, toPeriod, company)
-//        .filter(_.posted == false)
-//        .runCollect
-//      nr <- ZIO.foreach(models)(trans => postTransaction(List(trans), company, Nil, Nil)).map(_.toList).map(_.sum)
-//    } yield nr
 
   override def postAll(transactions: List[Transaction]): ZIO[Any, RepositoryError, Int]  =
     for {
@@ -39,9 +23,6 @@ final class PostGoodreceivingImpl(pacRepo: PacRepository, accRepo: AccountReposi
       post <-  postTransaction(transactions, transactions.head.company, newStock, oldStocks)
      nr <- repository4PostingTransaction.post(post._1, post._2, post._3, post._4, post._5, post._6, post._7, post._8)
     } yield nr
-
- // override def post(transaction: Transaction): ZIO[Any, RepositoryError, Int] = postAll(List(transaction))
-
 
   private[this] def postTransaction(transactions: List[Transaction], company: String, newStock:List[Stock], oldStocks:List[Stock]):
   ZIO[Any, RepositoryError, (List[Transaction], List[PeriodicAccountBalance], ZIO[Any, Nothing, List[PeriodicAccountBalance]],
@@ -61,8 +42,6 @@ final class PostGoodreceivingImpl(pacRepo: PacRepository, accRepo: AccountReposi
     stocks <- updateStock(transactions, oldStocks)
     transLogEntries <- buildTransactionLog(transactions, stocks, newStock, articles)
     updatedArticle <- updateAvgPrice(transactions, stocks, articles)
-    // post <- repository4PostingTransaction.post(transactions, newRecords.toList, oldPacs.flip,
-    //      transLogEntries, journalEntries, stocks, newStock, updatedArticle)
   } yield (transactions, newRecords.toList, oldPacs.flip,
       transLogEntries, journalEntries, stocks, newStock, updatedArticle)
 
