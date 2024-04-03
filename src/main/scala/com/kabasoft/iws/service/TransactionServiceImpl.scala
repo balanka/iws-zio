@@ -7,8 +7,11 @@ import com.kabasoft.iws.repository.{AccountRepository, ArticleRepository, Compan
   PacRepository, PostTransactionRepository, StockRepository, TransactionLogRepository, TransactionRepository}
 import zio._
 
-final class TransactionServiceImpl( ftrRepo: TransactionRepository, orderService:PostOrder, postGoodreceiving: PostGoodreceiving
-                                    , postBillOfDelivery: PostBillOfDelivery,  companyRepository: CompanyRepository
+final class TransactionServiceImpl( ftrRepo: TransactionRepository
+                                    , orderService:PostOrder
+                                    , postGoodreceiving: PostGoodreceiving
+                                    , postBillOfDelivery: PostBillOfDelivery
+                                    , companyRepository: CompanyRepository
                                   ) extends TransactionService  {
 
   override def postTransaction4Period(fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, Int] =
@@ -30,7 +33,6 @@ final class TransactionServiceImpl( ftrRepo: TransactionRepository, orderService
     postedGoodreceiving <- postGoodreceiving.postAll(goodreceiving, company)
     postedBillOfDelivery <- postBillOfDelivery.postAll(bilOfDelivery, company)
     postedOrder <- orderService.postAll(purchaseOrder, company)
-
     } yield postedGoodreceiving+ postedBillOfDelivery+postedOrder
 
   override def post(id: Long, company: String): ZIO[Any, RepositoryError, Int] = postAll(List(id), company)

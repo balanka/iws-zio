@@ -8,9 +8,12 @@ import zio._
 import zio.prelude.FlipOps
 
 
-final class PostBillOfDeliveryImpl(pacRepo: PacRepository, accRepo: AccountRepository, artRepo: ArticleRepository
-                                  , stockRepo: StockRepository, repository4PostingTransaction:PostTransactionRepository)
-                                    extends PostBillOfDelivery {
+final class PostBillOfDeliveryImpl(pacRepo: PacRepository
+                                   , accRepo: AccountRepository
+                                   , artRepo: ArticleRepository
+                                   , stockRepo: StockRepository
+                                   , repository4PostingTransaction:PostTransactionRepository
+                                  ) extends PostBillOfDelivery {
 
   override def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int]  =
     for {
@@ -39,7 +42,6 @@ final class PostBillOfDeliveryImpl(pacRepo: PacRepository, accRepo: AccountRepos
     journalEntries <- makeJournal(transactions, newRecords.toList, oldPacs, articles)
     stocks <- updateStock(transactions, oldStocks)
     transLogEntries <- buildTransactionLog(transactions, stocks, newStock, articles)
-
   } yield (transactions, newRecords.toList, oldPacs.flip, transLogEntries, journalEntries, stocks, newStock, Nil)
 
   private def updateStock(transactions: List[Transaction], oldStocks:List[Stock]): ZIO[Any, Nothing, List[Stock]] = for{

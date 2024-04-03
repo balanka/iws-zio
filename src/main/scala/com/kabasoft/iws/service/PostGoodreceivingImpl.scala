@@ -9,19 +9,21 @@ import zio.prelude.FlipOps
 
 import java.math.RoundingMode
 
-final class PostGoodreceivingImpl(pacRepo: PacRepository, accRepo: AccountRepository, artRepo: ArticleRepository
-                                  , stockRepo: StockRepository, repository4PostingTransaction:PostTransactionRepository)
+final class PostGoodreceivingImpl(pacRepo: PacRepository
+                                  , accRepo: AccountRepository
+                                  , artRepo: ArticleRepository
+                                  , stockRepo: StockRepository
+                                  , repository4PostingTransaction:PostTransactionRepository)
                                     extends PostGoodreceiving {
 
-  override def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int]  =
-    for {
-      _ <-ZIO.foreachDiscard(transactions.map(_.id)) (
-        id =>ZIO.logInfo(s"Posting Goodreceiving transaction  with id ${id} of company ${transactions.head.company}"))
-       stockIds = Stock.create(transactions).map(_.id).distinct
-      oldStocks <-  stockRepo.getById(stockIds)
-      newStock <-  buildNewStock(transactions, oldStocks ).flip
-      post <-  postTransaction(transactions, company, newStock, oldStocks)
-     nr <- repository4PostingTransaction.post(post._1, post._2, post._3, post._4, post._5, post._6, post._7, post._8)
+  override def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int]  = for {
+    _ <- ZIO.foreachDiscard(transactions.map(_.id))(
+      id => ZIO.logInfo(s"Posting Goodreceiving transaction  with id ${id} of company ${transactions.head.company}"))
+    stockIds = Stock.create(transactions).map(_.id).distinct
+    oldStocks <- stockRepo.getById(stockIds)
+    newStock <- buildNewStock(transactions, oldStocks).flip
+    post <- postTransaction(transactions, company, newStock, oldStocks)
+    nr <- repository4PostingTransaction.post(post._1, post._2, post._3, post._4, post._5, post._6, post._7, post._8)
     } yield nr
 
   private[this] def postTransaction(transactions: List[Transaction], company: Company, newStock:List[Stock], oldStocks:List[Stock]):
