@@ -13,27 +13,27 @@ final class PostGoodreceivingImpl(pacRepo: PacRepository, accRepo: AccountReposi
                                   , stockRepo: StockRepository, repository4PostingTransaction:PostTransactionRepository)
                                     extends PostGoodreceiving {
 
-  override def postAll(transactions: List[Transaction]): ZIO[Any, RepositoryError, Int]  =
+  override def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int]  =
     for {
       _ <-ZIO.foreachDiscard(transactions.map(_.id)) (
         id =>ZIO.logInfo(s"Posting Goodreceiving transaction  with id ${id} of company ${transactions.head.company}"))
        stockIds = Stock.create(transactions).map(_.id).distinct
       oldStocks <-  stockRepo.getById(stockIds)
       newStock <-  buildNewStock(transactions, oldStocks ).flip
-      post <-  postTransaction(transactions, transactions.head.company, newStock, oldStocks)
+      post <-  postTransaction(transactions, company, newStock, oldStocks)
      nr <- repository4PostingTransaction.post(post._1, post._2, post._3, post._4, post._5, post._6, post._7, post._8)
     } yield nr
 
-  private[this] def postTransaction(transactions: List[Transaction], company: String, newStock:List[Stock], oldStocks:List[Stock]):
+  private[this] def postTransaction(transactions: List[Transaction], company: Company, newStock:List[Stock], oldStocks:List[Stock]):
   ZIO[Any, RepositoryError, (List[Transaction], List[PeriodicAccountBalance], ZIO[Any, Nothing, List[PeriodicAccountBalance]],
                              List[TransactionLog], List[Journal], List[Stock], List[Stock], List[Article])] = for {
 
-    accounts <- accRepo.all(Account.MODELID, company)
-    articles <- artRepo.getBy(transactions.flatMap(m => m.lines.map(_.article)), company)
-    accountIds = articles.map(art => (art.stockAccount, art.expenseAccount))
+    accounts <- accRepo.all(Account.MODELID, company.id)
+    articles <- artRepo.getBy(transactions.flatMap(m => m.lines.map(_.article)), company.id)
+    accountIds = articles.map(art => (art.stockAccount, company.purchasingClearingAcc))
     pacids = accountIds.flatMap(id => transactions.map(tr => buildPacId(tr.period, id))).flatten
-    pacs <- pacRepo.getByIds(pacids, company).map(_.filterNot(_.id.equals(PeriodicAccountBalance.dummy.id)))
-    allPacs = transactions.flatMap(tr => buildPacsFromTransaction(tr, articles, accounts))
+    pacs <- pacRepo.getByIds(pacids, company.id).map(_.filterNot(_.id.equals(PeriodicAccountBalance.dummy.id)))
+    allPacs = transactions.flatMap(tr => buildPacsFromTransaction(tr, articles, accounts, company))
     newRecords = allPacs.filterNot(pac => pacs.map(_.id).contains(pac.id))
       .groupBy(_.id) map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy) }
     tpacs <- pacs.map(TPeriodicAccountBalance.apply).flip
@@ -46,50 +46,35 @@ final class PostGoodreceivingImpl(pacRepo: PacRepository, accRepo: AccountReposi
       transLogEntries, journalEntries, stocks, newStock, updatedArticle)
 
   private def filterIWS[A <: IWS](list: List[A], param: String): List[A] = list.filter(_.id == param)
-  private def articleId2AccountId(articleId:String, articles:List[Article], accounts:List[Account]): (List[String], List[String]) =
-    (filterIWS(articles,  articleId).flatMap(art=>filterIWS(accounts, art.stockAccount).map(_.id)),
-     filterIWS(articles,  articleId).flatMap(art=>filterIWS(accounts, art.expenseAccount).map(_.id)))
+  private def articleId2AccountId(articleId:String, articles:List[Article], accounts:List[Account]): List[String] =
+    filterIWS(articles,  articleId).flatMap(art=>filterIWS(accounts, art.stockAccount).map(_.id))
 
-  private[this] def buildPacsFromTransaction(model:Transaction, articles:List[Article], accounts:List[Account]) =
+  private[this] def buildPacsFromTransaction(model:Transaction, articles:List[Article], accounts:List[Account], company: Company): List[PeriodicAccountBalance] =
     model.lines.flatMap { line =>
-      val (stockAccount, expenseAccount) = articleId2AccountId(line.article, articles, accounts)
-    List(
-      stockAccount.map( acc=>PeriodicAccountBalance.apply(
-        PeriodicAccountBalance.createId(model.period, acc),
-        acc,
-        model.period,
-        zeroAmount,
-        zeroAmount,
-        line.quantity.multiply(line.price),
-        zeroAmount,
-        line.currency,
-        model.company,
-        "",
-        PeriodicAccountBalance.MODELID
-      )),
-      expenseAccount.map( acc=>
-      PeriodicAccountBalance.apply(
-        PeriodicAccountBalance.createId(model.period, acc),
-        acc,
-        model.period,
-        zeroAmount,
-        zeroAmount,
-        zeroAmount,
-        line.quantity.multiply(line.price),
-        line.currency,
-        model.company,
-        "",
-        PeriodicAccountBalance.MODELID
-      )
-    )
-    ).flatten
+      val stockAccountIds: List[String] = articleId2AccountId(line.article, articles, accounts)
+     stockAccountIds.map( accountId=>createPac (accountId, model, line))++List(createPac (company.purchasingClearingAcc, model, line))
   }
 
+  private def createPac (accountId:String, model:Transaction, line:TransactionDetails) =
+    PeriodicAccountBalance.apply(
+      PeriodicAccountBalance.createId(model.period, accountId),
+      accountId,
+      model.period,
+      zeroAmount,
+      zeroAmount,
+      line.quantity.multiply(line.price),
+      zeroAmount,
+      line.currency,
+      model.company,
+      "",
+      PeriodicAccountBalance.MODELID
+    )
   private[this] def buildPacId(period: Int, accountId:(String,  String)): List[String] =
     List(PeriodicAccountBalance.createId(period, accountId._1), PeriodicAccountBalance.createId(period, accountId._2))
 
   private[this] def buildPacId2(period: Int, accountId:(String,  String)): (String, String) =
     (PeriodicAccountBalance.createId(period, accountId._1), PeriodicAccountBalance.createId(period, accountId._2))
+
   private def updateStock(transactions: List[Transaction], oldStocks:List[Stock]): ZIO[Any, Nothing, List[Stock]] = for{
       updatedStock <- updateOldStock(transactions, oldStocks).map(_.map(Stock.apply).flip).flatten
     }yield   updatedStock

@@ -380,11 +380,14 @@ final case class Company_(
                           locale: String,
                           balanceSheetAcc: String,
                           incomeStmtAcc: String,
+                          purchasingClearingAcc:String,
+                          salesClearingAcc:String,
                           modelid: Int
                         )
 object Company_ {
   def  apply(c:Company):Company_ = Company_(c.id, c.name, c.street, c.zip, c.city, c.state, c.country, c.email, c.partner,
-    c.phone, c.bankAcc, c.iban, c.taxCode, c.vatCode, c.currency, c.locale, c.balanceSheetAcc, c.incomeStmtAcc, c.modelid)
+    c.phone, c.bankAcc, c.iban, c.taxCode, c.vatCode, c.currency, c.locale, c.balanceSheetAcc, c.incomeStmtAcc,
+    c.purchasingClearingAcc, c.salesClearingAcc, c.modelid)
 }
 final case class Company(
   id: String,
@@ -405,6 +408,8 @@ final case class Company(
   locale: String,
   balanceSheetAcc: String,
   incomeStmtAcc: String,
+  purchasingClearingAcc:String,
+  salesClearingAcc:String,
   modelid: Int,
  bankaccounts: List[BankAccount] = List.empty[BankAccount]
 )
@@ -429,10 +434,12 @@ object Company{
     String,
     String,
     String,
+    String,
+    String,
      Int
   )
   def apply(c:TYPE):Company = Company(c._1, c._2,c._3,c._4,c._5,c._6,c._7,c._8,c._9,c._10
-    ,c._11,c._12,c._13,c._14,c._15, c._16,c._17,c._18,c._19,List.empty[BankAccount])
+    ,c._11,c._12,c._13,c._14,c._15, c._16,c._17,c._18,c._19, c._20, c._21,List.empty[BankAccount])
 }
 sealed trait AppError extends Throwable
 

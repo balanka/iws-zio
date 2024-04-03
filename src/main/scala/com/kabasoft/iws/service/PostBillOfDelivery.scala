@@ -6,9 +6,9 @@ import zio._
 
 trait  PostBillOfDelivery {
 
-  def postAll(transactions: List[Transaction]): ZIO[Any, RepositoryError, Int]
+  def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int]
 }
 object PostBillOfDelivery {
-  def postAll(transactions: List[Transaction]): ZIO[PostBillOfDelivery, RepositoryError, Int] =
-    ZIO.service[PostBillOfDelivery] flatMap (_.postAll(transactions))
+  def postAll(transactions: List[Transaction], company:Company): ZIO[PostBillOfDelivery, RepositoryError, Int] =
+    ZIO.service[PostBillOfDelivery] flatMap (_.postAll(transactions, company))
 }

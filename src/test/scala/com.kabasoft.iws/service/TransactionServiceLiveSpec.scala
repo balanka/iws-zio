@@ -23,6 +23,7 @@ object TransactionServiceLiveSpec extends ZIOSpecDefault {
     AccountRepositoryImpl.live,
     AccountServiceImpl.live,
     ArticleRepositoryImpl.live,
+    CompanyRepositoryImpl.live,
     StockRepositoryImpl.live,
     PacRepositoryImpl.live,
     JournalRepositoryImpl.live,
@@ -60,7 +61,7 @@ object TransactionServiceLiveSpec extends ZIOSpecDefault {
           article1 <- ArticleRepository.getBy ( (artId1, ftr1.company)).debug(s"article1 >>> ${artId1}")
 
         } yield {
-          assertTrue(oneRow == 9,  postedRows == 24, stocks.size == 2, stock0.getOrElse(Stock.dummy).quantity.compareTo(zero)==0
+          assertTrue(oneRow == 9,  postedRows == 23, stocks.size == 2, stock0.getOrElse(Stock.dummy).quantity.compareTo(zero)==0
           ,  stock1.getOrElse(Stock.dummy).quantity.compareTo(zero)==0, article0.avgPrice.compareTo(avgPrice0)==0
              , article1.avgPrice.compareTo(avgPrice1)==0)
         }

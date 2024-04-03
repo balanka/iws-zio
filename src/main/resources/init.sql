@@ -458,6 +458,8 @@ create table if not exists company
     locale                varchar,
     balance_sheet_acc     varchar                        not null,
     income_stmt_acc      varchar                        not null,
+    purchasing_clearing_acc      varchar                        not null,
+    sales_clearing_acc      varchar                        not null,
     modelid               integer                        not null
 );
 DROP table if exists users;
@@ -782,9 +784,10 @@ insert into user_right (moduleid,  roleid, short, company, modelid) values
 
 
 
-insert into company (id, name, street, zip, city, state, country, email, partner, phone, bank_acc, iban, tax_code, vat_code, currency, locale, balance_sheet_acc, income_stmt_acc, modelid)
+insert into company (id, name, street, zip, city, state, country, email, partner, phone, bank_acc, iban, tax_code, vat_code,
+                  currency, locale, balance_sheet_acc, income_stmt_acc, purchasing_clearing_acc, sales_clearing_acc, modelid)
 values ('1000', 'ABC GmbH', 'Word stree1 0','49110','FF', 'DE','Deutschland', 'info@mail.com','John', '+001-00000'
-       ,'1810','DE', 'XXX/XXXX/XXXX','v5','EUR',  'de_DE', '9900', '9800', 10);
+       ,'1810','DE', 'XXX/XXXX/XXXX','v5','EUR',  'de_DE', '9900', '9800', '33333', '44444', 10);
 
 
 insert into account
