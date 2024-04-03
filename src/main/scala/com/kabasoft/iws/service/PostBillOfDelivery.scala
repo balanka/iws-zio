@@ -4,7 +4,7 @@ import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain._
 import zio._
 
-trait  PostBillOfDelivery {
+trait  PostBillOfDelivery extends PostLogisticalTransaction {
 
   def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int]
 }
