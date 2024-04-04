@@ -29,7 +29,8 @@ final class PostSupplierInvoiceImpl(vatRepo: VatRepository
     accounts <- accRepo.all(Account.MODELID, company.id)
     suppliers <- supplierRepo.all(Supplier.MODELID, company.id)
     articles <- artRepo.getBy(transactions.flatMap(m => m.lines.map(_.article)), company.id)
-    vats <-  vatRepo.getBy(articles.map(_.vatCode), company.id)
+    vatIds  = articles.map(_.vatCode).distinct
+    vats <-  vatRepo.getBy(vatIds, company.id)
     newFTransactions = transactions.map(tr => buildPacsFromTransaction(tr,  accounts, suppliers, vats, company.purchasingClearingAcc))
 
   } yield newFTransactions
@@ -52,7 +53,7 @@ final class PostSupplierInvoiceImpl(vatRepo: VatRepository
     val netAmount = model.total.subtract(vatAmount)
     val details= details0.::(FinancialsTransactionDetails(-1, 0, supplierAccountId, side = true, accountId, netAmount, Instant.now(), model.text, currency, "", ""))
    val financialsTransaction = FinancialsTransaction(-1, model.id, 0, model.store, supplierAccountId,  model.transdate, Instant.now(), Instant.now()
-      , model.period, posted = false,  TransactionModelId.SUPPLIER_INVOICE.id, model.company, model.text, -1, -1, details)
+      , model.period, posted = false,  TransactionModelId.PAYABLES.id, model.company, model.text, -1, -1, details)
     (model.copy(posted = true), financialsTransaction)
 
   }

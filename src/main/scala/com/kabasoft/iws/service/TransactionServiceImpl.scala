@@ -11,6 +11,7 @@ final class TransactionServiceImpl( ftrRepo: TransactionRepository
                                     , orderService:PostOrder
                                     , postGoodreceiving: PostGoodreceiving
                                     , postBillOfDelivery: PostBillOfDelivery
+                                    , postSupplierInvoice: PostSupplierInvoice
                                     , companyRepository: CompanyRepository
                                   ) extends TransactionService  {
 
@@ -30,12 +31,13 @@ final class TransactionServiceImpl( ftrRepo: TransactionRepository
     goodreceiving = models.filter(_.modelid == TransactionModelId.GOORECEIVING.id)
     bilOfDelivery = models.filter(_.modelid == TransactionModelId.BILL_OF_DELIVERY.id)
     purchaseOrder = models.filter(_.modelid == TransactionModelId.PURCHASE_ORDER.id)
+    supplierInvoice = models.filter(_.modelid == TransactionModelId.SUPPLIER_INVOICE.id)
     postedOrder <- orderService.postAll(purchaseOrder, company)
     postedGoodreceiving <- postGoodreceiving.postAll(goodreceiving, company)
     postedBillOfDelivery <- postBillOfDelivery.postAll(bilOfDelivery, company)
+    postedSupplierInvoice <- postSupplierInvoice.postAll(supplierInvoice, company)
 
-
-    } yield postedOrder+postedGoodreceiving+ postedBillOfDelivery
+    } yield postedOrder+postedGoodreceiving+ postedBillOfDelivery+postedSupplierInvoice
 
   override def post(id: Long, company: String): ZIO[Any, RepositoryError, Int] = postAll(List(id), company)
 
@@ -43,8 +45,8 @@ final class TransactionServiceImpl( ftrRepo: TransactionRepository
 
 object TransactionServiceImpl {
   val live: ZLayer[PacRepository with TransactionRepository with TransactionLogRepository with AccountRepository with PostOrder with PostGoodreceiving
-    with PostBillOfDelivery  with CompanyRepository
+    with PostBillOfDelivery  with PostSupplierInvoice with CompanyRepository
     with JournalRepository with ArticleRepository with StockRepository with PostTransactionRepository, RepositoryError, TransactionService] =
-    ZLayer.fromFunction(new TransactionServiceImpl(_, _, _, _, _))
+    ZLayer.fromFunction(new TransactionServiceImpl(_, _, _, _, _, _))
 
 }

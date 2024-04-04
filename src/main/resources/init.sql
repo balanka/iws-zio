@@ -819,6 +819,7 @@ insert into account
                                                                                                                                                              ('1600','Kasse','Kasse',current_timestamp, current_timestamp, current_timestamp, '1000',9, '9901', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
                                                                                                                                                              ('1601','Kasse','Kasse',current_timestamp, current_timestamp, current_timestamp, '1000',9, '1600', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
                                                                                                                                                              ('331031','Verbbindlichkeiten 1','Verbbindlichkeiten 1',current_timestamp, current_timestamp, current_timestamp, '1000',9, '331030', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
+                                                                                                                                                             ('1406','Vorsteuer 19%','Vorsteuer 19%',current_timestamp, current_timestamp, current_timestamp, '1000',9, '9901', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
                                                                                                                                                              ('3806','MWst 19%','MWst 19%',current_timestamp, current_timestamp, current_timestamp, '1000',9, '6', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
                                                                                                                                                              ('5000','Warenbestand','Warenbestand',current_timestamp, current_timestamp, current_timestamp, '1000',9, '9901', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
                                                                                                                                                              ('5400','Wareneinsatz 19%','Wareneinsatz 19%',current_timestamp, current_timestamp, current_timestamp, '1000',9, '6', true, true, 'EUR', 0.0, 0.0, 0.0, 0.0),
@@ -936,6 +937,7 @@ insert into vat
 (id, name, description, percent, input_vat_account, output_vat_account, postingdate, changedate, enterdate,  company, modelid)
 values
     ('v101','Dummy','Dummy',0.07, '0650', '0651', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '1000',14),
+    ('v5','Umsatzsteuer 19%','Umsatzsteuer 19%',0.19, '0650', '3806', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '1000',14),
     ('4711','myFirstVat','myFirstVat',1, '1406', '3806', current_timestamp, current_timestamp, current_timestamp, '1000',14);
 
 INSERT INTO public."module"

@@ -133,7 +133,7 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
   private def modifyStock4T(stock: List[Stock]) = stock.map(buildStock4T).map(_.run).flip.map(_.sum)
   private def modifyPrices4T(articles: List[Article]) = {
     val buildUpdateStmt = articles.map(Article_.apply).map(buildUpdatePrices)
-      ZIO.logInfo(s"Update Stmt articles  ${buildUpdateStmt.map(renderUpdate)}")*>
+      ZIO.logDebug(s"Update Stmt articles  ${buildUpdateStmt.map(renderUpdate)}")*>
     buildUpdateStmt.map(_.run).flip.map(_.sum)
   }
   private def buildPac4T(model: PeriodicAccountBalance): Update[PeriodicAccountBalance] =
@@ -155,7 +155,6 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
       .set(pprice_a, model.pprice)
       .set(avgPrice_a, model.avgPrice)
       .where((id_a === model.id) && (company_a === model.company))
-      //.where(whereClause(model.id, model.company))
 
    def delete(id : Long, companyId: String): ZIO[Any, RepositoryError, Int] = {
     val deleteQuery = deleteFrom(transactions).where((id_ === id) && (company_ === companyId))
@@ -174,7 +173,6 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
     _ <- ZIO.when(transLogEntries.nonEmpty)(ZIO.logInfo(s" Transaction log  ${transLogEntries}"))
     _ <- ZIO.when(journals.nonEmpty)(ZIO.logInfo(s" journals  ${journals}"))
     _ <- ZIO.logInfo(s" Transaction posted  ${models}")
-    _ <- ZIO.logInfo(s" articles>>>>>>>  ${articles}")
      z = ZIO.when(models.nonEmpty)(updatePostedField4T(models))
              .zipWith(ZIO.when(pac2Insert.nonEmpty)(createPacs4T(pac2Insert)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0))
              .zipWith(ZIO.when(pac2updatex.nonEmpty)(modifyPacs4T(pac2updatex)))((i1, i2)=>i1 +i2.getOrElse(0))
@@ -182,10 +180,10 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
              .zipWith(ZIO.when(journals.nonEmpty)(createJ4T(journals)))((i1, i2)=>i1 +i2.getOrElse(0))
              .zipWith(ZIO.when(newStock.nonEmpty)(createStock4T(newStock)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0))
              .zipWith(ZIO.when(stocks.nonEmpty)(modifyStock4T(stocks)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0))
-             .zipWith(ZIO.when(articles.nonEmpty)(modifyPrices4T(articles)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0)).debug(s" modified Article>> ${articles}")
+             .zipWith(ZIO.when(articles.nonEmpty)(modifyPrices4T(articles)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0))
 
     nr<-  transact(z).mapError(e=>{
-      ZIO.logInfo(s" articles>>>>>>>  ${e.getMessage}")
+      ZIO.logDebug(s" Error >>>>>>>  ${e.getMessage}")
       RepositoryError(e.getMessage)
     }).provideLayer(driverLayer)
   }yield nr
