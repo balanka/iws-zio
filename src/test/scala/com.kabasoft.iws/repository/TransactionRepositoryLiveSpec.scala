@@ -20,7 +20,7 @@ object TransactionRepositoryLiveSpec extends ZIOSpecDefault {
 
   override def spec =
     suite("Transaction repository test with postgres test container")(
-      test("insert a  transactions, modify, gets a  goodreceoving and a supplier invoice  transaction transaction by transId and count the Nr all transactions ") {
+      test("insert a  transactions, modify, gets a  good receiving and a supplier invoice  transaction by transId and count the Nr all transactions ") {
         val terms ="changed text"
         val list =List(ftr1, ftr2)
 

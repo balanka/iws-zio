@@ -56,6 +56,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     price_,
     currency_,
     duedate_,
+    vat_code_,
     ltext_
   ) = transactionDetails.columns
 
@@ -67,6 +68,7 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
      pricex,
      currencyx,
      duedatex,
+    vat_codex,
      textx
   ) = transactionDetailsInsert.columns
 
@@ -93,17 +95,18 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
     c.price,
     c.currency,
     c.duedate,
+    c.vatCode,
     c.text
   )
-   def buildInsertNewLine(model_ : TransactionDetails): Insert[TransactionDetails_, (Long, TableName, TableName, java.math.BigDecimal, TableName, java.math.BigDecimal, TableName, Instant, TableName)] = {
+   def buildInsertNewLine(model_ : TransactionDetails): Insert[TransactionDetails_, (Long, TableName, TableName, java.math.BigDecimal, TableName, java.math.BigDecimal, TableName, Instant, TableName, TableName)] = {
      println(s"model_ ${model_} ")
-    val insertStmt = insertInto(transactionDetailsInsert)(transidx, articlex, article_namex, quantityx, unitx, pricex, currencyx, duedatex, textx)
+    val insertStmt = insertInto(transactionDetailsInsert)(transidx, articlex, article_namex, quantityx, unitx, pricex, currencyx, duedatex, vat_codex, textx)
       .values(toTuple(model_))
      println(s"renderInsert(insertStmt ${renderInsert(insertStmt)}")
      insertStmt
    }
 
-  def buildInsertNewLines(models: List[TransactionDetails]): List[Insert[TransactionDetails_, (Long, TableName, TableName, java.math.BigDecimal, TableName, java.math.BigDecimal, TableName, Instant, TableName)]] =
+  def buildInsertNewLines(models: List[TransactionDetails]): List[Insert[TransactionDetails_, (Long, TableName, TableName, java.math.BigDecimal, TableName, java.math.BigDecimal, TableName, Instant, TableName, TableName)]] =
      models.map( model =>buildInsertNewLine(model))
 
    def buildInsertQuery(models: List[Transaction]): Insert[Transaction_, (Long, Long, TableName, TableName, Instant, Instant, Instant, Int, Boolean, Int, TableName, TableName)] =
@@ -147,7 +150,9 @@ trait TransactionTableDescription extends IWSTableDescriptionPostgres {
          s"Create line transaction stmt   ${newLines.map(l=>renderInsert(l))} " +
         s" x ==   ${x}  y ==${y}")
     } yield x + y
-    result.mapError(e => new Exception(e))
+    result.mapError(e => { ZIO.logInfo(s"Error       ${e.getMessage} ")
+      new Exception(e)
+    })
   }
 
 }

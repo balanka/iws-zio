@@ -12,13 +12,14 @@ object ArticleBuilder {
   val artId1 = "0001"
   val artName1 = "Atikel_1"
   val quantityUnit = "stk"
+  val vatCode = "v5"
   val ccy = "EUR"
   val t: Instant = Instant.now()
   val zero: BigDecimal = BigDecimal.valueOf(0, 2 )
   val vtime: Instant = Instant.parse("2018-01-01T10:00:00.00Z")
 
-  val ART0 =  Article(artId0, artName0, artName0, "-1", zero, zero, zero, ccy, stocked =true, quantityUnit, quantityUnit, stockaccountId, expenseaccountId, companyId, Article.MODELID, t , t, t, Nil)
-  val ART1 =  Article(artId1, artName1, artName1, "-1", zero, zero, zero, ccy, stocked =true, quantityUnit, quantityUnit, stockaccountId, expenseaccountId, companyId, Article.MODELID, t , t, t, Nil)
+  val ART0 =  Article(artId0, artName0, artName0, "-1", zero, zero, zero, ccy, stocked =true, quantityUnit, quantityUnit, stockaccountId, expenseaccountId, vatCode, companyId, Article.MODELID, t , t, t, Nil)
+  val ART1 =  Article(artId1, artName1, artName1, "-1", zero, zero, zero, ccy, stocked =true, quantityUnit, quantityUnit, stockaccountId, expenseaccountId, vatCode, companyId, Article.MODELID, t , t, t, Nil)
 
   val list =List(ART0, ART1)
 

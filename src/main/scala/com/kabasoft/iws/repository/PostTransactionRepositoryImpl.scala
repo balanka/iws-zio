@@ -18,7 +18,8 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
   val trans_log = defineTable[TransactionLog_]("transaction_log")
   val journals_ = defineTable[Journal_]("journal")
   val articles = defineTable[Article_]("article")
-  val (id_a, _, _, _, sprice, pprice, avgPrice, _, _, _, _, _, _, company_a, _, _, _, _) = articles.columns
+  val (id_a, name_a, description_a, parent_a, sprice_a, pprice_a, avgPrice_a, currency_a, stocked_a, quantityUnit_a
+  , packUnit_a, stockAccount_a, expenseAccount_a, vatCode_a, company_a, modelid_a, _, _, _) = articles.columns
   val (id_st, store_st, article_st, quantity_st, charge_st, company_st,  modelid_st) = stock.columns
   val (id_pac, account_pac, period_pac, idebit_pac, icredit_pac, debit_pac, credit_pac, currency_pac, company_pac, name_pac, modelid_pac) = pac.columns
   private val (
@@ -130,7 +131,11 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
   private def createJ4T(journals: List[Journal]): ZIO[SqlTransaction, Exception, Int] = journals.map(buildJ4T).flip.map(_.sum)
   private def modifyPacs4T(models: List[PeriodicAccountBalance]) = models.map(buildPac4T).map(_.run).flip.map(_.sum)
   private def modifyStock4T(stock: List[Stock]) = stock.map(buildStock4T).map(_.run).flip.map(_.sum)
-  private def modifyPrices4T(articles: List[Article]) = articles.map(Article_.apply).map(buildUpdatePrices).map(_.run).flip.map(_.sum)
+  private def modifyPrices4T(articles: List[Article]) = {
+    val buildUpdateStmt = articles.map(Article_.apply).map(buildUpdatePrices)
+      ZIO.logInfo(s"Update Stmt articles  ${buildUpdateStmt.map(renderUpdate)}")*>
+    buildUpdateStmt.map(_.run).flip.map(_.sum)
+  }
   private def buildPac4T(model: PeriodicAccountBalance): Update[PeriodicAccountBalance] =
     update(pac)
       .set(idebit_pac, model.idebit)
@@ -146,9 +151,9 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
 
   private def buildUpdatePrices(model: Article_): Update[Article_] =
     update(articles)
-      .set(sprice, model.sprice)
-      .set(pprice, model.pprice)
-      .set(avgPrice, model.avgPrice)
+      .set(sprice_a, model.sprice)
+      .set(pprice_a, model.pprice)
+      .set(avgPrice_a, model.avgPrice)
       .where((id_a === model.id) && (company_a === model.company))
       //.where(whereClause(model.id, model.company))
 
@@ -169,6 +174,7 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
     _ <- ZIO.when(transLogEntries.nonEmpty)(ZIO.logInfo(s" Transaction log  ${transLogEntries}"))
     _ <- ZIO.when(journals.nonEmpty)(ZIO.logInfo(s" journals  ${journals}"))
     _ <- ZIO.logInfo(s" Transaction posted  ${models}")
+    _ <- ZIO.logInfo(s" articles>>>>>>>  ${articles}")
      z = ZIO.when(models.nonEmpty)(updatePostedField4T(models))
              .zipWith(ZIO.when(pac2Insert.nonEmpty)(createPacs4T(pac2Insert)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0))
              .zipWith(ZIO.when(pac2updatex.nonEmpty)(modifyPacs4T(pac2updatex)))((i1, i2)=>i1 +i2.getOrElse(0))
@@ -176,9 +182,12 @@ final class PostTransactionRepositoryImpl(pool: ConnectionPool) extends PostTran
              .zipWith(ZIO.when(journals.nonEmpty)(createJ4T(journals)))((i1, i2)=>i1 +i2.getOrElse(0))
              .zipWith(ZIO.when(newStock.nonEmpty)(createStock4T(newStock)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0))
              .zipWith(ZIO.when(stocks.nonEmpty)(modifyStock4T(stocks)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0))
-             .zipWith(ZIO.when(articles.nonEmpty)(modifyPrices4T(articles)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0)).debug(s"Article>> ${articles}")
+             .zipWith(ZIO.when(articles.nonEmpty)(modifyPrices4T(articles)))((i1, i2)=>i1.getOrElse(0) +i2.getOrElse(0)).debug(s" modified Article>> ${articles}")
 
-    nr<-  transact(z).mapError(e=>RepositoryError(e.getMessage)).provideLayer(driverLayer)
+    nr<-  transact(z).mapError(e=>{
+      ZIO.logInfo(s" articles>>>>>>>  ${e.getMessage}")
+      RepositoryError(e.getMessage)
+    }).provideLayer(driverLayer)
   }yield nr
 
   private def  updatePostedField4T(models: List[Transaction]): ZIO[SqlTransaction, Exception, Int] = {

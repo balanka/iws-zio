@@ -27,9 +27,10 @@ object TransactionBuilder {
   val currency = "EUR"
   val store = "311"
   val qttyUnit = "stk"
+  val vatCode = "v5"
 
-  val line1=  TransactionDetails(-1L, 0L,  artId0, artName0 , quantity0, qttyUnit, pprice0, currency, vtime, terms )
-  val line2=  TransactionDetails(-1L, 0L,  artId1, artName1 , quantity1, qttyUnit, pprice1, currency, vtime, terms )
+  val line1=  TransactionDetails(-1L, 0L,  artId0, artName0 , quantity0, qttyUnit, pprice0, currency, vtime, vatCode, terms )
+  val line2=  TransactionDetails(-1L, 0L,  artId1, artName1 , quantity1, qttyUnit, pprice1, currency, vtime, vatCode, terms )
 
   val ftr1 = Transaction(0,-1, -1,  store, accountId, vtime, vtime, vtime, period, posted = false, modelid, company, terms
           ,  List(line1, line2))

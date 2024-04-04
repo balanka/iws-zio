@@ -9,6 +9,7 @@ import zio._
 final class PostOrderImpl(repository4PostingTransaction: PostTransactionRepository)
                                      extends PostOrder {
   override def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int] =
+    if (transactions.isEmpty) ZIO.succeed(0) else
     for {
       nr <- repository4PostingTransaction.post(transactions, Nil, ZIO.succeed(List.empty[PeriodicAccountBalance]),
         Nil, Nil, Nil, Nil, Nil)

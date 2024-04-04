@@ -30,10 +30,12 @@ final class TransactionServiceImpl( ftrRepo: TransactionRepository
     goodreceiving = models.filter(_.modelid == TransactionModelId.GOORECEIVING.id)
     bilOfDelivery = models.filter(_.modelid == TransactionModelId.BILL_OF_DELIVERY.id)
     purchaseOrder = models.filter(_.modelid == TransactionModelId.PURCHASE_ORDER.id)
+    postedOrder <- orderService.postAll(purchaseOrder, company)
     postedGoodreceiving <- postGoodreceiving.postAll(goodreceiving, company)
     postedBillOfDelivery <- postBillOfDelivery.postAll(bilOfDelivery, company)
-    postedOrder <- orderService.postAll(purchaseOrder, company)
-    } yield postedGoodreceiving+ postedBillOfDelivery+postedOrder
+
+
+    } yield postedOrder+postedGoodreceiving+ postedBillOfDelivery
 
   override def post(id: Long, company: String): ZIO[Any, RepositoryError, Int] = postAll(List(id), company)
 

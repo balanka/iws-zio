@@ -64,6 +64,25 @@ trait  PostLogisticalTransaction {
     )
   }
 
+  def createPac (accountId:String, model:Transaction, debitCredit:Boolean): PeriodicAccountBalance = {
+    val amount = model.total
+    val currency = model.lines.headOption.getOrElse(TransactionDetails.dummy).currency
+    val debitAmount = if (debitCredit) amount else zeroAmount
+    val creditAmount = if (debitCredit) zeroAmount else amount
+    PeriodicAccountBalance.apply(
+      PeriodicAccountBalance.createId(model.period, accountId),
+      accountId,
+      model.period,
+      zeroAmount,
+      zeroAmount,
+      debitAmount,
+      creditAmount,
+      currency,
+      model.company,
+      "",
+      PeriodicAccountBalance.MODELID
+    )
+  }
    def buildJournalEntries(model: Transaction, line: TransactionDetails,
                                   pac: PeriodicAccountBalance, account: String, oaccount: String,side:Boolean): Journal =
     Journal(

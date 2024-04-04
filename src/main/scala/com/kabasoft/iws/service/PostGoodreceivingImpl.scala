@@ -16,7 +16,8 @@ final class PostGoodreceivingImpl(pacRepo: PacRepository
                                   , repository4PostingTransaction:PostTransactionRepository)
                                     extends PostGoodreceiving {
 
-  override def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int]  = for {
+  override def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int]  =
+    if (transactions.isEmpty) ZIO.succeed(0) else for {
     _ <- ZIO.foreachDiscard(transactions.map(_.id))(
       id => ZIO.logInfo(s"Posting Goodreceiving transaction  with id ${id} of company ${transactions.head.company}"))
     stockIds = Stock.create(transactions).map(_.id).distinct
@@ -61,7 +62,7 @@ final class PostGoodreceivingImpl(pacRepo: PacRepository
     val wholeQuantityAfter = wholeQuantityBefore.add(line.quantity)
     val avgPriceAfter = if(wholeQuantityAfter.compareTo(zeroAmount)>0) wholeValueAfter.divide(wholeQuantityAfter, 2, RoundingMode.HALF_UP)  else line.price
     val avgPrice_ = wholeStock.fold(line.price)(_ =>avgPriceAfter)
-      ZIO.succeed(article.copy(avgPrice = avgPrice_))
+      ZIO.succeed(article.copy(avgPrice = avgPrice_, pprice = line.price))
   }).flip
   private def updateAvgPrice(transactions: List[Transaction], stocks:List[Stock], articles:List[Article]): ZIO[Any, Nothing, List[Article]] =
     transactions.flatMap(tr => tr.lines.map(line => updateArticleAvgPrice( line,  stocks, articles.filter(_.id == line.article).distinct)))

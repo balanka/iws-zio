@@ -17,6 +17,8 @@ trait VatRepository {
   def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Vat]]
   def list(Id:(Int, String)): ZStream[Any, RepositoryError, Vat]
   def getBy(id: (String, String)): ZIO[Any, RepositoryError, Vat]
+
+  def getBy(ids: List[String], company: String): ZIO[Any, RepositoryError, List[Vat]]
   def getByModelId(modelid:(Int,String)): ZIO[Any, RepositoryError, List[Vat]]
   def getByModelIdStream(modelid: Int, company: String): ZStream[Any, RepositoryError, Vat]
   def modify(model: Vat): ZIO[Any, RepositoryError, Int]
@@ -44,6 +46,9 @@ object VatRepository {
     ZStream.service[VatRepository] flatMap (_.list(Id))
   def getBy(id: (String, String)): ZIO[VatRepository, RepositoryError, Vat]          =
     ZIO.service[VatRepository] flatMap (_.getBy(id))
+
+  def getBy(ids: List[String], companyId: String): ZIO[VatRepository, RepositoryError, List[Vat]] =
+    ZIO.serviceWithZIO[VatRepository](_.getBy(ids, companyId))
   def getByModelId(modelid:(Int, String)): ZIO[VatRepository, RepositoryError, List[Vat]] =
     ZIO.service[VatRepository] flatMap (_.getByModelId(modelid))
 

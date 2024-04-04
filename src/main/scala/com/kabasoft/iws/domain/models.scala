@@ -27,6 +27,12 @@ object common {
       case x :: xs => NonEmptyList.fromIterable(x, xs).reduce
     }
 
+  implicit val amountAddMonoid: Identity[BigDecimal] = new Identity[BigDecimal] {
+    def identity: BigDecimal                       = zeroAmount
+    def combine(m1: => BigDecimal, m2: => BigDecimal): BigDecimal =
+      m2.add(m1)
+  }
+
   implicit val accMonoid: Identity[Account] = new Identity[Account] {
     def identity: Account                       = Account.dummy
     def combine(m1: => Account, m2: => Account) =
@@ -129,6 +135,7 @@ final case class Article_(id: String,
                           packUnit: String,
                           stockAccount: String,
                           expenseAccount: String,
+                          vatCode: String,
                           company: String,
                           modelid: Int = Article.MODELID,
                           enterdate: Instant = Instant.now(),
@@ -149,6 +156,7 @@ object Article_ {
     art.packUnit,
     art.stockAccount,
     art.expenseAccount,
+    art.vatCode,
     art.company,
     art.modelid,
     art.enterdate,
@@ -169,6 +177,7 @@ final case class Article(id: String,
                          packUnit:String,
                          stockAccount: String,
                          expenseAccount: String,
+                         vatCode: String,
                          company: String,
                          modelid: Int = Article.MODELID,
                          enterdate: Instant = Instant.now(),
@@ -188,6 +197,7 @@ final case class TArticle(id: String,
                          packUnit:String,
                          stockAccount: String,
                          expenseAccount: String,
+                         vatCode: String,
                          company: String,
                          modelid: Int = Article.MODELID,
                          enterdate: Instant = Instant.now(),
@@ -234,6 +244,7 @@ object Article {
       String,
       String,
       String,
+      String,
       Int,
       Instant,
       Instant,
@@ -254,6 +265,7 @@ object Article {
     art.packUnit,
     art.stockAccount,
     art.expenseAccount,
+    art.vatCode,
     art.company,
     art.modelid,
     art.enterdate,
@@ -281,6 +293,7 @@ object Article {
       acc._16,
       acc._17,
       acc._18,
+      acc._19,
       Nil
     )
 
@@ -301,6 +314,7 @@ object Article {
     art.packUnit,
     art.stockAccount,
     art.expenseAccount,
+    art.vatCode,
     art.company,
     art.modelid,
     art.enterdate,
@@ -325,6 +339,7 @@ object Article {
     art.packUnit,
     art.stockAccount,
     art.expenseAccount,
+    art.vatCode,
     art.company,
     art.modelid,
     art.enterdate,
@@ -349,6 +364,7 @@ object Article {
     art.packUnit,
     art.stockAccount,
     art.expenseAccount,
+    art.vatCode,
     art.company,
     art.modelid,
     art.enterdate,
@@ -1135,6 +1151,7 @@ final case class Vat(
 )
 object Vat {
   val MODEL_ID = 14
+  val dummy: Vat = Vat("", "", "", zeroAmount, "", "", Instant.now(), Instant.now(), Instant.now(), "", Vat.MODEL_ID)
 }
 final case class Stock(id:String, store:String, article:String, quantity:BigDecimal, charge:String, company:String, modelid: Int = Stock.MODELID)
 
@@ -1736,13 +1753,13 @@ object Employee                      {
     )
 }
 final case class TransactionDetails( id: Long, transid: Long, article: String, articleName:String, quantity: BigDecimal, unit: String, price: BigDecimal,
-                                     currency: String, duedate: Instant = Instant.now(), text: String)
+                                     currency: String, duedate: Instant = Instant.now(), vatCode:String, text: String)
 final case class TransactionDetails_(transid: Long, article: String, articleName:String, quantity: BigDecimal, unit: String, price: BigDecimal,
-                                     currency: String, duedate: Instant = Instant.now(), text: String)
+                                     currency: String, duedate: Instant = Instant.now(), vatCode:String, text: String)
 
 object TransactionDetails  {
 
-  val dummy                                                   = TransactionDetails(0, 0, "", "", zeroAmount, "", zeroAmount, "", Instant.now(), "")
+  val dummy                                                   = TransactionDetails(0, 0, "", "", zeroAmount, "", zeroAmount, "", Instant.now(), "",  "")
   implicit val monoid: Identity[TransactionDetails] =
     new Identity[TransactionDetails] {
       def identity: TransactionDetails = dummy
@@ -1750,12 +1767,12 @@ object TransactionDetails  {
         m2.copy(quantity = m2.quantity.add(m1.quantity))
     }
 
-  type TransactionDetails_Type = (Long, Long, String, String, BigDecimal, String, BigDecimal, String, Instant,  String)
+  type TransactionDetails_Type = (Long, Long, String, String, BigDecimal, String, BigDecimal, String, Instant,  String, String)
 
   def apply(tr: TransactionDetails_Type): TransactionDetails =
-    new TransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10)
+    new TransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11)
   def apply(tr: TransactionDetails): TransactionDetails =
-    new TransactionDetails(tr.id, tr.transid, tr.article, tr.articleName, tr.quantity, tr.unit, tr.price, tr.currency, tr.duedate, tr.text)
+    new TransactionDetails(tr.id, tr.transid, tr.article, tr.articleName, tr.quantity, tr.unit, tr.price, tr.currency, tr.duedate, tr.vatCode, tr.text)
 }
 final case class FinancialsTransactionDetails(
   id: Long,

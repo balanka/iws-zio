@@ -31,7 +31,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
     )
       .from(transactions)
 
-  private val SELECT_LINE = select(lid_, transid, article_, article_name_, quantity_, unit_, price_, currency_, duedate_, ltext_ ).from(transactionDetails)
+  private val SELECT_LINE = select(lid_, transid, article_, article_name_, quantity_, unit_, price_, currency_, duedate_, vat_code_, ltext_ ).from(transactionDetails)
 
   @nowarn
   override def create2(transactions: List[Transaction]): ZIO[Any, RepositoryError, Int] =
@@ -72,6 +72,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       .set(price_, details.price)
       .set(currency_, details.currency)
       .set(duedate_, details.duedate)
+      .set(vat_code_, details.vatCode)
       .set(ltext_, details.text)
       .where(lid_ === details.id)
   }

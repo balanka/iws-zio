@@ -289,6 +289,7 @@ create table if not exists transaction_details
     price   numeric(12, 2)                              not null,
     currency varchar(10)                                 not null,
     duedate  timestamp   default CURRENT_DATE            not null,
+    vat_code varchar(10)                                 not null,
     text     varchar(380)
     );
 
@@ -585,6 +586,7 @@ create table if not exists article
     pack_unit  varchar(50) not null,
     stock_account  varchar(50) not null,
     expense_account  varchar(50) not null,
+    vat_code varchar(10) not null,
     changedate    timestamp default CURRENT_DATE not null,
     enterdate    timestamp default CURRENT_DATE not null,
     postingdate  timestamp default CURRENT_DATE not null,
@@ -645,14 +647,14 @@ CREATE TABLE IF NOT EXISTS public.stock
 );
 CREATE INDEX stock_idx ON stock (store, article, company );
 
-insert into article (id,  name, description, parent, sprice, pprice, avg_price,currency, stocked, quantity_unit, pack_unit, stock_account, expense_account, company, modelid) values
- ('iws001', 'Licence IWS base', 'Licence IWS base including masterfile, and administration', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35),
- ('iws002', 'Licence IWS sales', 'Licence IWS sales including 1 Y customer care', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35),
- ('iws003', 'Licence IWS purchasing', 'Licence IWS purchasing including 1 Y customer care''', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35),
- ('iws004', 'Licence IWS financials', 'Licence IWS financials including 1 Y customer care''', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35),
- ('MACS001', 'Mac Studio 2023', 'Mac Studio 2023', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', '1000', 35),
- ('0000', 'Atikel_0', 'Atikel_0', '-1', 0,0,0,'EUR', true, 'stk', 'stk', '5400', '5000', '1000', 35),
- ('0001', 'Atikel_1', 'Atikel_1', '-1', 0,0,0,'EUR', true, 'stk', 'stk', '5400', '5000', '1000', 35);
+insert into article (id,  name, description, parent, sprice, pprice, avg_price,currency, stocked, quantity_unit, pack_unit, stock_account, expense_account, vat_code, company, modelid) values
+ ('iws001', 'Licence IWS base', 'Licence IWS base including masterfile, and administration', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', 'v5', '1000', 34),
+ ('iws002', 'Licence IWS sales', 'Licence IWS sales including 1 Y customer care', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', 'v5', '1000', 34),
+ ('iws003', 'Licence IWS purchasing', 'Licence IWS purchasing including 1 Y customer care''', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', 'v5', '1000', 34),
+ ('iws004', 'Licence IWS financials', 'Licence IWS financials including 1 Y customer care''', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', 'v5', '1000', 34),
+ ('MACS001', 'Mac Studio 2023', 'Mac Studio 2023', '-1', 1,1,1,'EUR', false, 'pc', 'pc', '5400', '5000', 'v5', '1000', 34),
+ ('0000', 'Atikel_0', 'Atikel_0', '-1', 0,0,0,'EUR', true, 'stk', 'stk', '5400', '5000', 'v5', '1000', 34),
+ ('0001', 'Atikel_1', 'Atikel_1', '-1', 0,0,0,'EUR', true, 'stk', 'stk', '5400', '5000', 'v5', '1000', 34);
 
 
 insert into store (id,  name, description, account, company, modelid) values
