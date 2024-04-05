@@ -170,8 +170,8 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     val insertBankAccounts = buildInsertBankAccount(newBankAccounts)
     val result = for {
       insertedBankAccounts <- ZIO.when(newBankAccounts.nonEmpty)(insertBankAccounts.run)<*
-        ZIO.logInfo(s" insert bank accounts stmt ${renderInsert(insertBankAccounts)}")
-      inserted <- insertAll.run <* ZIO.logInfo(s"insert customer  stmt ${renderInsert(insertAll)}")
+        ZIO.logDebug(s" insert bank accounts stmt ${renderInsert(insertBankAccounts)}")
+      inserted <- insertAll.run <* ZIO.logDebug(s"insert customer  stmt ${renderInsert(insertAll)}")
     } yield insertedBankAccounts.getOrElse(0)  + inserted
     transact(result).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
   }
@@ -208,12 +208,12 @@ final class CustomerRepositoryImpl(pool: ConnectionPool) extends CustomerReposit
     val update_ = buildUpdate(Customer_(model))
     val result = for {
       insertedBankAccounts <- ZIO.when(newBankAccounts.nonEmpty)(buildInsertBankAccount(newBankAccounts).run)<*
-        ZIO.logInfo(s"bank accounts insert stmt ${renderInsert(buildInsertBankAccount(newBankAccounts))}")
+        ZIO.logDebug(s"bank accounts insert stmt ${renderInsert(buildInsertBankAccount(newBankAccounts))}")
       updatedBankAccounts <- ZIO.when(oldBankAccounts.nonEmpty)(oldBankAccounts.map(ba => buildUpdateBankAccount(ba).run).flip.map(_.sum))<*
-        ZIO.logInfo(s" bank accounts  update stmt ${oldBankAccounts.map(ba => renderUpdate(buildUpdateBankAccount(ba)))}")
+        ZIO.logDebug(s" bank accounts  update stmt ${oldBankAccounts.map(ba => renderUpdate(buildUpdateBankAccount(ba)))}")
       deletedBankAccounts <- ZIO.when(deleteBankAccounts.nonEmpty)(buildDeleteBankAccount(deleteBankAccounts).map(_.run).flip.map(_.sum))<*
-        ZIO.logInfo(s"bank accounts  delete stmt ${buildDeleteBankAccount(deleteBankAccounts).map(renderDelete)}")
-      updated <- update_.run <* ZIO.logInfo(s"customer update stmt ${renderUpdate(update_)}")
+        ZIO.logDebug(s"bank accounts  delete stmt ${buildDeleteBankAccount(deleteBankAccounts).map(renderDelete)}")
+      updated <- update_.run <* ZIO.logDebug(s"customer update stmt ${renderUpdate(update_)}")
     } yield insertedBankAccounts.getOrElse(0) + updatedBankAccounts.getOrElse(0) + deletedBankAccounts.getOrElse(0) + updated
     transact(result).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
   }

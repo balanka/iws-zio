@@ -78,7 +78,6 @@ final class VatRepositoryImpl(pool: ConnectionPool) extends VatRepository with I
   }
   override def modify(models: List[Vat]): ZIO[Any, RepositoryError, Int] = {
     val update_ = models.map(build)
-    // ZIO.logDebug(s"Query Update vat is ${renderUpdate(update_)}") *>
     executeBatchUpdate(update_)
       .provideLayer(driverLayer).mapBoth(e => RepositoryError(e.getMessage), _.sum)
   }
@@ -104,16 +103,13 @@ final class VatRepositoryImpl(pool: ConnectionPool) extends VatRepository with I
   override def getBy(Id:(String, String)): ZIO[Any, RepositoryError, Vat]          = {
     val selectAll = SELECT.where(whereClause(Id._1, Id._2))
 
-    ZIO.logInfo(s"Query to execute findBy is ${renderRead(selectAll)}") *>
+    ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}") *>
       execute(selectAll.to((Vat.apply _).tupled))
         .findFirst(driverLayer, Id._1)
   }
 
   def getBy(ids: List[String], company: String): ZIO[Any, RepositoryError, List[Vat]] =
     ids.map(id=>getBy((id, company))).flip
-//    for {
-//    vats <- getBy_(ids, company).runCollect.map(_.toList)
-//  } yield vats
 
   def getBy_(ids: List[String], company: String): ZStream[Any, RepositoryError, Vat] = {
     val selectAll = SELECT.where(whereClause(ids, company))
