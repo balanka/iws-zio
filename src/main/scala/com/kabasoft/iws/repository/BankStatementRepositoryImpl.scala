@@ -1,6 +1,6 @@
 package com.kabasoft.iws.repository
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{BankStatement, FinancialsTransaction, common}
+import com.kabasoft.iws.domain.{BankStatement, Company, FinancialsTransaction, common}
 import zio._
 import zio.prelude.FlipOps
 import zio.sql.ConnectionPool
@@ -142,16 +142,20 @@ type TYPE = (TableName, Instant, Instant, TableName, TableName, TableName, Table
   @nowarn
   override def post(bs: List[BankStatement], transactions:List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] = {
     val updateSQL = bs.map(buildUpdate)
-    var company:String =null
-    val ids = transactions.flatMap(tr=>{ company = tr.company; tr.lines.map(_.account)})++transactions.flatMap(tr=>tr.lines.map(_.oaccount))
+    val company:String = transactions.headOption.getOrElse(FinancialsTransaction.dummy).company
+    val ids_ = transactions.flatMap(tr=> tr.lines.map(l=>(l.account, l.oaccount))).unzip
+    val ids = (ids_._1++ids_._2).distinct
     val result = for {
       accounts        <-  accRepo.getBy(ids, company)
-      posted <- ZIO.logDebug(s"Update stmt bank statement  ${updateSQL.map(renderUpdate)}  ") *>updateSQL.map(_.run).flip.map(_.sum)
-      created <- ZIO.logDebug(s"Posted bank statement  ${posted}  ") *> create2s( buildId1(transactions), accounts)
-      _<- ZIO.logDebug(s"Created transactions  ${posted}  ")
+      posted <- ZIO.logInfo(s"Update stmt bank statement  ${updateSQL.map(renderUpdate)}  ") *>updateSQL.map(_.run).flip.map(_.sum)
+      created <- ZIO.logInfo(s"Posted bank statement  ${posted}  ") *> create2s( buildId1(transactions), accounts)
+      _<- ZIO.logInfo(s"Created transactions  ${posted}  ")
     } yield posted+created
     transact(result)
-      .mapError(e => RepositoryError(e.toString))
+      .mapError(e => {
+        println(s"Error>>> ${e.getMessage}  ")
+        RepositoryError(e.toString)
+      })
       .provideLayer(driverLayer)
   }
 

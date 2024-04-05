@@ -456,6 +456,9 @@ object Company{
   )
   def apply(c:TYPE):Company = Company(c._1, c._2,c._3,c._4,c._5,c._6,c._7,c._8,c._9,c._10
     ,c._11,c._12,c._13,c._14,c._15, c._16,c._17,c._18,c._19, c._20, c._21,List.empty[BankAccount])
+
+  def dummy:Company = Company("-1",  "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", MODEL_ID, Nil)
+
 }
 sealed trait AppError extends Throwable
 
@@ -2057,7 +2060,8 @@ object FinancialsTransaction         {
       tr._15,
       Nil
     )
-
+ val dummy: FinancialsTransaction = FinancialsTransaction(-1, 0,0, "dummy", "dummy", Instant.now(), Instant.now()
+                                    , Instant.now(), -1, false,  -1, "",  "dummy", -1, -1)
 }
 final case class Journal_(
   transid: Long,

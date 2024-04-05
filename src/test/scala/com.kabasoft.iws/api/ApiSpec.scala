@@ -50,7 +50,7 @@ object ApiSpec extends ZIOSpecDefault {
           val testRoutes = testApi(accAll ++accByIdEndpoint) _
           val deleteRoutes = testDeleteApi(accDeleteEndpoint) _
           val postRoutes = testPostApi(accCreateEndpoint) _
-            testRoutes("/acc/"+acc.modelid+"/" +acc.company, "21") && //testRoutes("/acc/"+acc.id+"/"+acc.company, acc.toJson)&&
+            testRoutes("/acc/"+acc.modelid+"/" +acc.company, "22") && //testRoutes("/acc/"+acc.id+"/"+acc.company, acc.toJson)&&
             deleteRoutes("/acc/"+acc.id+"/"+acc.company, "1") && postRoutes("/acc",  accx.toJson,  accx.toJson)
 
         },
