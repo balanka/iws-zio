@@ -2,7 +2,7 @@ package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AccountBuilder.companyId
 import com.kabasoft.iws.domain.ArticleBuilder.{artId0, artId1}
-import com.kabasoft.iws.domain.TransactionBuilder.{ftr1, ftr2, ftr3, ftr4}
+import com.kabasoft.iws.domain.TransactionBuilder.{ftr1, ftr2, ftr3, ftr4, ftr5, ftr6}
 import com.kabasoft.iws.domain.Stock
 import com.kabasoft.iws.repository.container.PostgresContainer
 import com.kabasoft.iws.repository._
@@ -17,8 +17,9 @@ import java.math.{BigDecimal, RoundingMode}
 object TransactionServiceLiveSpec extends ZIOSpecDefault {
 
   val testServiceLayer = ZLayer.make[AccountService  with TransactionService with TransactionRepository with PostOrder
-    with TransactionLogRepository with ArticleRepository with AccountRepository with PacRepository with StockRepository
-    with CustomerRepository with  SupplierRepository with  VatRepository  with PostGoodreceiving with PostBillOfDelivery with  PostCustomerInvoice
+    with PostSalesOrder with ArticleRepository with AccountRepository with PacRepository with StockRepository
+    with CustomerRepository with  SupplierRepository with  VatRepository  with PostGoodreceiving with PostBillOfDelivery
+    with  PostCustomerInvoice with TransactionLogRepository
     with  PostSupplierInvoice with PostFinancialsTransactionRepository](
     AccountRepositoryImpl.live,
     AccountServiceImpl.live,
@@ -36,6 +37,7 @@ object TransactionServiceLiveSpec extends ZIOSpecDefault {
     PostTransactionRepositoryImpl.live,
     PostFinancialsTransactionRepositoryImpl.live,
     PostOrderImpl.live,
+    PostSalesOrderImpl.live,
     PostGoodreceivingImpl.live,
     PostBillOfDeliveryImpl.live,
     PostCustomerInvoiceImpl.live,
@@ -48,7 +50,7 @@ object TransactionServiceLiveSpec extends ZIOSpecDefault {
   override def spec =
     suite("TransactionService  test with postgres test container")(
       test("create and post 1 transaction") {
-        val list  = List(ftr1, ftr2, ftr3, ftr4)
+        val list  = List(ftr1, ftr2, ftr3, ftr4, ftr5, ftr6)
 
         val ids = Stock.create(list).map(_.id)
         val avgPrice0 =  new BigDecimal("10.00").setScale(2, RoundingMode.HALF_UP)
@@ -67,7 +69,7 @@ object TransactionServiceLiveSpec extends ZIOSpecDefault {
           article1 <- ArticleRepository.getBy ( (artId1, ftr1.company)).debug(s"article1 >>> ${artId1}")
 
         } yield {
-          assertTrue(oneRow == 12,  postedRows == 29, stocks.size == 2, stock0.getOrElse(Stock.dummy).quantity.compareTo(zero)==0
+          assertTrue(oneRow == 18,  postedRows == 31, stocks.size == 2, stock0.getOrElse(Stock.dummy).quantity.compareTo(zero)==0
           ,  stock1.getOrElse(Stock.dummy).quantity.compareTo(zero)==0, article0.avgPrice.compareTo(avgPrice0)==0
             , article0.pprice.compareTo(pPrice0)==0
             , article1.avgPrice.compareTo(avgPrice1)==0,  article1.pprice.compareTo(pPrice1)==0)

@@ -138,6 +138,7 @@ object IwsApp extends ZIOAppDefault {
           TransactionServiceImpl.live,
           TransactionLogRepositoryImpl.live,
           PostOrderImpl.live,
+          PostSalesOrderImpl.live,
           PostGoodreceivingImpl.live,
           PostBillOfDeliveryImpl.live,
           PostCustomerInvoiceImpl.live,

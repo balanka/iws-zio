@@ -9,6 +9,7 @@ import zio._
 
 final class TransactionServiceImpl( ftrRepo: TransactionRepository
                                     , orderService:PostOrder
+                                    , salesOrderService: PostSalesOrder
                                     , postGoodreceiving: PostGoodreceiving
                                     , postBillOfDelivery: PostBillOfDelivery
                                     , postSupplierInvoice: PostSupplierInvoice
@@ -32,23 +33,25 @@ final class TransactionServiceImpl( ftrRepo: TransactionRepository
     goodreceiving = models.filter(_.modelid == TransactionModelId.GOORECEIVING.id)
     bilOfDelivery = models.filter(_.modelid == TransactionModelId.BILL_OF_DELIVERY.id)
     purchaseOrder = models.filter(_.modelid == TransactionModelId.PURCHASE_ORDER.id)
+    salesOrder = models.filter(_.modelid == TransactionModelId.SALES_ORDER.id)
     supplierInvoice = models.filter(_.modelid == TransactionModelId.SUPPLIER_INVOICE.id)
     customerInvoice = models.filter(_.modelid == TransactionModelId.CUSTOMER_INVOICE.id)
     postedOrder <- orderService.postAll(purchaseOrder, company)
+    postedSalesOrder <- salesOrderService.postAll(salesOrder, company)
     postedGoodreceiving <- postGoodreceiving.postAll(goodreceiving, company)
     postedBillOfDelivery <- postBillOfDelivery.postAll(bilOfDelivery, company)
     postedSupplierInvoice <- postSupplierInvoice.postAll(supplierInvoice, company)
     postedCustomerInvoice <- postCustomerInvoice.postAll(customerInvoice, company)
-    } yield postedOrder+postedGoodreceiving+ postedBillOfDelivery+postedSupplierInvoice+postedCustomerInvoice
+    } yield postedOrder+postedSalesOrder+postedGoodreceiving+ postedBillOfDelivery+postedSupplierInvoice+postedCustomerInvoice
 
   override def post(id: Long, company: String): ZIO[Any, RepositoryError, Int] = postAll(List(id), company)
 
 }
 
 object TransactionServiceImpl {
-  val live: ZLayer[PacRepository with TransactionRepository with TransactionLogRepository with AccountRepository with PostOrder with PostGoodreceiving
-    with PostBillOfDelivery  with PostCustomerInvoice with PostSupplierInvoice with CompanyRepository
+  val live: ZLayer[PacRepository with TransactionRepository with TransactionLogRepository with AccountRepository with PostOrder with PostSalesOrder
+    with PostGoodreceiving with PostBillOfDelivery  with PostCustomerInvoice with PostSupplierInvoice with CompanyRepository
     with JournalRepository with ArticleRepository with StockRepository with PostTransactionRepository, RepositoryError, TransactionService] =
-    ZLayer.fromFunction(new TransactionServiceImpl(_, _, _, _, _, _, _))
+    ZLayer.fromFunction(new TransactionServiceImpl(_, _, _, _, _, _, _,_))
 
 }
