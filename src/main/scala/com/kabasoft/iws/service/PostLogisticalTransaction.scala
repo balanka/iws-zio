@@ -27,7 +27,7 @@ trait  PostLogisticalTransaction {
 
   def buildTransaction(model:Transaction, accounts:List[Account], suppliers:List[BusinessPartner]
                        , vats:List[Vat], accountId: String, modelid:Int): (Transaction, FinancialsTransaction)  = {
-    val partnerAccountId = suppliers.filter(_.id == model.costcenter)
+    val partnerAccountId = suppliers.filter(_.id == model.account)
       .flatMap(s => accounts.filter(_.id == s.account))
       .headOption.getOrElse(Account.dummy).id
     val currency = model.lines.headOption.getOrElse(TransactionDetails.dummy).currency
@@ -137,7 +137,7 @@ trait  PostLogisticalTransaction {
     models.flatMap(tr => tr.lines.map( line =>
       allStock.find(_.id == tr.store.concat(line.article).concat(tr.company).concat("")) // Find stock for article  in  store
         .flatMap(st=> articles.find(_.id == st.article).map( article =>                    // Find article for the line
-          TransactionLog(0L, tr.id, tr.oid, tr.store, tr.costcenter, line.article, line.quantity // build TransactionLog
+          TransactionLog(0L, tr.id, tr.oid, tr.store, tr.account, line.article, line.quantity // build TransactionLog
             , st.quantity, /*article.wholeStock*/ zeroAmount, article.quantityUnit , article.pprice , article.avgPrice
             , article.currency, line.duedate, line.text, tr.transdate, tr.postingdate, tr.enterdate, tr.period, tr.company, tr.modelid)
         ))).map(_.toList)).flatten

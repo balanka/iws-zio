@@ -71,7 +71,7 @@ final class TransactionLogRepositoryImpl(pool: ConnectionPool) extends Transacti
     c.transid,
     c.oid,
     c.store,
-    c.costcenter,
+    c.account,
     c.article,
     c.quantity,
     c.stock,

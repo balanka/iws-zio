@@ -19,7 +19,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       oid_,
       id1_,
       store_,
-      costcenter_,
+      account_,
       transdate_,
       enterdate_,
       postingdate_,
@@ -83,7 +83,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
       .set(oid_, trans.oid)
       .set(id1_, transid1)
       .set(store_, trans.store)
-      .set(costcenter_, trans.costcenter)
+      .set(account_, trans.account)
       .set(transdate_, trans.transdate)
       .set(modelid_, trans.modelid)
       .set(company_, trans.company)
@@ -170,7 +170,7 @@ final class TransactionRepositoryImpl(pool: ConnectionPool) extends TransactionR
                                 ): ZStream[Any, RepositoryError, Transaction] = {
     val selectAll = SELECT2
       .where((company_ === companyId) && (period_ >= fromPeriod) && (period_ <= toPeriod))
-      .orderBy(costcenter_.descending)
+      .orderBy(account_.descending)
 
     ZStream.fromZIO(
       ZIO.logDebug(s"Query to execute find4Period1 is ${renderRead(selectAll)}")
