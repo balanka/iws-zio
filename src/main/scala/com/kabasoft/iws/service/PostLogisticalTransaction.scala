@@ -1,10 +1,10 @@
 package com.kabasoft.iws.service
-
-import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain._
-import com.kabasoft.iws.domain.common.{pacMonoid, zeroAmount}
+import com.kabasoft.iws.domain.common.{pacMonoid, amountAddMonoid, reduce, zeroAmount}
 import zio._
 import zio.prelude.FlipOps
+
+import java.time.Instant
 
 trait  PostLogisticalTransaction {
 
@@ -25,6 +25,30 @@ trait  PostLogisticalTransaction {
         List(createPac (accountId, model, line, debitCredit = false))
     }
 
+  def buildTransaction(model:Transaction, accounts:List[Account], suppliers:List[BusinessPartner]
+                       , vats:List[Vat], accountId: String, modelid:Int): (Transaction, FinancialsTransaction)  = {
+    val partnerAccountId = suppliers.filter(_.id == model.costcenter)
+      .flatMap(s => accounts.filter(_.id == s.account))
+      .headOption.getOrElse(Account.dummy).id
+    val currency = model.lines.headOption.getOrElse(TransactionDetails.dummy).currency
+    val details0 = model.lines.map { l =>
+      val vat = vats.find(vat => vat.id == l.vatCode).getOrElse(Vat.dummy)
+      if (modelid == TransactionModelId.SUPPLIER_INVOICE.id)
+        FinancialsTransactionDetails(-1, 0, partnerAccountId, side = true, vat.inputVatAccount, model.total.multiply(vat.percent), Instant.now(), model.text, currency, "", "")
+      else
+        FinancialsTransactionDetails(-1, 0, vat.outputVatAccount, side = true, partnerAccountId, model.total.multiply(vat.percent), Instant.now(), model.text, currency, "", "")
+    }
+    val vatAmount = reduce(details0.map(_.amount), zeroAmount)
+    val netAmount = model.total.subtract(vatAmount)
+    val details = if (modelid == TransactionModelId.SUPPLIER_INVOICE.id)
+      details0.::(FinancialsTransactionDetails(-1, 0, partnerAccountId, side = true, accountId, netAmount, Instant.now(), model.text, currency, "", ""))
+    else
+      details0.::(FinancialsTransactionDetails(-1, 0, accountId, side = true, partnerAccountId, netAmount, Instant.now(), model.text, currency, "", ""))
+
+    val financialsTransaction = FinancialsTransaction(-1, model.id, 0, model.store, partnerAccountId, model.transdate, Instant.now(), Instant.now()
+      , model.period, posted = false, modelid, model.company, model.text, -1, -1, details)
+    (model.copy(posted = true), financialsTransaction)
+  }
   def groupById(r: List[PeriodicAccountBalance]): List[PeriodicAccountBalance] =
     (r.groupBy(_.id) map { case (_, v) =>
       common.reduce(v, PeriodicAccountBalance.dummy)
