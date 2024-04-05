@@ -147,9 +147,9 @@ type TYPE = (TableName, Instant, Instant, TableName, TableName, TableName, Table
     val ids = (ids_._1++ids_._2).distinct
     val result = for {
       accounts        <-  accRepo.getBy(ids, company)
-      posted <- ZIO.logInfo(s"Update stmt bank statement  ${updateSQL.map(renderUpdate)}  ") *>updateSQL.map(_.run).flip.map(_.sum)
-      created <- ZIO.logInfo(s"Posted bank statement  ${posted}  ") *> create2s( buildId1(transactions), accounts)
-      _<- ZIO.logInfo(s"Created transactions  ${posted}  ")
+      posted <- ZIO.logDebug(s"Update stmt bank statement  ${updateSQL.map(renderUpdate)}  ") *>updateSQL.map(_.run).flip.map(_.sum)
+      created <- ZIO.logDebug(s"Posted bank statement  ${posted}  ") *> create2s( buildId1(transactions), accounts)
+      _<- ZIO.logDebug(s"Created transactions  ${posted}  ")
     } yield posted+created
     transact(result)
       .mapError(e => {

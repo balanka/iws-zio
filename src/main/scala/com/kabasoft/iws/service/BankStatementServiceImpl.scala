@@ -25,13 +25,13 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
 
   private def postBankStmtCreateTransaction(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, Int] =
     for {
-      accounts <- ZIO.logInfo(s"get account by modelid  ${companyId}  ") *>accountRepo.all((Account.MODELID, companyId))
-      company <- ZIO.logInfo(s"get company by id  ${companyId}  ") *> companyRepo.getBy(companyId)
-      bankStmt <- ZIO.logInfo(s"get bankStmt by ids  ${ids}  ") *> bankStmtRepo.getById(ids).runCollect.map(_.toList)
+      accounts <- ZIO.logDebug(s"get account by modelid  ${companyId}  ") *>accountRepo.all((Account.MODELID, companyId))
+      company <- ZIO.logDebug(s"get company by id  ${companyId}  ") *> companyRepo.getBy(companyId)
+      bankStmt <- ZIO.logDebug(s"get bankStmt by ids  ${ids}  ") *> bankStmtRepo.getById(ids).runCollect.map(_.toList)
       vat <- vatRepo.all((Vat.MODEL_ID, company.id))
-      transactions <- ZIO.logInfo(s"Got bankStmt  ${bankStmt}  ") *> buildTransactions(bankStmt, vat, company, accounts)
-      posted <- ZIO.logInfo(s"Created transactions  ${transactions}  ") *> bankStmtRepo.post(bankStmt, transactions.flatten)
-      _ <- ZIO.logInfo(s"Transaction posted ${posted}  ")
+      transactions <- ZIO.logDebug(s"Got bankStmt  ${bankStmt}  ") *> buildTransactions(bankStmt, vat, company, accounts)
+      posted <- ZIO.logDebug(s"Created transactions  ${transactions}  ") *> bankStmtRepo.post(bankStmt, transactions.flatten)
+      _ <- ZIO.logDebug(s"Transaction posted ${posted}  ")
     } yield posted
 
   override def post(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, List[BankStatement]] = {
@@ -131,7 +131,7 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
                                buildFn: String => BankStatement = BankStatement.from
                              ): ZIO[Any, RepositoryError, Int] = {
     for {
-      bs <- ZIO.logInfo(s"path ${path}") *>
+      bs <- ZIO.logDebug(s"path ${path}") *>
         ZStream
         .fromJavaStream(Files.walk(Paths.get(path)))
         .filter(p => !Files.isDirectory(p) && p.toString.endsWith(extension))
@@ -145,7 +145,7 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
 //              .replaceAll("Ö", "Oe"))
 //            .via (ZPipeline.splitLines)
             .via(ZPipeline.utf8Decode >>> ZPipeline.splitLines)
-            .tap(e => ZIO.logInfo(s"Element ${e}"))
+            .tap(e => ZIO.logDebug(s"Element ${e}"))
             .filterNot(p => p.replaceAll(char, "").startsWith(header))
             //.map(p => buildFn(p))
              .map(p => buildFn(p.replaceAll(char, "")))//.replaceAll("Spk ", "Spk")))

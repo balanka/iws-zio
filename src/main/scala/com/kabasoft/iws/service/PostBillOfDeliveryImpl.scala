@@ -18,7 +18,7 @@ final class PostBillOfDeliveryImpl(pacRepo: PacRepository
   override def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int]  =
     for {
       _ <- ZIO.foreachDiscard(transactions.map(_.id))(
-        id => ZIO.logInfo(s"Posting bill of delivery  transaction  with id ${id} of company ${transactions.head.company}"))
+        id => ZIO.logDebug(s"Posting bill of delivery  transaction  with id ${id} of company ${transactions.head.company}"))
       stockIds = Stock.create(transactions).map(_.id).distinct
       oldStocks <- stockRepo.getById(stockIds)
       post <- postTransaction(transactions, company, Nil, oldStocks)

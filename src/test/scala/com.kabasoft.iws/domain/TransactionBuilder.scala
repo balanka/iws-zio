@@ -14,6 +14,7 @@ object TransactionBuilder {
   val modelid = TransactionModelId.GOORECEIVING.id
   val modelid2 = TransactionModelId.SUPPLIER_INVOICE.id
   val modelid3 = TransactionModelId.BILL_OF_DELIVERY.id
+  val modelid4 = TransactionModelId.CUSTOMER_INVOICE.id
   val vtime = Instant.now()
   val period = common.getPeriod(vtime)
   val side = true
@@ -24,6 +25,7 @@ object TransactionBuilder {
   val terms1 = "Delivery note for purchased good  or service"
   val terms2 = "Billing note for purchased good  or service"
   val terms3 = "Delivery note for sold good  or service"
+  val terms4 = "Billing note for sold good  or service"
   val currency = "EUR"
   val store = "311"
   val qttyUnit = "stk"
@@ -36,5 +38,6 @@ object TransactionBuilder {
           ,  List(line1, line2))
   val ftr2 = ftr1.copy(modelid = modelid2, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = terms2)
   val ftr3 = ftr1.copy(modelid = modelid3, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = terms3)
+  val ftr4 = ftr1.copy(modelid = modelid4, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = terms4)
 
 }

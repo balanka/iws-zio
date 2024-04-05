@@ -35,12 +35,12 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: FinancialsTra
       queries <- ZIO.foreach(ids)(id => ftrRepo.getByTransId((id, company)))
       models = queries.filter(_.posted == false)
       _ <-ZIO.foreachDiscard(models.map(_.id)) (
-        id =>ZIO.logInfo(s"Posting transaction with id ${id} of company ${company}"))
+        id =>ZIO.logDebug(s"Posting transaction with id ${id} of company ${company}"))
       nr <- ZIO.foreach(models)(model => postTransaction(model, company)).map(_.sum)
     } yield nr
 
   override def post(id: Long, company: String): ZIO[Any, RepositoryError, Int] =
-    ZIO.logInfo(s" Posting transaction with id ${id} of company ${company}") *>
+    ZIO.logDebug(s" Posting transaction with id ${id} of company ${company}") *>
       ftrRepo
         .getByTransId((id, company))
         .flatMap(trans => postTransaction(trans, company))
@@ -91,7 +91,7 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: FinancialsTra
 
 
 
-  def findOrBuildPac(pacId: String, period_ : Int, pacList: List[PeriodicAccountBalance]) =
+  def findOrBuildPac(pacId: String, period_ : Int, pacList: List[PeriodicAccountBalance]): PeriodicAccountBalance =
     pacList.find(pac_ => pac_.id == pacId).getOrElse(PeriodicAccountBalance.dummy.copy(id = pacId, period = period_))
 
 

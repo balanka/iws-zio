@@ -13,13 +13,12 @@ final class EmployeeServiceImpl (empRepo: EmployeeRepository,  accountRepo: Acco
                                  ptrRepo: PayrollTaxRangeRepository, ftrRepo: FinancialsTransactionRepository) extends EmployeeService {
 
   override def generate(company: String): ZIO[Any, RepositoryError, Int] = for {
-    _<- ZIO.logInfo(s" Posting transaction for the company ${company}")
+    _<- ZIO.logDebug(s" Posting transaction for the company ${company}")
     transactions <- build(company).debug("transactions")
     nr<-  ZIO.succeed(transactions).map(_.size) //ftrRepo.create(transactions).map(_.size)
   }yield nr
 
   private def build(companyId: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
-    //<- ZIO.logInfo(s" Posting transaction with id ${id} of company ${company}")
     company <- companyRepo.getBy( companyId).debug("company")
     employee <- empRepo.all((Employee.MODELID, companyId)).debug("employee")
     accounts<- accountRepo.all((Account.MODELID, companyId))//.debug("accounts")

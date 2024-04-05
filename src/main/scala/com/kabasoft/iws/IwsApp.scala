@@ -140,6 +140,7 @@ object IwsApp extends ZIOAppDefault {
           PostOrderImpl.live,
           PostGoodreceivingImpl.live,
           PostBillOfDeliveryImpl.live,
+          PostCustomerInvoiceImpl.live,
           PostSupplierInvoiceImpl.live
         ).<*( ZIO.logInfo(s"http server started successfully!!!!"))
 }

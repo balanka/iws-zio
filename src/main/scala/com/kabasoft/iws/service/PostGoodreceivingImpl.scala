@@ -19,7 +19,7 @@ final class PostGoodreceivingImpl(pacRepo: PacRepository
   override def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int]  =
     if (transactions.isEmpty) ZIO.succeed(0) else for {
     _ <- ZIO.foreachDiscard(transactions.map(_.id))(
-      id => ZIO.logInfo(s"Posting Goodreceiving transaction  with id ${id} of company ${transactions.head.company}"))
+      id => ZIO.logDebug(s"Posting Goodreceiving transaction  with id ${id} of company ${transactions.head.company}"))
     stockIds = Stock.create(transactions).map(_.id).distinct
     oldStocks <- stockRepo.getById(stockIds)
     newStock <- buildNewStock(transactions, oldStocks).flip

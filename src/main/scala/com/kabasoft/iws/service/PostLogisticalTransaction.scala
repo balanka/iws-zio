@@ -18,14 +18,12 @@ trait  PostLogisticalTransaction {
    def buildPacId2(period: Int, accountId:(String,  String)): (String, String) =
     (PeriodicAccountBalance.createId(period, accountId._1), PeriodicAccountBalance.createId(period, accountId._2))
 
-  def buildPacsFromTransaction(model:Transaction, articles:List[Article], accounts:List[Account], accountId: String): List[PeriodicAccountBalance] = {
-    val x = model.lines.flatMap { line =>
+  def buildPacsFromTransaction(model:Transaction, articles:List[Article], accounts:List[Account], accountId: String): List[PeriodicAccountBalance] =
+    model.lines.flatMap { line =>
       val stockAccountIds: List[String] = articleId2AccountId(line.article, articles, accounts)
       stockAccountIds.map( accountId=>createPac (accountId, model, line, debitCredit = true))++
         List(createPac (accountId, model, line, debitCredit = false))
     }
-    x
-  }
 
   def groupById(r: List[PeriodicAccountBalance]): List[PeriodicAccountBalance] =
     (r.groupBy(_.id) map { case (_, v) =>
