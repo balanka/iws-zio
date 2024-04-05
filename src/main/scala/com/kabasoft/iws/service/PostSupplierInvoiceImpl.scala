@@ -1,8 +1,7 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{TransactionModelId, _}
-import com.kabasoft.iws.domain.common._
+import com.kabasoft.iws.domain._
 import com.kabasoft.iws.repository._
 import zio._
 final class PostSupplierInvoiceImpl(vatRepo: VatRepository
@@ -10,7 +9,7 @@ final class PostSupplierInvoiceImpl(vatRepo: VatRepository
                                   , artRepo: ArticleRepository
                                   , supplierRepo: SupplierRepository
                                   , repository4PostingTransaction:PostTransactionRepository
-                                   ,repository4PostingFinancialsTransaction:PostFinancialsTransactionRepository )
+                                  , repository4PostingFinancialsTransaction:PostFinancialsTransactionRepository )
                                     extends PostSupplierInvoice {
   override def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int]  =
     if (transactions.isEmpty) ZIO.succeed(0) else for {

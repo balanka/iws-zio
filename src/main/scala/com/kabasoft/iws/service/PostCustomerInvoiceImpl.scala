@@ -2,16 +2,15 @@ package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain._
-import com.kabasoft.iws.domain.common._
 import com.kabasoft.iws.repository._
 import zio._
 
 final class PostCustomerInvoiceImpl(vatRepo: VatRepository
-                                  , accRepo: AccountRepository
-                                  , artRepo: ArticleRepository
-                                  , cudtomerRepo: CustomerRepository
-                                  , repository4PostingTransaction:PostTransactionRepository
-                                   ,repository4PostingFinancialsTransaction:PostFinancialsTransactionRepository )
+                                    , accRepo: AccountRepository
+                                    , artRepo: ArticleRepository
+                                    , customerRepo: CustomerRepository
+                                    , repository4PostingTransaction:PostTransactionRepository
+                                    , repository4PostingFinancialsTransaction:PostFinancialsTransactionRepository )
                                     extends PostCustomerInvoice {
   override def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int]  =
     if (transactions.isEmpty) ZIO.succeed(0) else for {
@@ -22,10 +21,10 @@ final class PostCustomerInvoiceImpl(vatRepo: VatRepository
     nrPostedFinancialsTransaction <- repository4PostingFinancialsTransaction.post(post._2, Nil, ZIO.succeed(Nil), Nil)
     } yield nrPostedTransaction + nrPostedFinancialsTransaction
 
-  private[this] def postTransaction(transactions: List[Transaction], company: Company): ZIO[Any, RepositoryError, List[(Transaction, FinancialsTransaction)]] = for {
-
+  private[this] def postTransaction(transactions: List[Transaction], company: Company):
+                                  ZIO[Any, RepositoryError, List[(Transaction, FinancialsTransaction)]] = for {
     accounts <- accRepo.all(Account.MODELID, company.id)
-    customers <- cudtomerRepo.all(Customer.MODELID, company.id)
+    customers <- customerRepo.all(Customer.MODELID, company.id)
     articles <- artRepo.getBy(transactions.flatMap(m => m.lines.map(_.article)), company.id)
     vatIds  = articles.map(_.vatCode).distinct
     vats <-  vatRepo.getBy(vatIds, company.id)
