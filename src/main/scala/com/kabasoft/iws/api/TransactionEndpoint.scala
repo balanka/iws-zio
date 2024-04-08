@@ -29,7 +29,7 @@ object TransactionEndpoint {
   val trCreateEndpoint = trCreateAPI.implement(ftr => ZIO.logInfo(s"Create Transaction  ${ftr}") *>
       TransactionRepository.create(ftr).mapError(e => RepositoryError(e.getMessage)))
 
-  val trByTransIdEndpoint = trByTransIdAPI.implement( p =>  ZIO.logInfo(s"Get Transaction by id ${p}") *>
+  val trByTransIdEndpoint = trByTransIdAPI.implement( p =>  ZIO.logDebug(s"Get Transaction by id ${p}") *>
     TransactionRepository.getByTransId((p._2.toLong, p._1)).mapError(e => RepositoryError(e.getMessage)))
 
   private val trPostAllEndpoint = trPostAllAPI.implement(p => //ZIO.logInfo(s"Post all transaction by id ${p}") *>
@@ -42,7 +42,7 @@ object TransactionEndpoint {
   private val trDuplicateEndpoint = trDuplicateAPI.implement(ftr => ZIO.logInfo(s" Duplicate  transaction ${ftr}") *>
     TransactionRepository.create(ftr.duplicate).mapError(e => RepositoryError(e.getMessage)))
 
-  private val trByModelIdEndpoint = trByModelIdAPI.implement(p =>  ZIO.logInfo(s" get transaction by ModelId ${p}") *>
+  private val trByModelIdEndpoint = trByModelIdAPI.implement(p =>  ZIO.logDebug(s" get transaction by ModelId ${p}") *>
      TransactionCache.getByModelId((p._2,p._1)).mapError(e => RepositoryError(e.getMessage)))
 
  // private val trPost4PeriodEndpoint = trPost4PeriodAPI.implement(p => TransactionService.postTransaction4Period(p._2, p._3, p._1).mapError(e => RepositoryError(e.getMessage)))

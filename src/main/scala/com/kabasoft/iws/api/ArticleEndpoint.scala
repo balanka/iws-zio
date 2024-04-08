@@ -20,7 +20,7 @@ object ArticleEndpoint {
 
   private val articleAllEndpoint        = articleAllAPI.implement(p =>
     ZIO.logDebug(s"fetch all article  ${p}") *>
-     ArticleCache.all(p).mapError(e => RepositoryError(e.getMessage)).debug("all articles")
+     ArticleCache.all(p).mapError(e => RepositoryError(e.getMessage))//.debug("all articles")
     )
   val articleCreateEndpoint = articleCreateAPI.implement(article =>
     ZIO.logDebug(s"Insert article  ${article}") *>

@@ -12,7 +12,7 @@ import zio.http.endpoint.Endpoint
 object FModuleEndpoint {
 
   val fmoduleCreateAPI     = Endpoint.post("fmodule").in[Fmodule].out[Fmodule].outError[RepositoryError](Status.InternalServerError)
-  val fmoduleAllAPI        = Endpoint.get("fmodule" / int("modelid")/string("company")/string("parent")).out[List[Fmodule]].outError[RepositoryError](Status.InternalServerError)
+  val fmoduleAllAPI        = Endpoint.get("fmodule" / int("modelid")/string("company")).out[List[Fmodule]].outError[RepositoryError](Status.InternalServerError)
   val fmoduleByIdAPI       = Endpoint.get("fmodule" / string("id")/ string("company")).out[Fmodule].outError[RepositoryError](Status.InternalServerError)
   val fmoduleModifyAPI     = Endpoint.put(literal("fmodule")).in[Fmodule].out[Fmodule].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI = Endpoint.delete("fmodule" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
