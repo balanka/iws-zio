@@ -8,8 +8,8 @@ import java.time.Instant
 
 trait  PostLogisticalTransaction {
 
-   def filterIWS[A <: IWS](list: List[A], param: String): List[A] = list.filter(_.id == param)
-   def articleId2AccountId(articleId:String, articles:List[Article], accounts:List[Account]): List[String] =
+   private def filterIWS[A <: IWS](list: List[A], param: String): List[A] = list.filter(_.id == param)
+   private def articleId2AccountId(articleId:String, articles:List[Article], accounts:List[Account]): List[String] =
     filterIWS(articles,  articleId).flatMap(art=>filterIWS(accounts, art.stockAccount).map(_.id))
 
   def buildPacId(period: Int, accountId:(String,  String)): List[String] =
@@ -58,20 +58,20 @@ trait  PostLogisticalTransaction {
     for{
       newRecords<- groupById(oldPacs).map(TPeriodicAccountBalance.apply).flip
       _<- newRecords.map ( pac =>transfer(pac, tpacs)).flip
-    }yield ( if(tpacs.nonEmpty) tpacs  else newRecords)
+    }yield  if(tpacs.nonEmpty) tpacs  else newRecords
 
 
   def transfer( pac:TPeriodicAccountBalance,  tpacs:List[TPeriodicAccountBalance]): ZIO[Any, Nothing, Option[Unit]] =
     tpacs.find(_.id ==  pac.id).map(pac_ => pac_.transfer(pac, pac_)).flip
 
   def findOrBuildPac(pacId: String, period_ : Int, pacList: List[PeriodicAccountBalance]): PeriodicAccountBalance =
-    pacList.find(pac_ => pac_.id == pacId).getOrElse(PeriodicAccountBalance.dummy.copy(id = pacId, period = period_))
+    pacList.iterator.find(pac_ => pac_.id == pacId).getOrElse(PeriodicAccountBalance.dummy.copy(id = pacId, period = period_))
 
-  def createPac (accountId:String, model:Transaction, line:TransactionDetails, debitCredit:Boolean): PeriodicAccountBalance = {
+  private def createPac(accountId:String, model:Transaction, line:TransactionDetails, debitCredit:Boolean): PeriodicAccountBalance = {
     val amount = line.quantity.multiply(line.price)
     val debitAmount = if (debitCredit) amount else zeroAmount
     val creditAmount = if (debitCredit) zeroAmount else amount
-    PeriodicAccountBalance.apply(
+    PeriodicAccountBalance(
       PeriodicAccountBalance.createId(model.period, accountId),
       accountId,
       model.period,
@@ -86,25 +86,6 @@ trait  PostLogisticalTransaction {
     )
   }
 
-  def createPac (accountId:String, model:Transaction, debitCredit:Boolean): PeriodicAccountBalance = {
-    val amount = model.total
-    val currency = model.lines.headOption.getOrElse(TransactionDetails.dummy).currency
-    val debitAmount = if (debitCredit) amount else zeroAmount
-    val creditAmount = if (debitCredit) zeroAmount else amount
-    PeriodicAccountBalance.apply(
-      PeriodicAccountBalance.createId(model.period, accountId),
-      accountId,
-      model.period,
-      zeroAmount,
-      zeroAmount,
-      debitAmount,
-      creditAmount,
-      currency,
-      model.company,
-      "",
-      PeriodicAccountBalance.MODELID
-    )
-  }
    def buildJournalEntries(model: Transaction, line: TransactionDetails,
                                   pac: PeriodicAccountBalance, account: String, oaccount: String,side:Boolean): Journal =
     Journal(

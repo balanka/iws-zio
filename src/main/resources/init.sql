@@ -928,6 +928,8 @@ values('stk','Stueck','Stueck','' ,current_timestamp, current_timestamp, current
 -- ALTER TABLE journal ADD UNIQUE (modelid, company);
 -- ALTER TABLE periodic_account_balance ADD UNIQUE (modelid, company);
 -- ALTER TABLE master_compta ADD UNIQUE (modelid, company);
+--insert into masterfile (id, name, description, parent, enterdate,changedate,postingdate, modelid, company)
+--values('000','IWS-Suite','IWS-Suite','' ,current_timestamp, current_timestamp, current_timestamp, 13,'1000' );
 
 insert into module (id, name, description,path, parent, enterdate,changedate,postingdate, modelid, company)
 values('0000','Dummy','Dummy', '', '', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z', '2018-01-01T10:00:00.00Z',300,'1000' );
@@ -953,6 +955,7 @@ INSERT INTO public."module"
 (id, name, description, postingdate, changedate, enterdate, company, modelid, path, parent)
 VALUES('15', 'menu.quantityUnit', './MasterfileForm', CURRENT_DATE, CURRENT_DATE, CURRENT_DATE, '1000', 400, '/qty', 20);
 --insert into user_right select 15 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
+insert into user_right select 13 as moduleid, roleid, short, company, modelid from user_right where moduleid='11';
 
 INSERT INTO public."module"
 (id, name, description, postingdate, changedate, enterdate, company, modelid, path, parent)
@@ -1001,3 +1004,4 @@ VALUES (1,  '1200', true, '4400', 81.00, '2023-04-09T15:50:17.598252Z', 'terms',
 -- insert  into transaction (oid, id1, store, costcenter, text, company, modelid, period) values(-1, -1, '001', '200', 'Test', '1000', 101, 202403);
 -- insert  into transaction (oid, id1, store, costcenter, text, company, modelid, period) values(-1, -1, '001', '200', 'Test', '1000', 105, 202403);
 -- insert  into transaction (oid, id1, store, costcenter, text, company, modelid, period) values(-1, -1, '001', '200', 'Test', '1000', 139, 202403);
+-- ALTER TABLE account ADD PRIMARY KEY (id, company);

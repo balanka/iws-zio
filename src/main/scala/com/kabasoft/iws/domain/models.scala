@@ -784,7 +784,7 @@ object Account {
   }
 
   def flattenTailRec(ls: Set[Account]): Set[Account] = {
-    // @tailrec
+     @tailrec
     def flattenR(res: List[Account], rem: List[Account]): List[Account] = rem match {
       case Nil                     => res
       case (head: Account) :: tail => flattenR(res ++ List(head), head.subAccounts.toList ++ tail)
