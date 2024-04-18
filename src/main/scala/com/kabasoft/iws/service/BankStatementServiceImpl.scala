@@ -1,9 +1,10 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.domain.TransactionModelId.{PAYABLES, PAYMENT, RECEIVABLES, SETTLEMENT}
 import com.kabasoft.iws.domain.common.zeroAmount
 import com.kabasoft.iws.domain.{Account, BankStatement, BusinessPartner, Company, FinancialsTransaction, FinancialsTransactionDetails, Vat, common}
-import com.kabasoft.iws.repository.{AccountRepository, BankStatementRepository, CompanyRepository, CustomerRepository, SupplierRepository, FinancialsTransactionRepository, VatRepository}
+import com.kabasoft.iws.repository.{AccountRepository, BankStatementRepository, CompanyRepository, CustomerRepository, FinancialsTransactionRepository, SupplierRepository, VatRepository}
 import zio.prelude.FlipOps
 import zio.stream._
 import zio._
@@ -24,13 +25,13 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
 
   private def postBankStmtCreateTransaction(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, Int] =
     for {
-      accounts <- ZIO.logInfo(s"get account by modelid  ${companyId}  ") *>accountRepo.all((Account.MODELID, companyId))
-      company <- ZIO.logInfo(s"get company by id  ${companyId}  ") *> companyRepo.getBy(companyId)
-      bankStmt <- ZIO.logInfo(s"get bankStmt by ids  ${ids}  ") *> bankStmtRepo.getById(ids).runCollect.map(_.toList)
+      accounts <- ZIO.logDebug(s"get account by modelid  ${companyId}  ") *>accountRepo.all((Account.MODELID, companyId))
+      company <- ZIO.logDebug(s"get company by id  ${companyId}  ") *> companyRepo.getBy(companyId)
+      bankStmt <- ZIO.logDebug(s"get bankStmt by ids  ${ids}  ") *> bankStmtRepo.getById(ids).runCollect.map(_.toList)
       vat <- vatRepo.all((Vat.MODEL_ID, company.id))
-      transactions <- ZIO.logInfo(s"Got bankStmt  ${bankStmt}  ") *> buildTransactions(bankStmt, vat, company, accounts)
-      posted <- ZIO.logInfo(s"Created transactions  ${transactions}  ") *> bankStmtRepo.post(bankStmt, transactions.flatten)
-      _ <- ZIO.logInfo(s"Transaction posted ${posted}  ")
+      transactions <- ZIO.logDebug(s"Got bankStmt  ${bankStmt}  ") *> buildTransactions(bankStmt, vat, company, accounts)
+      posted <- ZIO.logDebug(s"Created transactions  ${transactions}  ") *> bankStmtRepo.post(bankStmt, transactions.flatten)
+      _ <- ZIO.logDebug(s"Transaction posted ${posted}  ")
     } yield posted
 
   override def post(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, List[BankStatement]] = {
@@ -56,7 +57,7 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
   })
   private def buildReceivablesPayables(bs: BankStatement, partner: BusinessPartner, optVat: Option[Vat], accounts:List[Account]): FinancialsTransaction = {
 
-    val modelid = if (bs.amount.compareTo(zeroAmount) >= 0) 122 else 112
+    val modelid = if (bs.amount.compareTo(zeroAmount) >= 0) RECEIVABLES.id else PAYABLES.id
 
     def buildLines(): List[FinancialsTransactionDetails] = {
       val emptyLines = List.empty[FinancialsTransactionDetails]
@@ -78,9 +79,9 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
 
     def buildDetails(account: String, accountName:String, oaccount: String, oaccountName:String, amount: BigDecimal): FinancialsTransactionDetails =
       if (bs.amount.compareTo(zeroAmount) < 0) {
-        FinancialsTransactionDetails(-1L, -1L, account, true, oaccount, amount.abs(), bs.valuedate, bs.purpose, bs.currency, accountName, oaccountName)
+        FinancialsTransactionDetails(-1L, -1L, account, side = true, oaccount, amount.abs(), bs.valuedate, bs.purpose, bs.currency, accountName, oaccountName)
       } else {
-        FinancialsTransactionDetails(-1L, -1L, oaccount, true, account, amount.abs(), bs.valuedate, bs.purpose, bs.currency, oaccountName, accountName)
+        FinancialsTransactionDetails(-1L, -1L, oaccount, side = true, account, amount.abs(), bs.valuedate, bs.purpose, bs.currency, oaccountName, accountName)
       }
 
     buildTransaction(bs, partner, modelid, buildLines())
@@ -89,11 +90,11 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
   private[this] def buildPaymentSettlement(bs: BankStatement, partner: BusinessPartner, company: Company, accounts:List[Account]): FinancialsTransaction = {
     val bankAccountName = accounts.find(_.id == company.bankAcc).fold(s"Bank account with id ${company.bankAcc} not found!!!")(_.name)
     val accountName = accounts.find(_.id == partner.account).fold(s"Account with id ${partner.account} not found!!!")(_.name)
-    val modelid = if (bs.amount.compareTo(zeroAmount) >= 0) 124 else 114
-    val line = if(modelid ==114) {
-      FinancialsTransactionDetails(-1L, -1L, partner.account , true, company.bankAcc, bs.amount.abs(), bs.valuedate, bs.purpose, bs.currency, accountName, bankAccountName)
+    val modelid = if (bs.amount.compareTo(zeroAmount) >= 0) SETTLEMENT.id else PAYMENT.id
+    val line = if(modelid ==PAYMENT.id) {
+      FinancialsTransactionDetails(-1L, -1L, partner.account , side = true, company.bankAcc, bs.amount.abs(), bs.valuedate, bs.purpose, bs.currency, accountName, bankAccountName)
     } else {
-      FinancialsTransactionDetails(-1L, -1L, company.bankAcc,  true, partner.account, bs.amount.abs(), bs.valuedate, bs.purpose, bs.currency, bankAccountName, accountName)
+      FinancialsTransactionDetails(-1L, -1L, company.bankAcc,  side = true, partner.account, bs.amount.abs(), bs.valuedate, bs.purpose, bs.currency, bankAccountName, accountName)
     }
     buildTransaction(bs, partner, modelid, List(line))
   }
@@ -111,7 +112,7 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
       date,
       date,
       period,
-      false,
+      posted = false,
       modelid,
       bs.company,
       bs.purpose,
@@ -130,7 +131,7 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
                                buildFn: String => BankStatement = BankStatement.from
                              ): ZIO[Any, RepositoryError, Int] = {
     for {
-      bs <- ZIO.logInfo(s"path ${path}") *>
+      bs <- ZIO.logDebug(s"path ${path}") *>
         ZStream
         .fromJavaStream(Files.walk(Paths.get(path)))
         .filter(p => !Files.isDirectory(p) && p.toString.endsWith(extension))
@@ -144,7 +145,7 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
 //              .replaceAll("Ö", "Oe"))
 //            .via (ZPipeline.splitLines)
             .via(ZPipeline.utf8Decode >>> ZPipeline.splitLines)
-            .tap(e => ZIO.logInfo(s"Element ${e}"))
+            .tap(e => ZIO.logDebug(s"Element ${e}"))
             .filterNot(p => p.replaceAll(char, "").startsWith(header))
             //.map(p => buildFn(p))
              .map(p => buildFn(p.replaceAll(char, "")))//.replaceAll("Spk ", "Spk")))

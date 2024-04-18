@@ -9,7 +9,7 @@ import zio.stream._
 
 import scala.annotation.nowarn
 
-final class FinancialsTransactionRepositoryImpl(pool: ConnectionPool, accRepo: AccountRepository) extends FinancialsTransactionRepository with TransactionTableDescription {
+final class FinancialsTransactionRepositoryImpl(pool: ConnectionPool, accRepo: AccountRepository) extends FinancialsTransactionRepository with FinancialsTransactionTableDescription {
 
   lazy val driverLayer = ZLayer.make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
 
@@ -133,15 +133,15 @@ final class FinancialsTransactionRepositoryImpl(pool: ConnectionPool, accRepo: A
         deletedDetails <- ZIO.when(deletedLineIds.nonEmpty)(buildDeleteDetails(deletedLineIds).run)
         updatedDetails <- ZIO.when(oldLines2Update.nonEmpty)(oldLines2Update.map(d => buildUpdateDetails(d, accounts).run).flip.map(_.sum))
         updatedTransactions <- update_.run
-        _<-ZIO.logInfo(s"Update lines transaction update stmt ${oldLines2Update.map(buildUpdateDetails(_, accounts)).map(renderUpdate)}")
+        _<-ZIO.logDebug(s"Update lines transaction update stmt ${oldLines2Update.map(buildUpdateDetails(_, accounts)).map(renderUpdate)}")
       } yield insertedDetails.getOrElse(0) + deletedDetails.getOrElse(0) + updatedDetails.getOrElse(0) + updatedTransactions
 
       def buildResult = transact(result).mapError(e => RepositoryError(e.toString)).provideLayer(driverLayer)
 
       //ZIO.logInfo(s"New lines transaction insert stmt ${buildInsertNewLines(newLines).map(renderInsert)}") *>
         //ZIO.logInfo(s"Update lines transaction update stmt ${oldLines2Update.map(buildUpdateDetails(_, accounts)).map(renderUpdate)}") *>
-        ZIO.logInfo(s"Delete lines transaction  stmt ${renderDelete(buildDeleteDetails(deletedLineIds))}") *>
-        ZIO.logInfo(s"Modify transaction stmt ${renderUpdate(update_)}") *> buildResult
+        ZIO.logDebug(s"Delete lines transaction  stmt ${renderDelete(buildDeleteDetails(deletedLineIds))}") *>
+        ZIO.logDebug(s"Modify transaction stmt ${renderUpdate(update_)}") *> buildResult
     }
 
 

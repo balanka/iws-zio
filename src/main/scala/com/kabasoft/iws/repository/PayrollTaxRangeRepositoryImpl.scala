@@ -70,7 +70,7 @@ final class PayrollTaxRangeRepositoryImpl(pool: ConnectionPool) extends PayrollT
   override def list(Id:(Int, String)): ZStream[Any, RepositoryError, PayrollTaxRange]                   = {
     val selectAll = SELECT.where(modelid === Id._1 && company === Id._2)
     ZStream.fromZIO(
-      ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")
+      ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")
     ) *>
       execute(selectAll.to((PayrollTaxRange.apply _).tupled))
         .provideDriver(driverLayer)

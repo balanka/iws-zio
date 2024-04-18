@@ -1,6 +1,6 @@
 package com.kabasoft.iws.repository
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{BankStatement, FinancialsTransaction, common}
+import com.kabasoft.iws.domain.{BankStatement, Company, FinancialsTransaction, common}
 import zio._
 import zio.prelude.FlipOps
 import zio.sql.ConnectionPool
@@ -10,7 +10,7 @@ import java.time.Instant
 import scala.annotation.nowarn
 
 final class BankStatementRepositoryImpl(pool: ConnectionPool, accRepo: AccountRepository ) extends BankStatementRepository with BankStatementTableDescription
-with TransactionTableDescription {
+with FinancialsTransactionTableDescription {
 type TYPE = (TableName, Instant, Instant, TableName, TableName, TableName, TableName, TableName, java.math.BigDecimal, TableName, TableName, TableName, TableName, Boolean, Int, Int)
   lazy val driverLayer = ZLayer
     .make[SqlDriver](SqlDriver.live, ZLayer.succeed(pool))
@@ -35,7 +35,6 @@ type TYPE = (TableName, Instant, Instant, TableName, TableName, TableName, Table
     period
   ).from(bankStatements)
 
-  //private def buildInsertQuery(bs: BankStatement): Insert[BankStatement_,  TYPE]  = buildInsertQuery(List(bs))
   private def  buildInsertQueryBS(bs: List[BankStatement]) =
     insertInto(bankStatementInsert)(
       depositor_bs,
@@ -91,7 +90,7 @@ type TYPE = (TableName, Instant, Instant, TableName, TableName, TableName, Table
       .set(info, model.info)
       .set(period, common.getPeriod(model.valuedate))
       .where((id === model.id) && (company === model.company))
-    ZIO.logInfo(s"Query Update bankStatement is ${renderUpdate(update_)}") *>
+    ZIO.logDebug(s"Query Update bankStatement is ${renderUpdate(update_)}") *>
       execute(update_)
         .provideLayer(driverLayer)
         .mapError(e => RepositoryError(e.getMessage))
@@ -124,7 +123,7 @@ type TYPE = (TableName, Instant, Instant, TableName, TableName, TableName, Table
   override def getById(Ids: List[Long]): ZStream[Any, RepositoryError, BankStatement] = {
     val selectAll = SELECT.where(id in Ids)
     ZStream.fromZIO(
-    ZIO.logInfo(s"Query to execute findBy is ${renderRead(selectAll)}")) *>
+    ZIO.logDebug(s"Query to execute findBy is ${renderRead(selectAll)}")) *>
       execute(selectAll.to(BankStatement.apply))
         .provideDriver(driverLayer)
   }
@@ -143,16 +142,20 @@ type TYPE = (TableName, Instant, Instant, TableName, TableName, TableName, Table
   @nowarn
   override def post(bs: List[BankStatement], transactions:List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] = {
     val updateSQL = bs.map(buildUpdate)
-    var company:String =null
-    val ids = transactions.flatMap(tr=>{ company = tr.company; tr.lines.map(_.account)})++transactions.flatMap(tr=>tr.lines.map(_.oaccount))
+    val company:String = transactions.headOption.getOrElse(FinancialsTransaction.dummy).company
+    val ids_ = transactions.flatMap(tr=> tr.lines.map(l=>(l.account, l.oaccount))).unzip
+    val ids = (ids_._1++ids_._2).distinct
     val result = for {
       accounts        <-  accRepo.getBy(ids, company)
-      posted <- ZIO.logInfo(s"Update stmt bank statement  ${updateSQL.map(renderUpdate)}  ") *>updateSQL.map(_.run).flip.map(_.sum)
-      created <- ZIO.logInfo(s"Posted bank statement  ${posted}  ") *> create2s( buildId1(transactions), accounts)
-      _<- ZIO.logInfo(s"Created transactions  ${posted}  ")
+      posted <- ZIO.logDebug(s"Update stmt bank statement  ${updateSQL.map(renderUpdate)}  ") *>updateSQL.map(_.run).flip.map(_.sum)
+      created <- ZIO.logDebug(s"Posted bank statement  ${posted}  ") *> create2s( buildId1(transactions), accounts)
+      _<- ZIO.logDebug(s"Created transactions  ${posted}  ")
     } yield posted+created
     transact(result)
-      .mapError(e => RepositoryError(e.toString))
+      .mapError(e => {
+        println(s"Error>>> ${e.getMessage}  ")
+        RepositoryError(e.toString)
+      })
       .provideLayer(driverLayer)
   }
 

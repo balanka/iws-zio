@@ -3,11 +3,12 @@ package com.kabasoft.iws.service
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.common._
 import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, Journal, PeriodicAccountBalance, TPeriodicAccountBalance, common}
-import com.kabasoft.iws.repository.{JournalRepository, PacRepository, PostTransactionRepository, FinancialsTransactionRepository}
+import com.kabasoft.iws.repository.{FinancialsTransactionRepository, JournalRepository, PacRepository, PostFinancialsTransactionRepository}
 import zio._
 import zio.prelude.FlipOps
 
-final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: FinancialsTransactionRepository, journalRepo: JournalRepository, repository4PostingTransaction:PostTransactionRepository) extends FinancialsService {
+final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: FinancialsTransactionRepository,
+                                  journalRepo: JournalRepository, repository4PostingTransaction:PostFinancialsTransactionRepository) extends FinancialsService {
 
   override def journal(accountId: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[Journal]] =
     for {
@@ -34,12 +35,12 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: FinancialsTra
       queries <- ZIO.foreach(ids)(id => ftrRepo.getByTransId((id, company)))
       models = queries.filter(_.posted == false)
       _ <-ZIO.foreachDiscard(models.map(_.id)) (
-        id =>ZIO.logInfo(s"Posting transaction with id ${id} of company ${company}"))
+        id =>ZIO.logDebug(s"Posting transaction with id ${id} of company ${company}"))
       nr <- ZIO.foreach(models)(model => postTransaction(model, company)).map(_.sum)
     } yield nr
 
   override def post(id: Long, company: String): ZIO[Any, RepositoryError, Int] =
-    ZIO.logInfo(s" Posting transaction with id ${id} of company ${company}") *>
+    ZIO.logDebug(s" Posting transaction with id ${id} of company ${company}") *>
       ftrRepo
         .getByTransId((id, company))
         .flatMap(trans => postTransaction(trans, company))
@@ -79,18 +80,18 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: FinancialsTra
 }
 
   private def transfer( pac:TPeriodicAccountBalance,  tpacs:List[TPeriodicAccountBalance]): ZIO[Any, Nothing, Option[Unit]] =
-    tpacs.find(_.id ==  pac.id).map(pac_ => pac_.transferZ(pac, pac_)).flip
+    tpacs.find(_.id ==  pac.id).map(pac_ => pac_.transfer(pac, pac_)).flip
 
   private def groupById(r: List[PeriodicAccountBalance]) = {
    val r0 = (r.groupBy(_.id) map { case (_, v) =>
       common.reduce(v, PeriodicAccountBalance.dummy)
-    }).toList//.filterNot(_.id == PeriodicAccountBalance.dummy.id)
+    }).toList
     r0
   }
 
 
 
-  def findOrBuildPac(pacId: String, period_ : Int, pacList: List[PeriodicAccountBalance]) =
+  def findOrBuildPac(pacId: String, period_ : Int, pacList: List[PeriodicAccountBalance]): PeriodicAccountBalance =
     pacList.find(pac_ => pac_.id == pacId).getOrElse(PeriodicAccountBalance.dummy.copy(id = pacId, period = period_))
 
 
@@ -134,6 +135,7 @@ final class FinancialsServiceImpl(pacRepo: PacRepository, ftrRepo: FinancialsTra
 }
 
 object FinancialsServiceImpl {
-  val live: ZLayer[PacRepository with FinancialsTransactionRepository with JournalRepository with PostTransactionRepository, RepositoryError, FinancialsService] =
+  val live: ZLayer[PacRepository with FinancialsTransactionRepository with JournalRepository
+    with PostFinancialsTransactionRepository, RepositoryError, FinancialsService] =
     ZLayer.fromFunction(new FinancialsServiceImpl(_, _, _, _))
 }

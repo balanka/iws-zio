@@ -38,6 +38,8 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
     locale,
     balanceSheetAcc,
     incomeStmtAcc,
+    purchasingClearingAcc,
+    salesClearingAcc,
     modelid
   ) = company.columns
 
@@ -60,6 +62,8 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
     locale,
     balanceSheetAcc,
     incomeStmtAcc,
+    purchasingClearingAcc,
+    salesClearingAcc,
     modelid
   )
     .from(company)
@@ -82,6 +86,8 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
     c.locale,
     c.balanceSheetAcc,
     c.incomeStmtAcc,
+    c.purchasingClearingAcc,
+    c.salesClearingAcc,
     c.modelid
   )
 
@@ -105,6 +111,8 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
       locale,
       balanceSheetAcc,
       incomeStmtAcc,
+      purchasingClearingAcc,
+      salesClearingAcc,
       modelid
     ).values(companies.map(toTuple))
 
@@ -165,6 +173,8 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
       .set(locale, model.locale)
       .set(balanceSheetAcc, model.balanceSheetAcc)
       .set(incomeStmtAcc, model.incomeStmtAcc)
+      .set(purchasingClearingAcc, model.purchasingClearingAcc)
+      .set(salesClearingAcc, model.salesClearingAcc)
       .where(id === model.id)
   @nowarn
   override def modify(model: Company): ZIO[Any, RepositoryError, Int] = {
@@ -186,7 +196,6 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
   }
 
   override def all(modelid:Int): ZIO[Any, RepositoryError, List[Company]] = for{
-    //list.runCollect.map(_.toList)
     companies <- list(modelid).runCollect.map(_.toList)
     bankAccounts_ <- listBankAccount().runCollect.map(_.toList)
   } yield companies.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
@@ -218,6 +227,8 @@ final class CompanyRepositoryImpl(pool: ConnectionPool) extends CompanyRepositor
         locale,
         balanceSheetAcc,
         incomeStmtAcc,
+        purchasingClearingAcc,
+        salesClearingAcc,
         modelid
       ).from(company) .where(modelid === modelId)
 

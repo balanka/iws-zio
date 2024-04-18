@@ -4,6 +4,7 @@ import com.kabasoft.iws.domain.Vat
 import zio._
 import com.kabasoft.iws.repository.Schema.vatSchema
 import com.kabasoft.iws.domain.AppError.RepositoryError
+import zio.prelude.FlipOps
 import zio.sql.ConnectionPool
 import zio.stream._
 
@@ -77,7 +78,6 @@ final class VatRepositoryImpl(pool: ConnectionPool) extends VatRepository with I
   }
   override def modify(models: List[Vat]): ZIO[Any, RepositoryError, Int] = {
     val update_ = models.map(build)
-    // ZIO.logDebug(s"Query Update vat is ${renderUpdate(update_)}") *>
     executeBatchUpdate(update_)
       .provideLayer(driverLayer).mapBoth(e => RepositoryError(e.getMessage), _.sum)
   }
@@ -108,9 +108,8 @@ final class VatRepositoryImpl(pool: ConnectionPool) extends VatRepository with I
         .findFirst(driverLayer, Id._1)
   }
 
-  def getBy(ids: List[String], company: String): ZIO[Any, RepositoryError, List[Vat]] = for {
-    vats <- getBy_(ids, company).runCollect.map(_.toList)
-  } yield vats
+  def getBy(ids: List[String], company: String): ZIO[Any, RepositoryError, List[Vat]] =
+    ids.map(id=>getBy((id, company))).flip
 
   def getBy_(ids: List[String], company: String): ZStream[Any, RepositoryError, Vat] = {
     val selectAll = SELECT.where(whereClause(ids, company))

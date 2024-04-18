@@ -4,6 +4,7 @@ import com.kabasoft.iws.api.AccountEndpoint.{accByIdEndpoint, accCreateEndpoint,
 import zio.json.EncoderOps
 import com.kabasoft.iws.repository.{AccountCache, AccountCacheImpl, AccountRepositoryImpl, CustomerCache, CustomerCacheImpl, CustomerRepositoryImpl, FinancialsTransactionCache, FinancialsTransactionCacheImpl, FinancialsTransactionRepository, FinancialsTransactionRepositoryImpl, MasterfileCache, MasterfileCacheImpl, MasterfileRepositoryImpl, ModuleCache, ModuleCacheImpl, ModuleRepositoryImpl, SupplierCache, SupplierCacheImpl, SupplierRepositoryImpl, UserRepository, UserRepositoryImpl, VatCache, VatCacheImpl, VatRepositoryImpl}
 import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.api.Protocol2._
 import com.kabasoft.iws.domain.BankBuilder.{bank, bankx}
 import com.kabasoft.iws.api.CustomerEndpoint.{custByIdEndpoint, custCreateEndpoint, custDeleteEndpoint}
 import com.kabasoft.iws.api.FinancialsEndpoint.ftrModifyEndpoint
@@ -49,7 +50,7 @@ object ApiSpec extends ZIOSpecDefault {
           val testRoutes = testApi(accAll ++accByIdEndpoint) _
           val deleteRoutes = testDeleteApi(accDeleteEndpoint) _
           val postRoutes = testPostApi(accCreateEndpoint) _
-            testRoutes("/acc/"+acc.modelid+"/" +acc.company, "17") && //testRoutes("/acc/"+acc.id+"/"+acc.company, acc.toJson)&&
+            testRoutes("/acc/"+acc.modelid+"/" +acc.company, "22") && //testRoutes("/acc/"+acc.id+"/"+acc.company, acc.toJson)&&
             deleteRoutes("/acc/"+acc.id+"/"+acc.company, "1") && postRoutes("/acc",  accx.toJson,  accx.toJson)
 
         },

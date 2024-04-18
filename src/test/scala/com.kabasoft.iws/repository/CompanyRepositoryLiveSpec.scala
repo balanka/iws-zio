@@ -10,9 +10,9 @@ import zio.test._
 object CompanyRepositoryLiveSpec extends ZIOSpecDefault {
 
 val company1 = Company("1001", "ABC GmbH", "Word stree1 0", "55555", "FF", "Hessen", "DE", "Deutschalnd",  "info@company.com", "Partner", "+49-4722211"
-    , "1800", "Iban", "TAX/Code/XXXX", "v5", "EUR", "9900", "9800", 10)
+    , "1800", "Iban", "TAX/Code/XXXX", "v5", "EUR", "9900", "9800", "33333", "44444", 10)
 val company = Company("1000", "ABC GmbH", "Word stree1 0", "55555", "FF", "Hessen", "DE", "Deutschalnd", "info@company.com", "Partner", "+49-4722211"
-  , "1800",   "Iban","TAX/Code/XXXX", "v5", "EUR" , "9900", "9800", 10)
+  , "1800",   "Iban","TAX/Code/XXXX", "v5", "EUR" , "9900", "9800", "33333", "44444", 10)
   val companies = List(company1)
 
   val testLayer = ZLayer.make[CompanyRepository](

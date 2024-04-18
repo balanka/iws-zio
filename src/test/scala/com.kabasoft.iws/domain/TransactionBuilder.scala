@@ -1,48 +1,49 @@
 package com.kabasoft.iws.domain
 
-import com.kabasoft.iws.domain.AccountBuilder.{accountId, accountName, faccountId, faccountName, incaccountId1, incaccountName1, vataccountId, vataccountName}
+import com.kabasoft.iws.domain.AccountBuilder._
+import com.kabasoft.iws.domain.ArticleBuilder.{artId0, artId1, artName0, artName1}
 
 import java.math.{BigDecimal, RoundingMode}
 import java.time.Instant
 
 object TransactionBuilder {
   val company ="1000"
-  val transactionId = -1L// 4711L
-  val transactionId2 = -2L// 4711L
   val lineTransactionId1 = 1L
   val lineTransactionId2 = 2L
-  val modelid = 112
-  val modelid2 = 114
-  val period = common.getPeriod(Instant.now())
+
+  val modelid = TransactionModelId.GOORECEIVING.id
+  val modelid2 = TransactionModelId.SUPPLIER_INVOICE.id
+  val modelid3 = TransactionModelId.BILL_OF_DELIVERY.id
+  val modelid4 = TransactionModelId.CUSTOMER_INVOICE.id
+  val modelid5 = TransactionModelId.PURCHASE_ORDER.id
+  val modelid6 = TransactionModelId.SALES_ORDER.id
+  val vtime = Instant.now()
+  val period = common.getPeriod(vtime)
   val side = true
-  val amount = new BigDecimal("100.00").setScale(2, RoundingMode.HALF_UP)
-  val vat = new BigDecimal("0.19").setScale(2, RoundingMode.HALF_UP)
-  val vatAmount = amount.multiply(vat)
-  val terms = "terms"
+  val quantity0 = new BigDecimal("100.00").setScale(2, RoundingMode.HALF_UP)
+  val quantity1 = new BigDecimal("100.00").setScale(2, RoundingMode.HALF_UP)
+  val pprice0 = new BigDecimal("10.00").setScale(2, RoundingMode.HALF_UP)
+  val pprice1 = new BigDecimal("50.00").setScale(2, RoundingMode.HALF_UP)
+  val terms1 = "Delivery note for purchased good  or service"
+  val terms2 = "Billing note for purchased good  or service"
+  val terms3 = "Delivery note for sold good  or service"
+  val terms4 = "Billing note for sold good  or service"
+  val terms5 = "Note for  good  or service ordered from supplier"
+  val terms6 = "Note for goods  and or  services ordered by customer"
   val currency = "EUR"
-  val costCenter = "311"
+  val store = "311"
+  val qttyUnit = "stk"
+  val vatCode = "v5"
 
-  val line1=  FinancialsTransactionDetails(-1, 0,  faccountId, side, incaccountId1 , amount.subtract(vatAmount), Instant.now(), terms, currency, faccountName, incaccountName1 )
-  val line2=  FinancialsTransactionDetails(-1, 0,  faccountId, side, vataccountId, vatAmount, Instant.now(), terms, currency, faccountName, vataccountName)
-  val line3 = FinancialsTransactionDetails(-3, 0,  accountId, side, faccountId, amount.add(vatAmount) , Instant.now(), terms, currency, accountName, faccountName)
-  val line4 = FinancialsTransactionDetails(1, 0,  accountId, side, faccountId, amount.add(vatAmount) , Instant.now(), terms, currency, accountName, faccountName)
-  val line5 = FinancialsTransactionDetails(1, 1,  faccountId, side, incaccountId1, amount.subtract(vatAmount) , Instant.now(), terms, currency, faccountName, incaccountName1 )
-  val line6 = FinancialsTransactionDetails(2, 1,  faccountId, side, vataccountId, vatAmount , Instant.now(), terms, currency, faccountName, vataccountName)
+  val line1=  TransactionDetails(-1L, 0L,  artId0, artName0 , quantity0, qttyUnit, pprice0, currency, vtime, vatCode, terms )
+  val line2=  TransactionDetails(-1L, 0L,  artId1, artName1 , quantity1, qttyUnit, pprice1, currency, vtime, vatCode, terms )
 
-
-
-
-  val ftr1 = FinancialsTransaction(0,-1, -1,  costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
-    , period, false, modelid, company, "comments"+modelid, -1,-1, List(line1, line2))
-  val ftr2 = FinancialsTransaction(0, -1, -1, costCenter, accountId, Instant.now(), Instant.now().plusMillis(2L), Instant.now()
-    , period, false, modelid2, company, "comments", -1, -1, List(line3))
-  val ftr4 = FinancialsTransaction(-1, -1, 1, costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
-    , period, false, modelid2, company, "comments", 0, 0, List(line4))
-  val ftr5 = FinancialsTransaction(-1, -1, 1, costCenter, accountId, Instant.now(), Instant.now(), Instant.now()
-    , period, false, modelid2, company, "comments", 0, 0, List(line5, line6))
-  //val dtransactions = ftr1.toDerive()
-  val pacs = PeriodicAccountBalance.create(ftr1).distinct
-
-
+  val ftr1 = Transaction(0,-1, -1,  store, accountId, vtime, vtime, vtime, period, posted = false, modelid, company, terms
+          ,  List(line1, line2))
+  val ftr2 = ftr1.copy(modelid = modelid2, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = terms2)
+  val ftr3 = ftr1.copy(modelid = modelid3, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = terms3)
+  val ftr4 = ftr1.copy(modelid = modelid4, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = terms4)
+  val ftr5 = ftr1.copy(modelid = modelid5, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = terms5)
+  val ftr6 = ftr1.copy(modelid = modelid5, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = terms6)
 
 }
