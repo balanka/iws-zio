@@ -19,8 +19,8 @@ object EmployeeEndpoint {
   private val deleteAPI  = Endpoint.delete("emp" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
   val empCreateEndpoint     = empCreateAPI.implement (emp=> ZIO.logInfo(s"Create Employee  ${emp}") *>EmployeeRepository.create(emp).mapError(e => RepositoryError(e.getMessage)))
-  val empAllEndpoint        = empAllAPI.implement (p=> EmployeeCache.all(p).mapError(e => RepositoryError(e.getMessage)))
-  val empByIdEndpoint       = empByIdAPI.implement(p => EmployeeCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
+  val empAllEndpoint        = empAllAPI.implement (p=> EmployeeRepository.all(p).mapError(e => RepositoryError(e.getMessage)))
+  val empByIdEndpoint       = empByIdAPI.implement(p => EmployeeRepository.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val ccModifyEndpoint = empModifyAPI.implement(p => ZIO.logInfo(s"Modify Employee  ${p}") *>
     EmployeeRepository.modify(p).mapError(e => RepositoryError(e.getMessage)) *>
     EmployeeRepository.getBy((p.id, p.company)).mapError(e => RepositoryError(e.getMessage)))

@@ -20,12 +20,12 @@ object ArticleEndpoint {
 
   private val articleAllEndpoint        = articleAllAPI.implement(p =>
     ZIO.logDebug(s"fetch all article  ${p}") *>
-     ArticleCache.all(p).mapError(e => RepositoryError(e.getMessage))//.debug("all articles")
+      ArticleRepository.all(p).mapError(e => RepositoryError(e.getMessage))//.debug("all articles")
     )
   val articleCreateEndpoint = articleCreateAPI.implement(article =>
     ZIO.logDebug(s"Insert article  ${article}") *>
       ArticleRepository.create(article).mapError(e => RepositoryError(e.getMessage)))
-  val articleByIdEndpoint = articleByIdAPI.implement( p => ArticleCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
+  val articleByIdEndpoint = articleByIdAPI.implement( p => ArticleRepository.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val articleModifyEndpoint = articleModifyAPI.implement(p => ZIO.logInfo(s"Modify article  ${p}") *>
     ArticleRepository.modify(p).mapError(e => RepositoryError(e.getMessage)) *>
     ArticleRepository.getBy((p.id, p.company)).mapError(e => RepositoryError(e.getMessage)))

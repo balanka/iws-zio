@@ -19,8 +19,8 @@ object CustomerEndpoint {
   private val deleteAPI  = Endpoint.delete("cust" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
   val custCreateEndpoint     = custCreateAPI.implement (cust=> ZIO.logInfo(s"Create customer  ${cust}") *>CustomerRepository.create(cust).mapError(e => RepositoryError(e.getMessage)))
-  val custAllEndpoint        = custAllAPI.implement (Id=> CustomerCache.all(Id).mapError(e => RepositoryError(e.getMessage)))
-  val custByIdEndpoint       = custByIdAPI.implement(p => CustomerCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
+  val custAllEndpoint        = custAllAPI.implement (Id=> CustomerRepository.all(Id).mapError(e => RepositoryError(e.getMessage)))
+  val custByIdEndpoint       = custByIdAPI.implement(p => CustomerRepository.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val ccModifyEndpoint = custModifyAPI.implement(p => ZIO.logInfo(s"Modify customer  ${p}") *>
     CustomerRepository.modify(p).mapError(e => RepositoryError(e.getMessage)) *>
     CustomerRepository.getBy((p.id, p.company)).mapError(e => RepositoryError(e.getMessage)))

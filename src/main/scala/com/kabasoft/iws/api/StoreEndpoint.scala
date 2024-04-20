@@ -17,11 +17,11 @@ object StoreEndpoint {
   val storeModifyAPI     = Endpoint.put(literal("store")).in[Store].out[Store].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI = Endpoint.delete("store" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
-  private val storeAllEndpoint        = storeAllAPI.implement(p => StoreCache.all(p).mapError(e => RepositoryError(e.getMessage)))
+  private val storeAllEndpoint        = storeAllAPI.implement(p => StoreRepository.all(p).mapError(e => RepositoryError(e.getMessage)))
   val storeCreateEndpoint = storeCreateAPI.implement(store =>
     ZIO.logDebug(s"Insert store  ${store}") *>
       StoreRepository.create(store).mapError(e => RepositoryError(e.getMessage)))
-  val storeByIdEndpoint = storeByIdAPI.implement( p => StoreCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
+  val storeByIdEndpoint = storeByIdAPI.implement( p => StoreRepository.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val storeModifyEndpoint = storeModifyAPI.implement(p => ZIO.logInfo(s"Modify store  ${p}") *>
     StoreRepository.modify(p).mapError(e => RepositoryError(e.getMessage)) *>
     StoreRepository.getBy((p.id, p.company)).mapError(e => RepositoryError(e.getMessage)))

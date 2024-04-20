@@ -17,11 +17,11 @@ object MasterfileEndpoint {
   val mModifyAPI     = Endpoint.put(literal("mf")).in[Masterfile].out[Masterfile].outError[RepositoryError](Status.InternalServerError)
   private val mDeleteAPI = Endpoint.delete("mf" / string("id")/int("modelid")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
-  private val mAllEndpoint        = mAllAPI.implement(p => MasterfileCache.all(p).mapError(e => RepositoryError(e.getMessage)))
+  private val mAllEndpoint        = mAllAPI.implement(p => MasterfileRepository.all(p).mapError(e => RepositoryError(e.getMessage)))
   val mCreateEndpoint = mCreateAPI.implement(m =>
     ZIO.logInfo(s"Insert masterfile  ${m}") *>
       MasterfileRepository.create(m).mapError(e => RepositoryError(e.getMessage)))
-  val mByIdEndpoint = mByIdAPI.implement( p => MasterfileCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
+  val mByIdEndpoint = mByIdAPI.implement( p => MasterfileRepository.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val mModifyEndpoint = mModifyAPI.implement(m => ZIO.logInfo(s"Modify masterfile  ${m}") *>
     MasterfileRepository.modify(m).mapError(e => RepositoryError(e.getMessage)) *>
     MasterfileRepository.getBy((m.id, m.modelid, m.company)).mapError(e => RepositoryError(e.getMessage)))

@@ -18,8 +18,8 @@ object VatEndpoint {
   private val deleteAPI                                                  = Endpoint.delete("vat" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
   val vatCreateEndpoint      = vatCreateAPI.implement(vat => VatRepository.create(vat).mapError(e => RepositoryError(e.getMessage)))
-  val vatAllEndpoint         = vatAllAPI.implement(p => VatCache.all(p).mapError(e => RepositoryError(e.getMessage)))
-  val vatByIdEndpoint        = vatByIdAPI.implement(p => VatCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
+  val vatAllEndpoint         = vatAllAPI.implement(p => VatRepository.all(p).mapError(e => RepositoryError(e.getMessage)))
+  val vatByIdEndpoint        = vatByIdAPI.implement(p => VatRepository.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val vatModifyEndpoint = vatModifyAPI.implement(p => ZIO.logInfo(s"Modify vat  ${p}") *>
     VatRepository.modify(p).mapError(e => RepositoryError(e.getMessage)) *>
     VatRepository.getBy((p.id, p.company)).mapError(e => RepositoryError(e.getMessage)))

@@ -19,11 +19,11 @@ object AssetEndpoint {
   val assetGenerateAPI       = Endpoint.get("dtr" / int("modelid")/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI = Endpoint.delete("asset" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
-  private val assetAllEndpoint        = assetAllAPI.implement(p => AssetCache.all(p).mapError(e => RepositoryError(e.getMessage)))
+  private val assetAllEndpoint        = assetAllAPI.implement(p => AssetRepository.all(p).mapError(e => RepositoryError(e.getMessage)))
   val assetCreateEndpoint = assetCreateAPI.implement(asset =>
     ZIO.logDebug(s"Insert asset  ${asset}") *>
     AssetRepository.create(asset).mapError(e => RepositoryError(e.getMessage)))
-  val assetByIdEndpoint = assetByIdAPI.implement( p => AssetCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
+  val assetByIdEndpoint = assetByIdAPI.implement( p => AssetRepository.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val assetModifyEndpoint = assetModifyAPI.implement(p => ZIO.logInfo(s"Modify asset  ${p}") *>
     AssetRepository.modify(p).mapError(e => RepositoryError(e.getMessage)) *>
     AssetRepository.getBy((p.id, p.company)).mapError(e => RepositoryError(e.getMessage)))

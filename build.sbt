@@ -1,5 +1,5 @@
-val zioVersion                 = "2.0.21"
-
+//val zioVersion                 = "2.0.21"
+val zioVersion                 = "2.1.0-RC2"
 val zioHttpVersion             = "3.0.0-RC2"
 val zioJsonVersion             = "0.3.0"
 val zioConfigVersion           = "3.0.7"
@@ -12,7 +12,7 @@ val postgresql                 = "42.6.0"
 val JwtCoreVersion             = "9.1.1"
 val zioSchemaVersion           = "0.4.2"
 val zioCacheVersion           = "0.2.3"
-val zioQueryVersion           = "0.4.0"
+val zioQueryVersion           = "0.7.0"
 
 ThisBuild / resolvers +=
   "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
@@ -36,8 +36,8 @@ lazy val root = (project in file("."))
       List(
         name         := "iws-zio",
         organization := "KABA Soft GmbH",
-        version      := "1.3.8",
-        scalaVersion := "2.13.13"
+        version      := "1.3.9",
+        scalaVersion := "2.13.11"
          //scalaVersion := "3.1.1"
       )
     ),

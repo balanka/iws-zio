@@ -25,7 +25,7 @@ object TransactionEndpoint {
   //private val trPost4PeriodAPI     = Endpoint.get("ltr/post"/ string("company")/ int("from") / int("to")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
 
-  private val trAllEndpoint        = trAllAPI.implement(company => TransactionCache.all(company).mapError(e => RepositoryError(e.getMessage)))
+  private val trAllEndpoint        = trAllAPI.implement(company => TransactionRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
   val trCreateEndpoint = trCreateAPI.implement(ftr => ZIO.logInfo(s"Create Transaction  ${ftr}") *>
       TransactionRepository.create(ftr).mapError(e => RepositoryError(e.getMessage)))
 
@@ -43,7 +43,7 @@ object TransactionEndpoint {
     TransactionRepository.create(ftr.duplicate).mapError(e => RepositoryError(e.getMessage)))
 
   private val trByModelIdEndpoint = trByModelIdAPI.implement(p =>  ZIO.logDebug(s" get transaction by ModelId ${p}") *>
-     TransactionCache.getByModelId((p._2,p._1)).mapError(e => RepositoryError(e.getMessage)))
+    TransactionRepository.getByModelId((p._2,p._1)).mapError(e => RepositoryError(e.getMessage)))
 
  // private val trPost4PeriodEndpoint = trPost4PeriodAPI.implement(p => TransactionService.postTransaction4Period(p._2, p._3, p._1).mapError(e => RepositoryError(e.getMessage)))
 

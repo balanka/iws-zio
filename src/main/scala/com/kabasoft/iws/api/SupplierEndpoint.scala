@@ -20,8 +20,8 @@ object SupplierEndpoint {
 
   val supCreateEndpoint      = supCreateAPI.implement(sup => ZIO.logInfo(s"Create supplier  ${sup}") *>
     SupplierRepository.create(sup).mapError(e => RepositoryError(e.getMessage)))
-  val supAllEndpoint         = supAllAPI.implement(p => SupplierCache.all(p).mapError(e => RepositoryError(e.getMessage)))
-  val supByIdEndpoint        = supByIdAPI.implement( p => SupplierCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
+  val supAllEndpoint         = supAllAPI.implement(p => SupplierRepository.all(p).mapError(e => RepositoryError(e.getMessage)))
+  val supByIdEndpoint        = supByIdAPI.implement( p => SupplierRepository.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val supModifyEndpoint = supModifyAPI.implement(p => ZIO.logInfo(s"Modify supplier  ${p}") *>
     SupplierRepository.update(p).mapError(e => RepositoryError(e.getMessage)))
     //SupplierRepository.getBy((p.id, p.company)).mapError(e => RepositoryError(e.getMessage)))

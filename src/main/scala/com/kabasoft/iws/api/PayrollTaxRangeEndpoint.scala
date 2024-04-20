@@ -18,11 +18,11 @@ object PayrollTaxRangeEndpoint {
   private val mDeleteAPI = Endpoint.delete("payrollTax" / string("id")/int("modelid")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
   private val mAllEndpoint        = mAllAPI.implement(p => ZIO.logInfo(s"Insert payroll tax range  ${p}") *>
-    PayrollTaxRangeCache.all(p).mapError(e => RepositoryError(e.getMessage)))
+    PayrollTaxRangeRepository.all(p).mapError(e => RepositoryError(e.getMessage)))
   val mCreateEndpoint = mCreateAPI.implement(m =>
     ZIO.logInfo(s"Insert payroll tax range  ${m}") *>
       PayrollTaxRangeRepository.create(m).mapError(e => RepositoryError(e.getMessage)))
-  val mByIdEndpoint = mByIdAPI.implement( p => PayrollTaxRangeCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
+  val mByIdEndpoint = mByIdAPI.implement( p => PayrollTaxRangeRepository.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val mModifyEndpoint = mModifyAPI.implement(m => ZIO.logInfo(s"Modify payroll tax range  ${m}") *>
     PayrollTaxRangeRepository.modify(m).mapError(e => RepositoryError(e.getMessage)) *>
     PayrollTaxRangeRepository.getBy((m.id, m.modelid, m.company)).mapError(e => RepositoryError(e.getMessage)))

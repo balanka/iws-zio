@@ -26,14 +26,14 @@ object AccountEndpoint {
     .outError[RepositoryError](Status.InternalServerError)
 
 
-  private val accAllEndpoint = accAllAPI.implement(Id => AccountCache.all(Id).mapError(e => RepositoryError(e.getMessage)))
+  private val accAllEndpoint = accAllAPI.implement(Id => AccountRepository.all(Id).mapError(e => RepositoryError(e.getMessage)))
   val accCreateEndpoint = accCreateAPI.implement(account =>
     ZIO.logInfo(s"Insert Account  ${account}") *>
     AccountRepository.create(account).mapError(e => RepositoryError(e.getMessage)))
   val balanceEndpoint = balanceAPI.implement { case (company:String, accId: String, to: Int) =>
     ZIO.logInfo(s"get balance  period at ${to}  ${accId}") *>
     AccountService.getBalance(accId,  to, company).mapError(e => RepositoryError(e.getMessage))}
-  val accByIdEndpoint = accByIdAPI.implement (p => AccountCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
+  val accByIdEndpoint = accByIdAPI.implement (p => AccountRepository.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val closePeriodEndpoint = closePeriodAPI.implement { case (accId: String,  to: Int, company:String) =>
     ZIO.logInfo(s"closing period at  ${to}  ${accId}") *>
     AccountService.closePeriod(to, accId, company).mapError(e => RepositoryError(e.getMessage))}

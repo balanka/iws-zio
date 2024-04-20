@@ -17,11 +17,12 @@ object PermissionEndpoint {
   val permModifyAPI     = Endpoint.put(literal("perm")).in[Permission].out[Permission].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI = Endpoint.delete("perm" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
-  private val permAllEndpoint        = permAllAPI.implement(company => ZIO.logInfo(s"get all permission for   ${company}") *>PermissionCache.all(company).mapError(e => RepositoryError(e.getMessage)))
+  private val permAllEndpoint        = permAllAPI.implement(company => ZIO.logInfo(s"get all permission for   ${company}") *>
+    PermissionRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
   val permCreateEndpoint = permCreateAPI.implement(perm =>
     ZIO.logInfo(s"Insert perm  ${perm}") *>
       PermissionRepository.create(perm).mapError(e => RepositoryError(e.getMessage)))
-  val permByIdEndpoint = permByIdAPI.implement( p => PermissionCache.getBy((p._1.toInt, p._2)).mapError(e => RepositoryError(e.getMessage)))
+  val permByIdEndpoint = permByIdAPI.implement( p => PermissionRepository.getBy((p._1.toInt, p._2)).mapError(e => RepositoryError(e.getMessage)))
   val permModifyEndpoint = permModifyAPI.implement(p => ZIO.logInfo(s"Modify perm  ${p}") *>
     PermissionRepository.modify(p).mapError(e => RepositoryError(e.getMessage)) *>
     PermissionRepository.getBy((p.id, p.company)).mapError(e => RepositoryError(e.getMessage)))

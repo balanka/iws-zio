@@ -71,7 +71,7 @@ final class ModuleRepositoryImpl(pool: ConnectionPool) extends ModuleRepository 
     val selectAll = SELECT.where(modelid === Id._1 && company === Id._2)
 
     ZStream.fromZIO(
-      ZIO.logDebug(s"Query to execute findAll is ${renderRead(selectAll)}")
+      ZIO.logInfo(s"Query to execute findAll is ${renderRead(selectAll)}")
     ) *>
       execute(selectAll.to((Module.apply _).tupled))
         .provideDriver(driverLayer)

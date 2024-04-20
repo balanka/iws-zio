@@ -17,11 +17,11 @@ object SalaryItemEndpoint {
   val SalaryItemModifyAPI     = Endpoint.put(literal("s_item")).in[SalaryItem].out[SalaryItem].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI = Endpoint.delete("s_item" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
-  private val salaryItemAllEndpoint        = salaryItemAllAPI.implement(p => SalaryItemCache.all(p).mapError(e => RepositoryError(e.getMessage)))
+  private val salaryItemAllEndpoint        = salaryItemAllAPI.implement(p => SalaryItemRepository.all(p).mapError(e => RepositoryError(e.getMessage)))
   val salaryItemCreateEndpoint = salaryItemCreateAPI.implement(SalaryItem =>
     ZIO.logInfo(s"Create SalaryItem  ${SalaryItem}") *>
       SalaryItemRepository.create(SalaryItem).mapError(e => RepositoryError(e.getMessage)))
-  val salaryItemByIdEndpoint = salaryItemByIdAPI.implement( p => SalaryItemCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
+  val salaryItemByIdEndpoint = salaryItemByIdAPI.implement( p => SalaryItemRepository.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val salaryItemModifyEndpoint = SalaryItemModifyAPI.implement(p => ZIO.logInfo(s"Modify SalaryItem  ${p}") *>
     SalaryItemRepository.modify(p).mapError(e => RepositoryError(e.getMessage)) *>
     SalaryItemRepository.getBy((p.id, p.company)).mapError(e => RepositoryError(e.getMessage)))

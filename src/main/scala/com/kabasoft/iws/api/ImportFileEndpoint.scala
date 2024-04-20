@@ -17,11 +17,11 @@ object ImportFileEndpoint {
   val importFileModifyAPI     = Endpoint.put(literal("impfile")).in[ImportFile].out[ImportFile].outError[RepositoryError](Status.InternalServerError)
   private val deleteAPI = Endpoint.delete("impfile" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
-  private val importFileAllEndpoint        = importFileAllAPI.implement(company => ImportFileCache.all(company).mapError(e => RepositoryError(e.getMessage)))
+  private val importFileAllEndpoint        = importFileAllAPI.implement(company => ImportFileRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
   val importFileCreateEndpoint = importFileCreateAPI.implement(bank =>
     ZIO.logDebug(s"Insert importFile  ${bank}") *>
       ImportFileRepository.create(bank).mapError(e => RepositoryError(e.getMessage)))
-  val importFileByIdEndpoint = importFileByIdAPI.implement( p => ImportFileCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
+  val importFileByIdEndpoint = importFileByIdAPI.implement( p => ImportFileRepository.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val bankModifyEndpoint = importFileModifyAPI.implement(p => ZIO.logInfo(s"Modify importFile  ${p}") *>
     ImportFileRepository.modify(p).mapError(e => RepositoryError(e.getMessage)) *>
     ImportFileRepository.getBy((p.id, p.company)).mapError(e => RepositoryError(e.getMessage)))

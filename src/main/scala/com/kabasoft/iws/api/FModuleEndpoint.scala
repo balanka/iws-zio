@@ -18,11 +18,11 @@ object FModuleEndpoint {
   private val deleteAPI = Endpoint.delete("fmodule" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
   private val fmoduleAllEndpoint        = fmoduleAllAPI.implement(p => ZIO.logInfo(s"get all module for   ${p}")
-    *>FModuleCache.all(p).mapError(e => RepositoryError(e.getMessage)))
+    *>FModuleRepository.all(p).mapError(e => RepositoryError(e.getMessage)))
   val fmoduleCreateEndpoint = fmoduleCreateAPI.implement(perm =>
     ZIO.logInfo(s"Insert module  ${perm}") *>
       FModuleRepository.create(perm).mapError(e => RepositoryError(e.getMessage)))
-  val fmoduleByIdEndpoint = fmoduleByIdAPI.implement( p => FModuleCache.getBy((p._1.toInt, p._2)).mapError(e => RepositoryError(e.getMessage)))
+  val fmoduleByIdEndpoint = fmoduleByIdAPI.implement( p => FModuleRepository.getBy((p._1.toInt, p._2)).mapError(e => RepositoryError(e.getMessage)))
   val fmoduleModifyEndpoint = fmoduleModifyAPI.implement(p => ZIO.logInfo(s"Modify module  ${p}") *>
     FModuleRepository.modify(p).mapError(e => RepositoryError(e.getMessage)) *>
     FModuleRepository.getBy((p.id, p.company)).mapError(e => RepositoryError(e.getMessage)))

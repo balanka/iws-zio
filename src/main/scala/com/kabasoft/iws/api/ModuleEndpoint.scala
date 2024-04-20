@@ -19,7 +19,7 @@ object ModuleEndpoint {
   private val deleteAPI    = Endpoint.delete("module" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
 
   val moduleCreateEndpoint   = moduleCreateAPI.implement(m => ZIO.logInfo(s"Create module  ${m}") *>ModuleRepository.create(m).mapError(e => RepositoryError(e.getMessage)))
-  val moduleAllEndpoint      = moduleAllAPI.implement(p => ModuleCache.all(p).mapError(e => RepositoryError(e.getMessage)))
+  val moduleAllEndpoint      = moduleAllAPI.implement(p => ZIO.logInfo(s"All module  ${p}") *>ModuleRepository.all(p).mapError(e => RepositoryError(e.getMessage)))
   val moduleByIdEndpoint     = moduleByIdAPI.implement(p => ModuleCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
   val moduleModifyEndpoint = moduleModifyAPI.implement(p => ZIO.logInfo(s"Modify module  ${p}") *>
     ModuleRepository.modify(p).mapError(e => RepositoryError(e.getMessage)) *>
