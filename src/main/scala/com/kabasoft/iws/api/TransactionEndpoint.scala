@@ -38,7 +38,7 @@ object TransactionEndpoint {
     TransactionRepository.getByIds(p._1.split(' ').map(_.toLong).toList, p._2).mapError(e => RepositoryError(e.getMessage)))
 
   private val trCancelnEndpoint = trCancelnAPI.implement(ftr => ZIO.logInfo(s" Canceln  transaction ${ftr}") *>
-    TransactionRepository.create(ftr.canceln).mapError(e => RepositoryError(e.getMessage)))
+    TransactionRepository.create(ftr.cancel).mapError(e => RepositoryError(e.getMessage)))
   private val trDuplicateEndpoint = trDuplicateAPI.implement(ftr => ZIO.logInfo(s" Duplicate  transaction ${ftr}") *>
     TransactionRepository.create(ftr.duplicate).mapError(e => RepositoryError(e.getMessage)))
 

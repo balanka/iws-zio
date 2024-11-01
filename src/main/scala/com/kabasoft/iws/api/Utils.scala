@@ -13,7 +13,9 @@ object Utils {
     val json  = s"""{$username}"""
     val liveSpan_ = if (liveSpan == -1L) never else liveSpan
     val claim = JwtClaim {json}.issuedNow.expiresIn(liveSpan_)
-    Jwt.encode(claim, SECRET_KEY, JwtAlgorithm.HS512)
+    val result = Jwt.encode(claim, SECRET_KEY, JwtAlgorithm.HS512)
+    println(s"jwtEncoded  $result")
+    result
   }
 
   def jwtDecode(token: String): Option[JwtClaim] = {

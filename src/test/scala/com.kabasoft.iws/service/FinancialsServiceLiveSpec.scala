@@ -56,7 +56,7 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
           balances4P     <-PacRepository.getBalances4Period(period, companyId).runCollect.map(_.toList)
           balance       <-AccountService.getBalance(paccountId0, toPeriod, companyId).map(_.head)
         } yield {
-          assertTrue(oneRow == 5, nrOfAccounts == 1, postedRows == 21, nrOfPacs == 1, accountEntry == 3,
+          assertTrue(oneRow == 5, nrOfAccounts == 1, postedRows == 24, nrOfPacs == 1, accountEntry == 3,
             oaccountEntry == 1, vatEntry == 1, balances4P.size == 5,
             balances4P.headOption.getOrElse(PeriodicAccountBalance.dummy).debit.equals(amount),
             balance.debit.equals(amount2), balance.credit.equals(creditAmount))

@@ -39,7 +39,8 @@ object FinancialsEndpoint {
   private val ftrPostAllEndpoint = ftrPostAllAPI.implement(p => //ZIO.logInfo(s"Post all transaction by id ${p}") *>
     ZIO.logInfo(s"Post all financials transaction by id ${p._1.split(',').map(_.toLong).toList}") *>
     FinancialsService.postAll(p._1.split(',').map(_.toLong).toList, p._2).mapError(e => RepositoryError(e.getMessage)) *>
-    FinancialsTransactionRepository.getByIds(p._1.split(' ').map(_.toLong).toList, p._2).mapError(e => RepositoryError(e.getMessage)))
+    FinancialsTransactionRepository.getByIds(p._1.split(',').map(_.toLong).toList, p._2).mapError(e =>
+      RepositoryError(e.getMessage)))
 
   private val ftrCancelnEndpoint = ftrCancelnAPI.implement(ftr => ZIO.logInfo(s" Canceln financials transaction ${ftr}") *>
     FinancialsTransactionRepository.create(ftr.canceln).mapError(e => RepositoryError(e.getMessage)))

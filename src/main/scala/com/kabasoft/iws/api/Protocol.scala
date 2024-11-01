@@ -36,12 +36,10 @@ object Protocol {
   implicit val permissionCodec: JsonCodec[Permission] = DeriveJsonCodec.gen[Permission]
   implicit val companyCodec: JsonCodec[Company] = DeriveJsonCodec.gen[Company]
   implicit val costcenterCodec: JsonCodec[Costcenter] = DeriveJsonCodec.gen[Costcenter]
-
   implicit val financialsDetailsCodec: JsonCodec[FinancialsTransactionDetails] = DeriveJsonCodec.gen[FinancialsTransactionDetails]
   implicit val financialsCodec: JsonCodec[FinancialsTransaction] = DeriveJsonCodec.gen[FinancialsTransaction]
   implicit val journalCodec: JsonCodec[Journal] = DeriveJsonCodec.gen[Journal]
   implicit val repoErrorCodec: JsonCodec[RepositoryError] = DeriveJsonCodec.gen[RepositoryError]
-  implicit lazy val articleCodec: JsonCodec[Article] = DeriveJsonCodec.gen[Article]
-  implicit lazy val bomCodec: JsonCodec[Bom] = DeriveJsonCodec.gen[Bom]
+
 
 }

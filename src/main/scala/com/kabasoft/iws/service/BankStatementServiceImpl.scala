@@ -131,26 +131,20 @@ final class BankStatementServiceImpl( bankStmtRepo: BankStatementRepository,
                                buildFn: String => BankStatement = BankStatement.from
                              ): ZIO[Any, RepositoryError, Int] = {
     for {
-      bs <- ZIO.logDebug(s"path ${path}") *>
+      bs <- ZIO.logInfo(s"path ${path}") *>
         ZStream
         .fromJavaStream(Files.walk(Paths.get(path)))
         .filter(p => !Files.isDirectory(p) && p.toString.endsWith(extension))
         .flatMap { files =>
           ZStream
             .fromPath(files)
-//           .via(ZPipeline.utf8Decode)
-//            .map(_.replaceAll("ü", "ue")
-//              .replaceAll("Ü", "Ue")
-//              .replaceAll("ö", "oe")
-//              .replaceAll("Ö", "Oe"))
-//            .via (ZPipeline.splitLines)
-            .via(ZPipeline.utf8Decode >>> ZPipeline.splitLines)
-            .tap(e => ZIO.logDebug(s"Element ${e}"))
+            .via(ZPipeline.iso_8859_1Decode >>> ZPipeline.splitLines)
+            .tap(e => ZIO.logInfo(s"Element ${e}"))
             .filterNot(p => p.replaceAll(char, "").startsWith(header))
             //.map(p => buildFn(p))
-             .map(p => buildFn(p.replaceAll(char, "")))//.replaceAll("Spk ", "Spk")))
+             .map(p => buildFn(p.replaceAll(char, "")))
         }
-        .mapError(e => RepositoryError(e.getMessage))
+        .mapError(e => { println(s"Error  ${e.getMessage}"); RepositoryError(e.getMessage)})
         .runCollect
         .map(_.toList)
       nr <-    bankStmtRepo.create2(bs)

@@ -118,9 +118,33 @@ final case class Store(id: String,
                        changedate: Instant = Instant.now(),
                        postingdate: Instant = Instant.now(),
                        company: String,
-                       modelid: Int = Store.MODELID)
+                       modelid: Int = Store.MODELID,
+                       stocks: List[Stock] = List.empty[Stock])
 object Store {
   val MODELID = 35
+  type TYPE= (String, String, String, String, Instant, Instant, Instant, String, Int)
+  def apply(store: TYPE): Store = new Store(store._1, store._2, store._3, store._4, store._5, store._6, store._7, store._8, store._9)
+}
+final case class Store_(id: String,
+                       name: String,
+                       description: String,
+                       account: String,
+                       enterdate: Instant = Instant.now(),
+                       changedate: Instant = Instant.now(),
+                       postingdate: Instant = Instant.now(),
+                       company: String,
+                       modelid: Int = Store.MODELID)
+object Store_ {
+  def apply(store: Store): Store_ = new Store_(
+    store.id,
+    store.name,
+    store.description,
+    store.account,
+    store.enterdate,
+    store.changedate,
+    store.postingdate,
+    store.company,
+    store.modelid)
 }
 final case class Article_(id: String,
                           name: String,
@@ -183,7 +207,8 @@ final case class Article(id: String,
                          enterdate: Instant = Instant.now(),
                          changedate: Instant = Instant.now(),
                          postingdate: Instant = Instant.now(),
-                         bom: List[Bom] = List.empty[Bom]) extends IWS
+                         bom: List[Bom] = List.empty[Bom],
+                         stocks: List[Stock] = List.empty[Stock]) extends IWS
 final case class TArticle(id: String,
                          name: String,
                          description: String,
@@ -203,7 +228,8 @@ final case class TArticle(id: String,
                          enterdate: Instant = Instant.now(),
                          changedate: Instant = Instant.now(),
                          postingdate: Instant = Instant.now(),
-                         bom: List[Bom] = List.empty[Bom]
+                         bom: List[Bom] = List.empty[Bom],
+                         stocks: List[Stock] = List.empty[Stock]
                         ) extends IWS
 {
   self =>
@@ -374,8 +400,8 @@ object Article {
 }
 final case class Bom(id:String, parent:String, quantity:BigDecimal, description:String, company:String, modelid: Int =Bom.MODELID)
 object Bom {
-  val MODELID= 34
-  val dummy = Bom("-1", "", zeroAmount, "", "",36)
+  val MODELID= 42
+  val dummy = Bom("-1", "", zeroAmount, "", "", 42)
 }
 final case class Company_(
                           id: String,
@@ -1191,7 +1217,7 @@ final case class TStock(id:String, store:String, article:String, quantity:TRef[B
     }
 }
 object Stock {
-  val MODELID = 37
+  val MODELID = 31
   val dummy: Stock =   make("-1", "-1", zeroAmount, "-1",  "")
   private type STOCK_Type = (String, String, String,  BigDecimal, String, String, Int)
    def buildId(store:String, article:String, charge:String, company:String) =
@@ -1904,11 +1930,11 @@ final case class Transaction(
                                       ) {
   def month: String = common.getMonthAsString(transdate)
   def year: Int     = common.getYear(transdate)
-  def getPeriod     = common.getPeriod(transdate)
+  def getPeriod: Int = common.getPeriod(transdate)
 
   def total: BigDecimal = lines.map( l=>l.price.multiply(l.quantity)) reduce ((l1, l2) => l2.add(l1).setScale(2, RoundingMode.HALF_UP))
 
-  def canceln: Transaction = copy(oid = id, id = 0, posted = false, lines=lines.map(line=>line.copy( quantity = line.quantity.negate())))
+  def cancel: Transaction = copy(oid = id, id = 0, posted = false, lines=lines.map(line=>line.copy( quantity = line.quantity.negate())))
   def duplicate: Transaction = copy(oid = id, id = 0, posted = false)
 
 }

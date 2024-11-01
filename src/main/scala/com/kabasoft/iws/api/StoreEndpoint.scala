@@ -2,7 +2,7 @@ package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.Store
-import com.kabasoft.iws.repository.Schema.{storeSchema, repositoryErrorSchema}
+import com.kabasoft.iws.repository.Schema.{storeSchema, stockSchema, repositoryErrorSchema}
 import com.kabasoft.iws.repository._
 import zio.ZIO
 import zio.http.Status

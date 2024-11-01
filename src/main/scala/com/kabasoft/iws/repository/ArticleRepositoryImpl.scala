@@ -1,7 +1,7 @@
 package com.kabasoft.iws.repository
-import com.kabasoft.iws.repository.Schema.article_Schema
+import com.kabasoft.iws.repository.Schema.{article_Schema, stockSchema}
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Article, Article_}
+import com.kabasoft.iws.domain.{Article, Article_, Stock}
 import zio._
 import zio.prelude.FlipOps
 import zio.sql.ConnectionPool
@@ -13,6 +13,8 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
   val map: List[Article] = List.empty[Article]
 
   val articles = defineTable[Article_]("article")
+  val stock    = defineTable[Stock]("stock")
+  val(id_st, store, article_st, quantity, charge, company_st, modelid_st) = stock.columns
 
   def tuple2(art: Article) = (
     art.id,
@@ -81,13 +83,16 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
     postingdate
   ).from(articles)
 
+
   def whereClause(Id: String, companyId: String) =
     List(id === Id, company === companyId)
       .fold(Expr.literal(true))(_ && _)
 
   def whereClause(Ids: List[String], companyId: String) =
     List(company === companyId, id in Ids).fold(Expr.literal(true))(_ && _)
-  private def buildInsertQuery(models: List[Article]) =
+
+  val SELECT_Stock = select(id_st, store, article_st, quantity, charge, company_st, modelid_st).from(stock)
+   private def buildInsertQuery(models: List[Article]) =
     insertInto(articles)(
       id,
       name,
@@ -183,20 +188,16 @@ final class ArticleRepositoryImpl(pool: ConnectionPool) extends ArticleRepositor
         .mapError(e => RepositoryError(e.getMessage))
   }
 
+  def listStock( companyId: String): ZStream[Any, RepositoryError, Stock] = {
+    val selectAll = SELECT_Stock.where( company_st === companyId)
+    execute(selectAll.to(c => Stock.apply(c)))
+      .provideDriver(driverLayer)
+  }
 
-//  override def all(Id:(Int,  String)): ZIO[Any, RepositoryError, List[Article]] = for {
-//    articles <- list(Id).runCollect.map(_.toList)
-//  } yield articles
-//
-//  override def list(Id:(Int,  String)): ZStream[Any, RepositoryError, Article] =
-//    ZStream.fromZIO(ZIO.logInfo(s"Query to execute findAll is ${renderRead(SELECT)}")) *>
-//      execute(SELECT.where(modelid === Id._1 && company === Id._2)
-//        .to { c =>val x = Article.apply(c); map :+ (x); x
-//        })
-//        .provideDriver(driverLayer)
-
-  override def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Article]]                  =
-    list(Id).runCollect.map(_.toList)
+  override def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Article]]                  =for {
+    articles<-list(Id).runCollect.map(_.toList)
+    stocks_ <- listStock(Id._2).runCollect.map(_.toList)
+  } yield articles.map(art => art.copy(stocks = stocks_.filter(_.article == art.id)))
 
   override def list(Id:(Int, String)): ZStream[Any, RepositoryError, Article]                   = {
     val selectAll = SELECT.where(modelid === Id._1 && company === Id._2)

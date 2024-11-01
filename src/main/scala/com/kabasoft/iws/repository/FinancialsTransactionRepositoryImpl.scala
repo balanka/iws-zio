@@ -173,7 +173,7 @@ final class FinancialsTransactionRepositoryImpl(pool: ConnectionPool, accRepo: A
         .provideDriver(driverLayer)
   }
   override def all(companyId: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
-    trans <- list1(companyId).mapZIO(tr => withLines(tr)).runCollect.map(_.toList)
+    trans <- list1(companyId).mapZIO(withLines).runCollect.map(_.toList)
   } yield trans
 
   private[this] def find4Period_( fromPeriod: Int, toPeriod: Int, companyId: String
