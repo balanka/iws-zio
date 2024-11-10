@@ -1,0 +1,91 @@
+package com.kabasoft.iws.repository
+
+import cats.*
+import cats.effect.Resource
+import cats.syntax.all.*
+import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.domain.BankAccount
+import skunk.*
+import skunk.codec.all.*
+import skunk.implicits.*
+import zio.prelude.FlipOps
+import zio.stream.interop.fs2z.*
+import zio.{Task, ZIO, ZLayer}
+
+final case class BankAccountRepositoryLive(postgres: Resource[Task, Session[Task]]) extends BankAccountRepository, MasterfileCRUD:
+
+  import BankAccountRepositorySQL.*
+
+  override def create(c: BankAccount, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+  override def create(list: List[BankAccount]):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(BankAccount.encodeIt), insertAll(list.size), list.size)
+  override def modify(model: BankAccount):ZIO[Any, RepositoryError, Int]= create(model, true)
+  override def modify(models: List[BankAccount]):ZIO[Any, RepositoryError, Int]= models.map(modify).flip.map(_.sum)
+  override def bankAccout4All(p: Int): ZIO[Any, RepositoryError, List[BankAccount]] = queryWithTx(postgres, p, BANK_ACCOUNT_4_ALL)
+  override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[BankAccount]] = queryWithTx(postgres, p, ALL)
+  override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, BankAccount] = queryWithTxUnique(postgres, p, BY_ID)
+  override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[BankAccount]] =
+    queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
+
+  def delete(p: (String, Int, String)):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
+
+object BankAccountRepositoryLive:
+  val live: ZLayer[Resource[Task, Session[Task]], RepositoryError, BankAccountRepository] =
+    ZLayer.fromFunction(new BankAccountRepositoryLive(_))
+
+private[repository] object BankAccountRepositorySQL:
+  
+  private val mfCodec = (varchar *: varchar *: varchar *: varchar  *: int4)
+  val mfDecoder: Decoder[BankAccount] = mfCodec.map:
+    case (id, bic, owner, company, modelid) => BankAccount(id, bic, owner, company, modelid)
+
+  val mfEncoder: Encoder[BankAccount] = mfCodec.values.contramap(BankAccount.encodeIt) 
+
+  def base =
+    sql""" SELECT id, bic, owner, company, modelid
+           FROM   bankaccount """
+  
+  def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), BankAccount] =
+    sql"""
+           SELECT id, bic, owner, company, modelid
+           FROM   bankaccount
+           WHERE id  IN ${varchar.list(nr)} AND  modelid = $int4 AND company = $varchar
+           """.query(mfDecoder)
+
+  val BY_ID: Query[String *: Int *: String *: EmptyTuple, BankAccount] =
+    sql"""
+           SELECT id, bic, owner, company, modelid
+           FROM   bankaccount
+           WHERE id = $varchar AND modelid = $int4 AND company = $varchar
+           """.query(mfDecoder)
+    
+  val BANK_ACCOUNT_4_ALL: Query[Int, BankAccount] =
+    sql"""SELECT id, bic, owner, company, modelid
+           FROM   bankaccount
+           WHERE  modelid = $int4
+           """.query(mfDecoder)
+    
+  val ALL: Query[Int *: String *: EmptyTuple, BankAccount] =
+    sql"""SELECT id, bic, owner, company, modelid
+           FROM   bankaccount
+           WHERE  modelid = $int4 AND company = $varchar
+           """.query(mfDecoder)
+
+  val insert: Command[BankAccount] = sql"""INSERT INTO masterfile VALUES $mfEncoder """.command
+
+  def insertAll(n:Int): Command[List[BankAccount.TYPE]] =
+    sql"INSERT INTO bankaccount VALUES ${mfCodec.values.list(n)}".command
+
+  val upsert: Command[BankAccount] =
+    sql"""
+          INSERT INTO bankaccount
+           VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET
+            id                     = EXCLUDED.id,
+            bic                    = EXCLUDED.bic,
+            owner                  = EXCLUDED.owner,
+            company               = EXCLUDED.company,
+          """.command
+    
+  private val onConflictDoNothing = sql"ON CONFLICT DO NOTHING"
+  
+  def DELETE: Command[(String, Int, String)] =
+    sql"DELETE FROM bankaccount WHERE id = $varchar AND modelid = $int4 AND company = $varchar".command

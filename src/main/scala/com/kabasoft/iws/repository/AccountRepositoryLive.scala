@@ -1,0 +1,97 @@
+package com.kabasoft.iws.repository
+
+import cats.effect.Resource
+import cats.syntax.all.*
+import cats._
+import skunk.*
+import skunk.codec.all.*
+import skunk.implicits.*
+import zio.prelude.FlipOps
+import zio.stream.interop.fs2z.*
+import zio.{Task, ZIO, ZLayer }
+import com.kabasoft.iws.domain.Account
+import com.kabasoft.iws.domain.AppError.RepositoryError
+
+
+import java.time.{ Instant, LocalDateTime, ZoneId }
+
+final case class AccountRepositoryLive(postgres: Resource[Task, Session[Task]]) extends AccountRepository, MasterfileCRUD:
+
+  import AccountRepositorySQL._
+
+  override def create(c: Account, flag: Boolean): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+  override def create(list: List[Account]): ZIO[Any, RepositoryError, Int] =  executeWithTx(postgres, list.map(Account.encodeIt), insertAll(list.size), list.size)
+  override def modify(model: Account): ZIO[Any, RepositoryError, Int] =  create(model, true)
+  override def modify(models: List[Account]): ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.sum)
+  override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Account]] = queryWithTx(postgres, p, ALL)
+  override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, Account] = queryWithTxUnique(postgres, p, BY_ID)
+  override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Account]] =
+    queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
+  override def delete(p: (String, Int, String)): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
+
+object AccountRepositoryLive:
+  val live: ZLayer[Resource[Task, Session[Task]], RepositoryError, AccountRepository] =
+    ZLayer.fromFunction(new AccountRepositoryLive(_))
+
+private[repository] object AccountRepositorySQL:
+
+  private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
+    localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
+
+  private val mfCodec =
+    (varchar *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: varchar *: int4 *: varchar *: bool *: bool *: varchar *: numeric(12,2 ) *: numeric(12,2)*: numeric(12,2) *: numeric(12,2))
+
+  val mfDecoder: Decoder[Account] = mfCodec.map :
+    case (id, name, description, enterdate, changedate, postingdate, company, modelid, account, isDebit, balancesheet, currency, idebit, icredit, debit, credit) =>
+      Account(id, name, description, toInstant(enterdate), toInstant(changedate), toInstant(postingdate), company, modelid, account, isDebit, balancesheet, currency, idebit.bigDecimal, icredit.bigDecimal, debit.bigDecimal, credit.bigDecimal)
+
+  val mfEncoder: Encoder[Account] = mfCodec.values.contramap(Account.encodeIt)
+
+  def base =
+    sql""" SELECT id, name, description, enterdate, changedate, postingdate, company, modelid, account, is_debit, balancesheet, currency, idebit, icredit, debit, credit
+           FROM   account """
+  
+  def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Account] =
+    sql"""
+           SELECT id, name, description, enterdate, changedate, postingdate, company, modelid, account, is_debit, balancesheet, currency, idebit, icredit, debit, credit
+           FROM   account
+           WHERE id  IN ${varchar.list(nr)} AND  modelid = $int4 AND company = $varchar
+           """.query(mfDecoder)
+
+  val BY_ID: Query[String *: Int *: String *: EmptyTuple, Account] =
+    sql"""
+           SELECT id, name, description, account, enterdate, changedate,postingdate, company, modelid
+           FROM   account
+           WHERE id = $varchar AND modelid = $int4 AND company = $varchar
+           """.query(mfDecoder)
+
+  val ALL: Query[Int *: String *: EmptyTuple, Account] =
+    sql"""
+           SELECT id, name, description, enterdate, changedate, postingdate, company, modelid, account, is_debit, balancesheet, currency, idebit, icredit, debit, credit
+           FROM   account
+           WHERE  modelid = $int4 AND company = $varchar
+           """.query(mfDecoder)
+
+  val insert: Command[Account] = sql"""INSERT INTO account VALUES $mfEncoder """.command
+
+  def insertAll(n:Int): Command[List[Account.TYPE]] =
+    sql"INSERT INTO account VALUES ${mfCodec.values.list(n)}".command
+
+  val upsert: Command[Account] =
+    sql"""INSERT INTO account
+           VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET
+           id                     = EXCLUDED.id,
+           name                   = EXCLUDED.name,
+           description            = EXCLUDED.description,
+            account               = EXCLUDED.parent,
+            enterdate             = EXCLUDED.enterdate,
+            changedate            = EXCLUDED.changedate,
+            postingdate           = EXCLUDED.postingdate,
+            company               = EXCLUDED.company,
+            modelid               = EXCLUDED.modelid,
+          """.command
+    
+  private val onConflictDoNothing = sql"ON CONFLICT DO NOTHING"
+  
+  def DELETE: Command[(String, Int, String)] =
+    sql"DELETE FROM account WHERE id = $varchar AND modelid = $int4 AND company = $varchar".command

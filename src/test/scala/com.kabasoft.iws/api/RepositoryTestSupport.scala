@@ -1,0 +1,42 @@
+package com.kabasoft.iws.api
+
+import cats.syntax.all.*
+import zio.ZIO
+
+import java.time.LocalDateTime
+
+object RepositoryTestSupport:
+  val exampleInstrument = Equity.equity(
+    isin = ISINCode
+      .make("US30303M1027")
+      .toEitherAssociative
+      .leftMap(identity)
+      .fold(err => throw new Exception(err), identity),
+    name = InstrumentName(NonEmptyString("Meta")),
+    lotSize = LotSize(100),
+    issueDate = LocalDateTime.now(),
+    unitPrice = UnitPrice
+      .make(100)
+      .toEitherAssociative
+      .leftMap(identity)
+      .fold(err => throw new Exception(err), identity)
+  )
+
+  def insertOneEquity: ZIO[InstrumentRepository, Throwable, Instrument] =
+    ZIO.serviceWithZIO[InstrumentRepository](_.store(exampleInstrument))
+
+  val addEquityData = AddEquityData(
+    isin = ISINCode
+      .make("US30303M1057")
+      .toEitherAssociative
+      .leftMap(identity)
+      .fold(err => throw new Exception(err), identity),
+    name = InstrumentName(NonEmptyString("NRI")),
+    lotSize = LotSize(100),
+    issueDate = LocalDateTime.now(),
+    unitPrice = UnitPrice
+      .make(100)
+      .toEitherAssociative
+      .leftMap(identity)
+      .fold(err => throw new Exception(err), identity)
+  )

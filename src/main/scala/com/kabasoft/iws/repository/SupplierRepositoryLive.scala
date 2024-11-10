@@ -1,0 +1,129 @@
+package com.kabasoft.iws.repository
+import cats.effect.Resource
+import cats.syntax.all.*
+import cats.*
+import skunk.*
+import skunk.codec.all.*
+import skunk.implicits.*
+import zio.prelude.FlipOps
+import zio.stream.interop.fs2z.*
+import zio.{Task, ZIO, ZLayer}
+import com.kabasoft.iws.domain.{BankAccount, Supplier}
+import com.kabasoft.iws.domain.AppError.RepositoryError
+
+import java.time.{Instant, LocalDateTime, ZoneId}
+
+final case class SupplierRepositoryLive(postgres: Resource[Task, Session[Task]]
+                                        , bankAccRepo:BankAccountRepository) extends SupplierRepository, MasterfileCRUD:
+  import SupplierRepositorySQL._
+
+  override def create(c: Supplier, flag: Boolean):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+  override def create(list: List[Supplier]):ZIO[Any, RepositoryError, Int] =
+    executeWithTx(postgres, list.map(Supplier.encodeIt), insertAll(list.size), list.size)
+  
+  override def modify(model: Supplier): ZIO[Any, RepositoryError, Int] = create(model, true)
+  override def modify(models: List[Supplier]):ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.sum)
+  override def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Supplier]] = for {
+    suppliers     <- list(Id).map(_.toList)
+    bankAccounts_ <- bankAccRepo.bankAccout4All(BankAccount.MODEL_ID)
+  } yield suppliers.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
+
+  def list(p: (Int, String)): ZIO[Any, RepositoryError, List[Supplier]] = queryWithTx(postgres, p, ALL)
+  override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, Supplier] = queryWithTxUnique(postgres, p, BY_ID)
+  override def getByIban(p: (String, Int, String)):ZIO[Any, RepositoryError, Supplier] =queryWithTxUnique(postgres, p, BY_IBAN)
+  override def getBy(ids: List[String], modelid: Int, company: String):ZIO[Any, RepositoryError, List[Supplier]] =
+    queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
+  def delete(p: (String, Int, String)):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
+
+object SupplierRepositoryLive:
+  val live: ZLayer[Resource[Task, Session[Task]] & BankAccountRepository, RepositoryError, SupplierRepository] =
+    ZLayer.fromFunction(new SupplierRepositoryLive(_, _))
+
+private[repository] object SupplierRepositorySQL:
+  
+  private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
+    localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
+
+  private val mfCodec =
+    (varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar *:varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: int4 *:timestamp *: timestamp *: timestamp)
+    
+  val mfDecoder: Decoder[Supplier] = mfCodec.map:
+    case (id, name, description, street, zip, city, state, country, phone, email, account, oaccount, vatcode, company, modelid, enterdate, changedate, postingdate) =>
+      Supplier(
+        id,
+        name,
+        description,
+        street,
+        zip,
+        city,
+        state,
+        country,
+        phone,
+        email,
+        account,
+        oaccount,
+        vatcode,
+        company,
+        modelid,
+        toInstant(enterdate),
+        toInstant(changedate),
+        toInstant(postingdate)
+      )
+
+  val mfEncoder: Encoder[Supplier] = mfCodec.values.contramap(Supplier.encodeIt)
+
+
+  def base =
+    sql""" SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, vatcode, company
+             , modelid, enterdate, changedate,postingdate
+             FROM   supplier """
+
+  def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Supplier] =
+    sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account,  oaccount, enterdate
+             vatcode, company, modelid, enterdate, changedate, postingdate
+             FROM   supplier
+             WHERE id  IN ${varchar.list(nr)} AND  modelid = $int4 AND company = $varchar
+             """.query(mfDecoder)
+
+  val BY_IBAN: Query[String *: Int *: String *: EmptyTuple, Supplier] =
+    sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, vatcode, company
+             , modelid, enterdate, changedate, postingdate
+             FROM   supplier
+             WHERE iban = $varchar AND modelid = $int4 AND company = $varchar
+             """.query(mfDecoder)
+    
+  val BY_ID: Query[String *: Int *: String *: EmptyTuple, Supplier] =
+    sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, vatcode, company
+             , modelid, enterdate, changedate, postingdate
+             FROM   supplier
+             WHERE id = $varchar AND modelid = $int4 AND company = $varchar
+             """.query(mfDecoder)
+
+  val ALL: Query[Int *: String *: EmptyTuple, Supplier] =
+    sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, vatcode, company
+             , modelid, enterdate, changedate, postingdate
+             FROM   supplier
+             WHERE  modelid = $int4 AND company = $varchar
+             """.query(mfDecoder)
+
+  val insert: Command[Supplier] = sql"""INSERT INTO supplier VALUES $mfEncoder """.command
+
+  def insertAll(n: Int): Command[List[Supplier.TYPE2]] = sql"INSERT INTO supplier VALUES ${mfCodec.values.list(n)}".command
+
+
+  val upsert: Command[Supplier] =
+    sql"""INSERT INTO supplier
+             VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET
+             id                   = EXCLUDED.id,
+             name                 = EXCLUDED.name,
+             description          = EXCLUDED.description,
+              account             = EXCLUDED.account,
+              enterdate            = EXCLUDED.enterdate,
+              changedate           = EXCLUDED.changedate,
+              postingdate          = EXCLUDED.postingdate,
+              company              = EXCLUDED.company,
+              modelid              = EXCLUDED.modelid,
+            """.command
+
+  def DELETE: Command[(String, Int, String)] =
+    sql"DELETE FROM supplier WHERE id = $varchar AND modelid = $int4 AND company = $varchar".command
