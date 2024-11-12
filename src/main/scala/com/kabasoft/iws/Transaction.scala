@@ -57,7 +57,7 @@ object PetService {
                     IO.println(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
                       xa.rollback(sp)
                 }.as(1)
-              } yield (res)
+              } yield res
             }
           }
 

@@ -57,13 +57,20 @@ object PacRepositoryLive:
 object PacRepositorySQL:
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
-
   val mfCodec =
     (varchar *: varchar *: int4 *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: varchar *: varchar *: varchar *: int4)
-  
-  val mfDecoder: Decoder[PeriodicAccountBalance] = mfCodec.map :
+    
+  val mfCodec2 =
+    (text *: varchar *: int4 *: numeric *: numeric *: numeric *: numeric *: varchar *: varchar *: varchar *: int4)
+  val mfDecoder: Decoder[PeriodicAccountBalance] = mfCodec.map:
     case (id, account, period, idebit, icredit, debit, credit, currency, company, name, modelid) =>
-      PeriodicAccountBalance(id, account, period, idebit.bigDecimal, icredit.bigDecimal, debit.bigDecimal, credit.bigDecimal, currency, company, name, modelid)
+      PeriodicAccountBalance(id, account, period, idebit.bigDecimal, icredit.bigDecimal, debit.bigDecimal
+        , credit.bigDecimal, currency, company, name, modelid)
+      
+  val mfDecoder2: Decoder[PeriodicAccountBalance] = mfCodec2.map :
+    case (id, account, period, idebit, icredit, debit, credit, currency, company, name, modelid) =>
+      PeriodicAccountBalance(id, account, period, idebit.bigDecimal, icredit.bigDecimal, debit.bigDecimal
+        , credit.bigDecimal, currency, company, name, modelid)
   
   val mfEncoder: Encoder[PeriodicAccountBalance] = mfCodec.values.contramap(PeriodicAccountBalance.encodeIt)
 
@@ -119,39 +126,48 @@ object PacRepositorySQL:
 
   val FIND_QUERY: Query[Int *: Int *: String *: EmptyTuple, PeriodicAccountBalance] =
     sql"""select id , account, period, idebit, icredit, debit, credit, currency, company, name, modelid
-       FROM  peridic_account_balance pac
-       WHERE period between $int4 AND  $int4 and  company =$varchar
-       .orderBy(account.descending)
+       FROM  peridic_account_balance
+       WHERE period BETWEEN $int4 AND  $int4 and  company =$varchar
+       order By account.descending
        """.query(mfDecoder)
 
   val FIND_4_PERIOD_QUERY: Query[Int *: String *: EmptyTuple, PeriodicAccountBalance] =
     sql"""select id , account, period, idebit, icredit, debit, credit, currency, company, name, modelid
-       FROM  peridic_account_balance pac
+       FROM  periodic_account_balance
        WHERE period = $int4 AND  company =$varchar
-       .orderBy(account.descending)
+       order By account.desc
        """.query(mfDecoder)
 
   val BALANCE_QUERY: Query[Int *: Int *:String *: EmptyTuple, PeriodicAccountBalance] =
    sql"""select Max(id) as id, account, Max(period) as period,SUM(idebit) as idebit,
       SUM(icredit) as icredit, SUM(debit) as debit, SUM(credit) as credit,
       currency, company, name, modelid
-      FROM  peridic_account_balance pac
-      WHERE period between $int4 AND  $int4 and  company =$varchar
-      .groupBy(account, currency, company, name, modelid)
-      .orderBy(account.descending)
+      FROM  periodic_account_balance
+      WHERE period BETWEEN $int4 AND  $int4 and  company =$varchar
+      group By(account, currency, company, name, modelid)
+      order By account desc
       """.query(mfDecoder)
 
-  val BALANCE_4_ACCOUNT_PERIOD: Query[String *:Int *: Int *: String *: EmptyTuple, PeriodicAccountBalance] =
+  val BALANCE_4_ACCOUNT_PERIOD: Query[String *: Int *: Int *: String *: EmptyTuple, PeriodicAccountBalance] =
+    sql"""select id, account, period, idebit, icredit, debit, credit, currency, company, name, modelid
+       FROM  periodic_account_balance
+       WHERE  account = $varchar AND
+              period BETWEEN $int4 AND  $int4 AND
+              company = $varchar
+       Order By id desc
+       """.query(mfDecoder)
+
+  val BALANCE_4_ACCOUNT_PERIOD_GROUPED: Query[String *:Int *: Int *: String *: EmptyTuple, PeriodicAccountBalance] =
   sql"""select Max(id) as id, account, Max(period) as period,SUM(idebit) as idebit,
        SUM(icredit) as icredit, SUM(debit) as debit, SUM(credit) as credit,
        currency, company, name, modelid
-       FROM  peridic_account_balance pac
+       FROM  periodic_account_balance
        WHERE  account = $varchar AND
-              period between ($int4 AND  $int4) AND
+              period BETWEEN $int4 AND  $int4 AND
               company = $varchar
-       .groupBy(account, currency, company, name, modelid)
-       .orderBy(account.descending)
-       """.query(mfDecoder)
+       Group By(account, currency, company, name, modelid)
+       Order By account desc
+       """.query(mfDecoder2)
   
   
   def DELETE: Command[(String, Int, String)] =

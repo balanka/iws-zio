@@ -11,24 +11,22 @@ import cats.syntax.applicativeError.catsSyntaxApplicativeError
 import com.kabasoft.iws.repository.MasterfileCRUD.{IwsCommand, IwsCommandLP}
 import skunk.data.Completion
 
-import java.time.{Instant, LocalDateTime, ZoneId}
-
 object MasterfileCRUD:
   final case class IwsCommand[A, B](param: A, encoder: A => B, cmd: Command[B])
   final case class IwsCommandLP[A, B](param: List[A], encoder: A => B, cmd: Command[List[B]])
   
 trait MasterfileCRUD:
-   //final case class IwsCommand[A, B](param:A,  encoder: A => B, cmd:Command[B])
-   //final case class IwsCommandLP[A, B](param:List[A],  encoder: A => B, cmd:Command[List[B]])
-  
-   def queryWithTx[A, B](postgres: Resource[Task, Session[Task]], p: A, q: Query[A, B]):ZIO[Any, RepositoryError, List[B]] =
-    postgres
+
+   def queryWithTx[A, B](postgres: Resource[Task, Session[Task]], p: A, q: Query[A, B]):ZIO[Any, RepositoryError, List[B]] = {
+    val x= postgres
       .use: session =>
         session
           .prepare(q)
           .flatMap: ps =>
             ps.stream(p, 1024).compile.toList
       .mapBoth(e => RepositoryError(e.getMessage), list => list)
+     x
+   }
 
    def queryWithTxUnique[A, B](postgres: Resource[Task, Session[Task]], p:A, q:Query[A, B]):ZIO[Any, RepositoryError, B] =
      postgres
@@ -71,7 +69,7 @@ trait MasterfileCRUD:
                     ZIO.logInfo(s"Error:  rolling back...") *>
                     xa.rollback
        .mapBoth(e => RepositoryError(e.getMessage), _ => size)
-  
+
 //   def executeWithTx[A](postgres: Resource[Task, Session[Task]], list: List[A], comd: Command[A], size: Int): ZIO[Any, RepositoryError, Int] =
 //     postgres
 //       .use: session =>

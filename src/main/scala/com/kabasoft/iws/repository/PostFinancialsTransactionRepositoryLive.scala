@@ -34,7 +34,7 @@ final case class PostFinancialsTransactionRepositoryLive(postgres: Resource[Task
     execPreparedCommand(postgres, models, PeriodicAccountBalance.encodeIt2, List(PacRepositorySQL.UPDATE))
     //executeBatchWithTx(postgres, List.empty, List(cmds))
     //ZIO.succeed(models.size)
-  
+
     //executeBatchWithTxK(postgres, models , PacRepositorySQL.UPDATE, PeriodicAccountBalance.encodeIt2)
 
   def delete(p:(Long, Int, String)): ZIO[Any, RepositoryError, Int] =
