@@ -27,6 +27,9 @@ final case class PacRepositoryLive(postgres: Resource[Task, Session[Task]]) exte
 
   override def modify(models: List[PeriodicAccountBalance]):ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.sum)
 
+  override def update(models: List[PeriodicAccountBalance]):ZIO[Any, RepositoryError, Int] =
+    executeBatchWithTxK(postgres, models , UPDATE, PeriodicAccountBalance.encodeIt2)
+
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]] = queryWithTx(postgres, p, ALL)
 
   override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, PeriodicAccountBalance] = queryWithTxUnique(postgres, p, BY_ID)
@@ -51,7 +54,7 @@ object PacRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]], RepositoryError, PacRepository] =
     ZLayer.fromFunction(new PacRepositoryLive(_))
 
-private[repository] object PacRepositorySQL:
+object PacRepositorySQL:
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 
@@ -104,7 +107,7 @@ private[repository] object PacRepositorySQL:
 
 
   
-  val update: Command[BigDecimal *: BigDecimal *: BigDecimal *: BigDecimal *: String *: Int *: String *:EmptyTuple] =
+  val UPDATE: Command[BigDecimal *: BigDecimal *: BigDecimal *: BigDecimal *: String *: Int *: String *:EmptyTuple] =
     sql"""UPDATE periodic_account_balance
             UPDATE SET
             idebit                 = $numeric(12,2),

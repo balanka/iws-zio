@@ -42,7 +42,7 @@ object JournalRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]], RepositoryError, JournalRepository] =
     ZLayer.fromFunction(new JournalRepositoryLive(_))
 
-private[repository] object JournalRepositorySQL:
+object JournalRepositorySQL:
   def toInstant(localDateTime: LocalDateTime): Instant = localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
   val mfCodec =
     (int8 *: int8 *: int8 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *:int4 *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: varchar *: bool *: varchar *: int4 *: int4 *: varchar *: int4)

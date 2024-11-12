@@ -400,11 +400,17 @@ object Company:
     String,
      Int
   )
+  type TYPE2 = (String, String, String, String, String, String, String, String, String, String, String, String, String,
+    String, String, String, String, String, String, String, Int)
   def apply(c:TYPE):Company = Company(c._1, c._2,c._3,c._4,c._5,c._6,c._7,c._8,c._9,c._10
     ,c._11,c._12,c._13,c._14,c._15, c._16,c._17,c._18,c._19, c._20, c._21,List.empty[BankAccount])
-
   def dummy:Company = Company("-1",  "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", MODEL_ID, Nil)
 
+  def encodeIt(st: Company): TYPE2 =
+    (st.id, st.name, st.street, st.zip, st.city, st.state, st.country, st.email, st.partner, st.phone, st.bankAcc,
+      st.iban, st.taxCode, st.vatCode, st.currency, st.locale, st.balanceSheetAcc, st.incomeStmtAcc, st.purchasingClearingAcc,
+      st.salesClearingAcc, st.modelid)
+    
 @nowarn("msg=parameter .* never used")
 abstract class AppError(message: String)
 object AppError:
@@ -1535,13 +1541,16 @@ final case class TransactionDetails( id: Long, transid: Long, article: String, a
 
 object TransactionDetails:
   val dummy = TransactionDetails(0, 0, "", "", zeroAmount, "", zeroAmount, "", Instant.now(), "",  "")
+  type D_TYPE = (Long, Long, String, String, scala.math.BigDecimal, String, scala.math.BigDecimal, String, LocalDateTime, String, String)
   implicit val monoid: Identity[TransactionDetails] =
-    new Identity[TransactionDetails] {
+    new Identity[TransactionDetails]:
       def identity: TransactionDetails = dummy
       def combine(m1: => TransactionDetails, m2: => TransactionDetails): TransactionDetails =
         m2.copy(quantity = m2.quantity.add(m1.quantity))
-    }
-
+ 
+  def encodeIt(dt: TransactionDetails): D_TYPE =
+    (dt.id, dt.transid, dt.article, dt.articleName, dt.quantity, dt.unit, dt.price, dt.currency
+      , dt.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime, dt.vatCode, dt.text)
   private type TransactionDetails_Type = (Long, Long, String, String, BigDecimal, String, BigDecimal, String, Instant,  String, String)
 
   def apply(tr: TransactionDetails_Type): TransactionDetails =
@@ -1587,7 +1596,7 @@ final case class Transaction(id: Long,
 }
  object Transaction:
   type TYPE = (Long, Long, Long, String, String, LocalDateTime, LocalDateTime, LocalDateTime, Int, Boolean, Int, String, String)
-  type TYPE2 = (Boolean, Long, Int, String)
+  type TYPE2 = (Long, Int, String)
   private type Transaction_Type =
     (Long, Long, Long, String, String, Instant, Instant, Instant, Int, Boolean, Int, String, String)
   def apply(tr: Transaction_Type): Transaction =
@@ -1598,7 +1607,7 @@ final case class Transaction(id: Long,
       , st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
       , st.period, st.posted, st.modelid, st.company, st.text)
 
-  def encodeIt2(st: Transaction):TYPE2= (st.posted, st.id, st.modelid, st.company)
+  def encodeIt2(st: Transaction):TYPE2= (st.id, st.modelid, st.company)
 
 final case class TransactionLog(id:Long, transid:Long, oid:Long, store:String, account:String, article:String,
                                 quantity:BigDecimal, stock:BigDecimal, wholeStock:BigDecimal, unit:String, price:BigDecimal, avgPrice:BigDecimal,
@@ -1643,11 +1652,17 @@ final case class FinancialsTransaction(
 }
 object FinancialsTransactionDetails:
   val dummy  = FinancialsTransactionDetails(0, 0, "", true, "", zeroAmount, Instant.now(), "", "EUR", "", "")
+  type D_TYPE=(Long, Long, String, Boolean, String, scala.math.BigDecimal, LocalDateTime, String, String, String, String)
   implicit val monoid: Identity[FinancialsTransactionDetails] =
     new Identity[FinancialsTransactionDetails]:
       def identity: FinancialsTransactionDetails = dummy
       def combine(m1: => FinancialsTransactionDetails, m2: => FinancialsTransactionDetails): FinancialsTransactionDetails =
         m2.copy(amount = m2.amount.add(m1.amount))
+
+  def encodeIt(dt: FinancialsTransactionDetails): D_TYPE =
+    (dt.id, dt.transid, dt.account, dt.side, dt.oaccount, dt.amount
+      , dt.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
+      , dt.text, dt.currency, dt.accountName, dt.oaccountName)
 
   private type FinancialsTransactionDetails_Type = (Long, Long,  String, Boolean, String, BigDecimal, Instant, String, String, String, String)
   def apply(tr: FinancialsTransactionDetails_Type): FinancialsTransactionDetails =
@@ -1668,6 +1683,8 @@ object FinancialsTransaction:
         , st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
         , st.period, st.posted, st.modelid, st.company, st.text, st.typeJournal, st.file_content
       )
+
+  def encodeIt2(st: FinancialsTransaction):(Long, Int, String) = (st.id, st.modelid, st.company)    
   val dummy: FinancialsTransaction = FinancialsTransaction(-1, 0,0, "dummy", "dummy", Instant.now(), Instant.now()
                                     , Instant.now(), -1, false,  -1, "",  "dummy", -1, -1)
 
@@ -1737,11 +1754,11 @@ final case class Role(id:Int, name:String, description:String,
                       changedate: Instant,
                       postingdate: Instant,
                       enterdate: Instant,
-                      modelid:Int = Role.MODELID,
+                      modelid:Int = Role.MODEL_ID,
                       company:String,
                       rights:List[UserRight]=List.empty[UserRight])
 object Role:
-  val MODELID = 121
+  val MODEL_ID = 121
   type TYPE = (Int, String, String, Instant, Instant, Instant, Int, String)
   type TYPE2= (Int, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int)
   def apply(c:TYPE):Role = Role(c._1, c._2, c._3, c._4, c._5, c._6, c._7, c._8, List.empty[UserRight])
@@ -1757,8 +1774,15 @@ object Role:
       st.modelid
     )
 
-final case class  UserRight (moduleid:Int,  roleid:Int, short:String, company:String, modelid:Int = 131)
-final case class  UserRole (userid:Int,  roleid:Int, company:String, modelid:Int = 161)
+final case class  UserRight (moduleid:Int,  roleid:Int, short:String, company:String, modelid:Int = UserRight.MODEL_ID)
+final case class  UserRole (userid:Int,  roleid:Int, company:String, modelid:Int = UserRole.MODEL_ID)
+
+object UserRole:
+  val MODEL_ID = 161
+  
+object UserRight:
+  val MODEL_ID  = 131
+
 final case class  Permission (id:Int, name:String, description:String,
                               changedate: Instant,
                               postingdate: Instant,

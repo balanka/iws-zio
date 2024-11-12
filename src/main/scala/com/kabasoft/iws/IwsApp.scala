@@ -69,7 +69,15 @@ object IwsApp extends ZIOAppDefault {
       Config.default.binding(hostName, port)
     ) >>> Server.live
   }
-  
+ // val config: CorsConfig =
+//    CorsConfig(
+//      allowedOrigin = {
+//        case origin if origin == Origin.parse("http://0.0.0.0:3000").toOption.get =>
+//          Some(AccessControlAllowOrigin.Specific(origin))
+//        case _ => None
+//      },
+//      allowedMethods = AccessControlAllowMethods(Method.GET, Method.POST, Method.PUT, Method.PATCH, Method.DELETE)
+//    )
   val config: CorsConfig =
     CorsConfig(
       allowedOrigin = {
@@ -95,8 +103,9 @@ object IwsApp extends ZIOAppDefault {
     )
     ZIO.logInfo(s"Starting http server") *>
       Server
-        //.serve((appLogin++expose.toApp).withDefaultErrorResponse ++httpApp.toApp@@ bearerAuth(Utils.jwtDecode(_).isDefined)@@cors(config)
-        .serve((loginRoutes++expose++httpApp@@bearerAuthWithContext))//@@cors(config)
+        //.serve((appLogin++expose.toApp).withDefaultErrorResponse ++httpApp.toApp@@ bearerAuth(Utils.jwtDecode(_).isDefined)@@cors(config) 
+        .serve((loginRoutes++expose++httpApp@@bearerAuthWithContext)@@cors(config))
+        //.serve(loginRoutes++expose++httpApp@@bearerAuthWithContext)
         .provide(
           serverLayer,
           appResourcesL.project(_.postgres),

@@ -1,92 +1,43 @@
 package com.kabasoft.iws.repository
+import cats.*
 import cats.effect.Resource
 import cats.syntax.all.*
-import cats._
+import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.domain.{BankAccount, Company}
 import skunk.*
 import skunk.codec.all.*
 import skunk.implicits.*
 import zio.interop.catz.*
 import zio.prelude.FlipOps
-import zio.stream.ZStream
 import zio.stream.interop.fs2z.*
-import zio.{ Chunk, Task, UIO, ZIO, ZLayer }
-import java.time.LocalDate
-import com.kabasoft.iws.domain.{Company, BankAccount}
-import com.kabasoft.iws.domain.AppError.RepositoryError
+import zio.{Task, ZIO, ZLayer}
 
-
-import java.time.{ Instant, LocalDateTime, ZoneId, ZoneOffset }
+import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
-                                       , bankAccRepo:BankAccountRepository) extends CompanyRepository:
+                                       , bankAccRepo:BankAccountRepository) extends CompanyRepository, MasterfileCRUD:
 
-  import CompanyRepositorySQL._
+  import CompanyRepositorySQL.*
 
-  override def create(c: Company, flag: Boolean):ZIO[Any, RepositoryError, Int]=
-    postgres
-      .use: session =>
-        session
-          .prepare(if (flag) upsert else insert)
-          .flatMap: cmd =>
-            cmd.execute(c).void
-      .mapBoth(e => RepositoryError(e.getMessage), _ => 1)
+  override def create(c: Company, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, if (flag) upsert else insert, 1)
 
-  override def create(list: List[Company]):ZIO[Any, RepositoryError, Int]=
-    postgres
-      .use: session =>
-        session
-          .prepare(insertAll(list.size))
-          .flatMap: cmd =>
-            cmd.execute(list.map(encodeIt)).void
-      .mapBoth(e => RepositoryError(e.getMessage), _ => list.size)
-
-
+  override def create(list: List[Company]):ZIO[Any, RepositoryError, Int]= 
+    executeWithTx(postgres, list.map(Company.encodeIt), insertAll(list.size), list.size)
   override def modify(model: Company):ZIO[Any, RepositoryError, Int] = create(model, true)
 
   override def modify(models: List[Company]):ZIO[Any, RepositoryError, Int]= models.map(modify).flip.map(_.sum)
 
-   def list(p: Int): ZIO[Any, RepositoryError, List[Company]] =
-    postgres
-      .use: session =>
-        session
-          .prepare(ALL)
-          .flatMap: ps =>
-            ps.stream(p, 1024).compile.toList
-      .mapBoth(e => RepositoryError(e.getMessage), list => list)
-
+  def list(p: Int): ZIO[Any, RepositoryError, List[Company]] =  queryWithTx(postgres, p, ALL)
+  
   override def all(modelid: Int): ZIO[Any, RepositoryError, List[Company]] = for {
     companies <- list(modelid).map(_.toList)
     bankAccounts_ <- bankAccRepo.bankAccout4All(BankAccount.MODEL_ID)
   } yield companies.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
-
-
-  override def getById(p: (String, Int)): ZIO[Any, RepositoryError, Company] =
-    postgres
-      .use: session =>
-        session
-          .prepare(BY_ID)
-          .flatMap(ps => ps.unique(p._1, p._2))
-      .mapBoth(e => RepositoryError(e.getMessage), a => a)
-
+  
+  override def getById(p: (String, Int)): ZIO[Any, RepositoryError, Company] =  queryWithTxUnique(postgres, p, BY_ID)
   override def getBy(ids: List[String], modelid: Int):ZIO[Any, RepositoryError, List[Company]] =
-    postgres
-      .use: session =>
-        session
-          .prepare(ALL_BY_ID(ids.length))
-          .flatMap: ps =>
-            ps.stream((ids, modelid), chunkSize = 1024)
-              .compile
-              .toList
-      .mapBoth(e => RepositoryError(e.getMessage), a => a)
-
-  def delete(p: (String, Int)):ZIO[Any, RepositoryError, Int] =
-    postgres
-      .use: session =>
-        session
-          .prepare(DELETE)
-          .flatMap: cmd =>
-            cmd.execute(p._1, p._2).void
-      .mapBoth(e => RepositoryError(e.getMessage), _=> 1)
+    queryWithTx(postgres, (ids, modelid), ALL_BY_ID(ids.length))
+  def delete(p: (String, Int)):ZIO[Any, RepositoryError, Int] =  executeWithTx(postgres, p, DELETE, 1)
 
 
 object CompanyRepositoryLive:
@@ -96,8 +47,7 @@ object CompanyRepositoryLive:
 
 private[repository] object CompanyRepositorySQL:
 
-  type TYPE = (String, String, String, String, String, String, String, String, String, String, String, String, String,
-    String, String, String, String, String, String, String, Int)
+
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 
@@ -105,7 +55,7 @@ private[repository] object CompanyRepositorySQL:
     (varchar *: varchar *: varchar *: varchar *: varchar  *: varchar *: varchar *: varchar *: varchar *: varchar  *:
      varchar *: varchar *: varchar *: varchar *: varchar  *: varchar *: varchar *: varchar *: varchar *: varchar *: int4)
 
-  private[repository] def encodeIt(st: Company): TYPE =
+  private[repository] def encodeIt(st: Company): Company.TYPE2 =
     (st.id, st.name, st.street, st.zip, st.city, st.state, st.country, st.email, st.partner, st.phone, st.bankAcc,
       st.iban, st.taxCode, st.vatCode, st.currency, st.locale, st.balanceSheetAcc, st.incomeStmtAcc, st.purchasingClearingAcc,
       st.salesClearingAcc, st.modelid)
@@ -146,7 +96,7 @@ private[repository] object CompanyRepositorySQL:
            """.query(mfDecoder)
 
   val insert: Command[Company] = sql"INSERT INTO company VALUES $mfEncoder".command
-  def insertAll(n:Int):Command[List[TYPE]]= sql"INSERT INTO company VALUES ${mfCodec.values.list(n)}".command
+  def insertAll(n:Int):Command[List[Company.TYPE2]]= sql"INSERT INTO company VALUES ${mfCodec.values.list(n)}".command
   val upsert: Command[Company] =
     sql"""INSERT INTO Company
            VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET

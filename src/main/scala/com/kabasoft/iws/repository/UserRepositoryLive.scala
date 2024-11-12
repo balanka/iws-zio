@@ -9,8 +9,9 @@ import skunk.implicits.*
 import zio.prelude.FlipOps
 import zio.stream.interop.fs2z.*
 import zio.{Task, ZIO, ZLayer}
-import com.kabasoft.iws.domain.{Role, User}
+import com.kabasoft.iws.domain.{Role, User, UserRight, UserRole}
 import com.kabasoft.iws.domain.AppError.RepositoryError
+
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class UserRepositoryLive(postgres: Resource[Task, Session[Task]], repo: RoleRepository) extends UserRepository, MasterfileCRUD:
@@ -24,22 +25,37 @@ final case class UserRepositoryLive(postgres: Resource[Task, Session[Task]], rep
   def modifyPwd(model: User): ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, (model.userName, model.modelid, model.company), updatePwd, 1)
   def list(p: (Int, String)):ZIO[Any, RepositoryError, List[User]] = queryWithTx(postgres, p, ALL)
 
-  override def all(p: (Int, String)):ZIO[Any, RepositoryError, List[User]] = for {
+  override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[User]] = for {
     users_ <- list(p)
-    user_roles <- repo.listUserRoles(p)
-    user_rights <- repo.userRights(p)
+    users <- setRoleAndRight(p._2, users_)
+  } yield users
+
+  private def setRoleAndRight(p: (String, List[User]) ):ZIO[Any, RepositoryError, List[User]] = for {
+    roles <- repo.all(Role.MODEL_ID, p._1)
+    user_rights <- repo.allRights(UserRight.MODEL_ID, p._1)
+    user_roles <- repo.userRoles(UserRole.MODEL_ID, p._1)
+    users_ = p._2
   }yield {
-    val  rolesx: List[Role] = user_roles.map( r=>r.copy(rights = user_rights.filter(rt => rt.roleid == r.id)))
-    val rolesN = rolesx.filter(r=> user_roles.filter(ur=>(ur.id == r.id)).map(ur=>ur.id).contains(r.id))
-    val users  = users_.map(u => u.copy(roles = rolesN)).map(u=>  u.copy(rights = u.roles.flatMap(_.rights)))
+    val  rolesx: List[Role] = roles.map( r=>r.copy(rights = r.rights.:::(user_rights.filter(rt => rt.roleid == r.id))))
+    val user_role = rolesx.filter(r=> user_roles.map(_.roleid).contains(r.id))
+    val users  = users_.map(u => u.copy(roles = user_role, rights = u.roles.flatMap(_.rights)))
     users
   }
 
-  override def getById(p: (Int, Int, String)):ZIO[Any, RepositoryError, User] = queryWithTxUnique(postgres, p, BY_ID)
+  override def getById(p: (Int, Int, String)):ZIO[Any, RepositoryError, User] = for {
+    users_ <- queryWithTxUnique(postgres, p, BY_ID)
+    users <- setRoleAndRight(p._3, List(users_))
+  } yield users.headOption.getOrElse(User.dummy)
+
   override def getBy(ids: List[Int], modelid: Int, company: String):ZIO[Any, RepositoryError, List[User]] =
     queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
 
-  override def getByUserName(p: (String, Int, String)):ZIO[Any, RepositoryError, User]= queryWithTxUnique(postgres, p, BY_NAME)
+  override def getByUserName(p: (String, Int, String)):ZIO[Any, RepositoryError, User]= for {
+      users_ <- queryWithTxUnique(postgres, p, BY_NAME)
+      users <- setRoleAndRight(p._3, List(users_))
+  } yield users.headOption.getOrElse(User.dummy)
+
+
   override def delete(p: (String, Int, String)):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
 
 

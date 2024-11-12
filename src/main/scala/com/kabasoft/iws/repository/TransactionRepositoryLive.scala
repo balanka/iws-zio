@@ -1,117 +1,49 @@
 package com.kabasoft.iws.repository
 
+import cats.*
 import cats.effect.Resource
 import cats.syntax.all.*
-import cats._
+import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.domain.{Transaction, TransactionDetails}
 import skunk.*
 import skunk.codec.all.*
 import skunk.implicits.*
-import zio.interop.catz.*
 import zio.prelude.FlipOps
-import zio.stream.ZStream
 import zio.stream.interop.fs2z.*
-import zio.{Chunk, Task, UIO, ZIO, ZLayer}
-import java.time.LocalDate
-import com.kabasoft.iws.domain.{ Transaction, TransactionDetails}
-import com.kabasoft.iws.domain.AppError.RepositoryError
+import zio.{Task, ZIO, ZLayer}
 
-
-import java.time.{Instant, LocalDateTime, ZoneId, ZoneOffset}
-
-import scala.annotation.nowarn
+import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Task]]
                                             , accRepo: AccountRepository) extends TransactionRepository, MasterfileCRUD:
 
-  import TransactionRepositorySQL._
+  import TransactionRepositorySQL.*
 
   override def create(c: Transaction, flag: Boolean): ZIO[Any, RepositoryError, Int] = 
     executeWithTx(postgres, c, if (flag) upsert else insert, 1)
-
-
   override def create(list: List[Transaction]): ZIO[Any, RepositoryError, Int] =
     executeWithTx(postgres, list.map(Transaction.encodeIt), insertAll(list.size), list.size)
 
-
-  private def createDetails(list: List[TransactionDetails]):ZIO[Any, RepositoryError, List[TransactionDetails]] =
-    postgres
-      .use: session =>
-        session
-         .prepare(insertAllDetails(list.length))
-         .flatMap: cmd =>
-             cmd.execute(list.map(encodeIt)).void
-      .mapBoth(e => RepositoryError(e.getMessage), _ => list)
-
+  private def createDetails(list: List[TransactionDetails]):ZIO[Any, RepositoryError, Int] =
+    executeWithTx(postgres, list.map(TransactionDetails.encodeIt), insertAllDetails(list.size), list.size)
+  
   override def modify(model: Transaction):ZIO[Any, RepositoryError, Int] = create(model, false)
-
   override def modify(models: List[Transaction]): ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.size)
-
-  override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Transaction]] =
-    postgres
-      .use: session =>
-        session
-          .prepare(ALL)
-          .flatMap: ps =>
-            ps.stream((p._1, p._2), 1024).compile.toList
-      .mapBoth(e => RepositoryError(e.getMessage), list => list)
-
-  def getById(p: (Long, Int, String)): ZIO[Any, RepositoryError, Transaction] =
-    postgres
-      .use: session =>
-        session
-          .prepare(BY_ID)
-          .flatMap(ps => ps.unique(p._1, p._2, p._3))
-      .mapBoth(e => RepositoryError(e.getMessage), a => a)
-    
-  override def getByModelId( p: (Int, String)): ZIO[Any, RepositoryError, List[Transaction]] =
-    postgres
-      .use: session =>
-        session
-          .prepare(BY_MODEL_ID)
-          .flatMap: ps =>
-            ps.stream((p._1, p._2), chunkSize = 1024)
-              .compile
-              .toList
-      .mapBoth(e => RepositoryError(e.getMessage), a => a)
-
+  override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Transaction]] = queryWithTx(postgres, p, ALL)
+  override def getById(p: (Long, Int, String)): ZIO[Any, RepositoryError, Transaction] = queryWithTxUnique(postgres, p, BY_ID)
+  override def getByModelId( p: (Int, String)): ZIO[Any, RepositoryError, List[Transaction]] = queryWithTx(postgres, p, BY_MODEL_ID)
   override def getByIds(ids: List[Long], modelid: Int, companyId: String): ZIO[Any, RepositoryError, List[Transaction]] =
-    postgres
-      .use: session =>
-        session
-          .prepare(ALL_BY_ID(ids.length))
-          .flatMap: ps =>
-            ps.stream((ids, modelid, companyId), chunkSize = 1024)
-              .compile
-              .toList
-      .mapBoth(e => RepositoryError(e.getMessage), a => a)
+    queryWithTx(postgres, (ids, modelid, companyId), ALL_BY_ID(ids.length))
 
   override def find4Period(fromPeriod: Int, toPeriod: Int, posted:Boolean, companyId: String): ZIO[Any, RepositoryError, List[Transaction]] =
-    postgres
-      .use: session =>
-        session
-         .prepare(BY_PERIOD)
-         .flatMap: ps =>
-           ps.stream((posted, fromPeriod, toPeriod, companyId), chunkSize = 1024)
-             .compile
-             .toList
-      .mapBoth(e => RepositoryError(e.getMessage), a => a) 
-    
-  override def delete(p:(Long, Int, String)): ZIO[Any, RepositoryError, Int] =
-    postgres
-      .use: session =>
-        session
-          .prepare(DELETE)
-          .flatMap: cmd =>
-            cmd.execute(p._1, p._2, p._3).void
-      .mapBoth(e => RepositoryError(e.getMessage), _=> 1)
+    queryWithTx(postgres, (posted, fromPeriod, toPeriod, companyId), BY_PERIOD)
+  override def delete(p:(Long, Int, String)): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
 
 object TransactionRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]] & AccountRepository, Throwable, TransactionRepository] =
     ZLayer.fromFunction(new TransactionRepositoryLive(_, _))
 
 private[repository] object TransactionRepositorySQL:
-  
-  type D_TYPE = (Long, Long, String, String, BigDecimal, String, BigDecimal, String, LocalDateTime, String, String)
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 
@@ -120,54 +52,48 @@ private[repository] object TransactionRepositorySQL:
   private val transactionDetailsCodec =
     (int8 *: int8 *: varchar *: varchar *:  numeric(12,2) *: varchar *: numeric(12,2) *: varchar *: timestamp *: varchar *: varchar )
 
-
-
-  private[repository] def encodeIt(dt: TransactionDetails):D_TYPE =
-    (dt.id, dt.transid, dt.article, dt.articleName, dt.quantity, dt.unit, dt.price, dt.currency
-    , dt.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime, dt.vatCode, dt.text)
-
   val mfDecoder: Decoder[Transaction] = transactionCodec.map:
     case (id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text) =>
       Transaction(id, oid, id1, store, account, toInstant(transdate), toInstant(enterdate)
         , toInstant(postingdate), period, posted, modelid, company, text)
 
   val mfEncoder: Encoder[Transaction] = transactionCodec.values.contramap(Transaction.encodeIt)
-  val DetailsEncoder: Encoder[TransactionDetails] = transactionDetailsCodec.values.contramap(encodeIt)
+  val DetailsEncoder: Encoder[TransactionDetails] = transactionDetailsCodec.values.contramap(TransactionDetails.encodeIt)
 
   def detailsDecoder(transId: Long): Decoder[TransactionDetails] = transactionDetailsCodec.map:
       case (id, transid, article, articleName, quantity, unit, price, currency, duedate, vatCode, text) =>
         TransactionDetails(id, transid, article, articleName, quantity.bigDecimal, unit, price.bigDecimal, currency, toInstant(duedate), vatCode, text)
 
   def base =
-    sql""" SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
+    sql""" SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text
            FROM   transaction """
 
   def ALL_BY_ID(nr: Int): Query[(List[Long], Int, String), Transaction] =
-    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
+    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text
            FROM   transaction
            WHERE id  IN ${int8.list(nr)} AND  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val BY_ID: Query[Long *: Int *: String *: EmptyTuple, Transaction] =
-    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
+    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text
            FROM   transaction
            WHERE id = $int8 AND modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val BY_MODEL_ID: Query[Int *: String *: EmptyTuple, Transaction] =
-    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
+    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text
            FROM   transaction
            WHERE modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val BY_PERIOD: Query[Boolean *:Int *: Int *:  String *: EmptyTuple, Transaction] =
-    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
+    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text
            FROM   transaction
            WHERE posted =$bool AND modelid between $int4 AND $int4  AND company = $varchar
            """.query(mfDecoder)  
 
   val ALL: Query[Int *: String *: EmptyTuple, Transaction] =
-    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
+    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text
            FROM   transaction
            WHERE  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
@@ -190,15 +116,11 @@ private[repository] object TransactionRepositorySQL:
             postingdate           = EXCLUDED.postingdate,
             period               = EXCLUDED.period,
             text                 = EXCLUDED.text,
-            type_journal         = EXCLUDED.type_journal,
-            file_content         = EXCLUDED.file_content,
             modelid              = EXCLUDED.modelid,
           """.command
     
-  val updatePosted: Command[Boolean *: Long *: Int *:  String *: EmptyTuple] =
-    sql"""UPDATE transaction
-            UPDATE SET
-            posted                 = $bool
+  val updatePosted: Command[Long *: Int *:  String *: EmptyTuple] =
+    sql"""UPDATE transaction UPDATE SET posted = true
             WHERE id =$int8 AND modelid = $int4 AND  company =$varchar
           """.command
     

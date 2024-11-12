@@ -9,9 +9,8 @@ import skunk.implicits.*
 import zio.prelude.FlipOps
 import zio.stream.interop.fs2z.*
 import zio.{Task, ZIO, ZLayer}
-import com.kabasoft.iws.domain.{Role,UserRight}
+import com.kabasoft.iws.domain.{Role, UserRight, UserRole}
 import com.kabasoft.iws.domain.AppError.RepositoryError
-
 
 import java.time.{Instant, LocalDateTime, ZoneId}
 
@@ -24,13 +23,16 @@ final case class RoleRepositoryLive(postgres: Resource[Task, Session[Task]]) ext
     executeWithTx(postgres, list.map(Role.encodeIt), insertAll(list.size), list.size)
   override def modify(model: Role):ZIO[Any, RepositoryError, Int]= create(model, true)
   override def modify(models: List[Role]):ZIO[Any, RepositoryError, Int]= models.map(modify).flip.map(_.size)
-  override def listUserRoles(p: (Int, String)):ZIO[Any, RepositoryError,  List[Role]] = queryWithTx(postgres, p, ALL)
-  override def userRights(p: (Int, String)):ZIO[Any, RepositoryError, List[UserRight]] = queryWithTx(postgres, p, USER_RIGHTS)
+  override def all(p: (Int, String)):ZIO[Any, RepositoryError,  List[Role]] = queryWithTx(postgres, p, ALL)
+  //def allUserRoles(p: (Int, String)):ZIO[Any, RepositoryError,  List[UserRole]] = queryWithTx(postgres, p, ALL_USER_ROLE)
+  override def allRights(p: (Int,  String)):ZIO[Any, RepositoryError, List[UserRight]] = queryWithTx(postgres, p, ALL_RIGHTS)
+  override def userRights(p: (Int, Int, String)):ZIO[Any, RepositoryError, List[UserRight]] = queryWithTx(postgres, p, USER_RIGHTS)
+  override def userRoles(p: (Int, String)):ZIO[Any, RepositoryError, List[UserRole]] = queryWithTx(postgres, p, USER_ROLE)
 
-  override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Role]] = for {
-    roles <- listUserRoles((p._1, p._2))
-    userRights <- userRights((p._1, p._2))
-  } yield roles.map(c => c.copy(rights = userRights.filter(_.roleid == c.id)))
+//  override def allUserRoles(p: (Int, Int, String)): ZIO[Any, RepositoryError, List[UserRole]] = for {
+//    roles <- userRole((p._1, p._2, p._3))
+//    userRights <- userRights((p._1, p._3))
+//  } yield roles.map(c => c.copy(rights = userRights.filter(_.roleid == c.roleid)))
   
   override def getById(p: (Int, Int, String)):ZIO[Any, RepositoryError, Role] = queryWithTxUnique(postgres, p, BY_ID)
   override def getBy(ids: List[Int], modelid: Int, company: String):ZIO[Any, RepositoryError, List[Role]] =
@@ -50,10 +52,14 @@ private[repository] object RoleRepositorySQL:
     (int4 *: varchar *: varchar  *: timestamp *: timestamp *: timestamp *: varchar *: int4)
     
   private val rightCodec = (int4 *: int4 *: varchar *: varchar *: int4)
+  private val userRoleCodec = (int4 *: int4 *: varchar *: int4)
   
   val mfDecoder: Decoder[Role] = mfCodec.map:
     case (id, name, description, enterdate, changedate, postingdate, company, modelid) =>
       Role(id, name, description, toInstant(enterdate), toInstant(changedate), toInstant(postingdate), modelid, company)
+
+  val userRoleDecoder: Decoder[UserRole] = userRoleCodec.map:
+    case (userId, roleId,  company, modelId) => UserRole(userId, roleId, company, modelId)
       
   val rightDecoder: Decoder[UserRight] = rightCodec.map:
      case (moduleId, roleId, short,  company, modelId) =>UserRight(moduleId,  roleId, short, company, modelId)
@@ -81,12 +87,30 @@ private[repository] object RoleRepositorySQL:
            FROM   role
            WHERE  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
-  
-    val USER_RIGHTS: Query[Int *: String *: EmptyTuple, UserRight] =
-      sql"""SELECT moduleid, roleid, short, company, modelid
+
+  val ALL_RIGHTS: Query[Int *: String *: EmptyTuple, UserRight] =
+    sql"""SELECT moduleid, roleid, short, company, modelid
            FROM   user_right
            WHERE  modelid = $int4 AND company = $varchar
            """.query(rightDecoder)
+    
+  val USER_RIGHTS: Query[Int *: Int *:String *: EmptyTuple, UserRight] =
+      sql"""SELECT moduleid, roleid, short, company, modelid
+           FROM   user_right
+           WHERE roleid = $int4 AND modelid = $int4 AND company = $varchar
+           """.query(rightDecoder)
+
+  val USER_ROLE: Query[Int *:String *: EmptyTuple, UserRole] =
+    sql"""SELECT userid, roleid, company, modelid
+           FROM   user_role
+           WHERE   modelid = $int4 AND company = $varchar
+           """.query(userRoleDecoder)
+
+  val ALL_USER_ROLE: Query[Int *: String *: EmptyTuple, UserRole] =
+    sql"""SELECT userid, roleid, company, modelid
+           FROM   user_role
+           WHERE  modelid = $int4 AND company = $varchar
+           """.query(userRoleDecoder)
   
 
   val insert: Command[Role] = sql"""INSERT INTO role VALUES $mfEncoder """.command

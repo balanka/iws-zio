@@ -48,7 +48,7 @@ final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[
 
 
   private def modifyPacs4T(models: List[PeriodicAccountBalance]) =
-    val cmds = models.map(model=>IwsCommand(model, PeriodicAccountBalance.encodeIt2, PacRepositorySQL.update))
+    val cmds = models.map(model=>IwsCommand(model, PeriodicAccountBalance.encodeIt2, PacRepositorySQL.UPDATE))
     executeBatchWithTx(postgres, cmds, List.empty)
     ZIO.succeed(models.size)
 
