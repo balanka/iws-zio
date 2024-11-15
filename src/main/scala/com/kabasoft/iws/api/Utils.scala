@@ -42,7 +42,7 @@ object Utils {
           ZIO
             .fromTry(jwtDecode(token.value.asString, SECRET_KEY))
             .orElseFail(Response.badRequest("Invalid or expired token!"))
-            .flatMap(claim => ZIO.logInfo(s"claim >>>>>>n ${claim.content}")*>ZIO.fromOption(claim.subject).orElseFail(Response.badRequest("Missing subject claim!")))
+            .flatMap(claim => ZIO.logInfo(s"claim >>>>>>n ${claim}")*>ZIO.fromOption(claim.subject).orElseFail(Response.badRequest("Missing subject claim!")))
             .map(u => (request, u))
 
         case _ => ZIO.fail(Response.unauthorized.addHeaders(Headers(Header.WWWAuthenticate.Bearer(realm = "Access"))))

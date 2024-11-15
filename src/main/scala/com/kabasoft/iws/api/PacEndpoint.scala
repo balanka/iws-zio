@@ -50,14 +50,14 @@ object PacEndpoint:
         PacRepository.all((p._1, p._2))
 
   val pacByPeriodRoute =
-    pacByPeriod.implement: (p) =>
+    pacByPeriod.implement: p =>
       ZIO.logInfo(s"Get the PAC entries for period  $p._2 and company $p._1 ") *>
         PacRepository.findBalance4Period(p._2, p._1)
       
   val pacByAccountPeriodRoute =
-    pacByAccountPeriod.implement: (p) =>
-      ZIO.logInfo (s"Modify store  accountId $p._2, toPeriod $p._3 and company $p._1 ") *>
-        PacRepository.find4AccountPeriod(p._2,  p._3, p._1)
+    pacByAccountPeriod.implement: p =>
+      ZIO.logInfo (s"Get PAC per  accountId ${p._2}, toPeriod ${p._3} and company ${p._1} ") *>
+        PacRepository.find4AccountPeriod(p._2,  p._3, p._1).debug("PAC>>>>>")
 
 
   val pacRoutes = Routes(allPacRoute, pacByAccountPeriodRoute, pacByPeriodRoute) @@ Middleware.debug

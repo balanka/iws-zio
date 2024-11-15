@@ -71,27 +71,27 @@ object AccountEndpoint:
 
   val createRoute =
     mCreate.implement: (m, _) =>
-      ZIO.logInfo(s"Insert module  ${m}")
+      ZIO.logInfo(s"Insert an account  ${m}")
         *>  AccountRepository.create(m, true)
 
   val mAllRoute =
     mAll.implement: p =>
-      ZIO.logInfo(s"Insert module  ${p}") *>
+      ZIO.logInfo(s"Get all accounts  ${p}") *>
         AccountRepository.all((p._1, p._2))
 
   val mByIdRoute =
     mById.implement: p =>
-      ZIO.logInfo(s"Modify module  ${p}") *>
+      ZIO.logInfo(s"Modify an account  ${p}") *>
         AccountRepository.getById(p._1, p._2, p._3)
 
   val balanceRoute = 
     balanceAPI.implement:  (company:String, accId: String, to: Int, _) =>
-      ZIO.logInfo(s"get balance  period at ${to}  ${accId}") *>
+      ZIO.logInfo(s"Get the balance  sheet period at ${to} for account: ${accId}") *>
       AccountService.getBalance(accId,  to, company)    
 
   val mModifyRoute =
     mModify.implement: (h, m) =>
-      ZIO.logInfo(s"Modify module  ${m}") *>
+      ZIO.logInfo(s"Modify an account  ${m}") *>
         AccountRepository.modify(m) *>
         AccountRepository.getById((m.id, m.modelid, m.company))
       

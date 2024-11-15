@@ -74,7 +74,7 @@ object FinancialsEndpoint:
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ).out[FinancialsTransaction] ?? Doc.p(mModifyAPIDoc)
 
-  private val trCanceln = Endpoint(RoutePattern.PUT / "cancelnLTr").header(HeaderCodec.authorization)
+  private val trCanceln = Endpoint(RoutePattern.PUT / "cancelLTr").header(HeaderCodec.authorization)
     .in[FinancialsTransaction]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
@@ -108,7 +108,7 @@ object FinancialsEndpoint:
 
   val trAllRoute =
     mAll.implement: p =>
-      ZIO.logInfo(s"Insert financials transaction  ${p}") *>
+      ZIO.logInfo(s"Get financials transaction  ${p}") *>
         FinancialsTransactionRepository.all((p._1, p._2))
 
   val trPostAllRoute =

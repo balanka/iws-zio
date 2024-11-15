@@ -7,6 +7,7 @@ import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 import zio.prelude.*
 import zio.stm.*
 import zio.{UIO, *}
+
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
 import scala.collection.immutable.{::, List, Nil}
@@ -1537,11 +1538,11 @@ object Employee:
       , st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime)
 
 final case class TransactionDetails( id: Long, transid: Long, article: String, articleName:String, quantity: BigDecimal, unit: String, price: BigDecimal,
-                                     currency: String, duedate: Instant = Instant.now(), vatCode:String, text: String)
+                                     currency: String, duedate: Instant = Instant.now(), vatCode:String, text: String, company: String)
 
 object TransactionDetails:
-  val dummy = TransactionDetails(0, 0, "", "", zeroAmount, "", zeroAmount, "", Instant.now(), "",  "")
-  type D_TYPE = (Long, Long, String, String, scala.math.BigDecimal, String, scala.math.BigDecimal, String, LocalDateTime, String, String)
+  val dummy = TransactionDetails(0, 0, "", "", zeroAmount, "", zeroAmount, "", Instant.now(), "",  "",  "")
+  type D_TYPE = (Long, Long, String, String, scala.math.BigDecimal, String, scala.math.BigDecimal, String, LocalDateTime, String, String, String)
   implicit val monoid: Identity[TransactionDetails] =
     new Identity[TransactionDetails]:
       def identity: TransactionDetails = dummy
@@ -1550,13 +1551,13 @@ object TransactionDetails:
  
   def encodeIt(dt: TransactionDetails): D_TYPE =
     (dt.id, dt.transid, dt.article, dt.articleName, dt.quantity, dt.unit, dt.price, dt.currency
-      , dt.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime, dt.vatCode, dt.text)
-  private type TransactionDetails_Type = (Long, Long, String, String, BigDecimal, String, BigDecimal, String, Instant,  String, String)
+      , dt.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime, dt.vatCode, dt.text,  dt.company)
+  private type TransactionDetails_Type = (Long, Long, String, String, BigDecimal, String, BigDecimal, String, Instant,  String, String, String)
 
   def apply(tr: TransactionDetails_Type): TransactionDetails =
-    new TransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11)
+    new TransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11,  tr._12)
   def apply(tr: TransactionDetails): TransactionDetails =
-    new TransactionDetails(tr.id, tr.transid, tr.article, tr.articleName, tr.quantity, tr.unit, tr.price, tr.currency, tr.duedate, tr.vatCode, tr.text)
+    new TransactionDetails(tr.id, tr.transid, tr.article, tr.articleName, tr.quantity, tr.unit, tr.price, tr.currency, tr.duedate, tr.vatCode, tr.text, tr.company)
 
 final case class FinancialsTransactionDetails(
   id: Long,
@@ -1568,6 +1569,7 @@ final case class FinancialsTransactionDetails(
   duedate: Instant = Instant.now(),
   text: String,
   currency: String,
+  company: String,
   accountName: String,
   oaccountName: String
 )
@@ -1651,8 +1653,9 @@ final case class FinancialsTransaction(
 
 }
 object FinancialsTransactionDetails:
-  val dummy  = FinancialsTransactionDetails(0, 0, "", true, "", zeroAmount, Instant.now(), "", "EUR", "", "")
-  type D_TYPE=(Long, Long, String, Boolean, String, scala.math.BigDecimal, LocalDateTime, String, String, String, String)
+  val dummy  = FinancialsTransactionDetails(0, 0, "", true, "", zeroAmount, Instant.now(), "", "EUR", "", "", "")
+  type D_TYPE=(Long, Long, String, Boolean, String, scala.math.BigDecimal, LocalDateTime, String, String, String, String, String)
+  
   implicit val monoid: Identity[FinancialsTransactionDetails] =
     new Identity[FinancialsTransactionDetails]:
       def identity: FinancialsTransactionDetails = dummy
@@ -1662,11 +1665,11 @@ object FinancialsTransactionDetails:
   def encodeIt(dt: FinancialsTransactionDetails): D_TYPE =
     (dt.id, dt.transid, dt.account, dt.side, dt.oaccount, dt.amount
       , dt.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
-      , dt.text, dt.currency, dt.accountName, dt.oaccountName)
+      , dt.text, dt.currency, dt.company, dt.accountName, dt.oaccountName)
 
-  private type FinancialsTransactionDetails_Type = (Long, Long,  String, Boolean, String, BigDecimal, Instant, String, String, String, String)
+  private type FinancialsTransactionDetails_Type = (Long, Long,  String, Boolean, String, BigDecimal, Instant, String, String, String, String, String)
   def apply(tr: FinancialsTransactionDetails_Type): FinancialsTransactionDetails =
-    new FinancialsTransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11)
+    new FinancialsTransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11, tr._12)
 
 object FinancialsTransaction:
   private type FinancialsTransaction_Type =
@@ -1675,7 +1678,6 @@ object FinancialsTransaction:
 
   def apply(tr: FinancialsTransaction_Type): FinancialsTransaction =
     new FinancialsTransaction(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11, tr._12, tr._13, tr._14)
-
   def encodeIt(st: FinancialsTransaction):TYPE =
       (  st.id, st.oid, st.id1, st.costcenter, st.account
         , st.transdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime

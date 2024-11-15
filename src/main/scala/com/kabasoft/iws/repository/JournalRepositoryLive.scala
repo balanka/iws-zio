@@ -45,11 +45,11 @@ object JournalRepositoryLive:
 object JournalRepositorySQL:
   def toInstant(localDateTime: LocalDateTime): Instant = localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
   val mfCodec =
-    (int8 *: int8 *: int8 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *:int4 *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: varchar *: bool *: varchar *: int4 *: int4 *: varchar *: int4)
+    (int8 *: int8 *: int8 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *:int4 *: numeric(12,2) *: numeric(12,2) *: numeric(12,2) *: numeric(12,2) *: numeric(12,2) *: varchar *: bool *: varchar *: int4 *: int4 *: varchar *: int4)
 
   val mfDecoder: Decoder[Journal] = mfCodec.map :
     case (id, transid, oid, account, oaccount, transdate, enterdate, postingdate, period, amount, idebit, debit
-         , icredit, credit,currency, side, text, month, year, company, modelid) =>
+         , icredit, credit, currency, side, text, month, year, company, modelid) =>
       Journal (id, transid, oid, account, oaccount, toInstant(transdate), toInstant(postingdate), toInstant(enterdate)
         , period, amount.bigDecimal, idebit.bigDecimal, debit.bigDecimal, icredit.bigDecimal, credit.bigDecimal
         ,currency, side, text, month, year, company, modelid)
@@ -90,37 +90,38 @@ object JournalRepositorySQL:
   
 
   val FIND_QUERY: Query[Int *: Int *: String *: EmptyTuple, Journal] =
-    sql"""select id , account, period, idebit, icredit, debit, credit, currency, company, name, modelid
+    sql"""select id , account, period, idebit, icredit, debit, credit, currency, company, modelid
        FROM  journal
        WHERE period between $int4 AND  $int4 and  company =$varchar
-       .orderBy(account.descending)
+        order By account desc
        """.query(mfDecoder)
 
   val FIND_4_PERIOD_QUERY: Query[String  *: Int *: Int *: String *: EmptyTuple, Journal] =
-    sql"""select id , account, period, idebit, icredit, debit, credit, currency, company, name, modelid
+    sql"""SELECT id, transid, oid, account, oaccount, transdate, enterdate, postingdate, period, amount, idebit, debit
+         , icredit, credit,currency, side, text, month, year, company, modelid
        FROM journal
        WHERE account=$varchar AND period between  $int4 and  $int4 AND  company =$varchar
-       .orderBy(period.descending)
+       order By period desc
        """.query(mfDecoder)
 
   val BALANCE_QUERY: Query[Int *: Int *:String *: EmptyTuple, Journal] =
     sql"""select Max(id) as id, account, Max(period) as period,SUM(idebit) as idebit,
       SUM(icredit) as icredit, SUM(debit) as debit, SUM(credit) as credit,
-      currency, company, name, modelid
+      currency, company, modelid
       FROM  journal
       WHERE period between $int4 AND  $int4 and  company =$varchar
-      .groupBy(account, currency, company, name, modelid)
-      .orderBy(account.descending)
+      group By account, currency, company, modelid
+      order By account desc
       """.query(mfDecoder)
 
   val BALANCE_4_ACCOUNT_PERIOD: Query[String *:Int *: Int *: String *: EmptyTuple, Journal] =
     sql"""select Max(id) as id, account, Max(period) as period,SUM(idebit) as idebit,
        SUM(icredit) as icredit, SUM(debit) as debit, SUM(credit) as credit,
-       currency, company, name, modelid
+       currency, company, modelid
        FROM  journal
        WHERE  account = $varchar AND
               period between ($int4 AND  $int4) AND
               company = $varchar
-       .groupBy(account, currency, company, name, modelid)
-       .orderBy(account.descending)
+       group By account, currency, company, modelid)
+       order By account desc
        """.query(mfDecoder)

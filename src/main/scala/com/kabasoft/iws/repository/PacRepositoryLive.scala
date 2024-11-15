@@ -128,14 +128,14 @@ object PacRepositorySQL:
     sql"""select id , account, period, idebit, icredit, debit, credit, currency, company, name, modelid
        FROM  peridic_account_balance
        WHERE period BETWEEN $int4 AND  $int4 and  company =$varchar
-       order By account.descending
+       order By account desc
        """.query(mfDecoder)
 
   val FIND_4_PERIOD_QUERY: Query[Int *: String *: EmptyTuple, PeriodicAccountBalance] =
     sql"""select id , account, period, idebit, icredit, debit, credit, currency, company, name, modelid
        FROM  periodic_account_balance
        WHERE period = $int4 AND  company =$varchar
-       order By account.desc
+       order By account desc
        """.query(mfDecoder)
 
   val BALANCE_QUERY: Query[Int *: Int *:String *: EmptyTuple, PeriodicAccountBalance] =

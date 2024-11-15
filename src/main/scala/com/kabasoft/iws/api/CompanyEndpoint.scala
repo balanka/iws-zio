@@ -62,7 +62,7 @@ object CompanyEndpoint:
 
   val companyByIdRoute =
     mById.implement: (id, modelid, h)=>
-      ZIO.logInfo (s"Modify company  id: ${id} modelid: ${modelid} ") *>
+      ZIO.logInfo (s"Get company  id: ${id} modelid: ${modelid} ") *>
         CompanyRepository.getById((id, modelid))
 
   val modifyCompanyRoute =

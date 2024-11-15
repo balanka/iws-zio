@@ -10,6 +10,8 @@ import zio.interop.catz.*
 import cats.syntax.applicativeError.catsSyntaxApplicativeError
 import com.kabasoft.iws.repository.MasterfileCRUD.{IwsCommand, IwsCommandLP}
 import skunk.data.Completion
+import zio.stream.ZStream
+import zio.stream.interop.fs2z.*
 
 object MasterfileCRUD:
   final case class IwsCommand[A, B](param: A, encoder: A => B, cmd: Command[B])
@@ -17,26 +19,39 @@ object MasterfileCRUD:
   
 trait MasterfileCRUD:
 
-   def queryWithTx[A, B](postgres: Resource[Task, Session[Task]], p: A, q: Query[A, B]):ZIO[Any, RepositoryError, List[B]] = {
-    val x= postgres
+  def queryWithTx[A, B](postgres: Resource[Task, Session[Task]], p: A, q: Query[A, B]):ZIO[Any, RepositoryError, List[B]] =
+    postgres
       .use: session =>
         session
           .prepare(q)
           .flatMap: ps =>
-            ps.stream(p, 1024).compile.toList
+            ps.stream(p, 1024).compile.toList.recoverWith:
+             case SqlState.SyntaxError(ex) => ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...")*>
+               ZIO.succeed(List.empty[B])
+             case _ =>
+               ZIO.logInfo(s"Error:  rolling back...")*>
+               ZIO.succeed(List.empty[B])
       .mapBoth(e => RepositoryError(e.getMessage), list => list)
-     x
-   }
 
-   def queryWithTxUnique[A, B](postgres: Resource[Task, Session[Task]], p:A, q:Query[A, B]):ZIO[Any, RepositoryError, B] =
+  def queryWithTxS[A, B](postgres: Resource[Task, Session[Task]], p:A, q:Query[A, B]):ZIO[Any, RepositoryError, List[B]] =
+    postgres
+      .use: session =>
+        session
+          .prepare(q)
+          .flatMap:
+            ps => ps.stream(p, 1014).compile.toList
+      .mapBoth(e => RepositoryError(e.getMessage), a => a).debug("Data/Error")
+
+  def queryWithTxUnique[A, B](postgres: Resource[Task, Session[Task]], p:A, q:Query[A, B]):ZIO[Any, RepositoryError, B] =
      postgres
        .use: session =>
          session
           .prepare(q)
           .flatMap(ps => ps.unique(p))
-       .mapBoth(e => RepositoryError(e.getMessage), a => a).debug("Error")
+       .mapBoth(e => RepositoryError(e.getMessage), a => a).debug("Data/Error")
 
-   def executeWithTx_[A, B](postgres: Resource[Task, Session[Task]], iwsCmd:IwsCommand[A, B], size: Int): ZIO[Any, RepositoryError, Int] =
+
+  def executeWithTx_[A, B](postgres: Resource[Task, Session[Task]], iwsCmd:IwsCommand[A, B], size: Int): ZIO[Any, RepositoryError, Int] =
      postgres
        .use: session =>
          session.transaction.use: xa =>
@@ -53,7 +68,7 @@ trait MasterfileCRUD:
                    xa.rollback
        .mapBoth(e => RepositoryError(e.getMessage), _ => size)
 
-   def executeWithTx[A](postgres: Resource[Task, Session[Task]], p: A, comd: Command[A], size: Int): ZIO[Any, RepositoryError, Int] =
+  def executeWithTx[A](postgres: Resource[Task, Session[Task]], p: A, comd: Command[A], size: Int): ZIO[Any, RepositoryError, Int] =
      postgres
        .use: session =>
           session.transaction.use: xa =>
@@ -87,7 +102,7 @@ trait MasterfileCRUD:
 //                   xa.rollback
 //       .mapBoth(e => RepositoryError(e.getMessage), _ => size)
 
-   def executeWithTx_[A, B](postgres: Resource[Task, Session[Task]], commands: List[IwsCommand[A, B]]) =
+  def executeWithTx_[A, B](postgres: Resource[Task, Session[Task]], commands: List[IwsCommand[A, B]]) =
      postgres
        .use: session =>
          session.transaction.use: xa =>
@@ -107,7 +122,7 @@ trait MasterfileCRUD:
            )
        .mapBoth(e => RepositoryError(e.getMessage), _ => commands.size)
 
-   def executeBatchWithTx[A, B, C, D](postgres: Resource[Task, Session[Task]]
+  def executeBatchWithTx[A, B, C, D](postgres: Resource[Task, Session[Task]]
                                     , commands: List[IwsCommand[A,B]]
                                     , commandLPs: List[IwsCommandLP[C, D]]): Unit =
     postgres
@@ -137,7 +152,7 @@ trait MasterfileCRUD:
 
 
 
-   def executeWithTxLP[A, B](postgres: Resource[Task, Session[Task]], command: IwsCommandLP[A, B]) =
+  def executeWithTxLP[A, B](postgres: Resource[Task, Session[Task]], command: IwsCommandLP[A, B]) =
      postgres
        .use: session =>
          session.transaction.use: xa =>
@@ -156,7 +171,7 @@ trait MasterfileCRUD:
           // )
        .mapBoth(e => RepositoryError(e.getMessage), _ => command.param.size)
 
-   def executeWithTx[A](postgres: Resource[Task, Session[Task]], p: A, commands: List[Command[A]], size: Int): ZIO[Any, RepositoryError, Int] =
+  def executeWithTx[A](postgres: Resource[Task, Session[Task]], p: A, commands: List[Command[A]], size: Int): ZIO[Any, RepositoryError, Int] =
      postgres
        .use: session =>
          session.transaction.use: xa =>
@@ -176,7 +191,7 @@ trait MasterfileCRUD:
            )
        .mapBoth(e => RepositoryError(e.getMessage), _ => size)
 
-   def executeBatchWithTxK[A, B](postgres: Resource[Task, Session[Task]], params: List[A], cmdx: Command[B], encode: A => B): ZIO[Any, RepositoryError, Int] = for {
+  def executeBatchWithTxK[A, B](postgres: Resource[Task, Session[Task]], params: List[A], cmdx: Command[B], encode: A => B): ZIO[Any, RepositoryError, Int] = for {
      u <- postgres
        .use: session =>
          session.transaction.use: xa =>

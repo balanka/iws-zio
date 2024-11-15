@@ -1,9 +1,9 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.FinancialsTransaction
-import zio._
-import zio.stream._
+import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails}
+import zio.*
+import zio.stream.*
 
 trait FinancialsTransactionRepository:
 
@@ -19,6 +19,8 @@ trait FinancialsTransactionRepository:
 
   def modify(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int]
 
+//  def details(p: (List[Long], String)): ZIO[Any, RepositoryError, List[FinancialsTransactionDetails]]
+  
   def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]]
 
   def getById(Id: (Long, Int, String)): ZIO[Any, RepositoryError, FinancialsTransaction]
@@ -61,6 +63,9 @@ object FinancialsTransactionRepository:
 
   //  def delete(Ids:(List[Long], Int,  String)): ZIO[FinancialsTransactionRepository, RepositoryError, List[(Long, Int, String)]]            =
   //    ZIO.foreach(ids)(delete(_, modelid, company)).mapError(e=>RepositoryError(e.getMessage))
+//  def details(p: (List[Long], String)): ZIO[FinancialsTransactionRepository, RepositoryError, List[FinancialsTransactionDetails]]=
+//    ZIO.serviceWithZIO[FinancialsTransactionRepository](_.details(p))
+    
   def all(Id: (Int, String)): ZIO[FinancialsTransactionRepository, RepositoryError, List[FinancialsTransaction]] =
     ZIO.serviceWithZIO[FinancialsTransactionRepository](_.all(Id))
 

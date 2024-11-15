@@ -29,11 +29,26 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
   
   override def modify(model: Transaction):ZIO[Any, RepositoryError, Int] = create(model, false)
   override def modify(models: List[Transaction]): ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.size)
-  override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Transaction]] = queryWithTx(postgres, p, ALL)
+  //override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Transaction]] = queryWithTx(postgres, p, ALL)
   override def getById(p: (Long, Int, String)): ZIO[Any, RepositoryError, Transaction] = queryWithTxUnique(postgres, p, BY_ID)
   override def getByModelId( p: (Int, String)): ZIO[Any, RepositoryError, List[Transaction]] = queryWithTx(postgres, p, BY_MODEL_ID)
   override def getByIds(ids: List[Long], modelid: Int, companyId: String): ZIO[Any, RepositoryError, List[Transaction]] =
     queryWithTx(postgres, (ids, modelid, companyId), ALL_BY_ID(ids.length))
+
+  def list(p: (Int, String)): ZIO[Any, RepositoryError, List[Transaction]] = queryWithTx(postgres, p, ALL)
+  private def getDetails(p: (Long, String)): ZIO[Any, RepositoryError, List[TransactionDetails]] = queryWithTx(postgres, p, DETAILS1)
+
+  private def getByTransId1(trans: Transaction): ZIO[Any, RepositoryError, Transaction] = for {
+    lines_ <- getDetails(trans.id1, trans.company)
+  } yield trans.copy(lines = if (lines_.nonEmpty) lines_ else List.empty[TransactionDetails])
+
+  private def withLines(trans: Transaction): ZIO[Any, RepositoryError, Transaction] =
+    getByTransId1(trans)
+
+  override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Transaction]] = for {
+    transactions <- list(p)
+    details <- transactions.map(withLines).flip
+  } yield details
 
   override def find4Period(fromPeriod: Int, toPeriod: Int, posted:Boolean, companyId: String): ZIO[Any, RepositoryError, List[Transaction]] =
     queryWithTx(postgres, (posted, fromPeriod, toPeriod, companyId), BY_PERIOD)
@@ -50,7 +65,7 @@ private[repository] object TransactionRepositorySQL:
   private val transactionCodec =
     (int8 *: int8 *: int8 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: int4 *: bool *: int4 *: varchar *: varchar)
   private val transactionDetailsCodec =
-    (int8 *: int8 *: varchar *: varchar *:  numeric(12,2) *: varchar *: numeric(12,2) *: varchar *: timestamp *: varchar *: varchar )
+    (int8 *: int8 *: varchar *: varchar *:  numeric(12,2) *: varchar *: numeric(12,2) *: varchar *: timestamp *: varchar *: varchar *: varchar )
 
   val mfDecoder: Decoder[Transaction] = transactionCodec.map:
     case (id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text) =>
@@ -60,9 +75,9 @@ private[repository] object TransactionRepositorySQL:
   val mfEncoder: Encoder[Transaction] = transactionCodec.values.contramap(Transaction.encodeIt)
   val DetailsEncoder: Encoder[TransactionDetails] = transactionDetailsCodec.values.contramap(TransactionDetails.encodeIt)
 
-  def detailsDecoder(transId: Long): Decoder[TransactionDetails] = transactionDetailsCodec.map:
-      case (id, transid, article, articleName, quantity, unit, price, currency, duedate, vatCode, text) =>
-        TransactionDetails(id, transid, article, articleName, quantity.bigDecimal, unit, price.bigDecimal, currency, toInstant(duedate), vatCode, text)
+  val detailsDecoder: Decoder[TransactionDetails] = transactionDetailsCodec.map:
+      case (id, transid, article, articleName, quantity, unit, price, currency, duedate, vatCode, text, company) =>
+        TransactionDetails(id, transid, article, articleName, quantity.bigDecimal, unit, price.bigDecimal, currency, toInstant(duedate), vatCode, text, company)
 
   def base =
     sql""" SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text
@@ -98,11 +113,17 @@ private[repository] object TransactionRepositorySQL:
            WHERE  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
+  val DETAILS1: Query[Long *: String *: EmptyTuple, TransactionDetails] =
+    sql"""SELECT id, transid, article, article_name, quantity, unit, price, currency, duedate, vat_code, text, company
+           FROM   transaction_details
+           WHERE  transid = $int8  AND company = $varchar
+           """.query(detailsDecoder)
+
   val insert: Command[Transaction] = sql"INSERT INTO transaction VALUES $mfEncoder".command
 
   def insertAll(n:Int): Command[List[Transaction.TYPE]] = sql"INSERT INTO transaction VALUES ${transactionCodec.values.list(n)}".command
 
-  def insertAllDetails(n:Int): Command[List[(Long, Long, String, String, BigDecimal, String, BigDecimal, String, LocalDateTime,  String, String)]] =
+  def insertAllDetails(n:Int): Command[List[(Long, Long, String, String, BigDecimal, String, BigDecimal, String, LocalDateTime,  String, String, String)]] =
     sql"INSERT INTO transaction_details VALUES ${transactionDetailsCodec.values.list(n)}".command
   val upsert: Command[Transaction] =
     sql"""INSERT INTO transaction

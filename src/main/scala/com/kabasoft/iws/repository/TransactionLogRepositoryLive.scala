@@ -22,7 +22,8 @@ final case class TransactionLogRepositoryLive(postgres: Resource[Task, Session[T
   import TransactionLogRepositorySQL.*
   
   def create(item: TransactionLog): ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, item, insert, 1)
-  def create(models: List[TransactionLog]): ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, models.map(TransactionLog.encodeIt), insertAll(models.size), models.size)
+  def create(models: List[TransactionLog]): ZIO[Any, RepositoryError, Int]= 
+    executeWithTx(postgres, models.map(TransactionLog.encodeIt), insertAll(models.size), models.size)
   def all(p: (Int, String)): ZIO[Any, RepositoryError, List[TransactionLog]] = queryWithTx(postgres, p, ALL)
   def getById(p: (Long, String)): ZIO[Any, RepositoryError, TransactionLog]= queryWithTxUnique(postgres, p, BY_ID)
   //def getBy(ids: List[Long], modelid: Int, company: String): ZIO[Any, RepositoryError, List[TransactionLog]]
