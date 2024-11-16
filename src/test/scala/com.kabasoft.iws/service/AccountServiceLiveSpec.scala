@@ -1,13 +1,14 @@
 package com.kabasoft.iws.service
 
+import com.kabasoft.iws.config.appConfig
 import com.kabasoft.iws.domain.common
 import com.kabasoft.iws.domain.AccountBuilder.{companyId, paccountId0, raccountId}
 import com.kabasoft.iws.repository.container.PostgresContainer
+import com.kabasoft.iws.repository.container.PostgresContainer.appResourcesL
 import com.kabasoft.iws.repository.{AccountRepositoryLive, PacRepositoryLive}
 import zio.ZLayer
-//import zio.sql.ConnectionPool
-import zio.test.TestAspect._
-import zio.test._
+import zio.test.TestAspect.*
+import zio.test.*
 
 import java.math.{BigDecimal, RoundingMode}
 import java.time.{LocalDateTime, ZoneOffset}
@@ -16,12 +17,12 @@ import java.time.{LocalDateTime, ZoneOffset}
 object AccountServiceLiveSpec extends ZIOSpecDefault {
 
   val testServiceLayer = ZLayer.make[AccountService](
+    appResourcesL.project(_.postgres),
+    appConfig,
     AccountRepositoryLive.live,
     PacRepositoryLive.live,
     AccountServiceLive.live,
-    PostgresContainer.connectionPoolConfigLayer,
-    ConnectionPool.live,
-    PostgresContainer.createContainer
+    //PostgresContainer.createContainer
   )
 
   override def spec =
@@ -41,6 +42,6 @@ object AccountServiceLiveSpec extends ZIOSpecDefault {
           nrOfAccounts       <-AccountService.closePeriod(toPeriod, raccountId, companyId)
         } yield  assertTrue(nrOfAccounts == 2)
       }
-    ).provideLayerShared(testServiceLayer.orDie) @@ sequential
+    ).provideLayerShared(testServiceLayer) @@ sequential
 }
 

@@ -24,26 +24,26 @@ object TransactionBuilder {
   val quantity1 = new BigDecimal("100.00").setScale(2, RoundingMode.HALF_UP)
   val pprice0 = new BigDecimal("10.00").setScale(2, RoundingMode.HALF_UP)
   val pprice1 = new BigDecimal("50.00").setScale(2, RoundingMode.HALF_UP)
-  val terms1 = "Delivery note for purchased good  or service"
-  val terms2 = "Billing note for purchased good  or service"
-  val terms3 = "Delivery note for sold good  or service"
-  val terms4 = "Billing note for sold good  or service"
-  val terms5 = "Note for  good  or service ordered from supplier"
-  val terms6 = "Note for goods  and or  services ordered by customer"
+  val text1 = "Delivery note for purchased good  or service"
+  val text2 = "Billing note for purchased good  or service"
+  val text3 = "Delivery note for sold good  or service"
+  val text4 = "Billing note for sold good  or service"
+  val text5 = "Note for  good  or service ordered from supplier"
+  val text6 = "Note for goods  and or  services ordered by customer"
   val currency = "EUR"
   val store = "311"
   val qttyUnit = "stk"
   val vatCode = "v5"
 
-  val line1=  TransactionDetails(-1L, 0L,  artId0, artName0 , quantity0, qttyUnit, pprice0, currency, vtime, vatCode, terms )
-  val line2=  TransactionDetails(-1L, 0L,  artId1, artName1 , quantity1, qttyUnit, pprice1, currency, vtime, vatCode, terms )
+  val line1=  TransactionDetails(-1L, 0L,  artId0, artName0 , quantity0, qttyUnit, pprice0, currency, vtime, vatCode, text1, company )
+  val line2=  TransactionDetails(-1L, 0L,  artId1, artName1 , quantity1, qttyUnit, pprice1, currency,  vtime, vatCode, text1, company )
 
-  val ftr1 = Transaction(0,-1, -1,  store, accountId, vtime, vtime, vtime, period, posted = false, modelid, company, terms
+  val ftr1 = Transaction(0,-1, -1,  store, accountId, vtime, vtime, vtime, period, posted = false, modelid, company, text1
           ,  List(line1, line2))
-  val ftr2 = ftr1.copy(modelid = modelid2, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = terms2)
-  val ftr3 = ftr1.copy(modelid = modelid3, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = terms3)
-  val ftr4 = ftr1.copy(modelid = modelid4, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = terms4)
-  val ftr5 = ftr1.copy(modelid = modelid5, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = terms5)
-  val ftr6 = ftr1.copy(modelid = modelid5, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = terms6)
+  val ftr2 = ftr1.copy(modelid = modelid2, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = text2)
+  val ftr3 = ftr1.copy(modelid = modelid3, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = text3)
+  val ftr4 = ftr1.copy(modelid = modelid4, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = text4)
+  val ftr5 = ftr1.copy(modelid = modelid5, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = text5)
+  val ftr6 = ftr1.copy(modelid = modelid5, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = text6)
 
 }

@@ -1,13 +1,14 @@
 package com.kabasoft.iws.repository
 
-import zio.test._
-import zio.test.TestAspect._
+import com.kabasoft.iws.config.appConfig
+import zio.test.*
+import zio.test.TestAspect.*
 import com.kabasoft.iws.domain.{Bank, Masterfile}
 import com.kabasoft.iws.repository.container.PostgresContainer
+import com.kabasoft.iws.repository.container.PostgresContainer.appResourcesL
 
 import java.time.Instant
 import zio.ZLayer
-import zio.sql.ConnectionPool
 
 object BankRepositoryLiveSpec extends ZIOSpecDefault {
 
@@ -21,24 +22,24 @@ object BankRepositoryLiveSpec extends ZIOSpecDefault {
   )
 
   val testLayer = ZLayer.make[MasterfileRepository](
+    appResourcesL.project(_.postgres),
+    appConfig,
     MasterfileRepositoryLive.live,
-    PostgresContainer.connectionPoolConfigLayer,
-    ConnectionPool.live,
-    PostgresContainer.createContainer
+    //PostgresContainer.createContainer
   )
 
   override def spec =
     suite("Bank repository test with postgres test container")(
       test("insert two new banks") {
         for {
-          oneRow <- MasterfileRepository.create2(banks)
-          count <- MasterfileRepository.list((Bank.MODEL_ID, company)).runCount
+          oneRow <- MasterfileRepository.create(banks)
+          count <- MasterfileRepository.all((Bank.MODEL_ID, company)).map(_.size)
         } yield assertTrue(oneRow == 2) && assertTrue(count == 4L)
       },
       test("get a Bank by its id") {
         for {
-          stmt <- MasterfileRepository.getBy((id, Bank.MODEL_ID, company))
+          stmt <- MasterfileRepository.getById((id, Bank.MODEL_ID, company))
         } yield assertTrue(stmt.name == name) && assertTrue(stmt.id==id)
       }
-    ).provideLayerShared(testLayer.orDie) @@ sequential
+    ).provideLayerShared(testLayer) @@ sequential
 }

@@ -1,13 +1,14 @@
 package com.kabasoft.iws.repository
 
-import zio.test._
-import zio.test.TestAspect._
+import com.kabasoft.iws.config.appConfig
+import zio.test.*
+import zio.test.TestAspect.*
 import com.kabasoft.iws.domain.Vat
 
 import java.time.Instant
 import zio.ZLayer
 import com.kabasoft.iws.repository.container.PostgresContainer
-import zio.sql.ConnectionPool
+import com.kabasoft.iws.repository.container.PostgresContainer.appResourcesL
 
 import java.math.{BigDecimal, RoundingMode}
 
@@ -25,29 +26,29 @@ object VatRepositoryLiveSpec extends ZIOSpecDefault {
   )
 
   val testLayer = ZLayer.make[VatRepository](
-    VatRepositoryImpl.live,
-    PostgresContainer.connectionPoolConfigLayer,
-    ConnectionPool.live,
-    PostgresContainer.createContainer
+    appResourcesL.project(_.postgres),
+    appConfig,
+    VatRepositoryLive.live,
+    //PostgresContainer.createContainer
   )
 
   override def spec =
     suite("Vat repository test with postgres test container")(
       test("count all vats") {
         for {
-          count <- VatRepository.list((Vat.MODEL_ID, company)).runCount
+          count <- VatRepository.all((Vat.MODEL_ID, company)).map(_.size)
         } yield assertTrue(count==3)
       },
       test("insert two new vats") {
         for {
-          oneRow <- VatRepository.create2(vats)
-          count <- VatRepository.list((Vat.MODEL_ID, company)).runCount
+          oneRow <- VatRepository.create(vats)
+          count <- VatRepository.all((Vat.MODEL_ID, company)).map(_.size)
         } yield assertTrue(oneRow==2) && assertTrue(count==3)
       },
       test("get a Vat by its id") {
         for {
-          stmt <- VatRepository.getBy((id,company))
+          stmt <- VatRepository.getById((id, Vat.MODEL_ID, company))
         } yield assertTrue(stmt.name==name) && assertTrue(stmt.id==id)
       }
-    ).provideLayerShared(testLayer.orDie) @@ sequential
+    ).provideLayerShared(testLayer) @@ sequential
 }

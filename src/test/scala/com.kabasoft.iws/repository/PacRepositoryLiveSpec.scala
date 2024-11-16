@@ -1,12 +1,14 @@
 package com.kabasoft.iws.repository
 
+import com.kabasoft.iws.config.appConfig
 import com.kabasoft.iws.domain.AccountBuilder.companyId
 import com.kabasoft.iws.domain.FinancialsTransactionBuilder.pacs
+import com.kabasoft.iws.domain.PeriodicAccountBalance
 import com.kabasoft.iws.repository.container.PostgresContainer
+import com.kabasoft.iws.repository.container.PostgresContainer.appResourcesL
 import zio.ZLayer
-import zio.sql.ConnectionPool
-import zio.test.TestAspect._
-import zio.test._
+import zio.test.TestAspect.*
+import zio.test.*
 
 
 
@@ -14,10 +16,10 @@ object PacRepositoryLiveSpec extends ZIOSpecDefault {
 
 
   val testLayer = ZLayer.make[PacRepository](
-    PacRepositoryImpl.live,
-    PostgresContainer.connectionPoolConfigLayer,
-    ConnectionPool.live,
-    PostgresContainer.createContainer
+    PacRepositoryLive.live,
+    appResourcesL.project(_.postgres),
+    appConfig,
+    //PostgresContainer.createContainer
   )
 
 
@@ -25,12 +27,12 @@ object PacRepositoryLiveSpec extends ZIOSpecDefault {
     suite("Periodic account balance repository  test with postgres test container")(
       test("create 2 pacs and find 1 pac getByIds") {
         for {
-          row <- PacRepository.getByIds(pacs.map(_.id), companyId)
+          row <- PacRepository.getBy(pacs.map(_.id), PeriodicAccountBalance.MODELID, companyId)
           newPacs=pacs.filterNot(row.contains)
           nrCreatedRow <- PacRepository.create(newPacs)
 
         } yield assertTrue(nrCreatedRow==1) && assertTrue(row.size==4)
       }
-    ).provideLayerShared(testLayer.orDie) @@ sequential
+    ).provideLayerShared(testLayer) @@ sequential
 
 }
