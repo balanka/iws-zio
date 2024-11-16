@@ -42,6 +42,6 @@ object StockEndpoint:
   val stockByStoreAndArticleRoute =
     stockByStoreAndArticle.implement: p =>
       ZIO.logInfo(s"get all  stock for store ${p._1}  and article ${p._2} and company ${p._3}") *>
-        StockRepository.getById(p._1, p._2, Stock.MODELID, p._3)
+        StockRepository.getByStoreArticle(p._1, p._2, Stock.MODELID, p._3)
   
   val stockRoutes = Routes(stockByStoreAndArticleRoute, stockAllRoute) @@ Middleware.debug

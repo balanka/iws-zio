@@ -34,7 +34,7 @@ final class EmployeeServiceLive(empRepo: EmployeeRepository
                                              company: Company, ptr:List[PayrollTaxRange]) = {
     salaryItems.map(item => FinancialsTransactionDetails(-1L, -1L, emp.oaccount, side = true, item.account
       , emp.salary.multiply(item.percentage).setScale(6, RoundingMode.HALF_UP)
-      , Instant.now(), item.text, company.currency, getName(accounts, emp.oaccount), getName(accounts, item.account)))
+      , Instant.now(), item.text, company.currency, company.id, getName(accounts, emp.oaccount), getName(accounts, item.account)))
   }
   def getName (accounts:List[Account], id:String): String =
     accounts.find(_.id == id).fold(s"Account with id ${id} not found!!!")(_.name)

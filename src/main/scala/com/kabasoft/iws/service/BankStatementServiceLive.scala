@@ -91,7 +91,7 @@ final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository
                  , accountName: String
                  , oaccount: String
                  , oaccountName: String) =
-      FinancialsTransactionDetails(-1L, -1L, account, side = true, oaccount, amount.abs(), bs.valuedate, bs.purpose, bs.currency, accountName, oaccountName)
+      FinancialsTransactionDetails(-1L, -1L, account, side = true, oaccount, amount.abs(), bs.valuedate, bs.purpose, bs.currency, bs.company, accountName, oaccountName)
 
     if (bs.amount.compareTo(zeroAmount) < 0)
       generate(account, oaccount, accountName, oaccountName)
@@ -106,9 +106,11 @@ final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository
   val accountName = accounts.find(_.id == partner.account).fold(s"Account with id ${partner.account} not found!!!")(_.name)
   val modelid = if (bs.amount.compareTo(zeroAmount) >= 0) SETTLEMENT.id else PAYMENT.id
   val line = if (modelid == PAYMENT.id) {
-    FinancialsTransactionDetails(-1L, -1L, partner.account, side = true, company.bankAcc, bs.amount.abs(), bs.valuedate, bs.purpose, bs.currency, accountName, bankAccountName)
+    FinancialsTransactionDetails(-1L, -1L, partner.account, side = true, company.bankAcc, bs.amount.abs(), bs.valuedate
+      , bs.purpose, bs.currency, company.id, accountName, bankAccountName)
   } else {
-    FinancialsTransactionDetails(-1L, -1L, company.bankAcc, side = true, partner.account, bs.amount.abs(), bs.valuedate, bs.purpose, bs.currency, bankAccountName, accountName)
+    FinancialsTransactionDetails(-1L, -1L, company.bankAcc, side = true, partner.account, bs.amount.abs(), bs.valuedate
+      , bs.purpose, bs.currency, company.id, bankAccountName, accountName)
   }
   buildTransaction(bs, partner, modelid, List(line))
 }

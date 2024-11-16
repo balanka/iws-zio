@@ -101,51 +101,51 @@ object FinancialsEndpoint:
     ).out[List[FinancialsTransaction]] ?? Doc.p(postAllDoc)
 
 
-  val createTransactionRoute =
+  val financialsCreateRoute =
     mCreate.implement: (m, _) =>
       ZIO.logInfo(s"Insert financials transaction  ${m}") *>
         FinancialsTransactionRepository.create(m)
 
-  val trAllRoute =
+  val financialsAllRoute =
     mAll.implement: p =>
       ZIO.logInfo(s"Get financials transaction  ${p}") *>
         FinancialsTransactionRepository.all((p._1, p._2))
 
-  val trPostAllRoute =
+  val financialsPostAllRoute =
     trPostAll.implement: p =>
       ZIO.logInfo(s"Post all financials transaction by id ${p._1.split(',').map(_.toLong).toList}") *>
         //TransactionRepository.postAll((p._1, p._2)) *>
         FinancialsTransactionRepository.getByIds(p._1.split(',').map(_.toLong).toList, p._2, p._3)
 
-  val trByIdRoute =
+  val financialsByIdRoute =
     mById.implement: p =>
       ZIO.logInfo(s"Modify financials transaction  ${p}") *>
         FinancialsTransactionRepository.getById(p._1, p._2, p._3)
 
-  val modifyTransactionRoute =
+  val financialsModifyRoute =
     mModify.implement: (h, m) =>
       ZIO.logInfo(s"Modify financials transaction  ${m}") *>
         FinancialsTransactionRepository.modify(m) *>
         FinancialsTransactionRepository.getById((m.id, m.modelid, m.company))
 
-  val trCancelnRoute =
+  val financialsCancelnRoute =
     trCanceln.implement: (h, ftr) =>
       ZIO.logInfo(s"Canceln  financials transaction ${ftr}") *>
         FinancialsTransactionRepository.create(ftr.cancel) *>
         FinancialsTransactionRepository.getById((ftr.id, ftr.modelid, ftr.company))
 
-  val trDuplicateRoute =
+  val financialsDuplicateRoute =
     trDuplicate.implement: (h, ftr) =>
       ZIO.logInfo(s"Duplicate  transaction ${ftr}") *>
         FinancialsTransactionRepository.create(ftr.duplicate) *>
         FinancialsTransactionRepository.getById((ftr.id, ftr.modelid, ftr.company))
 
-  val deleteTransactionRoute =
+  val financialsDeleteRoute =
     mDelete.implement: (id, modelid, company, _) =>
       FinancialsTransactionRepository.delete(id, modelid, company)
 
-  val financialsRoutes = Routes(createTransactionRoute, trAllRoute, trPostAllRoute, trByIdRoute, modifyTransactionRoute
-    , trDuplicateRoute, trCancelnRoute, deleteTransactionRoute) @@ Middleware.debug
+  val financialsRoutes = Routes(financialsCreateRoute, financialsAllRoute, financialsPostAllRoute, financialsByIdRoute
+    , financialsModifyRoute, financialsDuplicateRoute, financialsCancelnRoute, financialsDeleteRoute) @@ Middleware.debug
 
 
 // financialsRoutes

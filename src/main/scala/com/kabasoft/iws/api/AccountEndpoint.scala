@@ -69,39 +69,40 @@ object AccountEndpoint:
        HttpCodec.error[AuthenticationError](Status.Unauthorized)
        ).out[Int]?? Doc.p(mcloseAccPeriod)
 
-  val createRoute =
+  val accountCreateRoute =
     mCreate.implement: (m, _) =>
       ZIO.logInfo(s"Insert an account  ${m}")
         *>  AccountRepository.create(m, true)
 
-  val mAllRoute =
+  val accountAllRoute =
     mAll.implement: p =>
       ZIO.logInfo(s"Get all accounts  ${p}") *>
         AccountRepository.all((p._1, p._2))
 
-  val mByIdRoute =
+  val accountByIdRoute =
     mById.implement: p =>
       ZIO.logInfo(s"Modify an account  ${p}") *>
         AccountRepository.getById(p._1, p._2, p._3)
 
-  val balanceRoute = 
+  val accountBalanceRoute = 
     balanceAPI.implement:  (company:String, accId: String, to: Int, _) =>
       ZIO.logInfo(s"Get the balance  sheet period at ${to} for account: ${accId}") *>
       AccountService.getBalance(accId,  to, company)    
 
-  val mModifyRoute =
+  val accountModifyRoute =
     mModify.implement: (h, m) =>
       ZIO.logInfo(s"Modify an account  ${m}") *>
         AccountRepository.modify(m) *>
         AccountRepository.getById((m.id, m.modelid, m.company))
       
-  val closePeriodRoute = closePeriod.implement:  (accId: String,  to: Int, company:String, _) =>
+  val accountClosePeriodRoute = closePeriod.implement:  (accId: String,  to: Int, company:String, _) =>
         ZIO.logInfo(s"closing period at  ${to}  ${accId}") *>
           AccountService.closePeriod(to, accId, company)
   
-  val mDeleteRoute =
+  val accountDeleteRoute =
     mDelete.implement: (id, modelid, company, _) =>
       AccountRepository.delete((id, modelid, company))
 
-  val AccRoutes = Routes(createRoute, mAllRoute, mByIdRoute, balanceRoute, mModifyRoute, closePeriodRoute,  mDeleteRoute) @@ Middleware.debug
+  val AccountRoutes = Routes(accountCreateRoute, accountAllRoute, accountByIdRoute, accountBalanceRoute
+    , accountModifyRoute, accountClosePeriodRoute, accountDeleteRoute) @@ Middleware.debug
 

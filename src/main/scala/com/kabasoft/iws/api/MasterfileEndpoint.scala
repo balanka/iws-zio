@@ -54,29 +54,30 @@ object MasterfileEndpoint:
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ).out[Int] ?? Doc.p(mDeleteAPIDoc)
 
-  val createRoute =
+  val masterfileCreateRoute =
     mCreate.implement: (m,_) =>
       ZIO.logInfo(s"Insert masterfile  ${m}") *>
         MasterfileRepository.create(m, true)
 
-  val mAllRoute =
+  val masterfileAllRoute =
     mAll.implement : p =>
       ZIO.logInfo(s"get all masterfile with modelId ${p._2}   ${p}") *>
         MasterfileRepository.all((p._1, p._2))
 
-  val mByIdRoute =
+  val masterfileByIdRoute =
     mById.implement: p =>
       ZIO.logInfo (s"Modify masterfile  ${p}") *>
         MasterfileRepository.getById(p._1, p._2, p._3)
 
-  val mModifyRoute =
+  val masterfileModifyRoute =
     mModify.implement: (h, m) =>
       ZIO.logInfo (s"Modify masterfile  ${m}") *>
         MasterfileRepository.modify (m) *>
         MasterfileRepository.getById ((m.id, m.modelid, m.company) )
 
-  val mDeleteRoute =
+  val masterfileDeleteRoute =
     mDelete.implement: (id, modelid, company, _)  =>
       MasterfileRepository.delete((id, modelid, company))
 
-  val masterfileRoutes = Routes(createRoute, mAllRoute, mByIdRoute, mModifyRoute, mDeleteRoute) @@ Middleware.debug
+  val masterfileRoutes = Routes(masterfileCreateRoute, masterfileAllRoute, masterfileByIdRoute, masterfileModifyRoute
+    , masterfileDeleteRoute) @@ Middleware.debug

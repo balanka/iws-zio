@@ -35,16 +35,16 @@ trait  PostLogisticalTransaction:
     val details0 = model.lines.map { l =>
       val vat = vats.find(vat => vat.id == l.vatCode).getOrElse(Vat.dummy)
       if (modelid == TransactionModelId.SUPPLIER_INVOICE.id)
-        FinancialsTransactionDetails(-1, 0, partnerAccountId, side = true, vat.inputVatAccount, model.total.multiply(vat.percent), Instant.now(), model.text, currency, "", "")
+        FinancialsTransactionDetails(-1, 0, partnerAccountId, side = true, vat.inputVatAccount, model.total.multiply(vat.percent), Instant.now(), model.text, currency, model.company,"", "")
       else
-        FinancialsTransactionDetails(-1, 0, vat.outputVatAccount, side = true, partnerAccountId, model.total.multiply(vat.percent), Instant.now(), model.text, currency, "", "")
+        FinancialsTransactionDetails(-1, 0, vat.outputVatAccount, side = true, partnerAccountId, model.total.multiply(vat.percent), Instant.now(), model.text, currency, model.company,"", "")
     }
     val vatAmount = reduce(details0.map(_.amount), zeroAmount)
     val netAmount = model.total.subtract(vatAmount)
     val details = if (modelid == TransactionModelId.SUPPLIER_INVOICE.id)
-      details0.::(FinancialsTransactionDetails(-1, 0, partnerAccountId, side = true, accountId, netAmount, Instant.now(), model.text, currency, "", ""))
+      details0.::(FinancialsTransactionDetails(-1, 0, partnerAccountId, side = true, accountId, netAmount, Instant.now(), model.text, currency, model.company,"", ""))
     else
-      details0.::(FinancialsTransactionDetails(-1, 0, accountId, side = true, partnerAccountId, netAmount, Instant.now(), model.text, currency, "", ""))
+      details0.::(FinancialsTransactionDetails(-1, 0, accountId, side = true, partnerAccountId, netAmount, Instant.now(), model.text, currency, model.company, "", ""))
 
     val financialsTransaction = FinancialsTransaction(-1, model.id, 0, model.store, partnerAccountId, model.transdate, Instant.now(), Instant.now()
       , model.period, posted = false, modelid, model.company, model.text, -1, -1, details)

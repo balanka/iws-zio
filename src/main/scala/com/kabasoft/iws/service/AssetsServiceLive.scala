@@ -31,7 +31,7 @@ final class AssetsServiceLive(assetRepo: AssetRepository
   private def buildTransactionDetails(asset:Asset, accounts:List[Account], company: Company) = 
      val amount = zeroAmount // ToDo replace this implement the calculation of the amount to depreciate
      FinancialsTransactionDetails(-1L, -1L, asset.oaccount, side = true, asset.account, amount,
-      Instant.now(), asset.name, company.currency, getName(accounts, asset.oaccount), getName(accounts, asset.account))
+      Instant.now(), asset.name, company.currency, company.id, getName(accounts, asset.oaccount), getName(accounts, asset.account))
      
   def getName (accounts:List[Account], id:String): String =
     accounts.find(_.id == id).fold(s"Account with id ${id} not found!!!")(_.name)

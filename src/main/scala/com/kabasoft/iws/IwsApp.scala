@@ -1,6 +1,5 @@
 package com.kabasoft.iws
 import com.kabasoft.iws.healthcheck.expose
-import zio.{Console as ZConsole, *}
 import com.kabasoft.iws.api.LoginRoutes.loginRoutes
 import com.kabasoft.iws.api.Utils
 import com.kabasoft.iws.config.AppConfig
@@ -9,7 +8,7 @@ import zio.interop.catz.*
 import cats.effect.std.Console
 import natchez.Trace.Implicits.noop
 import com.kabasoft.iws.config.appConfig
-import com.kabasoft.iws.api.AccountEndpoint.AccRoutes
+import com.kabasoft.iws.api.AccountEndpoint.AccountRoutes
 import com.kabasoft.iws.api.ArticleEndpoint.articleRoutes
 import com.kabasoft.iws.api.AssetEndpoint.assetRoutes
 import com.kabasoft.iws.api.BankStmtEndpoint.bankStmtRoutes
@@ -35,20 +34,13 @@ import com.kabasoft.iws.api.TransactionEndpoint.transactionRoutes
 import com.kabasoft.iws.api.UserEndpoint.userRoutes
 import com.kabasoft.iws.api.Utils.bearerAuthWithContext
 import com.kabasoft.iws.api.VatEndpoint.vatRoutes
-//import com.kabasoft.iws.config.DbConfig.connectionPoolConfig
-//import com.kabasoft.iws.config.{DbConfig, connectionPoolConfig}
-//import com.kabasoft.iws.healthcheck.Healthcheck.expose
 import com.kabasoft.iws.repository._
 import com.kabasoft.iws.service._
 import zio._
 import zio.http.Header.{AccessControlAllowMethods, AccessControlAllowOrigin, Origin}
 import zio.http.Middleware.{CorsConfig, cors}
-//import zio.http.HttpAppMiddleware.{bearerAuth, cors}
 import zio.http.Server.Config
-//import zio.http.internal.middlewares.Cors.CorsConfig
 import zio.http.{Method, Server}
-//import zio.sql.ConnectionPool
-
 import java.lang.System
 import java.time.Clock
 import java.util
@@ -69,15 +61,7 @@ object IwsApp extends ZIOAppDefault {
       Config.default.binding(hostName, port)
     ) >>> Server.live
   }
- // val config: CorsConfig =
-//    CorsConfig(
-//      allowedOrigin = {
-//        case origin if origin == Origin.parse("http://0.0.0.0:3000").toOption.get =>
-//          Some(AccessControlAllowOrigin.Specific(origin))
-//        case _ => None
-//      },
-//      allowedMethods = AccessControlAllowMethods(Method.GET, Method.POST, Method.PUT, Method.PATCH, Method.DELETE)
-//    )
+
   val config: CorsConfig =
     CorsConfig(
       allowedOrigin = {
@@ -88,7 +72,7 @@ object IwsApp extends ZIOAppDefault {
       allowedMethods = AccessControlAllowMethods(Method.GET, Method.POST, Method.PUT, Method.PATCH, Method.DELETE)
     )
 
-  private val httpApp = (AccRoutes++assetRoutes ++ supplierRoutes++ customerRoutes ++ moduleRoutes ++ companyRoutes 
+  private val httpApp = (AccountRoutes++assetRoutes ++ supplierRoutes++ customerRoutes ++ moduleRoutes ++ companyRoutes 
    ++ bankStmtRoutes++transactionRoutes ++fmoduleRoutes++employeeRoutes++articleRoutes++salaryItemRoutes
    ++ importFileRoutes++payrollRoutes++pacRoutes++journalRoutes++payrollRoutes++masterfileRoutes++stockRoutes
    ++ userRoutes++permissionRoutes++payrollTaxRoutes++ financialsRoutes++roleRoutes++vatRoutes++storeRoutes)
@@ -103,9 +87,7 @@ object IwsApp extends ZIOAppDefault {
     )
     ZIO.logInfo(s"Starting http server") *>
       Server
-        //.serve((appLogin++expose.toApp).withDefaultErrorResponse ++httpApp.toApp@@ bearerAuth(Utils.jwtDecode(_).isDefined)@@cors(config) 
         .serve((loginRoutes++expose++httpApp@@bearerAuthWithContext)@@cors(config))
-        //.serve(loginRoutes++expose++httpApp@@bearerAuthWithContext)
         .provide(
           serverLayer,
           appResourcesL.project(_.postgres),
@@ -140,11 +122,11 @@ object IwsApp extends ZIOAppDefault {
           JournalRepositoryLive.live,
           BankStatementServiceLive.live,
           FinancialsServiceLive.live,
-          //PostFinancialsTransactionRepositoryLive.live,
-          //PostTransactionRepositoryLive.live,
+          PostFinancialsTransactionRepositoryLive.live,
+          PostTransactionRepositoryLive.live,
           TransactionRepositoryLive.live,
           TransactionServiceLive.live,
-          //TransactionLogRepositoryLive.live,
+          TransactionLogRepositoryLive.live,
           PostOrderLive.live,
           PostSalesOrderLive.live,
           PostGoodreceivingLive.live,
