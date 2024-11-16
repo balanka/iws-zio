@@ -30,7 +30,10 @@ final case class StockRepositoryLive(postgres: Resource[Task, Session[Task]]) ex
 
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Stock]] = queryWithTx(postgres, p, ALL)
 
-  override def getById(p: (String, String, Int, String)): ZIO[Any, RepositoryError, List[Stock]] = queryWithTx(postgres, p, BY_4_STORE_ARTICLE)
+  override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError,  Stock] = queryWithTxUnique(postgres, p, BY_ID)
+
+  override def getByStoreArticle(p: (String, String, Int, String)): ZIO[Any, RepositoryError, List[Stock]] = queryWithTx(postgres, p, BY_4_STORE_ARTICLE)
+  
   override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Stock]] =
     queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
   
