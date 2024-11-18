@@ -10,14 +10,14 @@ import zio.stream.interop.fs2z.*
 import zio.{Task, ZIO, UIO, ZLayer}
 import com.kabasoft.iws.domain.{Article,  Masterfile, PeriodicAccountBalance, Journal, Stock, Transaction, TransactionLog }
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import MasterfileCRUD.{IwsCommand, IwsCommandLP}
+import MasterfileCRUD.{IwsCommand, InsertBatch}
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[Task]]) extends PostTransactionRepository, MasterfileCRUD:
   
   private def createPacs4T(models : List[PeriodicAccountBalance]): ZIO[Any, Exception, Int] =
     val cmd = PacRepositorySQL.insertAll(models.length)
-    val cmds = IwsCommandLP(models, PeriodicAccountBalance.encodeIt, cmd)
+    val cmds = InsertBatch(models, PeriodicAccountBalance.encodeIt, cmd)
     executeBatchWithTx(postgres, List.empty, List(cmds))
     ZIO.succeed(models.size)
 
@@ -29,20 +29,20 @@ final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[
     
   private def createLog4T(models : List[TransactionLog]): ZIO[Any, Exception, Int] =
     val cmd = TransactionLogRepositorySQL.insertAll(models.length)
-    val cmds = IwsCommandLP(models, TransactionLog.encodeIt, cmd)
+    val cmds = InsertBatch(models, TransactionLog.encodeIt, cmd)
     //createT(models, List.empty, cmds)
     executeBatchWithTx(postgres, List.empty, List(cmds))
     ZIO.succeed(models.size)
   
   private def createStock4T(models : List[Stock]): ZIO[Any, Exception, Int] =
     val cmd = StockRepositorySQL.insertAll(models.length)
-    val cmds = IwsCommandLP(models, Stock.encodeIt, cmd)
+    val cmds = InsertBatch(models, Stock.encodeIt, cmd)
     executeBatchWithTx(postgres, List.empty, List(cmds))
     ZIO.succeed(models.size)
 
   private def createJ4T(journals: List[Journal]): ZIO[Any, Exception, Int] =
    val cmd = JournalRepositorySQL.insertAll(journals.length)
-   val cmds = IwsCommandLP(journals, Journal.encodeIt, cmd)
+   val cmds = InsertBatch(journals, Journal.encodeIt, cmd)
    executeBatchWithTx(postgres, List.empty, List(cmds))
    ZIO.succeed(journals.size)
 

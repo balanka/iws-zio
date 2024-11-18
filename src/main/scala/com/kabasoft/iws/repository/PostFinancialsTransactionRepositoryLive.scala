@@ -10,7 +10,7 @@ import zio.prelude.{FlipOps, Identity}
 import zio.stream.interop.fs2z.*
 import zio.{Task, UIO, ZIO, ZLayer}
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import MasterfileCRUD.{IwsCommand, IwsCommandLP}
+import MasterfileCRUD.{IwsCommand, InsertBatch}
 import com.kabasoft.iws.domain.{FinancialsTransaction, Journal, PeriodicAccountBalance}
 
 final case class PostFinancialsTransactionRepositoryLive(postgres: Resource[Task, Session[Task]]) extends
@@ -18,14 +18,14 @@ final case class PostFinancialsTransactionRepositoryLive(postgres: Resource[Task
 
   private def createPacs4T(models: List[PeriodicAccountBalance]): ZIO[Any, RepositoryError, Int] =
     val cmd = PacRepositorySQL.insertAll(models.length)
-    val cmds = IwsCommandLP(models, PeriodicAccountBalance.encodeIt, cmd)
+    val cmds = InsertBatch(models, PeriodicAccountBalance.encodeIt, cmd)
     executeBatchWithTx(postgres, List.empty, List(cmds))
     ZIO.succeed(models.size)
    // executeWithTx(postgres, models.map(PeriodicAccountBalance.encodeIt), PacRepositorySQL.insertAll(models.size), models.size)
 
   private def createJ4T(models: List[Journal]): ZIO[Any, RepositoryError, Int] =
     val cmd = JournalRepositorySQL.insertAll(models.length)
-    val cmds = IwsCommandLP(models, Journal.encodeIt, cmd)
+    val cmds = InsertBatch(models, Journal.encodeIt, cmd)
     executeBatchWithTx(postgres, List.empty, List(cmds))
     ZIO.succeed(models.size)
     //executeWithTx(postgres, models.map(Journal.encodeIt), JournalRepositorySQL.insertAll(models.size), models.size)

@@ -10,7 +10,7 @@ import skunk.implicits.*
 import zio.prelude.FlipOps
 import zio.stream.interop.fs2z.*
 import zio.{Task, ZIO, ZLayer}
-import MasterfileCRUD.{IwsCommand, IwsCommandLP}
+import MasterfileCRUD.{IwsCommand, InsertBatch}
 
 import java.time.{Instant, LocalDateTime, ZoneId}
 
@@ -36,7 +36,7 @@ final case  class BankStatementRepositoryLive(postgres: Resource[Task, Session[T
   override def post(bs: List[BankStatement], transactions: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =
     val bsCmds = bs.map(e=>IwsCommand(e, BankStatement.encode, POST_BANK_STATEMENT))
     val cmdx = FinancialsTransactionRepositorySQL.insertAll(transactions.length)
-    val ftsCmds = IwsCommandLP(transactions, FinancialsTransaction.encodeIt, cmdx)
+    val ftsCmds = InsertBatch(transactions, FinancialsTransaction.encodeIt, cmdx)
     executeBatchWithTx(postgres, bsCmds, List(ftsCmds))
     ZIO.succeed(transactions.size+1)
 
