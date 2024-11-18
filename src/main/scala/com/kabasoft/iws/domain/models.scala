@@ -1,6 +1,7 @@
 package com.kabasoft.iws.domain
 
 import com.kabasoft.iws.domain.AccountClass.dummy
+import com.kabasoft.iws.domain.ImportFile.MODELID
 
 import java.util.Locale
 import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
@@ -739,19 +740,13 @@ object Masterfile:
   type TYPE=(String, String, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int)
   type TYPE2=(String, String, String, String, Int, String)
   def encodeIt(st: Masterfile):TYPE =
-    (
-      st.id,
-      st.name,
-      st.description,
-      st.parent,
+    (st.id, st.name, st.description, st.parent,
       st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
-      st.company,
-      st.modelid)
+      st.company, st.modelid)
 
-  def encodeIt2(st: Masterfile):TYPE2  =
-    (st.name, st.description, st.parent, st.id, st.modelid, st.company)  
+  def encodeIt2(st: Masterfile):TYPE2  = (st.name, st.description, st.parent, st.id, st.modelid, st.company)  
 
 object AccountClass: 
    val dummy  = AccountClass("", "", "", "", Instant.now(), Instant.now(), Instant.now(), 36,
@@ -798,22 +793,19 @@ final case class ImportFile( id: String,
                              enterdate: Instant = Instant.now(),
                              changedate: Instant = Instant.now(),
                              postingdate: Instant = Instant.now(),
-                             modelid: Int = 81,
+                             modelid: Int = ImportFile.MODELID,
                              company: String) extends IWS
 object ImportFile:
-  def encodeIt(st: ImportFile):
-  (String, String, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int) =
-    (
-      st.id,
-      st.name,
-      st.description,
-      st.extension,
+  val MODELID  = 81
+  type TYPE = (String, String, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int)
+  type TYPE2 = (String, String, String, String, Int, String)
+  def encodeIt(st: ImportFile):TYPE =
+    (st.id, st.name, st.description, st.extension,
       st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
-      st.company,
-      st.modelid
-    )
+      st.company, st.modelid)
+  def encodeIt2(st: ImportFile):TYPE2 = (st.name, st.description, st.extension, st.id, st.modelid, st.company)
 
 final case class SalaryItem(id: String,
                             name: String = "",
@@ -824,7 +816,7 @@ final case class SalaryItem(id: String,
                             enterdate: Instant = Instant.now(),
                             changedate: Instant = Instant.now(),
                             postingdate: Instant = Instant.now(),
-                            modelid: Int = 171,
+                            modelid: Int = SalaryItem.MODELID,
                             company: String
                            ) extends IWS
 object SalaryItem:
@@ -837,7 +829,6 @@ object SalaryItem:
       st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.company, st.modelid)
-
   def encodeIt2(st: SalaryItem): TYPE2 =
     (st.name, st.description, st.account, st.amount, st.percentage, st.id, st.modelid, st.company)  
 
