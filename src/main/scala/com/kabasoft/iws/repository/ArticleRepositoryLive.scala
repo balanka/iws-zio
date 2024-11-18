@@ -8,7 +8,6 @@ import com.kabasoft.iws.domain.Article
 import skunk.*
 import skunk.codec.all.*
 import skunk.implicits.*
-import zio.prelude.FlipOps
 import zio.stream.interop.fs2z.*
 import zio.{Task, ZIO, ZLayer}
 
@@ -18,11 +17,11 @@ final case class ArticleRepositoryLive(postgres: Resource[Task, Session[Task]]) 
 
   import ArticleRepositorySQL.*
 
-  override def create(c: Article, flag: Boolean):  ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+  override def create(c: Article, flag: Boolean):  ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
 
   override def create(list: List[Article]): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(Article.encodeIt), insertAll(list.size), list.size)
-  override def modify(model: Article): ZIO[Any, RepositoryError, Int] = create(model, true)
-  override def modify(models: List[Article]): ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.sum)
+  override def modify(model: Article): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, Article.encodeIt2, UPDATE, 1)
+  override def modify(models: List[Article]): ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, Article.encodeIt2)
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Article]] = queryWithTx(postgres, p, ALL)
   override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, Article] = queryWithTxUnique(postgres, p, BY_ID)
   override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Article]] =
@@ -67,6 +66,11 @@ private[repository] object ArticleRepositorySQL:
 
   val insert: Command[Article] = sql"INSERT INTO masterfile VALUES $mfEncoder".command
   def insertAll(n: Int): Command[List[Article.Article_Type3]] = sql"INSERT INTO article VALUES ${mfCodec.values.list(n)}".command
+  val UPDATE: Command[Article.TYPE22] =
+    sql"""UPDATE article
+          SET name = $varchar, description = $varchar, parent = $varchar, sprice= $numeric, currency =$varchar, stocked=$bool
+           , quantity_unit=$varchar, pack_unit=$varchar, stock_account=$varchar, expense_account=$varchar, vat_code=$varchar
+          WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
 
   val upsert: Command[Article] =
   sql"""INSERT INTO article

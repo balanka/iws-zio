@@ -24,9 +24,9 @@ final case class StockRepositoryLive(postgres: Resource[Task, Session[Task]]) ex
 
   override def create(list: List[Stock]):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(Stock.encodeIt), insertAll(list.size), list.size)
  
-  override def modify(model: Stock):ZIO[Any, RepositoryError, Int]= create(model, true)
+  override def modify(model: Stock):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, Stock.encodeIt3, UPDATE, 1)
 
-  override def modify(models: List[Stock]):ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.sum)
+  override def modify(models: List[Stock]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, Stock.encodeIt3)
 
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Stock]] = queryWithTx(postgres, p, ALL)
 
@@ -37,7 +37,6 @@ final case class StockRepositoryLive(postgres: Resource[Task, Session[Task]]) ex
   override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Stock]] =
     queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
   
-
   override def delete(p: (String, Int, String)):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, p, DELETE, 1)
 
 object StockRepositoryLive:
@@ -87,6 +86,10 @@ private[repository] object StockRepositorySQL:
   def insertAll(n:Int): Command[List[(String, String, String, BigDecimal, String, String, Int)]] =
     sql"INSERT INTO stock VALUES ${mfCodec.values.list(n)}".command
 
+  val UPDATE: Command[Stock.TYPE3] =
+    sql"""UPDATE stock SET quantity = $numeric, charge = $varchar
+          WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
+    
   val upsert: Command[Stock] =
     sql"""INSERT INTO stock
            VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET

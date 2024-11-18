@@ -16,10 +16,10 @@ final case class BankAccountRepositoryLive(postgres: Resource[Task, Session[Task
 
   import BankAccountRepositorySQL.*
 
-  override def create(c: BankAccount, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+  override def create(c: BankAccount, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
   override def create(list: List[BankAccount]):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(BankAccount.encodeIt), insertAll(list.size), list.size)
-  override def modify(model: BankAccount):ZIO[Any, RepositoryError, Int]= create(model, true)
-  override def modify(models: List[BankAccount]):ZIO[Any, RepositoryError, Int]= models.map(modify).flip.map(_.sum)
+  override def modify(model: BankAccount):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, BankAccount.encodeIt2, UPDATE, 1)
+  override def modify(models: List[BankAccount]):ZIO[Any, RepositoryError, Int]= executeBatchWithTxK(postgres, models, UPDATE, BankAccount.encodeIt2)
   override def bankAccout4All(p: Int): ZIO[Any, RepositoryError, List[BankAccount]] = queryWithTx(postgres, p, BANK_ACCOUNT_4_ALL)
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[BankAccount]] = queryWithTx(postgres, p, ALL)
   override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, BankAccount] = queryWithTxUnique(postgres, p, BY_ID)
@@ -75,6 +75,10 @@ private[repository] object BankAccountRepositorySQL:
   def insertAll(n:Int): Command[List[BankAccount.TYPE]] =
     sql"INSERT INTO bankaccount VALUES ${mfCodec.values.list(n)}".command
 
+  val UPDATE: Command[BankAccount.TYPE2] =
+    sql"""UPDATE bankaccount SET bic = $varchar, owner = $varchar
+          WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
+    
   val upsert: Command[BankAccount] =
     sql"""
           INSERT INTO bankaccount

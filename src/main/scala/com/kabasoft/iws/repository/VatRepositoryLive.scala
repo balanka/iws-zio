@@ -6,21 +6,22 @@ import cats.*
 import skunk.*
 import skunk.codec.all.*
 import skunk.implicits.*
-import zio.prelude.FlipOps
 import zio.{Task, ZIO, ZLayer}
 import java.time.{Instant, LocalDateTime, ZoneId}
 import com.kabasoft.iws.domain.Vat
 import com.kabasoft.iws.domain.AppError.RepositoryError
+
+
 import scala.math.BigDecimal
 
 final class VatRepositoryLive(postgres: Resource[Task, Session[Task]]) extends VatRepository, MasterfileCRUD:
 
   import VatRepositorySQL._
 
-  override def create(c: Vat, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+  override def create(c: Vat, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
   override def create(list: List[Vat]):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(Vat.encodeIt), insertAll(list.size), list.size)
-  override def modify(model: Vat):ZIO[Any, RepositoryError, Int] = create(model, true)
-  override def modify(models: List[Vat]):ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.sum)
+  override def modify(model: Vat):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, Vat.encodeIt2, UPDATE, 1)
+  override def modify(models: List[Vat]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, Vat.encodeIt2)
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Vat]] = queryWithTx(postgres, p, ALL)
   override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, Vat] = queryWithTxUnique(postgres, p, BY_ID)
   override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Vat]] =
@@ -71,7 +72,7 @@ private[repository] object VatRepositorySQL:
     val insert: Command[Vat] = sql"""INSERT INTO vat VALUES $mfEncoder""".command
 
     def insertAll(n: Int): Command[List[TYPE]] = sql"INSERT INTO vat VALUES ${mfCodec.values.list(n)}".command
-  
+
     val upsert: Command[Vat] =
       sql"""INSERT INTO vat
            VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET
@@ -87,6 +88,12 @@ private[repository] object VatRepositorySQL:
            company              = EXCLUDED.company,
            modelid              = EXCLUDED.modelid,
         """.command
+
+    val UPDATE: Command[(String, String, BigDecimal, String, String, String, Int, String)] =
+         sql"""UPDATE vat
+            SET name = $varchar, description = $varchar, percent = $numeric, input_vat_account= $varchar
+            , output_vat_account = $varchar
+            WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
 
     val DELETE: Command[(String, Int, String)] =
     sql"DELETE FROM vat WHERE id = $varchar AND modelid = $int4 AND company = $varchar".command

@@ -19,10 +19,10 @@ final case class AccountRepositoryLive(postgres: Resource[Task, Session[Task]]) 
 
   import AccountRepositorySQL._
 
-  override def create(c: Account, flag: Boolean): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+  override def create(c: Account, flag: Boolean): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
   override def create(list: List[Account]): ZIO[Any, RepositoryError, Int] =  executeWithTx(postgres, list.map(Account.encodeIt), insertAll(list.size), list.size)
-  override def modify(model: Account): ZIO[Any, RepositoryError, Int] =  create(model, true)
-  override def modify(models: List[Account]): ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.sum)
+  override def modify(model: Account): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, Account.encodeIt2, UPDATE, 1)
+  override def modify(models: List[Account]): ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, Account.encodeIt2)
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Account]] = queryWithTx(postgres, p, ALL)
   override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, Account] = queryWithTxUnique(postgres, p, BY_ID)
   override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Account]] =
@@ -77,6 +77,12 @@ private[repository] object AccountRepositorySQL:
   def insertAll(n:Int): Command[List[Account.TYPE]] =
     sql"INSERT INTO account VALUES ${mfCodec.values.list(n)}".command
 
+  val UPDATE: Command[Account.TYPE2] =
+    sql"""UPDATE account
+          SET name = $varchar, description = $varchar, account = $varchar, is_debit=$bool
+          , balancesheet= $bool, currency =$varchar
+          WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
+    
   val upsert: Command[Account] =
     sql"""INSERT INTO account
            VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET

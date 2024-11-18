@@ -109,6 +109,8 @@ final case class Store(id: String,
                        modelid: Int = Store.MODELID)
 object Store:
   val MODELID = 35
+  type TYPE2 = (String, String, String, String, Int, String)
+  def encodeIt2(st: Store): TYPE2 = (st.name, st.description, st.account,  st.id, st.modelid, st.company)
 
 final case class Article_(id: String,
                           name: String,
@@ -201,6 +203,7 @@ object Article {
       String, String, String, String, String, Int, Instant, Instant, Instant
     )
   type Article_Type3 = (String, String, String, String, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, String, Boolean, String, String, String, String, String, String, Int, LocalDateTime, LocalDateTime, LocalDateTime)
+  type TYPE22 = (String, String, String, scala.math.BigDecimal, String, Boolean, String, String, String, String, String, String, Int, String)
   def apply(art: Article_): Article = new Article(
     art.id,
     art.name,
@@ -344,13 +347,20 @@ object Article {
       st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
     )
-  def encodeIt2(st: Article):TYPE2 =
+  def encodeIt2(st: Article): TYPE22 =
+    (st.name, st.description, st.parent, st.sprice, st.currency, st.stocked, st.quantityUnit,
+      st.packUnit, st.stockAccount, st.expenseAccount, st.vatCode, st.id, st.modelid, st.company)
+    
+  def encodeIt3(st: Article):TYPE2 =
     (scala.math.BigDecimal(st.sprice), scala.math.BigDecimal(st.pprice), scala.math.BigDecimal(st.avgPrice), st.id, st.modelid, st.company)
 }
 final case class Bom(id:String, parent:String, quantity:BigDecimal, description:String, company:String, modelid: Int =Bom.MODELID)
 object Bom:
   val MODELID= 34
+  type TYPE2 =(String, String, scala.math.BigDecimal, String, Int, String)
   val dummy: Bom = Bom("-1", "", zeroAmount, "", "", 36)
+  def encodeIt2(st:Bom):TYPE2 =(st.parent, st.description, st.quantity, st.id, st.modelid, st.company)
+  
 
 final case class Company(
   id: String,
@@ -403,6 +413,7 @@ object Company:
   )
   type TYPE2 = (String, String, String, String, String, String, String, String, String, String, String, String, String,
     String, String, String, String, String, String, String, Int)
+  type TYPE3=(String,String,String,String,String,String,String,String,String,String,String,String,String,String,String,String,String,String,String,String,Int)
   def apply(c:TYPE):Company = Company(c._1, c._2,c._3,c._4,c._5,c._6,c._7,c._8,c._9,c._10
     ,c._11,c._12,c._13,c._14,c._15, c._16,c._17,c._18,c._19, c._20, c._21,List.empty[BankAccount])
   def dummy:Company = Company("-1",  "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", MODEL_ID, Nil)
@@ -411,6 +422,11 @@ object Company:
     (st.id, st.name, st.street, st.zip, st.city, st.state, st.country, st.email, st.partner, st.phone, st.bankAcc,
       st.iban, st.taxCode, st.vatCode, st.currency, st.locale, st.balanceSheetAcc, st.incomeStmtAcc, st.purchasingClearingAcc,
       st.salesClearingAcc, st.modelid)
+
+  def encodeIt2(st: Company): TYPE2 =
+    (st.name, st.street, st.zip, st.city, st.state, st.country, st.email, st.partner, st.phone, st.bankAcc, st.iban
+      , st.taxCode, st.vatCode, st.currency, st.locale, st.balanceSheetAcc, st.incomeStmtAcc, st.purchasingClearingAcc
+      , st.salesClearingAcc, st.id, st.modelid)
     
 @nowarn("msg=parameter .* never used")
 abstract class AppError(message: String)
@@ -523,6 +539,8 @@ object Account {
   val MODELID = 9
   type TYPE = (String, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int, String, Boolean, Boolean
     , String, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal)
+  //acc.name, acc.description, acc.account, acc.isDebit, acc.balancesheet, acc.currency,  acc.id, acc.modelid, acc.company
+  type TYPE2 = (String, String, String, Boolean, Boolean, String, String, Int, String)
   private type Account_Type = (
     String,
     String,
@@ -567,7 +585,7 @@ object Account {
   val dummy: Account = Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", Account.MODELID, ""
     , false, false, "EUR", zeroAmount, zeroAmount, zeroAmount, zeroAmount, Nil.toSet)
 
-   def encodeIt(acc: Account):Account_Tyoe3 =
+  def encodeIt(acc: Account): Account_Tyoe3 =
     (
       acc.id,
       acc.name,
@@ -586,6 +604,9 @@ object Account {
       scala.math.BigDecimal(acc.debit),
       scala.math.BigDecimal(acc.credit)
     )
+  def encodeIt2(acc: Account):TYPE2 =
+    (acc.name, acc.description, acc.account, acc.isDebit, acc.balancesheet, acc.currency,  acc.id, acc.modelid, acc.company)
+    
   def group(accounts: List[Account]): List[Account] =
     accounts
       .groupBy(_.id)
@@ -688,6 +709,7 @@ final case class Asset (id: String,
 object Asset:
   val MODELID = 19
   type TYPE=(String, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int, String, String, Int, scala.math.BigDecimal, scala.math.BigDecimal, Int, scala.math.BigDecimal, Int, String)
+  type TYPE2 =(String, String, String, String, Int, scala.math.BigDecimal, String, scala.math.BigDecimal, Int, scala.math.BigDecimal, Int, String, Int, String)
   def encodeIt(st: Asset): TYPE =
     (st.id, st.name, st.description, st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
       , st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
@@ -695,6 +717,10 @@ object Asset:
       , st.company, st.modelid, st.account, st.oaccount, st.depMethod, st.amount, st.rate, st.lifeSpan, st.scrapValue
       , st.frequency, st.currency
     )
+  def encodeIt2(st: Asset): TYPE2=
+      (st.name, st.description, st.account, st.oaccount, st.depMethod, st.amount, st.currency, st.rate, st.lifeSpan
+      , st.scrapValue, st.frequency, st.id, st.modelid, st.company)
+     
 
 sealed trait IWS:
    def id: String
@@ -710,7 +736,9 @@ final case class Masterfile(id: String,
                              company: String
                            ) extends IWS
 object Masterfile:
-  def encodeIt(st: Masterfile): (String, String, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int) =
+  type TYPE=(String, String, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int)
+  type TYPE2=(String, String, String, String, Int, String)
+  def encodeIt(st: Masterfile):TYPE =
     (
       st.id,
       st.name,
@@ -720,8 +748,10 @@ object Masterfile:
       st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.company,
-      st.modelid
-    )
+      st.modelid)
+
+  def encodeIt2(st: Masterfile):TYPE2  =
+    (st.name, st.description, st.parent, st.id, st.modelid, st.company)  
 
 object AccountClass: 
    val dummy  = AccountClass("", "", "", "", Instant.now(), Instant.now(), Instant.now(), 36,
@@ -797,16 +827,19 @@ final case class SalaryItem(id: String,
                             modelid: Int = 171,
                             company: String
                            ) extends IWS
-
 object SalaryItem:
   val MODELID = 171
   type TYPE = (String, String, String, String, scala.math.BigDecimal, scala.math.BigDecimal, LocalDateTime, LocalDateTime, LocalDateTime, String, Int)
+  type TYPE2 = (String, String, String, scala.math.BigDecimal, scala.math.BigDecimal, String, Int, String)
   def encodeIt(st: SalaryItem): TYPE =
     (st.id, st.name, st.description, st.account, st.amount, st.percentage,
       st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.company, st.modelid)
+
+  def encodeIt2(st: SalaryItem): TYPE2 =
+    (st.name, st.description, st.account, st.amount, st.percentage, st.id, st.modelid, st.company)  
 
 final case class PayrollTaxRange (id: String, fromAmount:BigDecimal, toAmount:BigDecimal, tax:BigDecimal, taxClass:String, modelid: Int = PayrollTaxRange.MODELID, company: String)
 object PayrollTaxRange:
@@ -839,10 +872,12 @@ object BankAccount:
   import scala.math.Ordering
   val MODEL_ID = 12
   type TYPE = (String, String, String, String, Int)
+  type TYPE2 = (String, String, String, Int, String)
 
   //given Ordering[A <: BankAccount]: Ordering[A] = Ordering.by(e => (e.id, e.bic, e.owner, e.company))
   implicit def ordering[A <: BankAccount]: Ordering[A] = Ordering.by(e => (e.id, e.bic, e.owner, e.company))
   def encodeIt(st: BankAccount):TYPE = (st.id, st.bic, st.owner, st.company, st.modelid)
+  def encodeIt2(st: BankAccount):TYPE2 = (st.bic, st.owner, st.id, st.modelid, st.company)
 final case class BankStatement(
   id: Long,
   depositor: String,
@@ -873,6 +908,7 @@ object BankStatement  {
   val NUMBER_FORMAT   = NumberFormat.getInstance(Locale.GERMAN)
   type TYPE = (Long, String, LocalDateTime, LocalDateTime, String, String, String, String, String, scala.math.BigDecimal, String, String, String, String, Boolean, Int, Int)
   type TYPE2 = (Boolean, Int, Long, Int, String)
+  type TYPE3 = (LocalDateTime, String, String, Long, Int, String)
   type BS_Type = (
     Long,
     String,
@@ -964,7 +1000,7 @@ object BankStatement  {
      println ("BankStatement>>"+bs)
     bs
   }
-
+  
   def encodeIt(st: BankStatement): TYPE =
     (st.id, st.depositor
       , st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
@@ -973,7 +1009,8 @@ object BankStatement  {
       , st.bankCode, scala.math.BigDecimal(st.amount), st.currency, st.info, st.company
       , st.companyIban, st.posted, st.modelid, st.period
     )
-  def encode(st: BankStatement):TYPE2 = (st.posted, common.getPeriod(st.valuedate), st.id, st.modelid, st.company)
+  def encode(st: BankStatement):TYPE2 = (st.posted, common.getPeriod(st.valuedate), st.id, st.modelid, st.company)  
+  def encodeIt2(st: BankStatement):TYPE3 = (st.valuedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime, st.accountno, st.bankCode, st.id, st.modelid, st.company)
 }
 final case class Module(
   id: String,
@@ -990,6 +1027,7 @@ final case class Module(
 object Module:
   val MODEL_ID = 400
   type TYPE=(String, String, String, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int)
+  type TYPE2=(String, String, String, String, String, Int, String)
   def encodeIt(st: Module): TYPE =
     (st.id, st.name, st.description, st.path, st.parent,
       st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
@@ -997,6 +1035,7 @@ object Module:
       st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.company,
       st.modelid)
+  def encodeIt2(st: Module): TYPE2 = (st.name, st.description, st.path, st.parent, st.id, st.modelid, st.company)
 final case class Vat(
   id: String,
   name: String = "",
@@ -1028,6 +1067,9 @@ object Vat:
       st.modelid
     )
 
+  def encodeIt2(st: Vat): (String, String, scala.BigDecimal, String, String,  String, Int, String) =
+    (st.name, st.description, st.percent, st.inputVatAccount, st.outputVatAccount, st.id, st.modelid, st.company)
+    
 final case class Stock(id:String, store:String, article:String, quantity:BigDecimal, charge:String, company:String, modelid: Int = Stock.MODELID)
 final case class TStock(id:String, store:String, article:String, quantity:TRef[BigDecimal], charge:String, company:String
                         , modelid: Int = Stock.MODELID) {
@@ -1061,11 +1103,14 @@ final case class TStock(id:String, store:String, article:String, quantity:TRef[B
       } yield ()
     }
 }
+//    sql"""UPDATE stock SET quantity = $numeric, charge = $varchar
+//          WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
 object Stock {
   import com.kabasoft.iws.domain.common.{reduce, given}
   val MODELID = 37
   val dummy: Stock =   make("-1", "-1", zeroAmount, "-1",  "")
   type TYPE2 = (scala.math.BigDecimal, String)
+  type TYPE3 = (scala.math.BigDecimal, String, String, Int, String)
   type TYPE = (String, String, String, scala.math.BigDecimal, String, String, Int)
   private type STOCK_Type = (String, String, String,  BigDecimal, String, String, Int)
    def buildId(store:String, article:String, charge:String, company:String) = store.concat(article).concat(company).concat(charge)
@@ -1093,6 +1138,7 @@ object Stock {
     (st.id, st.store, st.article, st.quantity, st.charge, st.company, st.modelid)
 
   def encodeIt2(st: Stock): TYPE2 = (st.quantity, st.id)
+  def encodeIt3(st: Stock): TYPE3 = (st.quantity, st.charge, st.id, st.modelid, st.company)
 
 }
 object TStock:
@@ -1325,6 +1371,8 @@ object Supplier                      {
   val MODELID = 1
   type TYPE2 = (String, String, String, String, String, String, String, String, String, String, String, String
     , String, String, Int, LocalDateTime, LocalDateTime, LocalDateTime)
+  type TYPE3 = (String, String, String, String, String, String, String, String, String, String, String
+    , String, String, Int, String)
   type TYPE = (
     String,
     String,
@@ -1378,6 +1426,10 @@ object Supplier                      {
       st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
     )
+
+  def encodeIt2(st: Supplier): TYPE3 =
+    (st.name, st.description, st.street, st.zip, st.city, st.state, st.country, st.phone, st.email, st.account, st.oaccount
+      , st.vatcode, st.id, st.modelid, st.company)  
 }
 final case class Customer(
   id: String,
@@ -1404,6 +1456,8 @@ object Customer                      {
   val MODELID = 3
   type TYPE2 = (String, String, String, String, String, String, String, String, String, String, String, String
     , String, String, Int, LocalDateTime, LocalDateTime, LocalDateTime)
+  type TYPE3 = (String, String, String, String, String, String, String, String, String, String, String
+    , String, String, Int, String)
   type TYPE = (
     String,
     String,
@@ -1450,12 +1504,15 @@ object Customer                      {
     )
 
   def encodeIt(st: Customer): TYPE2 =
-    (st.id, st.name, st.description, st.street, st.zip, st.city, st.state, st.country, st.phone, st.email,
-      st.account, st.oaccount, st.vatcode, st.company, st.modelid,
-      st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
-      st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
-      st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
-    )
+   (st.id, st.name, st.description, st.street, st.zip, st.city, st.state, st.country, st.phone, st.email,
+     st.account, st.oaccount, st.vatcode, st.company, st.modelid,
+     st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
+     st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
+     st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
+   )  
+  def encodeIt2(st: Customer): TYPE3 =
+    ( st.name, st.description, st.street, st.zip, st.city, st.state, st.country, st.phone, st.email, st.account, st.oaccount
+     , st.vatcode, st.id, st.modelid, st.company)
 }
 
 final case class Employee(id: String,
@@ -1484,6 +1541,8 @@ object Employee:
   val MODELID = 33
   type TYPE2 = (String, String, String, String, String, String, String, String, String, String, String, String, String, String,  scala.math.BigDecimal, Int
     , LocalDateTime, LocalDateTime, LocalDateTime)
+  type TYPE3 = (String, String, String, String, String, String, String, String, String, String, String
+    , String, scala.math.BigDecimal, String, Int, String)
   type TYPE = (
     String,
       String,
@@ -1536,6 +1595,10 @@ object Employee:
       , st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
       , st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
       , st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime)
+  
+  def encodeIt2(st: Employee): TYPE3 =
+      (st.name, st.description, st.street, st.zip, st.city, st.state, st.country, st.phone, st.email, st.account, st.oaccount
+        , st.vatcode, st.salary, st.id, st.modelid, st.company)
 
 final case class TransactionDetails( id: Long, transid: Long, article: String, articleName:String, quantity: BigDecimal, unit: String, price: BigDecimal,
                                      currency: String, duedate: Instant = Instant.now(), vatCode:String, text: String, company: String)
@@ -1740,14 +1803,19 @@ final case class User(
   roles:List[Role] = List.empty[Role],
   rights:List[UserRight]=List.empty[UserRight]
 )
-
+//first_name = $varchar, last_name = $varchar, phone = $varchar, email=$varchar, department=$varchar
+//          , menu=$varchar
 object User:
   val MODELID = 111
   type TYPE = (Int, String, String, String, String, String, String, String, String, String, Int)
+  type TYPE2 = (String, String, String, String, String, String, Int, Int, String)
   def apply(u: TYPE): User = new User( u._1, u._2,u._3,u._4,u._5,u._6,u._7,u._8,u._9, u._10, u._11)
   val dummy: User = new User( -1, "dummy", "dummy", "dummy", "dummy", "dummy", "dummy", "dummy", "dummy", "dummy", MODELID)
+
   def encodeIt(st: User): TYPE =
     (st.id, st.userName, st.firstName, st.lastName, st.hash, st.phone, st.email, st.department, st.menu, st.company, st.modelid)
+  def encodeIt2(st: User): TYPE2 =
+    (st.firstName, st.lastName, st.phone, st.email, st.department, st.menu, st.id, st.modelid, st.company)
 
 final case class LoginRequest(userName: String, password: String, company: String, language:String)
 object LoginRequest:
@@ -1763,18 +1831,16 @@ object Role:
   val MODEL_ID = 121
   type TYPE = (Int, String, String, Instant, Instant, Instant, Int, String)
   type TYPE2= (Int, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int)
+  type TYPE3= ( String, String, Int, Int, String)
   def apply(c:TYPE):Role = Role(c._1, c._2, c._3, c._4, c._5, c._6, c._7, c._8, List.empty[UserRight])
   def encodeIt(st: Role): TYPE2 =
-    (
-      st.id,
-      st.name,
-      st.description,
+    (st.id, st.name, st.description,
       st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
-      st.company,
-      st.modelid
-    )
+      st.company, st.modelid)
+
+  def encodeIt2(st: Role): TYPE3 = (st.name, st.description, st.id, st.modelid, st.company)   
 
 final case class  UserRight (moduleid:Int,  roleid:Int, short:String, company:String, modelid:Int = UserRight.MODEL_ID)
 final case class  UserRole (userid:Int,  roleid:Int, company:String, modelid:Int = UserRole.MODEL_ID)
@@ -1794,16 +1860,15 @@ final case class  Permission (id:Int, name:String, description:String,
 object Permission:
   val MODEL_ID  =141
   type TYPE = (Int, String, String, LocalDateTime, LocalDateTime, LocalDateTime, Int, String)
+  type TYPE2 = (String, String,  Int, Int, String)
   def encodeIt(st: Permission): TYPE =
-    (st.id,
-      st.name,
-      st.description,
+    (st.id, st.name, st.description,
       st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
-      st.modelid,
-      st.company
-    )
+      st.modelid, st.company)
+
+  def encodeIt2(st: Permission): TYPE2 = (st.name, st.description, st.id, st.modelid, st.company)
 
 final case class  Fmodule (id:Int, name:String, description:String,
                            changedate: Instant,
@@ -1816,4 +1881,7 @@ final case class  Fmodule (id:Int, name:String, description:String,
                            company:String )
 object Fmodule:
   val MODEL_ID = 151
+  type TYPE2 = (String, String, String, Boolean, String, Int, Int, String)
+  def encodeIt2(st: Fmodule): TYPE2 =
+    (st.name, st.description, st.account, st.isDebit, st.parent, st.id, st.modelid, st.company)
 

@@ -19,13 +19,13 @@ final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
 
   import CompanyRepositorySQL.*
 
-  override def create(c: Company, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+  override def create(c: Company, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
 
   override def create(list: List[Company]):ZIO[Any, RepositoryError, Int]= 
     executeWithTx(postgres, list.map(Company.encodeIt), insertAll(list.size), list.size)
-  override def modify(model: Company):ZIO[Any, RepositoryError, Int] = create(model, true)
+  override def modify(model: Company):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, Company.encodeIt2, UPDATE, 1)
 
-  override def modify(models: List[Company]):ZIO[Any, RepositoryError, Int]= models.map(modify).flip.map(_.sum)
+  override def modify(models: List[Company]):ZIO[Any, RepositoryError, Int]= executeBatchWithTxK(postgres, models, UPDATE, Company.encodeIt2)
 
   def list(p: Int): ZIO[Any, RepositoryError, List[Company]] =  queryWithTx(postgres, p, ALL)
   
@@ -97,6 +97,13 @@ private[repository] object CompanyRepositorySQL:
 
   val insert: Command[Company] = sql"INSERT INTO company VALUES $mfEncoder".command
   def insertAll(n:Int):Command[List[Company.TYPE2]]= sql"INSERT INTO company VALUES ${mfCodec.values.list(n)}".command
+  val UPDATE:Command[Company.TYPE2]=
+    sql"""UPDATE company set name =$varchar, street =$varchar, zip =$varchar, city =$varchar, state =$varchar
+          , country =$varchar, email =$varchar, partner =$varchar, phone =$varchar, bank_acc =$varchar, iban =$varchar
+          , tax_code =$varchar, vat_code =$varchar, currency =$varchar, locale =$varchar, balance_sheet_acc =$varchar
+          , income_stmt_acc =$varchar, purchasing_clearing_acc =$varchar, sales_clearing_acc =$varchar
+          WHERE id=$varchar and modelid=$int4""".command
+          
   val upsert: Command[Company] =
     sql"""INSERT INTO Company
            VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET

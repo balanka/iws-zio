@@ -1,29 +1,27 @@
 package com.kabasoft.iws.repository
 
+import cats.*
 import cats.effect.Resource
 import cats.syntax.all.*
-import cats._
+import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.domain.Permission
 import skunk.*
 import skunk.codec.all.*
 import skunk.implicits.*
-import zio.prelude.FlipOps
 import zio.stream.interop.fs2z.*
-import zio.{Task,  ZIO, ZLayer }
-import com.kabasoft.iws.domain.Permission
-import com.kabasoft.iws.domain.AppError.RepositoryError
+import zio.{Task, ZIO, ZLayer}
 
-
-import java.time.{ Instant, LocalDateTime, ZoneId}
+import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class PermissionRepositoryLive(postgres: Resource[Task, Session[Task]]) extends PermissionRepository, MasterfileCRUD:
 
-  import PermissionRepositorySQL._
+  import PermissionRepositorySQL.*
 
-  override def create(c: Permission, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+  override def create(c: Permission, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
   override def create(list: List[Permission]):ZIO[Any, RepositoryError, Int] =
      executeWithTx(postgres, list.map(Permission.encodeIt), insertAll(list.size), list.size)
-  override def modify(model: Permission):ZIO[Any, RepositoryError, Int] = create(model, true)
-  override def modify(models: List[Permission]):ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.size)
+  override def modify(model: Permission):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, Permission.encodeIt2, UPDATE, 1)
+  override def modify(models: List[Permission]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, Permission.encodeIt2)
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Permission]] = queryWithTx(postgres, p, ALL)
   override def getById(p: (Int, Int, String)): ZIO[Any, RepositoryError, Permission] = queryWithTxUnique(postgres, p, BY_ID)
   override def getBy(ids: List[Int], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Permission]] =
@@ -85,6 +83,11 @@ private[repository] object PermissionRepositorySQL:
   def insertAll(n:Int): Command[List[Permission.TYPE]] =
     sql"INSERT INTO permission VALUES ${mfCodec.values.list(n)}".command
 
+  val UPDATE: Command[Permission.TYPE2] =
+    sql"""UPDATE permission
+          SET name = $varchar, description = $varchar
+          WHERE id=$int4 and modelid=$int4 and company= $varchar""".command
+    
   val upsert: Command[Permission] =
     sql"""INSERT INTO permission
            VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET

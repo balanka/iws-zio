@@ -19,12 +19,12 @@ final case class EmployeeRepositoryLive(postgres: Resource[Task, Session[Task]]
                                         , accRepo:AccountRepository) extends EmployeeRepository, MasterfileCRUD:
     import EmployeeRepositorySQL._
 
-    override def create(c: Employee, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+    override def create(c: Employee, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
 
     override def create(list: List[Employee]):ZIO[Any, RepositoryError, Int] =
       executeWithTx(postgres, list.map(Employee.encodeIt), insertAll(list.size), list.size)
-    override def modify(model: Employee):ZIO[Any, RepositoryError, Int]= create(model, true)
-    override def modify(models: List[Employee]):ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.sum)
+    override def modify(model: Employee):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, Employee.encodeIt2, UPDATE, 1)
+    override def modify(models: List[Employee]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, Employee.encodeIt2)
     def listSalaryItem(p:String): ZIO[Any, RepositoryError, List[EmployeeSalaryItem]] =  queryWithTx(postgres, p, EMPLOYEE_SALARY_ITEM)
     def list(p: (Int, String)): ZIO[Any, RepositoryError, List[Employee]] =  queryWithTx(postgres, p, ALL)
     
@@ -139,6 +139,11 @@ private[repository] object EmployeeRepositorySQL:
     def insertAllSalaryItem(n: Int): Command[List[S_TYPE]] = 
       sql"INSERT INTO employee_salary_item VALUES ${salaryItemCodec.values.list(n)}".command
 
+    val UPDATE: Command[Employee.TYPE3] =
+       sql"""UPDATE employee SET name= $varchar, description= $varchar, street= $varchar, zip= $varchar, city= $varchar
+               , state= $varchar, country= $varchar, phone= $varchar, email= $varchar, account= $varchar, oaccount= $varchar
+               , vatcode= $varchar, salary=$numeric
+               WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
 
     val upsert: Command[Employee] =
       sql"""INSERT INTO employee

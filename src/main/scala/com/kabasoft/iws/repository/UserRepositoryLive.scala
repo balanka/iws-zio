@@ -18,10 +18,11 @@ final case class UserRepositoryLive(postgres: Resource[Task, Session[Task]], rep
 
   import UserRepositorySQL._
 
-  override def create(c: User, flag: Boolean): ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, if (flag) upsert else insert, 1)
-  override def create(list: List[User]):ZIO[Any, RepositoryError, Int] =executeWithTx(postgres, list.map(User.encodeIt), insertAll(list.size), list.size)
-  override def modify(model: User):ZIO[Any, RepositoryError, Int] = create(model, true)
-  override def modify(models: List[User]):ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.sum)
+  override def create(c: User, flag: Boolean): ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
+  override def create(list: List[User]):ZIO[Any, RepositoryError, Int] =
+    executeWithTx(postgres, list.map(User.encodeIt), insertAll(list.size), list.size)
+  override def modify(model: User):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, User.encodeIt2, UPDATE, 1)
+  override def modify(models: List[User]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, User.encodeIt2)
   def modifyPwd(model: User): ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, (model.userName, model.modelid, model.company), updatePwd, 1)
   def list(p: (Int, String)):ZIO[Any, RepositoryError, List[User]] = queryWithTx(postgres, p, ALL)
 
@@ -139,6 +140,12 @@ private[repository] object UserRepositorySQL:
             company                    = EXCLUDED.company
             modelid                    = EXCLUDED.modelid
           """.command
+    
+  val UPDATE: Command[User.TYPE2] =
+    sql"""UPDATE users
+          SET first_name = $varchar, last_name = $varchar, phone = $varchar, email=$varchar, department=$varchar
+          , menu=$varchar
+          WHERE id=$int4 and modelid=$int4 and company= $varchar""".command
     
   val updatePwd: Command[(String, Int,  String)] =
     sql"""UPDATE  users

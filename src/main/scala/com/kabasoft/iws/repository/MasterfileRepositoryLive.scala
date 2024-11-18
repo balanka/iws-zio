@@ -1,27 +1,25 @@
 package com.kabasoft.iws.repository
 import cats.effect.Resource
 import cats.syntax.all.*
-import cats._
+import cats.*
 import skunk.*
 import skunk.codec.all.*
 import skunk.implicits.*
-import zio.prelude.FlipOps
 import zio.stream.interop.fs2z.*
-import zio.{Task, ZIO, ZLayer }
+import zio.{Task, ZIO, ZLayer}
 import com.kabasoft.iws.domain.Masterfile
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import java.time.{ Instant, LocalDateTime, ZoneId }
+import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class MasterfileRepositoryLive(postgres: Resource[Task, Session[Task]]) extends MasterfileRepository, MasterfileCRUD:
 
   import MasterfileRepositorySQL._
   
-  override def create(c: Masterfile, flag: Boolean): ZIO[Any, RepositoryError, Int] =
-    executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+  override def create(c: Masterfile, flag: Boolean): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
   override def create(list: List[Masterfile]): ZIO[Any, RepositoryError, Int] = 
                          executeWithTx(postgres, list.map(Masterfile.encodeIt), insertAll(list.size), list.size)
-  override def modify(model: Masterfile): ZIO[Any, RepositoryError, Int] = create(model, true)
-  override def modify(models: List[Masterfile]): ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.sum)
+  override def modify(model: Masterfile): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, Masterfile.encodeIt2, UPDATE, 1)
+  override def modify(models: List[Masterfile]): ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, Masterfile.encodeIt2)
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Masterfile]] = queryWithTx(postgres, p, ALL)
   override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, Masterfile] = queryWithTxUnique(postgres, p, BY_ID)
   override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Masterfile]] =
@@ -76,6 +74,11 @@ private[repository] object MasterfileRepositorySQL:
 
   val insert: Command[Masterfile] = sql"INSERT INTO masterfile VALUES $mfEncoder".command
   def insertAll(n:Int):Command[List[TYPE]]= sql"INSERT INTO masterfile VALUES ${mfCodec.values.list(n)}".command
+  val UPDATE: Command[Masterfile.TYPE2] =
+    sql"""UPDATE masterfile
+          SET name = $varchar, description = $varchar, parent = $varchar
+          WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
+
   val upsert: Command[Masterfile] =
     sql"""INSERT INTO masterfile
            VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET

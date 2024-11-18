@@ -16,11 +16,10 @@ import java.time.{Instant, LocalDateTime, ZoneId}
 final case class AssetRepositoryLive(postgres: Resource[Task, Session[Task]]) extends AssetRepository, MasterfileCRUD:
     import AssetRepositorySQL.*
 
-    override def create(c: Asset, flag: Boolean): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, if (flag) upsert else insert, 1)
-  
+    override def create(c: Asset, flag: Boolean): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
     override def create(list: List[Asset]):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(Asset.encodeIt), insertAll(list.size), list.size)
-    override def modify(model: Asset):ZIO[Any, RepositoryError, Int] = create(model, true)
-    override def modify(models: List[Asset]):ZIO[Any, RepositoryError, Int]= models.map(modify).flip.map(_.sum)
+    override def modify(model: Asset):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, Asset.encodeIt2, UPDATE, 1)
+    override def modify(models: List[Asset]):ZIO[Any, RepositoryError, Int]= executeBatchWithTxK(postgres, models, UPDATE, Asset.encodeIt2)
     override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Asset]] = queryWithTx(postgres, p, ALL)
     override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, Asset] = queryWithTxUnique(postgres, p, BY_ID)
     override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Asset]] =
@@ -75,7 +74,12 @@ private[repository] object AssetRepositorySQL:
     val insert: Command[Asset] = sql"""INSERT INTO asset VALUES $mfEncoder """.command
 
     def insertAll(n: Int): Command[List[Asset.TYPE]] = sql"INSERT INTO asset VALUES ${mfCodec.values.list(n)}".command
-
+    
+    val UPDATE: Command[Asset.TYPE2] =
+      sql"""UPDATE asset
+            SET name = $varchar, description = $varchar, account = $varchar, oaccount = $varchar, dep_method=$int4
+            , amount= $numeric, currency =$varchar, rate=$numeric, life_span=$int4, scrap_value=$numeric, frequency=$int4
+            WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
     val upsert: Command[Asset] =
       sql"""
             INSERT INTO asset

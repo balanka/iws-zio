@@ -24,8 +24,8 @@ final case class StoreRepositoryLive(postgres: Resource[Task, Session[Task]]) ex
 
   override def create(c: Store, flag: Boolean):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, if (flag) upsert else insert, 1)
   override def create(list: List[Store]):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(encodeIt), insertAll(list.size), list.size)
-  override def modify(model: Store):ZIO[Any, RepositoryError, Int] = create(model, true)
-  override def modify(models: List[Store]):ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.size)
+  override def modify(model: Store):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, Store.encodeIt2, UPDATE, 1)
+  override def modify(models: List[Store]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, Store.encodeIt2)
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Store]] = queryWithTx(postgres, p, ALL)
   override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, Store] = queryWithTxUnique(postgres, p, BY_ID)
   override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Store]] =
@@ -93,8 +93,13 @@ private[repository] object StoreRepositorySQL:
   val insert: Command[Store] = sql"""INSERT INTO store VALUES $mfEncoder """.command
 
   def insertAll(n:Int): Command[List[(String, String, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int)]] =
-    sql"INSERT INTO Store VALUES ${mfCodec.values.list(n)}".command
+    sql"INSERT INTO store VALUES ${mfCodec.values.list(n)}".command
 
+  val UPDATE: Command[Store.TYPE2] =
+    sql"""UPDATE store
+          SET name = $varchar, description = $varchar, account = $varchar
+          WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
+    
   val upsert: Command[Store] =
     sql"""INSERT INTO store
            VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET

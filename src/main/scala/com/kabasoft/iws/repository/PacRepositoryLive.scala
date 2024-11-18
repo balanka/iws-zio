@@ -17,15 +17,16 @@ final case class PacRepositoryLive(postgres: Resource[Task, Session[Task]]) exte
 
   import PacRepositorySQL._
 
-  override def create(c: PeriodicAccountBalance, flag: Boolean):ZIO[Any, RepositoryError, Int] =
-    executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+  override def create(c: PeriodicAccountBalance, flag: Boolean):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
 
   override def create(list: List[PeriodicAccountBalance]):ZIO[Any, RepositoryError, Int] =
     executeWithTx(postgres, list.map(PeriodicAccountBalance.encodeIt), insertAll(list.size), list.size)
     
-  override def modify(model: PeriodicAccountBalance):ZIO[Any, RepositoryError, Int]= create(model, true)
-
-  override def modify(models: List[PeriodicAccountBalance]):ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.sum)
+//  override def modify(model: PeriodicAccountBalance):ZIO[Any, RepositoryError, Int]= 
+//    executeWithTx(postgres, model, PeriodicAccountBalance.encodeIt2, UPDATE, 1)
+//
+//  override def modify(models: List[PeriodicAccountBalance]):ZIO[Any, RepositoryError, Int] = 
+//    executeBatchWithTxK(postgres, models, UPDATE, PeriodicAccountBalance.encodeIt2)
 
   override def update(models: List[PeriodicAccountBalance]):ZIO[Any, RepositoryError, Int] =
     executeBatchWithTxK(postgres, models , UPDATE, PeriodicAccountBalance.encodeIt2)

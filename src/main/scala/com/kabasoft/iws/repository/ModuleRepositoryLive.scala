@@ -18,10 +18,10 @@ final case class ModuleRepositoryLive(postgres: Resource[Task, Session[Task]]) e
 
   import ModuleRepositorySQL.*
 
-  override def create(c: Module, flag: Boolean):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+  override def create(c: Module, flag: Boolean):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
   override def create(list: List[Module]):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(Module.encodeIt), insertAll(list.size), list.size)
-  override def modify(model: Module):ZIO[Any, RepositoryError, Int] = create(model, true)
-  override def modify(models: List[Module]):ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.sum)
+  override def modify(model: Module):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, Module.encodeIt2, UPDATE, 1)
+  override def modify(models: List[Module]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, Module.encodeIt2)
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Module]] = queryWithTx(postgres, p, ALL)
   override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, Module] = queryWithTxUnique(postgres, p, BY_ID)
   override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Module]] =
@@ -71,6 +71,11 @@ private[repository] object ModuleRepositorySQL:
   val insert: Command[Module] = sql"""INSERT INTO module VALUES $mfEncoder""".command
   def insertAll(n:Int): Command[List[Module.TYPE]] = sql"INSERT INTO module VALUES ${mfCodec.values.list(n)}".command
 
+  val UPDATE: Command[Module.TYPE2] =
+    sql"""UPDATE module
+          SET name = $varchar, description = $varchar, path = $varchar, parent = $varchar
+          WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
+    
   val upsert: Command[Module] =
     sql"""INSERT INTO module
            VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET

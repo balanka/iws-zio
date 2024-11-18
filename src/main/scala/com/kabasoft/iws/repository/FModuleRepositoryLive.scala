@@ -16,10 +16,10 @@ final case class FModuleRepositoryLive(postgres: Resource[Task, Session[Task]]) 
 
   import FModuleRepositorySQL.*
 
-  override def create(c: Fmodule, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+  override def create(c: Fmodule, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
   override def create(list: List[Fmodule]):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, list.map(encodeIt), insertAll(list.size), list.size)
-  override def modify(model: Fmodule):ZIO[Any, RepositoryError, Int]= create(model, true)
-  override def modify(models: List[Fmodule]):ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.sum)
+  override def modify(model: Fmodule):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, Fmodule.encodeIt2, UPDATE, 1)
+  override def modify(models: List[Fmodule]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, Fmodule.encodeIt2)
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Fmodule]] = queryWithTx(postgres, p, ALL)
   override def getById(p: (Int, Int, String)): ZIO[Any, RepositoryError, Fmodule] = queryWithTxUnique(postgres, p, BY_ID)
   override def getBy(ids: List[Int], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Fmodule]] =
@@ -108,7 +108,12 @@ private[repository] object FModuleRepositorySQL:
   val insert: Command[Fmodule] = sql"""INSERT INTO fmodule VALUES $mfEncoder """.command
 
   def insertAll(n:Int): Command[List[TYPE]]= sql"INSERT INTO fmodule VALUES ${mfCodec.values.list(n)}".command
-  
+
+  val UPDATE: Command[Fmodule.TYPE2] =
+    sql"""UPDATE fmodule
+          SET name = $varchar, description = $varchar, account = $varchar, is_debit=$bool, parent=$varchar
+          WHERE id=$int4 and modelid=$int4 and company= $varchar""".command
+    
   val upsert: Command[Fmodule] =
     sql"""INSERT INTO fmodule
            VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET

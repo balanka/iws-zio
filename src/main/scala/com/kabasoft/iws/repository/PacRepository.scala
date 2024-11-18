@@ -11,9 +11,9 @@ trait PacRepository:
 
   def create(models: List[PeriodicAccountBalance]):ZIO[Any, RepositoryError, Int]
 
-  def modify(model: PeriodicAccountBalance):ZIO[Any, RepositoryError, Int]
-
-  def modify(models: List[PeriodicAccountBalance]):ZIO[Any, RepositoryError, Int]
+//  def modify(model: PeriodicAccountBalance):ZIO[Any, RepositoryError, Int]
+//
+//  def modify(models: List[PeriodicAccountBalance]):ZIO[Any, RepositoryError, Int]
   def update(models: List[PeriodicAccountBalance]):ZIO[Any, RepositoryError, Int]
 
   def all(Id: (Int, String)):ZIO[Any, RepositoryError, List[PeriodicAccountBalance]]
@@ -36,14 +36,14 @@ object PacRepository:
   def create(models: List[PeriodicAccountBalance]): ZIO[PacRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[PacRepository](_.create(models))
 
-  def modify(model: PeriodicAccountBalance): ZIO[PacRepository, RepositoryError, Int] =
-    ZIO.serviceWithZIO[PacRepository](_.modify(model))
-
-  def modify(models: List[PeriodicAccountBalance]): ZIO[PacRepository, RepositoryError, Int] =
-    ZIO.serviceWithZIO[PacRepository](_.update(models))  
+//  def modify(model: PeriodicAccountBalance): ZIO[PacRepository, RepositoryError, Int] =
+//    ZIO.serviceWithZIO[PacRepository](_.modify(model))
+//
+//  def modify(models: List[PeriodicAccountBalance]): ZIO[PacRepository, RepositoryError, Int] =
+//    ZIO.serviceWithZIO[PacRepository](_.update(models))  
 
   def update(models: List[PeriodicAccountBalance]): ZIO[PacRepository, RepositoryError, Int] =
-    ZIO.serviceWithZIO[PacRepository](_.modify(models))
+    ZIO.serviceWithZIO[PacRepository](_.update(models))
 
   def all(Id: (Int, String)): ZIO[PacRepository, RepositoryError, List[PeriodicAccountBalance]] =
     ZIO.serviceWithZIO[PacRepository](_.all(Id))

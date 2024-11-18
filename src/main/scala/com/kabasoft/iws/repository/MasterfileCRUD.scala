@@ -69,6 +69,24 @@ trait MasterfileCRUD:
        .mapBoth(e => RepositoryError(e.getMessage), _ => size)
 
   def executeWithTx[A](postgres: Resource[Task, Session[Task]], p: A, comd: Command[A], size: Int): ZIO[Any, RepositoryError, Int] =
+    postgres
+      .use: session =>
+        session.transaction.use: xa =>
+          session
+            .prepare(comd)
+            .flatMap: cmd =>
+              xa.savepoint
+              cmd.execute(p).recoverWith:
+                case SqlState.UniqueViolation(ex) =>
+                  ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
+                    xa.rollback
+                case _ =>
+                  ZIO.logInfo(s"Error:  rolling back...") *>
+                    xa.rollback
+      .mapBoth(e => RepositoryError(e.getMessage), _ => size)
+    
+  def executeWithTx[A, B](postgres: Resource[Task, Session[Task]], p: A, encoder:A=>B, comd: Command[B], size: Int): ZIO[Any, RepositoryError, Int] =
+    ZIO.logInfo(s"Executing: $comd with param ${encoder(p)}") *>
      postgres
        .use: session =>
           session.transaction.use: xa =>
@@ -76,7 +94,7 @@ trait MasterfileCRUD:
              .prepare(comd)
              .flatMap: cmd =>
                xa.savepoint
-                cmd.execute(p).recoverWith:
+                cmd.execute(encoder(p)).recoverWith:
                   case SqlState.UniqueViolation(ex) =>
                     ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
                     xa.rollback

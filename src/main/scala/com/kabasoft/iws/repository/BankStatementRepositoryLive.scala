@@ -21,12 +21,11 @@ final case  class BankStatementRepositoryLive(postgres: Resource[Task, Session[T
 
   import BankStatementRepositorySQL.*
 
-  override def create(c: BankStatement, flag: Boolean):ZIO[Any, RepositoryError, Int] =
-    executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+  override def create(c: BankStatement, flag: Boolean):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
   override def create(list: List[BankStatement]):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, 
     list.map(BankStatement.encodeIt), insertAll(list.size), list.size)
-  override def modify(model: BankStatement):ZIO[Any, RepositoryError, Int]= create(model, true)
-  override def modify(models: List[BankStatement]):ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.sum)
+  override def modify(model: BankStatement):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, BankStatement.encodeIt2, UPDATE, 1)
+  override def modify(models: List[BankStatement]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, BankStatement.encodeIt2)
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[BankStatement]] = queryWithTx(postgres, p, ALL)
   override def getById(p: (Long, Int, String)): ZIO[Any, RepositoryError, BankStatement] = queryWithTxUnique(postgres, p, BY_ID)
   override def getBy(ids: List[Long], modelid: Int, company: String): ZIO[Any, RepositoryError, List[BankStatement]] =
@@ -89,6 +88,10 @@ private[repository] object BankStatementRepositorySQL:
   def insertAll(n:Int): Command[List[(Long, String,  LocalDateTime, LocalDateTime, String,  String, String, String, String, BigDecimal, String, String, String, String, Boolean, Int, Int)]] =
     sql"INSERT INTO bankstatement VALUES ${bankStatementCodec.values.list(n)}".command
 
+  val UPDATE: Command[BankStatement.TYPE3] =
+    sql"""UPDATE bankstatement SET valuedate=$timestamp, accountno= $varchar, bank_code= $varchar
+          WHERE id=$int8 and modelid=$int4 and company= $varchar""".command
+    
   val upsert: Command[BankStatement] =
     sql"""INSERT INTO bankstatement
            VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET

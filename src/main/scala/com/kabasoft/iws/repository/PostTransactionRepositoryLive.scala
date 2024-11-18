@@ -60,7 +60,7 @@ final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[
 
 
   private def modifyPrices4T(models: List[Article]) =
-    val cmds = models.map(model=>IwsCommand(model, Article.encodeIt2, ArticleRepositorySQL.updatePrices))
+    val cmds = models.map(model=>IwsCommand(model, Article.encodeIt3, ArticleRepositorySQL.updatePrices))
     executeBatchWithTx(postgres, cmds, List.empty)
     ZIO.succeed(models.size)
 

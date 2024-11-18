@@ -18,11 +18,11 @@ final case class RoleRepositoryLive(postgres: Resource[Task, Session[Task]]) ext
 
   import RoleRepositorySQL._
 
-  override def create(c: Role, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+  override def create(c: Role, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
   override def create(list: List[Role]):ZIO[Any, RepositoryError, Int] =
     executeWithTx(postgres, list.map(Role.encodeIt), insertAll(list.size), list.size)
-  override def modify(model: Role):ZIO[Any, RepositoryError, Int]= create(model, true)
-  override def modify(models: List[Role]):ZIO[Any, RepositoryError, Int]= models.map(modify).flip.map(_.size)
+  override def modify(model: Role):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, Role.encodeIt2, UPDATE, 1)
+  override def modify(models: List[Role]):ZIO[Any, RepositoryError, Int]= executeBatchWithTxK(postgres, models, UPDATE, Role.encodeIt2)
   override def all(p: (Int, String)):ZIO[Any, RepositoryError,  List[Role]] = queryWithTx(postgres, p, ALL)
   //def allUserRoles(p: (Int, String)):ZIO[Any, RepositoryError,  List[UserRole]] = queryWithTx(postgres, p, ALL_USER_ROLE)
   override def allRights(p: (Int,  String)):ZIO[Any, RepositoryError, List[UserRight]] = queryWithTx(postgres, p, ALL_RIGHTS)
@@ -116,6 +116,11 @@ private[repository] object RoleRepositorySQL:
   val insert: Command[Role] = sql"""INSERT INTO role VALUES $mfEncoder """.command
   def insertAll(n:Int): Command[List[Role.TYPE2]] = sql"INSERT INTO role VALUES ${mfCodec.values.list(n)}".command
 
+  val UPDATE: Command[Role.TYPE3] =
+    sql"""UPDATE role
+          SET name = $varchar, description = $varchar
+          WHERE id=$int4 and modelid=$int4 and company= $varchar""".command
+    
   val upsert: Command[Role] =
     sql"""
           INSERT INTO role

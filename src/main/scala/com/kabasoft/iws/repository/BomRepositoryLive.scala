@@ -1,31 +1,24 @@
 package com.kabasoft.iws.repository
 
+import cats.*
 import cats.effect.Resource
 import cats.syntax.all.*
-import cats._
+import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.domain.Bom
 import skunk.*
 import skunk.codec.all.*
 import skunk.implicits.*
-import zio.interop.catz.*
-import zio.prelude.FlipOps
-import zio.stream.ZStream
 import zio.stream.interop.fs2z.*
-import zio.{ Chunk, Task, UIO, ZIO, ZLayer }
-import java.time.LocalDate
-import com.kabasoft.iws.domain.Bom
-import com.kabasoft.iws.domain.AppError.RepositoryError
-
-
-import java.time.{ Instant, LocalDateTime, ZoneId, ZoneOffset }
+import zio.{Task, ZIO, ZLayer}
 
 final case class BomRepositoryLive(postgres: Resource[Task, Session[Task]]) extends BomRepository, MasterfileCRUD:
 
-  import BomRepositorySQL._
+  import BomRepositorySQL.*
 
   override def create(c: Bom, flag: Boolean):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, if (flag) upsert else insert, 1)
   override def create(list: List[Bom]):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(encodeIt), insertAll(list.size), list.size)
-  override def modify(model: Bom):ZIO[Any, RepositoryError, Int]= create(model, true)
-  override def modify(models: List[Bom]):ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.sum)
+  override def modify(model: Bom):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, Bom.encodeIt2, UPDATE, 1)
+  override def modify(models: List[Bom]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, Bom.encodeIt2)
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Bom]] = queryWithTx(postgres, p, ALL)
   override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, Bom] = queryWithTxUnique(postgres, p, BY_ID)
   override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Bom]] =
@@ -72,9 +65,13 @@ private[repository] object BomRepositorySQL:
            WHERE  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
-  val insert: Command[Bom] = sql"""INSERT INTO Bom VALUES $mfEncoder""".command
+  val insert: Command[Bom] = sql"""INSERT INTO bom VALUES $mfEncoder""".command
   def insertAll(n:Int): Command[List[TYPE]] = sql"INSERT INTO bom VALUES ${mfCodec.values.list(n)}".command
-
+  
+  val UPDATE: Command[Bom.TYPE2] =
+    sql"""UPDATE bom SET parent = $varchar, description = $varchar, quantity = $numeric
+          WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
+    
   val upsert: Command[Bom] =
     sql"""INSERT INTO bom
            VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET

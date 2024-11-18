@@ -19,11 +19,11 @@ final case class CustomerRepositoryLive(postgres: Resource[Task, Session[Task]]
                                         , bankAccRepo:BankAccountRepository) extends CustomerRepository, MasterfileCRUD:
     import CustomerRepositorySQL._
 
-    override def create(c: Customer, flag: Boolean):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+    override def create(c: Customer, flag: Boolean):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c,  insert, 1)
     override def create(list: List[Customer]):ZIO[Any, RepositoryError, Int] =
       executeWithTx(postgres, list.map(Customer.encodeIt), insertAll(list.size), list.size)
-    override def modify(model: Customer):ZIO[Any, RepositoryError, Int] = create(model, true)
-    override def modify(models: List[Customer]):ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.sum)
+    override def modify(model: Customer):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, Customer.encodeIt2, UPDATE, 1)
+    override def modify(models: List[Customer]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, Customer.encodeIt2)
     override def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Customer]] = for {
                   customer <- list(Id)
                   bankAccounts_ <- bankAccRepo.bankAccout4All(BankAccount.MODEL_ID)
@@ -93,6 +93,12 @@ private[repository] object CustomerRepositorySQL:
 
     def insertAll(n: Int): Command[List[Customer.TYPE2]] = sql"INSERT INTO customer VALUES ${mfCodec.values.list(n)}".command
 
+    val UPDATE: Command[Customer.TYPE3] =
+      sql"""UPDATE customer SET name= $varchar, description= $varchar, street= $varchar, zip= $varchar, city= $varchar
+            , state= $varchar, country= $varchar, phone= $varchar, email= $varchar, account= $varchar, oaccount= $varchar
+            , vatcode= $varchar
+            WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
+  
     val upsert: Command[Customer] =
       sql"""INSERT INTO customer
              VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET

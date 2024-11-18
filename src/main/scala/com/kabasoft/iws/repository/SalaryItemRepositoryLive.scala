@@ -22,9 +22,9 @@ final case class SalaryItemRepositoryLive(postgres: Resource[Task, Session[Task]
 
   override def create(list: List[SalaryItem]):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(SalaryItem.encodeIt), insertAll(list.size), list.size)
   
-  override def modify(model: SalaryItem):ZIO[Any, RepositoryError, Int]= create(model, true)
+  override def modify(model: SalaryItem):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, SalaryItem.encodeIt2, UPDATE, 1)
 
-  override def modify(models: List[SalaryItem]):ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.size)
+  override def modify(models: List[SalaryItem]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, SalaryItem.encodeIt2)
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[SalaryItem]] = queryWithTx(postgres, p, ALL)
   override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, SalaryItem] = queryWithTxUnique(postgres, p, BY_ID)
   override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[SalaryItem]] =
@@ -87,7 +87,10 @@ private[repository] object SalaryItemRepositorySQL:
   val insert: Command[SalaryItem] = sql"""INSERT INTO store VALUES $mfEncoder """.command
   def insertAll(n:Int): Command[List[SalaryItem.TYPE]] = sql"INSERT INTO salary_item VALUES ${mfCodec.values.list(n)}".command
 
-    
+  val UPDATE: Command[SalaryItem.TYPE2] =
+    sql"""UPDATE salary_item SET name = $varchar, description = $varchar, account = $varchar, amount = $numeric
+          , percentage = $numeric
+          WHERE id=$varchar and modelid=$int4 and company= $varchar""".command  
 
   val upsert: Command[SalaryItem] =
     sql"""INSERT INTO salary_item
