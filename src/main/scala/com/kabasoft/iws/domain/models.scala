@@ -676,7 +676,6 @@ object Account {
       case None      => Account.dummy
 
    private def updateSubAccountBalance(pacs: List[PeriodicAccountBalance], accMap: Map[String, List[Account]], acc: Account) =
-    
       val x: Account = addSubAccounts(acc, accMap) // List(acc)
       val y          = getAllSubBalances(x, pacs)
        removeSubAccounts(y.copy(id = acc.id))
