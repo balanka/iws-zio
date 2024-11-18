@@ -23,19 +23,20 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
   import FinancialsTransactionRepositorySQL._
 
   override def create(c: FinancialsTransaction, flag: Boolean): ZIO[Any, RepositoryError, Int] =
-    executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+    executeWithTx(postgres, c, insert, 1)
   override def create(list: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =
     executeWithTx(postgres, list.map(FinancialsTransaction.encodeIt), insertAll(list.size), list.size)
 
   private def createDetails(list: List[FinancialsTransactionDetails]): ZIO[Any, RepositoryError, Int] =
     executeWithTx(postgres, list.map(FinancialsTransactionDetails.encodeIt), insertAllDetails(list.size), list.size)
 
-  override def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = create(model, true)
-  override def modify(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.size)
-
-//  def details(p: (List[Long], String)):ZIO[Any, RepositoryError, List[FinancialsTransactionDetails]] =
-//    queryWithTx(postgres, p, DETAILS(p._1.size))
-
+  override def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] =
+    executeBatchWithTxK(postgres, model.lines, UPDATE_DETAILS, FinancialsTransactionDetails.encodeIt2)*>
+      executeWithTx(postgres, model, FinancialsTransaction.encodeIt2, UPDATE, 1+model.lines.size)
+  override def modify(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =
+    executeBatchWithTxK(postgres, models.flatMap(_.lines), UPDATE_DETAILS, FinancialsTransactionDetails.encodeIt2)*>
+    executeBatchWithTxK(postgres, models, UPDATE, FinancialsTransaction.encodeIt2)
+  
   def list(p: (Int, String)):ZIO[Any, RepositoryError, List[FinancialsTransaction]] = queryWithTx(postgres, p, ALL)
 
   private def  getDetails(p:(Long, String)): ZIO[Any, RepositoryError, List[FinancialsTransactionDetails]] = for {
@@ -148,7 +149,6 @@ object FinancialsTransactionRepositorySQL:
       sql""" AND company = $varchar""".apply(company)
   }
 
-
   def DETAILS(n: Int): Query[List[Long] *: String *: EmptyTuple, FinancialsTransactionDetails] =
     sql"""SELECT id, transid, account, side, oaccount, amount,  duedate, text, currency,  company, account_name, oaccount_name
            FROM   details_compta
@@ -196,7 +196,18 @@ object FinancialsTransactionRepositorySQL:
             file_content         = EXCLUDED.file_content,
             modelid               = EXCLUDED.modelid,
           """.command
-    
+
+  val UPDATE: Command[FinancialsTransaction.TYPE2] =
+    sql"""UPDATE master_compta
+          SET oid = $int8, costcenter = $varchar, account = $varchar, text=$varchar, type_journal = $int4, file_content = $int4
+          WHERE id=$int8 and modelid=$int4 and company= $varchar""".command
+
+  val UPDATE_DETAILS: Command[FinancialsTransactionDetails.TYPE2] =
+    sql"""UPDATE details_compta
+          SET account = $varchar, side = $bool, oaccount = $varchar, amount = $numeric, duedate = $timestamp, text=$varchar, currency = $varchar
+          , account_name= $varchar, oaccount_name= $varchar
+          WHERE id=$int8 and company= $varchar""".command
+
   val updatePosted: Command[Long *: Int *: String *: EmptyTuple] =
     sql"""UPDATE master_compta UPDATE SET posted = true
             WHERE id =$int8 AND modelid = $int4 AND  company =$varchar and posted=false

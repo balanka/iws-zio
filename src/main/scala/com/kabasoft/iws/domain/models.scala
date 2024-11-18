@@ -676,6 +676,7 @@ object Account {
       case None      => Account.dummy
 
    private def updateSubAccountBalance(pacs: List[PeriodicAccountBalance], accMap: Map[String, List[Account]], acc: Account) =
+    
       val x: Account = addSubAccounts(acc, accMap) // List(acc)
       val y          = getAllSubBalances(x, pacs)
        removeSubAccounts(y.copy(id = acc.id))
@@ -1705,9 +1706,11 @@ final case class FinancialsTransaction(
   def duplicate: FinancialsTransaction = copy(oid = id, id = 0, posted = false)
 
 }
+//account = $int8, side = $bool, oaccount = $varchar, amount = $numeric, duedate = $timestamp, text=$varchar, currency = $varchar
 object FinancialsTransactionDetails:
   val dummy  = FinancialsTransactionDetails(0, 0, "", true, "", zeroAmount, Instant.now(), "", "EUR", "", "", "")
   type D_TYPE=(Long, Long, String, Boolean, String, scala.math.BigDecimal, LocalDateTime, String, String, String, String, String)
+  type TYPE2 = (String, Boolean, String, scala.math.BigDecimal, LocalDateTime, String, String, String, String, Long, String)
   
   implicit val monoid: Identity[FinancialsTransactionDetails] =
     new Identity[FinancialsTransactionDetails]:
@@ -1720,14 +1723,19 @@ object FinancialsTransactionDetails:
       , dt.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
       , dt.text, dt.currency, dt.company, dt.accountName, dt.oaccountName)
 
+  def encodeIt2(dt: FinancialsTransactionDetails): TYPE2 =
+    (dt.account, dt.side, dt.oaccount, dt.amount, dt.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
+      , dt.text, dt.currency, dt.accountName, dt.oaccountName, dt.id, dt.company)  
+
   private type FinancialsTransactionDetails_Type = (Long, Long,  String, Boolean, String, BigDecimal, Instant, String, String, String, String, String)
   def apply(tr: FinancialsTransactionDetails_Type): FinancialsTransactionDetails =
     new FinancialsTransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11, tr._12)
-
+    
 object FinancialsTransaction:
   private type FinancialsTransaction_Type =
     (Long, Long, Long, String, String, Instant, Instant, Instant, Int, Boolean, Int, String, String, Int, Int)
   type TYPE=(Long, Long, Long, String, String, LocalDateTime, LocalDateTime, LocalDateTime, Int, Boolean, Int, String, String, Int, Int)
+  type TYPE2= (Long, String, String, String, Int, Int, Long, Int, String)
 
   def apply(tr: FinancialsTransaction_Type): FinancialsTransaction =
     new FinancialsTransaction(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11, tr._12, tr._13, tr._14)
@@ -1736,10 +1744,13 @@ object FinancialsTransaction:
         , st.transdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
         , st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
         , st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
-        , st.period, st.posted, st.modelid, st.company, st.text, st.typeJournal, st.file_content
-      )
+        , st.period, st.posted, st.modelid, st.company, st.text, st.typeJournal, st.file_content)
 
-  def encodeIt2(st: FinancialsTransaction):(Long, Int, String) = (st.id, st.modelid, st.company)    
+  def encodeIt3(st: FinancialsTransaction): (Long, Int, String) = (st.id, st.modelid, st.company)
+  def encodeIt2(st: FinancialsTransaction): TYPE2 =
+    (st.oid, st.costcenter, st.account, st.text, st.typeJournal, st.file_content, st.id, st.modelid, st.company)
+    
+     
   val dummy: FinancialsTransaction = FinancialsTransaction(-1, 0,0, "dummy", "dummy", Instant.now(), Instant.now()
                                     , Instant.now(), -1, false,  -1, "",  "dummy", -1, -1)
 
