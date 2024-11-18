@@ -60,7 +60,7 @@ private[repository] object AccountRepositorySQL:
 
   val BY_ID: Query[String *: Int *: String *: EmptyTuple, Account] =
     sql"""
-           SELECT id, name, description, account, enterdate, changedate,postingdate, company, modelid
+           SELECT id, name, description, enterdate, changedate, postingdate, company, modelid, account, is_debit, balancesheet, currency, idebit, icredit, debit, credit
            FROM   account
            WHERE id = $varchar AND modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
