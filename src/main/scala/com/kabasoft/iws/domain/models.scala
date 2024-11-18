@@ -1725,7 +1725,9 @@ object FinancialsTransactionDetails:
 
   def encodeIt2(dt: FinancialsTransactionDetails): TYPE2 =
     (dt.account, dt.side, dt.oaccount, dt.amount, dt.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
-      , dt.text, dt.currency, dt.accountName, dt.oaccountName, dt.id, dt.company)  
+      , dt.text, dt.currency, dt.accountName, dt.oaccountName, dt.id, dt.company)
+    
+  def encodeIt3(dt: FinancialsTransactionDetails): (Long, String) = (dt.id, dt.company)  
 
   private type FinancialsTransactionDetails_Type = (Long, Long,  String, Boolean, String, BigDecimal, Instant, String, String, String, String, String)
   def apply(tr: FinancialsTransactionDetails_Type): FinancialsTransactionDetails =

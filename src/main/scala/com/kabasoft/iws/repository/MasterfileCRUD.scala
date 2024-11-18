@@ -8,14 +8,15 @@ import skunk.*
 import zio.*
 import zio.interop.catz.*
 import cats.syntax.applicativeError.catsSyntaxApplicativeError
-import com.kabasoft.iws.repository.MasterfileCRUD.{IwsCommand, IwsCommandLP}
+import com.kabasoft.iws.repository.MasterfileCRUD.{IwsCommand, InsertBatch, IwsCommandLP2}
 import skunk.data.Completion
 import zio.stream.ZStream
 import zio.stream.interop.fs2z.*
 
 object MasterfileCRUD:
   final case class IwsCommand[A, B](param: A, encoder: A => B, cmd: Command[B])
-  final case class IwsCommandLP[A, B](param: List[A], encoder: A => B, cmd: Command[List[B]])
+  final case class IwsCommandLP2[A, B](param: List[A], encoder: A => B, cmd: Command[B])
+  final case class InsertBatch[A, B](param: List[A], encoder: A => B, cmd: Command[List[B]])
   
 trait MasterfileCRUD:
 
@@ -140,9 +141,53 @@ trait MasterfileCRUD:
            )
        .mapBoth(e => RepositoryError(e.getMessage), _ => commands.size)
 
+  def executeBatchWithTx2[A, B, C, D, E, F](postgres: Resource[Task, Session[Task]]
+                                     , commands: List[IwsCommand[A, B]]
+                                     , deleteCommands: List[IwsCommandLP2[C, F]]
+                                     //, insertCommands1: List[InsertBatch[A, B]]
+                                     , insertCommands2: List[InsertBatch[C, D]]
+                                     , commandLPs: List[IwsCommandLP2[C, E]],
+                                     ): Unit =
+    postgres
+      .use: session =>
+        session.transaction.use: xa =>
+          commands.traverse(command =>
+            session
+              .prepare(command.cmd)
+              .flatMap: cmd =>
+                 xa.savepoint
+                 cmd.execute(command.encoder(command.param))).*>
+          deleteCommands.traverse(command =>
+              session
+                .prepare(command.cmd)
+                .flatMap: cmd =>
+                  xa.savepoint
+                  command.param.traverse(p =>
+                     cmd.execute(command.encoder(p)))).*>
+          insertCommands2.traverse(command =>
+                session
+                  .prepare(command.cmd)
+                  .flatMap: cmd =>
+                    xa.savepoint
+                    cmd.execute(command.param.map(command.encoder))).*>
+          commandLPs.traverse(command => 
+                session
+                .prepare(command.cmd)
+                .flatMap: cmd =>
+                  xa.savepoint
+                  command.param.traverse(p =>
+                    cmd.execute(command.encoder(p))))
+            .recoverWith:
+              case SqlState.UniqueViolation(ex) =>
+                ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
+                  xa.rollback
+              case _ =>
+                ZIO.logInfo(s"Error:  rolling back...") *>
+                  xa.rollback
+                
   def executeBatchWithTx[A, B, C, D](postgres: Resource[Task, Session[Task]]
                                     , commands: List[IwsCommand[A,B]]
-                                    , commandLPs: List[IwsCommandLP[C, D]]): Unit =
+                                    , commandLPs: List[InsertBatch[C, D]]): Unit =
     postgres
       .use: session =>
         session.transaction.use: xa =>
@@ -170,7 +215,7 @@ trait MasterfileCRUD:
 
 
 
-  def executeWithTxLP[A, B](postgres: Resource[Task, Session[Task]], command: IwsCommandLP[A, B]) =
+  def executeWithTxLP[A, B](postgres: Resource[Task, Session[Task]], command: InsertBatch[A, B]) =
      postgres
        .use: session =>
          session.transaction.use: xa =>

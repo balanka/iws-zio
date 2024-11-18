@@ -5,6 +5,7 @@ import cats.effect.Resource
 import cats.syntax.all.*
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails}
+import com.kabasoft.iws.repository.MasterfileCRUD.{IwsCommand, InsertBatch, IwsCommandLP2}
 import skunk.*
 import skunk.codec.all.*
 import skunk.implicits.*
@@ -12,7 +13,6 @@ import zio.prelude.FlipOps
 import zio.interop.catz.*
 import zio.{Task, ZIO, ZLayer}
 import zio.{ZIO, *}
-
 
 import java.time.{Instant, LocalDateTime, ZoneId}
 
@@ -30,12 +30,22 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
   private def createDetails(list: List[FinancialsTransactionDetails]): ZIO[Any, RepositoryError, Int] =
     executeWithTx(postgres, list.map(FinancialsTransactionDetails.encodeIt), insertAllDetails(list.size), list.size)
 
-  override def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] =
-    executeBatchWithTxK(postgres, model.lines, UPDATE_DETAILS, FinancialsTransactionDetails.encodeIt2)*>
-      executeWithTx(postgres, model, FinancialsTransaction.encodeIt2, UPDATE, 1+model.lines.size)
+  override def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = modify(List(model))
   override def modify(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =
-    executeBatchWithTxK(postgres, models.flatMap(_.lines), UPDATE_DETAILS, FinancialsTransactionDetails.encodeIt2)*>
-    executeBatchWithTxK(postgres, models, UPDATE, FinancialsTransaction.encodeIt2)
+  {
+    val newLines = models.flatMap(ftr=>ftr.lines.filter(_.id == -1L).map(l => l.copy(transid = ftr.id)))
+    val deletedLine = models.flatMap(ftr=>ftr.lines.filter(_.transid == -2L))
+    val deletedLineIds = deletedLine.map(line => line.id)
+    val oldLines2Update = models.flatMap(ftr=>ftr.lines.filter(_.id > 0L).map(l => l.copy(transid = ftr.id)))
+    val insertDetailsCmd = FinancialsTransactionRepositorySQL.insertAllDetails(newLines.length)
+    val updateDetailsCmd = FinancialsTransactionRepositorySQL.UPDATE_DETAILS
+    val createDetailsCmd = InsertBatch(newLines, FinancialsTransactionDetails.encodeIt, insertDetailsCmd)
+    val updateDetailsCmds = IwsCommandLP2(oldLines2Update, FinancialsTransactionDetails.encodeIt2, updateDetailsCmd)
+    val deleteDetailsCmd = IwsCommandLP2(oldLines2Update, FinancialsTransactionDetails.encodeIt3, DELETE_DETAILS)
+    val updateFtrCmd = models.map(ftr=>IwsCommand(ftr, FinancialsTransaction.encodeIt2, FinancialsTransactionRepositorySQL.UPDATE))
+    executeBatchWithTx2(postgres, updateFtrCmd, List(deleteDetailsCmd), List(createDetailsCmd), List(updateDetailsCmds))
+    ZIO.succeed(newLines.size + oldLines2Update.size + deletedLine.size + 1)
+  }
   
   def list(p: (Int, String)):ZIO[Any, RepositoryError, List[FinancialsTransaction]] = queryWithTx(postgres, p, ALL)
 
@@ -232,7 +242,8 @@ object FinancialsTransactionRepositorySQL:
     
   private val onConflictDoNothing = sql"ON CONFLICT DO NOTHING"
 
-  def DELETE: Command[(Long, Int, String)] =
+  val DELETE: Command[(Long, Int, String)] =
     sql"DELETE FROM master_compta WHERE id = $int8 AND modelid = $int4 AND company = $varchar".command
-
-  // sql"INSERT INTO Details_compta (id, transid, account, side, oaccount, amount, duedate, text, currency, accountName, oaccountName) VALUES $es".command
+    
+  val DELETE_DETAILS: Command[(Long, String)] = sql"DELETE FROM details_compta WHERE id = $int8 AND company = $varchar".command
+  
