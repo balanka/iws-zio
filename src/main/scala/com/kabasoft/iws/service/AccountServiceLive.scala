@@ -47,7 +47,7 @@ final class AccountServiceLive(accRepo: AccountRepository, pacRepo: PacRepositor
       oldPacs     <- pacRepo.getBy(pacList.map(_.id), PeriodicAccountBalance.MODELID, company).map(_.filterNot(x => x.id == PeriodicAccountBalance.dummy.id))
       newPacs      = pacList.filterNot(oldPacs.contains)
       pac_created <- if (newPacs.isEmpty) ZIO.succeed(1) else pacRepo.create(newPacs).debug("pac_created")
-      pac_updated <- if (oldPacs.isEmpty) ZIO.succeed(1) else pacRepo.modify(oldPacs).debug("pac_updated")
+      pac_updated <- if (oldPacs.isEmpty) ZIO.succeed(1) else pacRepo.update(oldPacs).debug("pac_updated")
     } yield  pac_created + pac_updated
     nr.mapBoth(e => RepositoryError(e.message), a => a)
   }
