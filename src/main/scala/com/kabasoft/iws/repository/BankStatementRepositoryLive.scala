@@ -127,24 +127,7 @@ private[repository] object BankStatementRepositorySQL:
   val UPDATE: Command[BankStatement.TYPE3] =
     sql"""UPDATE bankstatement SET valuedate=$timestamp, accountno= $varchar, bank_code= $varchar
           WHERE id=$int8 and modelid=$int4 and company= $varchar""".command
-    
-  val upsert: Command[BankStatement] =
-    sql"""INSERT INTO bankstatement
-           VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET
-           valuedate              = EXCLUDED.valuedate,
-           accountno              = EXCLUDED.accountno,
-            bank_code             = EXCLUDED.bank_code,
-            info                  = EXCLUDED.info,
-            amount                = EXCLUDED.changedate,
-            postingdate           = EXCLUDED.postingdate,
-            period                = EXCLUDED.period,
-            postingtext           = EXCLUDED.postingtext,
-            purpose               = EXCLUDED.purpose,
-            currency              = EXCLUDED.currency,
-            company               = EXCLUDED.company,
-            company_iban          = EXCLUDED.company_iban
-          """.command.to[BankStatement]
-
+  
   val POST_BANK_STATEMENT: Command[Boolean *: Int *: Long *: Int *: String *: EmptyTuple] =
     sql"""UPDATE bankstatement SET
            posted                 = $bool,

@@ -21,32 +21,18 @@ final case class PostFinancialsTransactionRepositoryLive(postgres: Resource[Task
     val cmds = InsertBatch(models, PeriodicAccountBalance.encodeIt, cmd)
     executeBatchWithTx(postgres, List.empty, List(cmds))
     ZIO.succeed(models.size)
-   // executeWithTx(postgres, models.map(PeriodicAccountBalance.encodeIt), PacRepositorySQL.insertAll(models.size), models.size)
 
   private def createJ4T(models: List[Journal]): ZIO[Any, RepositoryError, Int] =
     val cmd = JournalRepositorySQL.insertAll(models.length)
     val cmds = InsertBatch(models, Journal.encodeIt, cmd)
     executeBatchWithTx(postgres, List.empty, List(cmds))
     ZIO.succeed(models.size)
-    //executeWithTx(postgres, models.map(Journal.encodeIt), JournalRepositorySQL.insertAll(models.size), models.size)
 
   private def modifyPacs4T(models: List[PeriodicAccountBalance]): ZIO[Any, RepositoryError, Int] =
     execPreparedCommand(postgres, models, PeriodicAccountBalance.encodeIt2, List(PacRepositorySQL.UPDATE))
-    //executeBatchWithTx(postgres, List.empty, List(cmds))
-    //ZIO.succeed(models.size)
-
-    //executeBatchWithTxK(postgres, models , PacRepositorySQL.UPDATE, PeriodicAccountBalance.encodeIt2)
 
   def delete(p:(Long, Int, String)): ZIO[Any, RepositoryError, Int] =
     executeWithTx(postgres, p, FinancialsTransactionRepositorySQL.DELETE, 1)
-
-  //    val cmds = models.map(model => IwsCommand(model, FinancialsTransaction.encodeIt2, FinancialsTransactionRepositorySQL.updatePosted))
-  //    executeBatchWithTx(postgres, cmds, List.empty)
-  //    ZIO.succeed(models.size)
-
-  // executeWithTx(postgres, models.map(PeriodicAccountBalance.encodeIt), PacRepositorySQL.insertAll(models.size), models.size)
-  // executeBatchWithTxK(postgres, models, PacRepositorySQL.UPDATE, PeriodicAccountBalance.encodeIt2)
-  //executeWithTx(postgres, models.map(Journal.encodeIt), JournalRepositorySQL.insertAll(models.size), models.size)
 
   override def post(models: List[FinancialsTransaction], pac2Insert: List[PeriodicAccountBalance], pac2update: UIO[List[PeriodicAccountBalance]],
                     journals: List[Journal]): ZIO[Any, RepositoryError, Int] = for {
