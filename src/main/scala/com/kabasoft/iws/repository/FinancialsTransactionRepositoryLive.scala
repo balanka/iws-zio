@@ -11,7 +11,6 @@ import skunk.codec.all.*
 import skunk.implicits.*
 import zio.prelude.FlipOps
 import zio.interop.catz.*
-import zio.{Task, ZIO, ZLayer}
 import zio.{ZIO, *}
 
 import java.time.{Instant, LocalDateTime, ZoneId}
@@ -30,19 +29,14 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
     idx <- queryWithTxUnique(postgres, TRANS_ID)
   } yield c.copy(id = idx, lines = c.lines.map(l => l.copy(transid = idx)))
   
-  override def create(c: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = for {
-    ftr    <- setTransId(c)
-    details <- createDetails(ftr.lines)
-    result <- executeWithTx(postgres, ftr, insert, 1)
-  } yield result +details
-
+  override def create(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = create(List(model))
    def buildTransaction(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
      result <- ZIO.collectAll(models.map(setTransId))
   } yield result
 
   override def buildCreate(models: List[FinancialsTransaction]):
-  ZIO[Any, RepositoryError,
-    (InsertBatch[FinancialsTransaction,FinancialsTransaction.TYPE], InsertBatch[FinancialsTransactionDetails, FinancialsTransactionDetails.D_TYPE])] = for {
+  ZIO[Any, RepositoryError, (InsertBatch[FinancialsTransaction,FinancialsTransaction.TYPE]
+                          , InsertBatch[FinancialsTransactionDetails, FinancialsTransactionDetails.D_TYPE])] = for {
     transactions <- buildTransaction(models)
   } yield {
     val newLines = transactions.flatMap(_.lines)
@@ -59,10 +53,6 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
     executeBatchWithTx2(postgres, List.empty, List(createTransactionCmd), List.empty, List(createDetailsCmd), List.empty)
     models.map(_.lines.size).sum + models.size
   }
-    
-
-  private def createDetails(list: List[FinancialsTransactionDetails]): ZIO[Any, RepositoryError, Int] =
-    executeWithTx(postgres, list.map(FinancialsTransactionDetails.encodeIt), insertAllDetails(list.size), list.size)
 
   override def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = modify(List(model))
   override def modify(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =
@@ -275,22 +265,6 @@ object FinancialsTransactionRepositorySQL:
 
   def insertAllDetails(n:Int): Command[List[FinancialsTransactionDetails.D_TYPE]] =
     sql"INSERT INTO details_compta VALUES ${financialsDetailsTransactionCodec.values.list(n)}".command
-  val upsert: Command[FinancialsTransaction] =
-    sql"""INSERT INTO master_compta
-           VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET
-           id                     = EXCLUDED.id,
-           oid                   = EXCLUDED.oid,
-           costcenter            = EXCLUDED.costcenter,
-            account               = EXCLUDED.account,
-            enterdate             = EXCLUDED.enterdate,
-            changedate            = EXCLUDED.changedate,
-            postingdate           = EXCLUDED.postingdate,
-            period               = EXCLUDED.period,
-            text                 = EXCLUDED.text,
-            type_journal         = EXCLUDED.type_journal,
-            file_content         = EXCLUDED.file_content,
-            modelid               = EXCLUDED.modelid,
-          """.command
 
   val UPDATE: Command[FinancialsTransaction.TYPE2] =
     sql"""UPDATE master_compta
@@ -307,24 +281,7 @@ object FinancialsTransactionRepositorySQL:
     sql"""UPDATE master_compta UPDATE SET posted = true
             WHERE id =$int8 AND modelid = $int4 AND  company =$varchar and posted=false
           """.command
-    
-  val upsertDetails: Command[FinancialsTransactionDetails] =
-    sql"""
-          INSERT INTO details_compta
-           VALUES $detailsEncoder ON CONFLICT(id, transtid) DO UPDATE SET
-           transtid                = EXCLUDED.transtid,
-           account                 = EXCLUDED.account,
-           side                    = EXCLUDED.side,
-            oaccount               = EXCLUDED.oaccount,
-            amount                 = EXCLUDED.amount,
-            duedate                = EXCLUDED.duedate,
-            text                   = EXCLUDED.text,
-            currency               = EXCLUDED.currency,
-            company               = EXCLUDED.company,
-            accountName            = EXCLUDED.accountName,
-            oaccountName           = EXCLUDED.oaccountName,
-          """.command
-    
+
   private val onConflictDoNothing = sql"ON CONFLICT DO NOTHING"
 
   val DELETE: Command[(Long, Int, String)] =
