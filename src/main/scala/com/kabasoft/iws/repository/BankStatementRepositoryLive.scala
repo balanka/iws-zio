@@ -3,14 +3,15 @@ import cats.*
 import cats.effect.Resource
 import cats.syntax.all.*
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{BankStatement, FinancialsTransaction}
+import com.kabasoft.iws.domain.{BankStatement, FinancialsTransaction, FinancialsTransactionDetails}
 import skunk.*
 import skunk.codec.all.*
 import skunk.implicits.*
 import zio.prelude.FlipOps
+import zio.interop.catz.*
 import zio.stream.interop.fs2z.*
 import zio.{Task, ZIO, ZLayer}
-import MasterfileCRUD.{UpdateCommand, InsertBatch}
+import MasterfileCRUD.{ExecCommand, InsertBatch, UpdateCommand}
 
 import java.time.{Instant, LocalDateTime, ZoneId}
 
@@ -32,36 +33,48 @@ final case  class BankStatementRepositoryLive(postgres: Resource[Task, Session[T
     queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
 
   def delete(p: (Long, Int, String)):ZIO[Any, RepositoryError, Int]=  executeWithTx(postgres, p, DELETE, 1)
-//    val newLines = models.flatMap(ftr=>ftr.lines.filter(_.id == -1L).map(l => l.copy(transid = ftr.id)))
-//    val deletedLine = models.flatMap(ftr=>ftr.lines.filter(_.transid == -2L))
-//    val deletedLineIds = deletedLine.map(line => line.id)
-//    val oldLines2Update = models.flatMap(ftr=>ftr.lines.filter(_.id > 0L).map(l => l.copy(transid = ftr.id)))
-//    val insertDetailsCmd = FinancialsTransactionRepositorySQL.insertAllDetails(newLines.length)
-//    val updateDetailsCmd = FinancialsTransactionRepositorySQL.UPDATE_DETAILS
-//    val createDetailsCmd = InsertBatch(newLines, FinancialsTransactionDetails.encodeIt, insertDetailsCmd)
-//    val updateDetailsCmds = IwsCommandLP2(oldLines2Update, FinancialsTransactionDetails.encodeIt2, updateDetailsCmd)
-//    val deleteDetailsCmd = IwsCommandLP2(oldLines2Update, FinancialsTransactionDetails.encodeIt3, DELETE_DETAILS)
-//    val updateFtrCmd = models.map(ftr=>IwsCommand(ftr, FinancialsTransaction.encodeIt2, FinancialsTransactionRepositorySQL.UPDATE))
-//    executeBatchWithTx2(postgres, updateFtrCmd, List(deleteDetailsCmd), List(createDetailsCmd), List(updateDetailsCmds))
-// for {
-//    idx<-queryWithTxUnique(postgres, TRANS_ID)
-//    ftr = c.copy(id = idx, lines = c.lines.map(l=>l.copy(transid = idx)))
-//    details <- createDetails(ftr.lines)
-//    result <- executeWithTx(postgres, ftr, insert, 1)
-//  } yield result +details
-  override def post(bs: List[BankStatement], transactions: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] = {
+  
+  override def post(bs: List[BankStatement], models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =  for {
+    (createTransactionCmd, createDetailsCmd) <- ftrRepo.buildCreate(models)
+    } yield {
     val bsCmds = bs.map(e => UpdateCommand(e, BankStatement.encode, POST_BANK_STATEMENT))
-    val cmdx = FinancialsTransactionRepositorySQL.insertAll(transactions.length)
-    val ftsCmds = InsertBatch(transactions, FinancialsTransaction.encodeIt, cmdx)
-    executeBatchWithTx(postgres, bsCmds, List(ftsCmds))
-    ZIO.succeed(transactions.size + 1)
-    // for {
-    //    idx<-queryWithTxUnique(postgres, TRANS_ID)
-    //    ftr = c.copy(id = idx, lines = c.lines.map(l=>l.copy(transid = idx)))
-    //    details <- createDetails(ftr.lines)
-    //    result <- executeWithTx(postgres, ftr, insert, 1)
-    //  } yield result +details
+    executeBatchWithTx2(postgres, bsCmds, List(createTransactionCmd), List(createDetailsCmd))
+    models.map(_.lines.size).sum + bs.size + models.length
   }
+
+  def executeBatchWithTx2[A, B, C, D, E, F](postgres: Resource[Task, Session[Task]]
+                                            , commands: List[UpdateCommand[E, F]]
+                                            , insertCommands: List[InsertBatch[A, B]]
+                                            , insertCommands2: List[InsertBatch[C, D]]
+                                           ): Unit =
+    postgres
+      .use: session =>
+        session.transaction.use: xa =>
+          commands.traverse(command =>
+            session
+              .prepare(command.cmd)
+              .flatMap: cmd =>
+                xa.savepoint
+                cmd.execute(command.encoder(command.param))).*>
+          insertCommands.traverse(command =>
+            session
+              .prepare(command.cmd)
+              .flatMap: cmd =>
+                xa.savepoint
+                cmd.execute(command.param.map(command.encoder))).*>
+          insertCommands2.traverse(command =>
+            session
+              .prepare(command.cmd)
+              .flatMap: cmd =>
+                xa.savepoint
+                cmd.execute(command.param.map(command.encoder)))
+            .recoverWith:
+              case SqlState.UniqueViolation(ex) =>
+                ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
+                  xa.rollback
+              case _ =>
+                ZIO.logInfo(s"Error:  rolling back...") *>
+                  xa.rollback
 
 object BankStatementRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]] & FinancialsTransactionRepository, Throwable, BankStatementRepository] =

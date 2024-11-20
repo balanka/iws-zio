@@ -128,7 +128,7 @@ trait MasterfileCRUD:
                     xa.rollback
        .mapBoth(e => RepositoryError(e.getMessage), _ => size)
 
-  def executeWithTx_[A, B](postgres: Resource[Task, Session[Task]], commands: List[UpdateCommand[A, B]]) =
+  def executeWithTx_[A, B](postgres: Resource[Task, Session[Task]], commands: List[UpdateCommand[A, B]]): ZIO[Any, RepositoryError, Int] =
      postgres
        .use: session =>
          session.transaction.use: xa =>
@@ -147,100 +147,8 @@ trait MasterfileCRUD:
                  }
            )
        .mapBoth(e => RepositoryError(e.getMessage), _ => commands.size)
-
-  def executeBatchWithTx2[A, B, C, D, E, F](postgres: Resource[Task, Session[Task]]
-                                            , commands: List[UpdateCommand[A, B]]
-                                            , insertCommands: List[InsertBatch[A, B]]
-                                            , deleteCommands: List[ExecCommand[C, F]]
-                                            , insertCommands2: List[InsertBatch[C, D]]
-                                            , commandLPs: List[ExecCommand[C, E]],
-                                     ): Unit =
-    postgres
-      .use: session =>
-        session.transaction.use: xa =>
-          commands.traverse(command =>
-            session
-              .prepare(command.cmd)
-              .flatMap: cmd =>
-                 xa.savepoint
-                 cmd.execute(command.encoder(command.param))).*>
-          deleteCommands.traverse(command =>
-              session
-                .prepare(command.cmd)
-                .flatMap: cmd =>
-                  xa.savepoint
-                  command.param.traverse(p =>
-                     cmd.execute(command.encoder(p)))).*>
-          insertCommands.traverse(command =>
-            session
-              .prepare(command.cmd)
-              .flatMap: cmd =>
-                xa.savepoint
-                cmd.execute(command.param.map(command.encoder))).*>
-          insertCommands2.traverse(command =>
-                session
-                  .prepare(command.cmd)
-                  .flatMap: cmd =>
-                    xa.savepoint
-                    cmd.execute(command.param.map(command.encoder))).*>
-          commandLPs.traverse(command => 
-                session
-                .prepare(command.cmd)
-                .flatMap: cmd =>
-                  xa.savepoint
-                  command.param.traverse(p =>
-                    cmd.execute(command.encoder(p))))
-            .recoverWith:
-              case SqlState.UniqueViolation(ex) =>
-                ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
-                  xa.rollback
-              case _ =>
-                ZIO.logInfo(s"Error:  rolling back...") *>
-                  xa.rollback
-
-//  def executeBatchWithTx3[A, B, C, D, E, F](postgres: Resource[Task, Session[Task]]
-//                                            , commands: List[IwsCommand[A, B]]
-//                                            , insertCommands: List[InsertBatch[A, B]]
-//                                            , insertCommands2: List[InsertBatch[C, D]]
-//                                            , commandLPs: List[IwsCommandLP2[C, E]],
-//                                           ): Unit =
-//    postgres
-//      .use: session =>
-//        session.transaction.use: xa =>
-//          commands.traverse(command =>
-//            session
-//              .prepare(command.cmd)
-//              .flatMap: cmd =>
-//                xa.savepoint
-//                cmd.execute(command.encoder(command.param))).*>
-//          insertCommands.traverse(command =>
-//            session
-//              .prepare(command.cmd)
-//              .flatMap: cmd =>
-//                xa.savepoint
-//                command.param.traverse(p =>
-//                  cmd.execute(command.encoder(p)))).*>
-//          insertCommands2.traverse(command =>
-//            session
-//              .prepare(command.cmd)
-//              .flatMap: cmd =>
-//                xa.savepoint
-//                cmd.execute(command.param.map(command.encoder))).*>
-//          commandLPs.traverse(command =>
-//              session
-//                .prepare(command.cmd)
-//                .flatMap: cmd =>
-//                  xa.savepoint
-//                  command.param.traverse(p =>
-//                    cmd.execute(command.encoder(p))))
-//            .recoverWith:
-//              case SqlState.UniqueViolation(ex) =>
-//                ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
-//                  xa.rollback
-//              case _ =>
-//                ZIO.logInfo(s"Error:  rolling back...") *>
-//                  xa.rollback
-                
+  
+  
   def executeBatchWithTx[A, B, C, D](postgres: Resource[Task, Session[Task]]
                                     , commands: List[UpdateCommand[A,B]]
                                     , commandLPs: List[InsertBatch[C, D]]): Unit =
@@ -252,15 +160,13 @@ trait MasterfileCRUD:
               .prepare(command.cmd)
               .flatMap: cmd =>
                 xa.savepoint
-                cmd.execute(command.encoder(command.param))
-          ).*>(
-            commandLPs.traverse(command =>
+                cmd.execute(command.encoder(command.param))).*>
+          commandLPs.traverse(command =>
                 session
                   .prepare(command.cmd)
                   .flatMap: cmd =>
                     xa.savepoint
                      cmd.execute(command.param.map(command.encoder)))
-          )
             .recoverWith:
              case SqlState.UniqueViolation(ex) =>
                  ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
@@ -271,23 +177,21 @@ trait MasterfileCRUD:
 
 
 
-  def executeWithTxLP[A, B](postgres: Resource[Task, Session[Task]], command: InsertBatch[A, B]) =
+  def executeWithTxLP[A, B](postgres: Resource[Task, Session[Task]], command: InsertBatch[A, B]): ZIO[Any, RepositoryError, Int] =
      postgres
        .use: session =>
          session.transaction.use: xa =>
              session
                .prepare(command.cmd)
                .flatMap: cmd =>
-                 //xa.savepoint
-                 cmd.execute(command.param.map(command.encoder)).recoverWith {
+                 xa.savepoint
+                 cmd.execute(command.param.map(command.encoder)).recoverWith:
                    case SqlState.UniqueViolation(ex) =>
                      ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
                        xa.rollback
                    case _ =>
                      ZIO.logInfo(s"Error:  rolling back...") *>
                        xa.rollback
-                 }
-          // )
        .mapBoth(e => RepositoryError(e.getMessage), _ => command.param.size)
 
   def executeWithTx[A](postgres: Resource[Task, Session[Task]], p: A, commands: List[Command[A]], size: Int): ZIO[Any, RepositoryError, Int] =

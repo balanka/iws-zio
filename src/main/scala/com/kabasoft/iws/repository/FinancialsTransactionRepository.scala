@@ -2,6 +2,7 @@ package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails}
+import com.kabasoft.iws.repository.MasterfileCRUD.InsertBatch
 import zio.*
 import zio.stream.*
 
@@ -10,6 +11,10 @@ trait FinancialsTransactionRepository:
   def create(item: FinancialsTransaction): ZIO[Any, RepositoryError, Int]
 
   def create(models: List[FinancialsTransaction]):ZIO[Any, RepositoryError, Int]
+
+  def buildCreate(models: List[FinancialsTransaction]):
+  ZIO[Any, RepositoryError, (InsertBatch[FinancialsTransaction, FinancialsTransaction.TYPE]
+    , InsertBatch[FinancialsTransactionDetails, FinancialsTransactionDetails.D_TYPE])]
 
 //  def update(model: FinancialsTransaction): Task[FinancialsTransaction]
 //
@@ -57,6 +62,11 @@ object FinancialsTransactionRepository:
 
   def create(models: List[FinancialsTransaction]): ZIO[FinancialsTransactionRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[FinancialsTransactionRepository](_.create(models))
+
+  def buildCreate(models: List[FinancialsTransaction]): ZIO[FinancialsTransactionRepository, RepositoryError
+    , (InsertBatch[FinancialsTransaction, FinancialsTransaction.TYPE]
+    , InsertBatch[FinancialsTransactionDetails, FinancialsTransactionDetails.D_TYPE])]=
+    ZIO.serviceWithZIO[FinancialsTransactionRepository](_.buildCreate(models))
 
   def delete(id: Long, modelid: Int, company: String): ZIO[FinancialsTransactionRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[FinancialsTransactionRepository](_.delete(id, modelid, company))
