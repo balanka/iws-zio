@@ -10,7 +10,7 @@ import zio.stream.interop.fs2z.*
 import zio.{Task, ZIO, UIO, ZLayer}
 import com.kabasoft.iws.domain.{Article,  Masterfile, PeriodicAccountBalance, Journal, Stock, Transaction, TransactionLog }
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import MasterfileCRUD.{IwsCommand, InsertBatch}
+import MasterfileCRUD.{UpdateCommand, InsertBatch}
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[Task]]) extends PostTransactionRepository, MasterfileCRUD:
@@ -48,19 +48,19 @@ final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[
 
 
   private def modifyPacs4T(models: List[PeriodicAccountBalance]) =
-    val cmds = models.map(model=>IwsCommand(model, PeriodicAccountBalance.encodeIt2, PacRepositorySQL.UPDATE))
+    val cmds = models.map(model=>UpdateCommand(model, PeriodicAccountBalance.encodeIt2, PacRepositorySQL.UPDATE))
     executeBatchWithTx(postgres, cmds, List.empty)
     ZIO.succeed(models.size)
 
 
   private def modifyStock4T(models: List[Stock]) =
-    val cmds = models.map(model=>IwsCommand(model, Stock.encodeIt2, StockRepositorySQL.updateQuantity))
+    val cmds = models.map(model=>UpdateCommand(model, Stock.encodeIt2, StockRepositorySQL.updateQuantity))
      executeBatchWithTx(postgres, cmds, List.empty)
      ZIO.succeed(models.size)
 
 
   private def modifyPrices4T(models: List[Article]) =
-    val cmds = models.map(model=>IwsCommand(model, Article.encodeIt3, ArticleRepositorySQL.updatePrices))
+    val cmds = models.map(model=>UpdateCommand(model, Article.encodeIt3, ArticleRepositorySQL.updatePrices))
     executeBatchWithTx(postgres, cmds, List.empty)
     ZIO.succeed(models.size)
 
@@ -88,7 +88,7 @@ final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[
     } yield nr
 
   private def updatePostedField4T(models: List[Transaction]): ZIO[Any, Exception, Int] = 
-    val cmds = models.map(model => IwsCommand(model, Transaction.encodeIt2, TransactionRepositorySQL.updatePosted))
+    val cmds = models.map(model => UpdateCommand(model, Transaction.encodeIt2, TransactionRepositorySQL.updatePosted))
     executeBatchWithTx(postgres, cmds, List.empty)
     ZIO.succeed(models.size)
 

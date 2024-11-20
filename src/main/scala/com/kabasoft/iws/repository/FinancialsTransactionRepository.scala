@@ -7,7 +7,7 @@ import zio.stream.*
 
 trait FinancialsTransactionRepository:
 
-  def create(item: FinancialsTransaction, flag: Boolean): ZIO[Any, RepositoryError, Int]
+  def create(item: FinancialsTransaction): ZIO[Any, RepositoryError, Int]
 
   def create(models: List[FinancialsTransaction]):ZIO[Any, RepositoryError, Int]
 
@@ -53,7 +53,7 @@ trait FinancialsTransactionRepository:
 object FinancialsTransactionRepository:
 
   def create(model: FinancialsTransaction): ZIO[FinancialsTransactionRepository, RepositoryError, Int] =
-    ZIO.serviceWithZIO[FinancialsTransactionRepository](_.create(model, false))
+    ZIO.serviceWithZIO[FinancialsTransactionRepository](_.create(model))
 
   def create(models: List[FinancialsTransaction]): ZIO[FinancialsTransactionRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[FinancialsTransactionRepository](_.create(models))

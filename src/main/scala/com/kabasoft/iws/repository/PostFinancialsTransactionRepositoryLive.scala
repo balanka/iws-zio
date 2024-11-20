@@ -10,7 +10,7 @@ import zio.prelude.{FlipOps, Identity}
 import zio.stream.interop.fs2z.*
 import zio.{Task, UIO, ZIO, ZLayer}
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import MasterfileCRUD.{IwsCommand, InsertBatch}
+import MasterfileCRUD.{UpdateCommand, InsertBatch}
 import com.kabasoft.iws.domain.{FinancialsTransaction, Journal, PeriodicAccountBalance}
 
 final case class PostFinancialsTransactionRepositoryLive(postgres: Resource[Task, Session[Task]]) extends
@@ -66,7 +66,7 @@ final case class PostFinancialsTransactionRepositoryLive(postgres: Resource[Task
   } yield nr
 
   private def updatePostedField4T(models: List[FinancialsTransaction]): ZIO[Any, Exception, Int] =
-    val cmds = models.map(model => IwsCommand(model, FinancialsTransaction.encodeIt3, FinancialsTransactionRepositorySQL.updatePosted))
+    val cmds = models.map(model => UpdateCommand(model, FinancialsTransaction.encodeIt3, FinancialsTransactionRepositorySQL.updatePosted))
     executeBatchWithTx(postgres, cmds, List.empty)
     ZIO.succeed(models.size)
 

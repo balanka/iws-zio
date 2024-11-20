@@ -10,7 +10,7 @@ import skunk.implicits.*
 import zio.prelude.FlipOps
 import zio.stream.interop.fs2z.*
 import zio.{Task, ZIO, ZLayer}
-import MasterfileCRUD.{IwsCommand, InsertBatch}
+import MasterfileCRUD.{UpdateCommand, InsertBatch}
 
 import java.time.{Instant, LocalDateTime, ZoneId}
 
@@ -32,13 +32,36 @@ final case  class BankStatementRepositoryLive(postgres: Resource[Task, Session[T
     queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
 
   def delete(p: (Long, Int, String)):ZIO[Any, RepositoryError, Int]=  executeWithTx(postgres, p, DELETE, 1)
-
-  override def post(bs: List[BankStatement], transactions: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =
-    val bsCmds = bs.map(e=>IwsCommand(e, BankStatement.encode, POST_BANK_STATEMENT))
+//    val newLines = models.flatMap(ftr=>ftr.lines.filter(_.id == -1L).map(l => l.copy(transid = ftr.id)))
+//    val deletedLine = models.flatMap(ftr=>ftr.lines.filter(_.transid == -2L))
+//    val deletedLineIds = deletedLine.map(line => line.id)
+//    val oldLines2Update = models.flatMap(ftr=>ftr.lines.filter(_.id > 0L).map(l => l.copy(transid = ftr.id)))
+//    val insertDetailsCmd = FinancialsTransactionRepositorySQL.insertAllDetails(newLines.length)
+//    val updateDetailsCmd = FinancialsTransactionRepositorySQL.UPDATE_DETAILS
+//    val createDetailsCmd = InsertBatch(newLines, FinancialsTransactionDetails.encodeIt, insertDetailsCmd)
+//    val updateDetailsCmds = IwsCommandLP2(oldLines2Update, FinancialsTransactionDetails.encodeIt2, updateDetailsCmd)
+//    val deleteDetailsCmd = IwsCommandLP2(oldLines2Update, FinancialsTransactionDetails.encodeIt3, DELETE_DETAILS)
+//    val updateFtrCmd = models.map(ftr=>IwsCommand(ftr, FinancialsTransaction.encodeIt2, FinancialsTransactionRepositorySQL.UPDATE))
+//    executeBatchWithTx2(postgres, updateFtrCmd, List(deleteDetailsCmd), List(createDetailsCmd), List(updateDetailsCmds))
+// for {
+//    idx<-queryWithTxUnique(postgres, TRANS_ID)
+//    ftr = c.copy(id = idx, lines = c.lines.map(l=>l.copy(transid = idx)))
+//    details <- createDetails(ftr.lines)
+//    result <- executeWithTx(postgres, ftr, insert, 1)
+//  } yield result +details
+  override def post(bs: List[BankStatement], transactions: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] = {
+    val bsCmds = bs.map(e => UpdateCommand(e, BankStatement.encode, POST_BANK_STATEMENT))
     val cmdx = FinancialsTransactionRepositorySQL.insertAll(transactions.length)
     val ftsCmds = InsertBatch(transactions, FinancialsTransaction.encodeIt, cmdx)
     executeBatchWithTx(postgres, bsCmds, List(ftsCmds))
-    ZIO.succeed(transactions.size+1)
+    ZIO.succeed(transactions.size + 1)
+    // for {
+    //    idx<-queryWithTxUnique(postgres, TRANS_ID)
+    //    ftr = c.copy(id = idx, lines = c.lines.map(l=>l.copy(transid = idx)))
+    //    details <- createDetails(ftr.lines)
+    //    result <- executeWithTx(postgres, ftr, insert, 1)
+    //  } yield result +details
+  }
 
 object BankStatementRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]] & FinancialsTransactionRepository, Throwable, BankStatementRepository] =

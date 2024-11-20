@@ -8,14 +8,14 @@ import skunk.*
 import zio.*
 import zio.interop.catz.*
 import cats.syntax.applicativeError.catsSyntaxApplicativeError
-import com.kabasoft.iws.repository.MasterfileCRUD.{IwsCommand, InsertBatch, IwsCommandLP2}
+import com.kabasoft.iws.repository.MasterfileCRUD.{UpdateCommand, InsertBatch, ExecCommand}
 import skunk.data.Completion
 import zio.stream.ZStream
 import zio.stream.interop.fs2z.*
 
 object MasterfileCRUD:
-  final case class IwsCommand[A, B](param: A, encoder: A => B, cmd: Command[B])
-  final case class IwsCommandLP2[A, B](param: List[A], encoder: A => B, cmd: Command[B])
+  final case class UpdateCommand[A, B](param: A, encoder: A => B, cmd: Command[B])
+  final case class ExecCommand[A, B](param: List[A], encoder: A => B, cmd: Command[B])
   final case class InsertBatch[A, B](param: List[A], encoder: A => B, cmd: Command[List[B]])
   
 trait MasterfileCRUD:
@@ -43,6 +43,17 @@ trait MasterfileCRUD:
             ps => ps.stream(p, 1014).compile.toList
       .mapBoth(e => RepositoryError(e.getMessage), a => a).debug("Data/Error")
 
+  def queryWithPQ[A, B](postgres: Resource[Task, Session[Task]], p: A, q: Query[A, B]): Resource[Task, PreparedQuery[Task, A, B]] =
+    postgres.flatMap(s=>s.prepareR(q))
+
+  def CmdWithPQ[A, B](postgres: Resource[Task, Session[Task]], command:Command[B]): Resource[Task, PreparedCommand[Task, B]]=
+    postgres.flatMap(s => s.prepareR(command))
+
+  def queryWithTxUnique1[A, B] ( resources: Resource[Task, PreparedCommand[Task, B]], p:A, encoder:A=>B): ZIO[Any, RepositoryError, Completion] =
+          resources.use:session =>
+                            session.execute(encoder(p))
+                    .mapBoth(e => RepositoryError(e.getMessage), l => l)
+
   def queryWithTxUnique[A, B](postgres: Resource[Task, Session[Task]], p:A, q:Query[A, B]):ZIO[Any, RepositoryError, B] =
      postgres
        .use: session =>
@@ -51,8 +62,13 @@ trait MasterfileCRUD:
           .flatMap(ps => ps.unique(p))
        .mapBoth(e => RepositoryError(e.getMessage), a => a).debug("Data/Error")
 
+  def queryWithTxUnique[ A](postgres: Resource[Task, Session[Task]],  q: Query[Void, A]): ZIO[Any, RepositoryError, A] =
+    postgres.use: session =>
+                session.unique(q)
+            .mapBoth(e => RepositoryError(e.getMessage), a => a).debug("Data/Error")
 
-  def executeWithTx_[A, B](postgres: Resource[Task, Session[Task]], iwsCmd:IwsCommand[A, B], size: Int): ZIO[Any, RepositoryError, Int] =
+
+  def executeWithTx_[A, B](postgres: Resource[Task, Session[Task]], iwsCmd:UpdateCommand[A, B], size: Int): ZIO[Any, RepositoryError, Int] =
      postgres
        .use: session =>
          session.transaction.use: xa =>
@@ -85,7 +101,15 @@ trait MasterfileCRUD:
                   ZIO.logInfo(s"Error:  rolling back...") *>
                     xa.rollback
       .mapBoth(e => RepositoryError(e.getMessage), _ => size)
-    
+
+  def CmdsWithPQ[A, B](postgres: Resource[Task, Session[Task]], commands: List[Command[B]]): ZIO[Any, RepositoryError, List[PreparedCommand[Task, B]]] =
+    postgres
+      .use: session =>
+        commands.traverse(cmd =>
+          session.prepare(cmd))
+      .mapBoth(e => RepositoryError(e.getMessage), list => list)
+
+
   def executeWithTx[A, B](postgres: Resource[Task, Session[Task]], p: A, encoder:A=>B, comd: Command[B], size: Int): ZIO[Any, RepositoryError, Int] =
     ZIO.logInfo(s"Executing: $comd with param ${encoder(p)}") *>
      postgres
@@ -104,24 +128,7 @@ trait MasterfileCRUD:
                     xa.rollback
        .mapBoth(e => RepositoryError(e.getMessage), _ => size)
 
-//   def executeWithTx[A](postgres: Resource[Task, Session[Task]], list: List[A], comd: Command[A], size: Int): ZIO[Any, RepositoryError, Int] =
-//     postgres
-//       .use: session =>
-//         session.transaction.use: xa =>
-//           session
-//           .prepare(comd)
-//           .flatMap: cmd =>
-//             xa.savepoint
-//             cmd.execute(p).recoverWith:
-//               case SqlState.UniqueViolation(ex) =>
-//                 ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
-//                   xa.rollback
-//               case _ =>
-//                 ZIO.logInfo(s"Error:  rolling back...") *>
-//                   xa.rollback
-//       .mapBoth(e => RepositoryError(e.getMessage), _ => size)
-
-  def executeWithTx_[A, B](postgres: Resource[Task, Session[Task]], commands: List[IwsCommand[A, B]]) =
+  def executeWithTx_[A, B](postgres: Resource[Task, Session[Task]], commands: List[UpdateCommand[A, B]]) =
      postgres
        .use: session =>
          session.transaction.use: xa =>
@@ -142,11 +149,11 @@ trait MasterfileCRUD:
        .mapBoth(e => RepositoryError(e.getMessage), _ => commands.size)
 
   def executeBatchWithTx2[A, B, C, D, E, F](postgres: Resource[Task, Session[Task]]
-                                     , commands: List[IwsCommand[A, B]]
-                                     , deleteCommands: List[IwsCommandLP2[C, F]]
-                                     //, insertCommands1: List[InsertBatch[A, B]]
-                                     , insertCommands2: List[InsertBatch[C, D]]
-                                     , commandLPs: List[IwsCommandLP2[C, E]],
+                                            , commands: List[UpdateCommand[A, B]]
+                                            , insertCommands: List[InsertBatch[A, B]]
+                                            , deleteCommands: List[ExecCommand[C, F]]
+                                            , insertCommands2: List[InsertBatch[C, D]]
+                                            , commandLPs: List[ExecCommand[C, E]],
                                      ): Unit =
     postgres
       .use: session =>
@@ -164,6 +171,12 @@ trait MasterfileCRUD:
                   xa.savepoint
                   command.param.traverse(p =>
                      cmd.execute(command.encoder(p)))).*>
+          insertCommands.traverse(command =>
+            session
+              .prepare(command.cmd)
+              .flatMap: cmd =>
+                xa.savepoint
+                cmd.execute(command.param.map(command.encoder))).*>
           insertCommands2.traverse(command =>
                 session
                   .prepare(command.cmd)
@@ -184,9 +197,52 @@ trait MasterfileCRUD:
               case _ =>
                 ZIO.logInfo(s"Error:  rolling back...") *>
                   xa.rollback
+
+//  def executeBatchWithTx3[A, B, C, D, E, F](postgres: Resource[Task, Session[Task]]
+//                                            , commands: List[IwsCommand[A, B]]
+//                                            , insertCommands: List[InsertBatch[A, B]]
+//                                            , insertCommands2: List[InsertBatch[C, D]]
+//                                            , commandLPs: List[IwsCommandLP2[C, E]],
+//                                           ): Unit =
+//    postgres
+//      .use: session =>
+//        session.transaction.use: xa =>
+//          commands.traverse(command =>
+//            session
+//              .prepare(command.cmd)
+//              .flatMap: cmd =>
+//                xa.savepoint
+//                cmd.execute(command.encoder(command.param))).*>
+//          insertCommands.traverse(command =>
+//            session
+//              .prepare(command.cmd)
+//              .flatMap: cmd =>
+//                xa.savepoint
+//                command.param.traverse(p =>
+//                  cmd.execute(command.encoder(p)))).*>
+//          insertCommands2.traverse(command =>
+//            session
+//              .prepare(command.cmd)
+//              .flatMap: cmd =>
+//                xa.savepoint
+//                cmd.execute(command.param.map(command.encoder))).*>
+//          commandLPs.traverse(command =>
+//              session
+//                .prepare(command.cmd)
+//                .flatMap: cmd =>
+//                  xa.savepoint
+//                  command.param.traverse(p =>
+//                    cmd.execute(command.encoder(p))))
+//            .recoverWith:
+//              case SqlState.UniqueViolation(ex) =>
+//                ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
+//                  xa.rollback
+//              case _ =>
+//                ZIO.logInfo(s"Error:  rolling back...") *>
+//                  xa.rollback
                 
   def executeBatchWithTx[A, B, C, D](postgres: Resource[Task, Session[Task]]
-                                    , commands: List[IwsCommand[A,B]]
+                                    , commands: List[UpdateCommand[A,B]]
                                     , commandLPs: List[InsertBatch[C, D]]): Unit =
     postgres
       .use: session =>
@@ -274,7 +330,7 @@ trait MasterfileCRUD:
        .mapBoth(e => RepositoryError(e.getMessage), _ => params.size).as(params.size)
    } yield u
 
-   def executeBatchWithTx_[A, B](postgres: Resource[Task, Session[Task]],  commands: List[IwsCommand[A, B]]): ZIO[Any, RepositoryError, Int] = for {
+   def executeBatchWithTx_[A, B](postgres: Resource[Task, Session[Task]],  commands: List[UpdateCommand[A, B]]): ZIO[Any, RepositoryError, Int] = for {
     u <- postgres
       .use: session =>
         session.transaction.use: xa =>

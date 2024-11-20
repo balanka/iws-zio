@@ -5,7 +5,7 @@ import cats.effect.Resource
 import cats.syntax.all.*
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails}
-import com.kabasoft.iws.repository.MasterfileCRUD.{IwsCommand, InsertBatch, IwsCommandLP2}
+import com.kabasoft.iws.repository.MasterfileCRUD.{UpdateCommand, InsertBatch, ExecCommand}
 import skunk.*
 import skunk.codec.all.*
 import skunk.implicits.*
@@ -21,11 +21,36 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
                                                       , accRepo: AccountRepository) extends FinancialsTransactionRepository, MasterfileCRUD:
 
   import FinancialsTransactionRepositorySQL._
+  
+  def getId: ZIO[Any, RepositoryError, Long] = for {
+    idx <- queryWithTxUnique(postgres, TRANS_ID)
+  } yield idx
 
-  override def create(c: FinancialsTransaction, flag: Boolean): ZIO[Any, RepositoryError, Int] =
-    executeWithTx(postgres, c, insert, 1)
-  override def create(list: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =
-    executeWithTx(postgres, list.map(FinancialsTransaction.encodeIt), insertAll(list.size), list.size)
+  private def setTransId(c: FinancialsTransaction): ZIO[Any, RepositoryError, FinancialsTransaction] = for {
+    idx <- queryWithTxUnique(postgres, TRANS_ID)
+  } yield c.copy(id = idx, lines = c.lines.map(l => l.copy(transid = idx)))
+  
+  override def create(c: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = for {
+    ftr    <- setTransId(c)
+    details <- createDetails(ftr.lines)
+    result <- executeWithTx(postgres, ftr, insert, 1)
+  } yield result +details
+
+   def buildTransaction(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
+     result <- ZIO.collectAll(models.map(setTransId))
+  } yield result
+  
+  override def create(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] = for {
+    transactions   <- buildTransaction(models)
+  } yield {
+    val newLines = transactions.flatMap(_.lines)
+    val insertTransactionCmd = FinancialsTransactionRepositorySQL.insertAll(transactions.length)
+    val insertDetailsCmd = FinancialsTransactionRepositorySQL.insertAllDetails(newLines.length)
+    val createDetailsCmd = InsertBatch(newLines, FinancialsTransactionDetails.encodeIt, insertDetailsCmd)
+    val createTransactionCmd = InsertBatch(transactions, FinancialsTransaction.encodeIt, insertTransactionCmd)
+    executeBatchWithTx2(postgres, List.empty, List(createTransactionCmd), List.empty, List(createDetailsCmd), List.empty)
+    newLines.size + transactions.size
+  }
 
   private def createDetails(list: List[FinancialsTransactionDetails]): ZIO[Any, RepositoryError, Int] =
     executeWithTx(postgres, list.map(FinancialsTransactionDetails.encodeIt), insertAllDetails(list.size), list.size)
@@ -40,10 +65,10 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
     val insertDetailsCmd = FinancialsTransactionRepositorySQL.insertAllDetails(newLines.length)
     val updateDetailsCmd = FinancialsTransactionRepositorySQL.UPDATE_DETAILS
     val createDetailsCmd = InsertBatch(newLines, FinancialsTransactionDetails.encodeIt, insertDetailsCmd)
-    val updateDetailsCmds = IwsCommandLP2(oldLines2Update, FinancialsTransactionDetails.encodeIt2, updateDetailsCmd)
-    val deleteDetailsCmd = IwsCommandLP2(oldLines2Update, FinancialsTransactionDetails.encodeIt3, DELETE_DETAILS)
-    val updateFtrCmd = models.map(ftr=>IwsCommand(ftr, FinancialsTransaction.encodeIt2, FinancialsTransactionRepositorySQL.UPDATE))
-    executeBatchWithTx2(postgres, updateFtrCmd, List(deleteDetailsCmd), List(createDetailsCmd), List(updateDetailsCmds))
+    val updateDetailsCmds = ExecCommand(oldLines2Update, FinancialsTransactionDetails.encodeIt2, updateDetailsCmd)
+    val deleteDetailsCmd = ExecCommand(oldLines2Update, FinancialsTransactionDetails.encodeIt3, DELETE_DETAILS)
+    val updateFtrCmd = models.map(ftr=>UpdateCommand(ftr, FinancialsTransaction.encodeIt2, FinancialsTransactionRepositorySQL.UPDATE))
+    executeBatchWithTx2(postgres, updateFtrCmd, List.empty, List(deleteDetailsCmd), List(createDetailsCmd), List(updateDetailsCmds))
     ZIO.succeed(newLines.size + oldLines2Update.size + deletedLine.size + 1)
   }
   
@@ -111,6 +136,7 @@ object FinancialsTransactionRepositorySQL:
     sql""" SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
            FROM   master_compta """
 
+  val TRANS_ID:Query[Void, Long] = sql"""SELECT NEXTVAL('master_compta_id_seq')""".query(int8)
   def ALL_BY_ID(nr: Int): Query[(List[Long], Int, String), FinancialsTransaction] =
     sql"""SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
            FROM   master_compta
