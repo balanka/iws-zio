@@ -58,7 +58,7 @@ object ArticleEndpoint:
   val createArtRoute =
     mCreate.implement: (m, _) =>
       ZIO.logInfo(s"Insert article  ${m}") *>
-        ArticleRepository.create(m, true)
+        ArticleRepository.create(m)
 
   val allArtRoute =
     mAll.implement: p =>

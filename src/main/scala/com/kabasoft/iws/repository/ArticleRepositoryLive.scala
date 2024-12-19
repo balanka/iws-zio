@@ -17,7 +17,7 @@ final case class ArticleRepositoryLive(postgres: Resource[Task, Session[Task]]) 
 
   import ArticleRepositorySQL.*
 
-  override def create(c: Article, flag: Boolean):  ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
+  override def create(c: Article):  ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
 
   override def create(list: List[Article]): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(Article.encodeIt), insertAll(list.size), list.size)
   override def modify(model: Article): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, Article.encodeIt2, UPDATE, 1)

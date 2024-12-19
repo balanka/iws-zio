@@ -5,7 +5,7 @@ import com.kabasoft.iws.domain.Article
 import zio.*
 
 trait ArticleRepository:
-  def create(item: Article, flag: Boolean): ZIO[Any, RepositoryError, Int]
+  def create(item: Article): ZIO[Any, RepositoryError, Int]
   def create(models: List[Article]): ZIO[Any, RepositoryError, Int]
   def modify(model: Article): ZIO[Any, RepositoryError, Int]
   def modify(models: List[Article]): ZIO[Any, RepositoryError, Int]
@@ -16,8 +16,8 @@ trait ArticleRepository:
 
 object ArticleRepository:
 
-  def create(item: Article, flag: Boolean):ZIO[ArticleRepository, RepositoryError, Int]=
-    ZIO.serviceWithZIO[ArticleRepository](_.create(item, flag))
+  def create(item: Article):ZIO[ArticleRepository, RepositoryError, Int]=
+    ZIO.serviceWithZIO[ArticleRepository](_.create(item))
 
   def create(models: List[Article]): ZIO[ArticleRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[ArticleRepository](_.create(models))
