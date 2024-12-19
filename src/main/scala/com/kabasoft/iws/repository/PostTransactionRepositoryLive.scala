@@ -88,7 +88,7 @@ final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[
     } yield nr
 
   private def updatePostedField4T(models: List[Transaction]): ZIO[Any, Exception, Int] = 
-    val cmds = models.map(model => UpdateCommand(model, Transaction.encodeIt2, TransactionRepositorySQL.updatePosted))
+    val cmds = models.map(model => UpdateCommand(model, Transaction.encodeIt3, TransactionRepositorySQL.updatePosted))
     executeBatchWithTx(postgres, cmds, List.empty)
     ZIO.succeed(models.size)
 

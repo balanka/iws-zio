@@ -6,7 +6,7 @@ import zio._
 import zio.stream._
 
 trait TransactionRepository:
-  def create(model: Transaction, flag:Boolean): ZIO[Any, RepositoryError, Int]
+  def create(model: Transaction): ZIO[Any, RepositoryError, Int]
 
   def create(item: List[Transaction]): ZIO[Any, RepositoryError, Int]
 
@@ -45,14 +45,11 @@ trait TransactionRepository:
 
 object TransactionRepository:
 
-  def create(model: Transaction, flag:Boolean): ZIO[TransactionRepository, RepositoryError, Int] =
-    ZIO.serviceWithZIO[TransactionRepository](_.create(model, flag))
+  def create(model: Transaction): ZIO[TransactionRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[TransactionRepository](_.create(model))
 
   def create(models: List[Transaction]): ZIO[TransactionRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[TransactionRepository](_.create(models))
-
-//  def create2(transactions: List[Transaction]): ZIO[TransactionRepository, RepositoryError, Int] =
-//    ZIO.serviceWithZIO[TransactionRepository](_.create2(transactions))
 
   def delete(id: Long, modelid: Int, company: String): ZIO[TransactionRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[TransactionRepository](_.delete(id, modelid, company))

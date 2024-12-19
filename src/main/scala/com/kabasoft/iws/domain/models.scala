@@ -1597,6 +1597,7 @@ final case class TransactionDetails( id: Long, transid: Long, article: String, a
 object TransactionDetails:
   val dummy = TransactionDetails(0, 0, "", "", zeroAmount, "", zeroAmount, "", Instant.now(), "",  "",  "")
   type D_TYPE = (Long, Long, String, String, scala.math.BigDecimal, String, scala.math.BigDecimal, String, LocalDateTime, String, String, String)
+  type TYPE2 = (Long, String, scala.math.BigDecimal, String, scala.math.BigDecimal, String, LocalDateTime, String, String, String, Long, String)
   implicit val monoid: Identity[TransactionDetails] =
     new Identity[TransactionDetails]:
       def identity: TransactionDetails = dummy
@@ -1612,6 +1613,11 @@ object TransactionDetails:
     new TransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11,  tr._12)
   def apply(tr: TransactionDetails): TransactionDetails =
     new TransactionDetails(tr.id, tr.transid, tr.article, tr.articleName, tr.quantity, tr.unit, tr.price, tr.currency, tr.duedate, tr.vatCode, tr.text, tr.company)
+  def encodeIt2(dt: TransactionDetails): TYPE2 =
+    (dt.transid, dt.article, dt.quantity, dt.unit, dt.price, dt.currency, dt.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
+      , dt.text, dt.articleName, dt.vatCode, dt.id, dt.company)
+
+  def encodeIt3(dt: TransactionDetails): (Long, String) = (dt.id, dt.company)
 
 final case class FinancialsTransactionDetails(
   id: Long,
@@ -1652,7 +1658,8 @@ final case class Transaction(id: Long,
 }
  object Transaction:
   type TYPE = (Long, Long, Long, String, String, LocalDateTime, LocalDateTime, LocalDateTime, Int, Boolean, Int, String, String)
-  type TYPE2 = (Long, Int, String)
+  type TYPE2= (Long, String, String, LocalDateTime, String, Long, Int, String)
+  type TYPE3 = (Long, Int, String)
   private type Transaction_Type =
     (Long, Long, Long, String, String, Instant, Instant, Instant, Int, Boolean, Int, String, String)
   def apply(tr: Transaction_Type): Transaction =
@@ -1663,7 +1670,11 @@ final case class Transaction(id: Long,
       , st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
       , st.period, st.posted, st.modelid, st.company, st.text)
 
-  def encodeIt2(st: Transaction):TYPE2= (st.id, st.modelid, st.company)
+   def encodeIt2(st: Transaction): TYPE2 =
+     (st.oid, st.store, st.account
+       , st.transdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
+       , st.text, st.id, st.modelid, st.company)
+  def encodeIt3(st: Transaction):TYPE3= (st.id, st.modelid, st.company)
 
 final case class TransactionLog(id:Long, transid:Long, oid:Long, store:String, account:String, article:String,
                                 quantity:BigDecimal, stock:BigDecimal, wholeStock:BigDecimal, unit:String, price:BigDecimal, avgPrice:BigDecimal,

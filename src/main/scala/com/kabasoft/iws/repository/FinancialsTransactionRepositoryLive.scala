@@ -103,56 +103,6 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
     queryWithTx(postgres, (modelid, companyId, posted, fromPeriod, toPeriod), FIND_4_PERIOD)
   def delete(p: (Long, Int, String)): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
 
-  def executeBatchWithTx2[A, B, C, D, E, F](postgres: Resource[Task, Session[Task]]
-                                            , commands: List[UpdateCommand[A, B]]
-                                            , insertCommands: List[InsertBatch[A, B]]
-                                            , deleteCommands: List[ExecCommand[C, F]]
-                                            , insertCommands2: List[InsertBatch[C, D]]
-                                            , commandLPs: List[ExecCommand[C, E]],
-                                           ): Unit =
-    postgres
-      .use: session =>
-        session.transaction.use: xa =>
-          commands.traverse(command =>
-            session
-              .prepare(command.cmd)
-              .flatMap: cmd =>
-                xa.savepoint
-                cmd.execute(command.encoder(command.param))).*>
-          deleteCommands.traverse(command =>
-            session
-              .prepare(command.cmd)
-              .flatMap: cmd =>
-                xa.savepoint
-                command.param.traverse(p =>
-                  cmd.execute(command.encoder(p)))).*>
-          insertCommands.traverse(command =>
-            session
-              .prepare(command.cmd)
-              .flatMap: cmd =>
-                xa.savepoint
-                cmd.execute(command.param.map(command.encoder))).*>
-          insertCommands2.traverse(command =>
-            session
-              .prepare(command.cmd)
-              .flatMap: cmd =>
-                xa.savepoint
-                cmd.execute(command.param.map(command.encoder))).*>
-          commandLPs.traverse(command =>
-              session
-                .prepare(command.cmd)
-                .flatMap: cmd =>
-                  xa.savepoint
-                  command.param.traverse(p =>
-                    cmd.execute(command.encoder(p))))
-            .recoverWith:
-              case SqlState.UniqueViolation(ex) =>
-                ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
-                  xa.rollback
-              case _ =>
-                ZIO.logInfo(s"Error:  rolling back...") *>
-                  xa.rollback
-                
 object FinancialsTransactionRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]] & AccountRepository, Throwable, FinancialsTransactionRepository] =
     ZLayer.fromFunction(new FinancialsTransactionRepositoryLive(_, _))

@@ -309,3 +309,65 @@ def execPreparedCommand[A, B](postgres: Resource[Task, Session[Task]], params:Li
        .mapBoth(e => RepositoryError(e.getMessage), list => params.size).as(params.size)
    } yield u
 
+   def xy[C, F](session: Session[Task], deleteCommands: List[ExecCommand[C, F]]) =
+      deleteCommands.traverse: command =>
+        session
+         .prepare(command.cmd)
+         .flatMap: cmd =>
+            command.param.traverse: p =>
+               cmd.execute(command.encoder(p))
+
+   def xx[A, B](session: Session[Task], insertCommands: List[InsertBatch[A, B]]) =
+       insertCommands.traverse: command =>
+         session
+          .prepare(command.cmd)
+          .flatMap: cmd =>
+           //xa.savepoint
+             cmd.execute(command.param.map(command.encoder))
+   def xx2[C, D](session: Session[Task], insertCommands: List[InsertBatch[C, D]]) =
+        insertCommands.traverse: command =>
+          session
+            .prepare(command.cmd)
+            .flatMap: cmd =>
+            //xa.savepoint
+               cmd.execute(command.param.map(command.encoder))
+   def ax[A, B](session: Session[Task], updateCommands: List[UpdateCommand[A, B]]) =
+       //session.transaction.use: xa =>
+         updateCommands.traverse: command =>
+           session
+             .prepare(command.cmd)
+             .flatMap: cmd =>
+             //xa.savepoint
+               cmd.execute(command.encoder(command.param))
+
+   def ax2[C, E](session: Session[Task], commandLPs: List[ExecCommand[C, E]]) =
+        commandLPs.traverse: command =>
+           session
+             .prepare(command.cmd)
+             .flatMap: cmd =>
+             //xa.savepoint
+                command.param.traverse: p =>
+                   cmd.execute(command.encoder(p))
+   def executeBatchWithTx2[A, B, C, D, E, F](postgres: Resource[Task, Session[Task]]
+                                          , commands: List[UpdateCommand[A, B]]
+                                          , insertCommands: List[InsertBatch[A, B]]
+                                          , deleteCommands: List[ExecCommand[C, F]]
+                                          , insertCommands2: List[InsertBatch[C, D]]
+                                          , commandLPs: List[ExecCommand[C, E]],
+                                         ): Unit = {
+    postgres
+      .use:
+      session =>
+        session.transaction.use: xa =>
+          ax(session, commands).*>(xy(session, deleteCommands))
+          .*>(xx(session, insertCommands))
+          .*>(xx2(session, insertCommands2))
+          .*>(ax2(session, commandLPs))
+          .recoverWith:
+             case SqlState.UniqueViolation(ex)=>
+               ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
+               xa.rollback
+             case _ =>
+                  ZIO.logInfo(s"Error:  rolling back...") *>
+                  xa.rollback
+}

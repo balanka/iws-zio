@@ -5,12 +5,15 @@ import cats.effect.Resource
 import cats.syntax.all.*
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{Transaction, TransactionDetails}
+import com.kabasoft.iws.repository.MasterfileCRUD.{UpdateCommand, InsertBatch, ExecCommand}
 import skunk.*
 import skunk.codec.all.*
 import skunk.implicits.*
 import zio.prelude.FlipOps
 import zio.stream.interop.fs2z.*
-import zio.{Task, ZIO, ZLayer}
+import zio.{Task, ZIO, ZLayer, *}
+import zio.interop.catz.*
+//import zio.{ZIO, *}
 
 import java.time.{Instant, LocalDateTime, ZoneId}
 
@@ -19,16 +22,29 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
 
   import TransactionRepositorySQL.*
 
-  override def create(c: Transaction, flag: Boolean): ZIO[Any, RepositoryError, Int] = 
-    executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+  override def create(c: Transaction): ZIO[Any, RepositoryError, Int] =
+    executeWithTx(postgres, c, insert, 1)
   override def create(list: List[Transaction]): ZIO[Any, RepositoryError, Int] =
     executeWithTx(postgres, list.map(Transaction.encodeIt), insertAll(list.size), list.size)
 
   private def createDetails(list: List[TransactionDetails]):ZIO[Any, RepositoryError, Int] =
     executeWithTx(postgres, list.map(TransactionDetails.encodeIt), insertAllDetails(list.size), list.size)
   
-  override def modify(model: Transaction):ZIO[Any, RepositoryError, Int] = create(model, false)
-  override def modify(models: List[Transaction]): ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.size)
+  override def modify(model: Transaction):ZIO[Any, RepositoryError, Int] = modify(List(model))
+  override def modify(models: List[Transaction]): ZIO[Any, RepositoryError, Int] = {
+    val newLines = models.flatMap(ftr => ftr.lines.filter(_.id == -1L).map(l => l.copy(transid = ftr.id)))
+    val deletedLine = models.flatMap(ftr => ftr.lines.filter(_.transid == -2L))
+    val deletedLineIds = deletedLine.map(line => line.id)
+    val oldLines2Update = models.flatMap(ftr => ftr.lines.filter(_.id > 0L).map(l => l.copy(transid = ftr.id)))
+    val insertDetailsCmd = TransactionRepositorySQL.insertAllDetails(newLines.length)
+    val updateDetailsCmd = TransactionRepositorySQL.UPDATE_DETAILS
+    val createDetailsCmd = InsertBatch(newLines, TransactionDetails.encodeIt, insertDetailsCmd)
+    val updateDetailsCmds = ExecCommand(oldLines2Update, TransactionDetails.encodeIt2, updateDetailsCmd)
+    val deleteDetailsCmd = ExecCommand(oldLines2Update, TransactionDetails.encodeIt3, DELETE_DETAILS)
+    val updateFtrCmd = models.map(ftr => UpdateCommand(ftr, Transaction.encodeIt2, TransactionRepositorySQL.UPDATE))
+    executeBatchWithTx2(postgres, updateFtrCmd, List.empty, List(deleteDetailsCmd), List(createDetailsCmd), List(updateDetailsCmds))
+    ZIO.succeed(newLines.size + oldLines2Update.size + deletedLine.size + 1)
+  }
   //override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Transaction]] = queryWithTx(postgres, p, ALL)
   override def getById(p: (Long, Int, String)): ZIO[Any, RepositoryError, Transaction] = queryWithTxUnique(postgres, p, BY_ID)
   override def getByModelId( p: (Int, String)): ZIO[Any, RepositoryError, List[Transaction]] = queryWithTx(postgres, p, BY_MODEL_ID)
@@ -144,30 +160,20 @@ private[repository] object TransactionRepositorySQL:
     sql"""UPDATE transaction UPDATE SET posted = true
             WHERE id =$int8 AND modelid = $int4 AND  company =$varchar
           """.command
-    
-  val upsertDetails: Command[TransactionDetails] =
-    sql"""INSERT INTO transaction_compta
-           VALUES $DetailsEncoder ON CONFLICT(id, transtid) DO UPDATE SET
-            transtid                = EXCLUDED.transtid,
-            article                 = EXCLUDED.article,
-            articleName             = EXCLUDED.articleName,
-            quantity               = EXCLUDED.quantity,
-            unit                   = EXCLUDED.unit,
-            price                   = EXCLUDED.price,
-            currency                = EXCLUDED.currency,
-            vat_code                = EXCLUDED.vat_code,
-            duedate                = EXCLUDED.duedate,
-            text                   = EXCLUDED.text
-          """.command
+
+  val UPDATE: Command[Transaction.TYPE2] =
+    sql"""UPDATE transaction
+          SET oid = $int8, store = $varchar, account = $varchar, transdate = $timestamp, text=$varchar
+          WHERE id=$int8 and modelid=$int4 and company= $varchar""".command
+
+  val UPDATE_DETAILS: Command[TransactionDetails.TYPE2] =
+    sql"""UPDATE transaction_details
+          SET transid=$int8, article = $varchar, quantity = $numeric, unit = $varchar, price = $numeric, currency = $varchar
+          , duedate = $timestamp, text=$varchar, article_name = $varchar, article_nvat_codeame = $varchar
+          WHERE id=$int8 and company= $varchar""".command
     
   private val onConflictDoNothing = sql"ON CONFLICT DO NOTHING"
 
   def DELETE: Command[(Long, Int, String)] =
     sql"DELETE FROM transaction WHERE id = $int8 AND modelid = $int4 AND company = $varchar".command
-
-//  def insertTransactionDtails(
-//                       orderNo: OrderNo,
-//                       lineItems: List[TransactionDetails]
-//                     ): Command[lineItems.type] =
-//    val es = lineItemEncoder(orderNo).list(lineItems)
-//    sql"INSERT INTO Details_compta (id, transid, account, side, oaccount, amount, duedate, text, currency, accountName, oaccountName) VALUES $es".command
+  val DELETE_DETAILS: Command[(Long, String)] = sql"DELETE FROM transaction_details WHERE id = $int8 AND company = $varchar".command
