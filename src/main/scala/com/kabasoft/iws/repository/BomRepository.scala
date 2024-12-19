@@ -8,7 +8,7 @@ import zio.stream.*
 import java.time.LocalDate
 
 trait BomRepository:
-  def create(item: Bom, flag: Boolean):ZIO[Any, RepositoryError, Int]
+  def create(item: Bom):ZIO[Any, RepositoryError, Int]
   def create(models: List[Bom]): ZIO[Any, RepositoryError, Int]
   def modify(model: Bom): ZIO[Any, RepositoryError, Int]
   def modify(models: List[Bom]): ZIO[Any, RepositoryError, Int]
@@ -18,8 +18,8 @@ trait BomRepository:
   def delete(p: (String, Int, String)): ZIO[Any, RepositoryError, Int]
 
 object BomRepository:
-  def create(item: Bom, flag: Boolean):ZIO[BomRepository, RepositoryError, Int]=
-    ZIO.serviceWithZIO[BomRepository](_.create(item, flag))
+  def create(item: Bom):ZIO[BomRepository, RepositoryError, Int]=
+    ZIO.serviceWithZIO[BomRepository](_.create(item))
   def create(models: List[Bom]): ZIO[BomRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[BomRepository](_.create(models))
   def modify(model: Bom): ZIO[BomRepository, RepositoryError, Int] =

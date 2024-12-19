@@ -19,7 +19,7 @@ final case class ImportFileRepositoryLive(postgres: Resource[Task, Session[Task]
 
   import ImportFileRepositorySQL._
 
-  override def create(c: ImportFile, flag: Boolean):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
+  override def create(c: ImportFile):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
   override def create(list: List[ImportFile]):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(ImportFile.encodeIt), insertAll(list.size), list.size)
   override def modify(model: ImportFile): ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, ImportFile.encodeIt2, UPDATE, 1)
   override def modify(models: List[ImportFile]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, ImportFile.encodeIt2)

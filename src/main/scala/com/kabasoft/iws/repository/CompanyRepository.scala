@@ -9,7 +9,7 @@ import com.kabasoft.iws.domain.AppError.RepositoryError
 import zio._
 
 trait CompanyRepository:
-  def create(item: Company, flag: Boolean):ZIO[Any, RepositoryError, Int]
+  def create(item: Company):ZIO[Any, RepositoryError, Int]
   def create(models: List[Company]):ZIO[Any, RepositoryError, Int]
   def modify(model: Company): ZIO[Any, RepositoryError, Int]
   def modify(models: List[Company]):ZIO[Any, RepositoryError, Int]
@@ -19,8 +19,8 @@ trait CompanyRepository:
   def delete(p: (String, Int)):ZIO[Any, RepositoryError, Int]
 
 object CompanyRepository:
-  def create(item: Company, flag: Boolean):ZIO[CompanyRepository, RepositoryError, Int]=
-    ZIO.serviceWithZIO[CompanyRepository](_.create(item, flag))
+  def create(item: Company):ZIO[CompanyRepository, RepositoryError, Int]=
+    ZIO.serviceWithZIO[CompanyRepository](_.create(item))
   def create(models: List[Company]): ZIO[CompanyRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[CompanyRepository](_.create(models))
   def modify(model: Company): ZIO[CompanyRepository, RepositoryError, Int] =

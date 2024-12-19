@@ -15,7 +15,7 @@ final case class BomRepositoryLive(postgres: Resource[Task, Session[Task]]) exte
 
   import BomRepositorySQL.*
 
-  override def create(c: Bom, flag: Boolean):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+  override def create(c: Bom):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
   override def create(list: List[Bom]):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(encodeIt), insertAll(list.size), list.size)
   override def modify(model: Bom):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, Bom.encodeIt2, UPDATE, 1)
   override def modify(models: List[Bom]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, Bom.encodeIt2)

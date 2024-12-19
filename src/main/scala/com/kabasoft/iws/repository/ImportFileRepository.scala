@@ -10,7 +10,7 @@ import java.time.LocalDate
 
 trait ImportFileRepository:
 
-  def create(item: ImportFile, flag: Boolean): ZIO[Any, RepositoryError, Int]
+  def create(item: ImportFile): ZIO[Any, RepositoryError, Int]
 
   def create(models: List[ImportFile]):ZIO[Any, RepositoryError, Int]
 
@@ -28,8 +28,8 @@ trait ImportFileRepository:
 
 object ImportFileRepository:
 
-  def create(item: ImportFile, flag: Boolean):ZIO[ImportFileRepository, RepositoryError, Int]=
-    ZIO.serviceWithZIO[ImportFileRepository](_.create(item, flag))
+  def create(item: ImportFile):ZIO[ImportFileRepository, RepositoryError, Int]=
+    ZIO.serviceWithZIO[ImportFileRepository](_.create(item))
 
   def create(models: List[ImportFile]): ZIO[ImportFileRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[ImportFileRepository](_.create(models))

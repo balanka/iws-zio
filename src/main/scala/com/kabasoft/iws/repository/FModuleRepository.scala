@@ -9,7 +9,7 @@ import java.time.LocalDate
 
 trait FModuleRepository:
 
-  def create(item: Fmodule, flag: Boolean): ZIO[Any, RepositoryError, Int]
+  def create(item: Fmodule): ZIO[Any, RepositoryError, Int]
 
   def create(models: List[Fmodule]):ZIO[Any, RepositoryError, Int]
 
@@ -25,8 +25,8 @@ trait FModuleRepository:
 
 object FModuleRepository:
 
-  def create(item: Fmodule, flag: Boolean):ZIO[FModuleRepository, RepositoryError, Int]=
-    ZIO.serviceWithZIO[FModuleRepository](_.create(item, flag))
+  def create(item: Fmodule):ZIO[FModuleRepository, RepositoryError, Int]=
+    ZIO.serviceWithZIO[FModuleRepository](_.create(item))
 
   def create(models: List[Fmodule]): ZIO[FModuleRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[FModuleRepository](_.create(models))

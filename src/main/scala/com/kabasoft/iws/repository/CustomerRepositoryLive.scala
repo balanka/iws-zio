@@ -19,7 +19,7 @@ final case class CustomerRepositoryLive(postgres: Resource[Task, Session[Task]]
                                         , bankAccRepo:BankAccountRepository) extends CustomerRepository, MasterfileCRUD:
     import CustomerRepositorySQL._
 
-    override def create(c: Customer, flag: Boolean):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c,  insert, 1)
+    override def create(c: Customer):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
     override def create(list: List[Customer]):ZIO[Any, RepositoryError, Int] =
       executeWithTx(postgres, list.map(Customer.encodeIt), insertAll(list.size), list.size)
     override def modify(model: Customer):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, Customer.encodeIt2, UPDATE, 1)

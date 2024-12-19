@@ -18,7 +18,7 @@ final case class ModuleRepositoryLive(postgres: Resource[Task, Session[Task]]) e
 
   import ModuleRepositorySQL.*
 
-  override def create(c: Module, flag: Boolean):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
+  override def create(c: Module ):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
   override def create(list: List[Module]):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(Module.encodeIt), insertAll(list.size), list.size)
   override def modify(model: Module):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, Module.encodeIt2, UPDATE, 1)
   override def modify(models: List[Module]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, Module.encodeIt2)

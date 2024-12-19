@@ -19,7 +19,7 @@ final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
 
   import CompanyRepositorySQL.*
 
-  override def create(c: Company, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
+  override def create(c: Company):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
 
   override def create(list: List[Company]):ZIO[Any, RepositoryError, Int]= 
     executeWithTx(postgres, list.map(Company.encodeIt), insertAll(list.size), list.size)
