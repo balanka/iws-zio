@@ -6,7 +6,7 @@ import zio._
 import zio.stream._
 
 trait VatRepository:
-  def create(item: Vat, flag: Boolean):ZIO[Any, RepositoryError, Int]
+  def create(item: Vat):ZIO[Any, RepositoryError, Int]
   def create(models: List[Vat]):ZIO[Any, RepositoryError, Int]
   def modify(model: Vat):ZIO[Any, RepositoryError, Int]
   def modify(models: List[Vat]):ZIO[Any, RepositoryError, Int]
@@ -17,8 +17,8 @@ trait VatRepository:
 
 
 object VatRepository:
-  def create(item: Vat, flag: Boolean): ZIO[VatRepository, RepositoryError, Int] =
-    ZIO.serviceWithZIO[VatRepository](_.create(item, flag))
+  def create(item: Vat): ZIO[VatRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[VatRepository](_.create(item))
 
   def create(models: List[Vat]): ZIO[VatRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[VatRepository](_.create(models))

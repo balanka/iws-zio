@@ -6,7 +6,7 @@ import zio._
 import zio.stream._
 
 trait SalaryItemRepository:
-  def create(item: SalaryItem, flag: Boolean):ZIO[Any, RepositoryError, Int]
+  def create(item: SalaryItem):ZIO[Any, RepositoryError, Int]
   def create(models: List[SalaryItem]):ZIO[Any, RepositoryError, Int]
   def modify(model: SalaryItem):ZIO[Any, RepositoryError, Int]
   def modify(models: List[SalaryItem]):ZIO[Any, RepositoryError, Int]
@@ -17,8 +17,8 @@ trait SalaryItemRepository:
 
 
 object SalaryItemRepository:
-  def create(item: SalaryItem, flag: Boolean):ZIO[SalaryItemRepository, RepositoryError, Int]=
-    ZIO.serviceWithZIO[SalaryItemRepository](_.create(item, flag))
+  def create(item: SalaryItem):ZIO[SalaryItemRepository, RepositoryError, Int]=
+    ZIO.serviceWithZIO[SalaryItemRepository](_.create(item))
   def create(models: List[SalaryItem]): ZIO[SalaryItemRepository, RepositoryError,Int] =
     ZIO.serviceWithZIO[SalaryItemRepository](_.create(models))
   def modify(model: SalaryItem): ZIO[SalaryItemRepository, RepositoryError, Int] =

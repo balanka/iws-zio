@@ -18,7 +18,7 @@ final case class UserRepositoryLive(postgres: Resource[Task, Session[Task]], rep
 
   import UserRepositorySQL._
 
-  override def create(c: User, flag: Boolean): ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
+  override def create(c: User): ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
   override def create(list: List[User]):ZIO[Any, RepositoryError, Int] =
     executeWithTx(postgres, list.map(User.encodeIt), insertAll(list.size), list.size)
   override def modify(model: User):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, User.encodeIt2, UPDATE, 1)

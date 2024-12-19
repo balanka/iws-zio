@@ -6,7 +6,7 @@ import zio._
 import zio.stream._
 
 trait StockRepository:
- def create(item: Stock, flag: Boolean): ZIO[Any, RepositoryError, Int]
+ def create(item: Stock): ZIO[Any, RepositoryError, Int]
  def create(models: List[Stock]):ZIO[Any, RepositoryError, Int]
  def modify(model: Stock):ZIO[Any, RepositoryError, Int]
  def modify(models: List[Stock]):ZIO[Any, RepositoryError, Int]
@@ -18,8 +18,8 @@ trait StockRepository:
 
 object StockRepository:
 
-  def create(item: Stock, flag: Boolean): ZIO[StockRepository, RepositoryError, Int] =
-    ZIO.serviceWithZIO[StockRepository](_.create(item, flag))
+  def create(item: Stock): ZIO[StockRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[StockRepository](_.create(item))
     
   def create(models: List[Stock]): ZIO[StockRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[StockRepository](_.create(models))

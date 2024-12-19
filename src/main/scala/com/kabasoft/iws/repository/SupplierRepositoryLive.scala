@@ -17,7 +17,7 @@ final case class SupplierRepositoryLive(postgres: Resource[Task, Session[Task]]
                                         , bankAccRepo:BankAccountRepository) extends SupplierRepository, MasterfileCRUD:
   import SupplierRepositorySQL._
 
-  override def create(c: Supplier, flag: Boolean):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
+  override def create(c: Supplier):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
   override def create(list: List[Supplier]):ZIO[Any, RepositoryError, Int] =
     executeWithTx(postgres, list.map(Supplier.encodeIt), insertAll(list.size), list.size)
   

@@ -10,7 +10,7 @@ import java.time.LocalDate
 
 trait SupplierRepository:
 
-  def create(item: Supplier, flag: Boolean):ZIO[Any, RepositoryError, Int]
+  def create(item: Supplier):ZIO[Any, RepositoryError, Int]
 
   def create(models: List[Supplier]):ZIO[Any, RepositoryError, Int]
 
@@ -30,8 +30,8 @@ trait SupplierRepository:
 
 object SupplierRepository:
 
-  def create(item: Supplier, flag: Boolean): ZIO[SupplierRepository, RepositoryError, Int] =
-    ZIO.serviceWithZIO[SupplierRepository](_.create(item, flag))
+  def create(item: Supplier): ZIO[SupplierRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[SupplierRepository](_.create(item))
 
   def create(models: List[Supplier]): ZIO[SupplierRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[SupplierRepository](_.create(models))

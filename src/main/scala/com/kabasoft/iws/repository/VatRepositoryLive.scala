@@ -18,7 +18,7 @@ final class VatRepositoryLive(postgres: Resource[Task, Session[Task]]) extends V
 
   import VatRepositorySQL._
 
-  override def create(c: Vat, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
+  override def create(c: Vat):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
   override def create(list: List[Vat]):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(Vat.encodeIt), insertAll(list.size), list.size)
   override def modify(model: Vat):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, Vat.encodeIt2, UPDATE, 1)
   override def modify(models: List[Vat]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, Vat.encodeIt2)

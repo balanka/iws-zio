@@ -20,7 +20,7 @@ final case class StockRepositoryLive(postgres: Resource[Task, Session[Task]]) ex
 
   import StockRepositorySQL._
 
-  override def create(c: Stock, flag: Boolean): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+  override def create(c: Stock): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
 
   override def create(list: List[Stock]):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(Stock.encodeIt), insertAll(list.size), list.size)
  

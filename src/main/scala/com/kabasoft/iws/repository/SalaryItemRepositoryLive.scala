@@ -18,7 +18,7 @@ final case class SalaryItemRepositoryLive(postgres: Resource[Task, Session[Task]
 
   import SalaryItemRepositorySQL.*
 
-  override def create(c: SalaryItem, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+  override def create(c: SalaryItem):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
 
   override def create(list: List[SalaryItem]):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(SalaryItem.encodeIt), insertAll(list.size), list.size)
   

@@ -6,7 +6,7 @@ import zio._
 import zio.stream._
 
 trait UserRepository:
-  def create(item: User, flag: Boolean):ZIO[Any, RepositoryError, Int]
+  def create(item: User):ZIO[Any, RepositoryError, Int]
   def create(models: List[User]):ZIO[Any, RepositoryError, Int]
   def modify(model: User):ZIO[Any, RepositoryError, Int]
   def modify(models: List[User]):ZIO[Any, RepositoryError, Int]
@@ -18,8 +18,8 @@ trait UserRepository:
   def delete(p: (String, Int, String)): ZIO[Any, RepositoryError, Int]
 
 object UserRepository:
-  def create(item: User, flag: Boolean): ZIO[UserRepository, RepositoryError, Int] =
-    ZIO.serviceWithZIO[UserRepository](_.create(item, flag))
+  def create(item: User): ZIO[UserRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[UserRepository](_.create(item))
 
   def create(models: List[User]): ZIO[UserRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[UserRepository](_.create(models))
