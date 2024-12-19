@@ -52,22 +52,19 @@ private[repository] object AccountRepositorySQL:
            FROM   account """
   
   def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Account] =
-    sql"""
-           SELECT id, name, description, enterdate, changedate, postingdate, company, modelid, account, is_debit, balancesheet, currency, idebit, icredit, debit, credit
+    sql"""SELECT id, name, description, enterdate, changedate, postingdate, company, modelid, account, is_debit, balancesheet, currency, idebit, icredit, debit, credit
            FROM   account
            WHERE id  IN ${varchar.list(nr)} AND  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val BY_ID: Query[String *: Int *: String *: EmptyTuple, Account] =
-    sql"""
-           SELECT id, name, description, enterdate, changedate, postingdate, company, modelid, account, is_debit, balancesheet, currency, idebit, icredit, debit, credit
+    sql""" SELECT id, name, description, enterdate, changedate, postingdate, company, modelid, account, is_debit, balancesheet, currency, idebit, icredit, debit, credit
            FROM   account
            WHERE id = $varchar AND modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val ALL: Query[Int *: String *: EmptyTuple, Account] =
-    sql"""
-           SELECT id, name, description, enterdate, changedate, postingdate, company, modelid, account, is_debit, balancesheet, currency, idebit, icredit, debit, credit
+    sql"""SELECT id, name, description, enterdate, changedate, postingdate, company, modelid, account, is_debit, balancesheet, currency, idebit, icredit, debit, credit
            FROM   account
            WHERE  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
@@ -82,21 +79,7 @@ private[repository] object AccountRepositorySQL:
           SET name = $varchar, description = $varchar, account = $varchar, is_debit=$bool
           , balancesheet= $bool, currency =$varchar
           WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
-    
-  val upsert: Command[Account] =
-    sql"""INSERT INTO account
-           VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET
-           id                     = EXCLUDED.id,
-           name                   = EXCLUDED.name,
-           description            = EXCLUDED.description,
-            account               = EXCLUDED.parent,
-            enterdate             = EXCLUDED.enterdate,
-            changedate            = EXCLUDED.changedate,
-            postingdate           = EXCLUDED.postingdate,
-            company               = EXCLUDED.company,
-            modelid               = EXCLUDED.modelid,
-          """.command
-    
+
   private val onConflictDoNothing = sql"ON CONFLICT DO NOTHING"
   
   def DELETE: Command[(String, Int, String)] =
