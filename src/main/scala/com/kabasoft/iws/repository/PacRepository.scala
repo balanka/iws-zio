@@ -7,7 +7,7 @@ import zio.stream._
 
 trait PacRepository:
 
-  def create(item: PeriodicAccountBalance, flag: Boolean):ZIO[Any, RepositoryError, Int]
+  def create(item: PeriodicAccountBalance):ZIO[Any, RepositoryError, Int]
 
   def create(models: List[PeriodicAccountBalance]):ZIO[Any, RepositoryError, Int]
 
@@ -30,8 +30,8 @@ trait PacRepository:
 
 
 object PacRepository:
-  def create(item: PeriodicAccountBalance, flag: Boolean): ZIO[PacRepository, RepositoryError, Int] =
-    ZIO.serviceWithZIO[PacRepository](_.create(item, flag))
+  def create(item: PeriodicAccountBalance): ZIO[PacRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[PacRepository](_.create(item))
 
   def create(models: List[PeriodicAccountBalance]): ZIO[PacRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[PacRepository](_.create(models))

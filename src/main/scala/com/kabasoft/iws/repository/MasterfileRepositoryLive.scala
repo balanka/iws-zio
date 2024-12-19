@@ -15,7 +15,7 @@ final case class MasterfileRepositoryLive(postgres: Resource[Task, Session[Task]
 
   import MasterfileRepositorySQL._
   
-  override def create(c: Masterfile, flag: Boolean): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
+  override def create(c: Masterfile): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
   override def create(list: List[Masterfile]): ZIO[Any, RepositoryError, Int] = 
                          executeWithTx(postgres, list.map(Masterfile.encodeIt), insertAll(list.size), list.size)
   override def modify(model: Masterfile): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, Masterfile.encodeIt2, UPDATE, 1)

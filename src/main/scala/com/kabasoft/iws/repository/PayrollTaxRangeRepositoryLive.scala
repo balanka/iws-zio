@@ -17,9 +17,9 @@ final case  class PayrollTaxRangeRepositoryLive(postgres: Resource[Task, Session
 
   import PayrollTaxRangeRepositorySQL._
 
-  override def create(c: PayrollTaxRange, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+  override def create(c: PayrollTaxRange):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
   override def create(list: List[PayrollTaxRange]):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(PayrollTaxRange.encodeIt), insertAll(list.size), list.size)
-  override def modify(model: PayrollTaxRange):ZIO[Any, RepositoryError, Int] = create(model, true)
+  override def modify(model: PayrollTaxRange):ZIO[Any, RepositoryError, Int] = create(model)
   override def modify(models: List[PayrollTaxRange]):ZIO[Any, RepositoryError, Int] = models.map(modify).flip.map(_.sum)
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[PayrollTaxRange]] = queryWithTx(postgres, p, ALL)
   override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, PayrollTaxRange] = queryWithTxUnique(postgres, p, BY_ID)

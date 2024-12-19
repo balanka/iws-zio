@@ -9,7 +9,7 @@ import zio.stream.*
 import java.time.LocalDate
 
 trait MasterfileRepository:
-  def create(item: Masterfile, flag: Boolean): ZIO[Any, RepositoryError, Int]
+  def create(item: Masterfile): ZIO[Any, RepositoryError, Int]
   def create(models: List[Masterfile]): ZIO[Any, RepositoryError, Int]
   def modify(model: Masterfile): ZIO[Any, RepositoryError, Int]
   def modify(models: List[Masterfile]):ZIO[Any, RepositoryError, Int]
@@ -19,8 +19,8 @@ trait MasterfileRepository:
   def delete(p: (String, Int, String)): ZIO[Any, RepositoryError, Int]
 
 object MasterfileRepository:
-  def create(item: Masterfile, flag: Boolean):ZIO[MasterfileRepository, RepositoryError, Int]=
-    ZIO.serviceWithZIO[MasterfileRepository](_.create(item, flag).mapError(e => RepositoryError(e.message)))
+  def create(item: Masterfile):ZIO[MasterfileRepository, RepositoryError, Int]=
+    ZIO.serviceWithZIO[MasterfileRepository](_.create(item).mapError(e => RepositoryError(e.message)))
   def create(models: List[Masterfile]): ZIO[MasterfileRepository, RepositoryError,Int] =
     ZIO.serviceWithZIO[MasterfileRepository](_.create(models).mapError(e => RepositoryError(e.message)))
   def modify(model: Masterfile): ZIO[MasterfileRepository, RepositoryError, Int] =

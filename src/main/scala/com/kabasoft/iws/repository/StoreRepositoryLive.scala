@@ -22,7 +22,7 @@ final case class StoreRepositoryLive(postgres: Resource[Task, Session[Task]]) ex
 
   import StoreRepositorySQL._
 
-  override def create(c: Store, flag: Boolean):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, if (flag) upsert else insert, 1)
+  override def create(c: Store):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
   override def create(list: List[Store]):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(encodeIt), insertAll(list.size), list.size)
   override def modify(model: Store):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, Store.encodeIt2, UPDATE, 1)
   override def modify(models: List[Store]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, Store.encodeIt2)

@@ -17,7 +17,7 @@ final case class PacRepositoryLive(postgres: Resource[Task, Session[Task]]) exte
 
   import PacRepositorySQL._
 
-  override def create(c: PeriodicAccountBalance, flag: Boolean):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
+  override def create(c: PeriodicAccountBalance):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
 
   override def create(list: List[PeriodicAccountBalance]):ZIO[Any, RepositoryError, Int] =
     executeWithTx(postgres, list.map(PeriodicAccountBalance.encodeIt), insertAll(list.size), list.size)

@@ -17,7 +17,7 @@ final case class PermissionRepositoryLive(postgres: Resource[Task, Session[Task]
 
   import PermissionRepositorySQL.*
 
-  override def create(c: Permission, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
+  override def create(c: Permission):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
   override def create(list: List[Permission]):ZIO[Any, RepositoryError, Int] =
      executeWithTx(postgres, list.map(Permission.encodeIt), insertAll(list.size), list.size)
   override def modify(model: Permission):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, Permission.encodeIt2, UPDATE, 1)

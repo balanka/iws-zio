@@ -359,7 +359,8 @@ def execPreparedCommand[A, B](postgres: Resource[Task, Session[Task]], params:Li
       .use:
       session =>
         session.transaction.use: xa =>
-          ax(session, commands).*>(xy(session, deleteCommands))
+          ax(session, commands)
+          .*>(xy(session, deleteCommands))
           .*>(xx(session, insertCommands))
           .*>(xx2(session, insertCommands2))
           .*>(ax2(session, commandLPs))

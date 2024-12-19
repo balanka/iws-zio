@@ -6,7 +6,7 @@ import zio._
 import zio.stream._
 
 trait PayrollTaxRangeRepository:
-  def create(item: PayrollTaxRange, flag: Boolean):ZIO[Any, RepositoryError, Int]
+  def create(item: PayrollTaxRange):ZIO[Any, RepositoryError, Int]
   def create(models: List[PayrollTaxRange]):ZIO[Any, RepositoryError, Int]
   def modify(model: PayrollTaxRange):ZIO[Any, RepositoryError, Int]
   def modify(models: List[PayrollTaxRange]):ZIO[Any, RepositoryError, Int]
@@ -16,8 +16,8 @@ trait PayrollTaxRangeRepository:
   def delete(p: (String, Int, String)): ZIO[PayrollTaxRangeRepository, RepositoryError, Int]
 
 object PayrollTaxRangeRepository:
-  def create(item: PayrollTaxRange, flag: Boolean): ZIO[PayrollTaxRangeRepository, RepositoryError, Int] =
-    ZIO.serviceWithZIO[PayrollTaxRangeRepository](_.create(item, flag))
+  def create(item: PayrollTaxRange): ZIO[PayrollTaxRangeRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[PayrollTaxRangeRepository](_.create(item))
 
   def create(models: List[PayrollTaxRange]): ZIO[PayrollTaxRangeRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[PayrollTaxRangeRepository](_.create(models))

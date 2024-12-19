@@ -6,7 +6,7 @@ import zio._
 import zio.stream._
 
 trait JournalRepository:
-  def create(item: Journal, flag: Boolean): ZIO[Any, RepositoryError, Int]
+  def create(item: Journal): ZIO[Any, RepositoryError, Int]
   def create(models: List[Journal]): ZIO[Any, RepositoryError, Int]
   def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Journal]]
   def getById(Id: (Long, String)): ZIO[Any, RepositoryError, Journal]
@@ -16,8 +16,8 @@ trait JournalRepository:
 
 object JournalRepository:
 
-  def create(item: Journal, flag: Boolean): ZIO[JournalRepository, RepositoryError, Int]               =
-    ZIO.serviceWithZIO[JournalRepository](_.create(item, flag))
+  def create(item: Journal): ZIO[JournalRepository, RepositoryError, Int]               =
+    ZIO.serviceWithZIO[JournalRepository](_.create(item))
   def create(items: List[Journal]): ZIO[JournalRepository, RepositoryError, Int]         =
     ZIO.serviceWithZIO[JournalRepository](_.create(items))
   

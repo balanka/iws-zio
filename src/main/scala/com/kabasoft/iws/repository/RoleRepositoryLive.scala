@@ -18,7 +18,7 @@ final case class RoleRepositoryLive(postgres: Resource[Task, Session[Task]]) ext
 
   import RoleRepositorySQL._
 
-  override def create(c: Role, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
+  override def create(c: Role):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
   override def create(list: List[Role]):ZIO[Any, RepositoryError, Int] =
     executeWithTx(postgres, list.map(Role.encodeIt), insertAll(list.size), list.size)
   override def modify(model: Role):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, Role.encodeIt2, UPDATE, 1)

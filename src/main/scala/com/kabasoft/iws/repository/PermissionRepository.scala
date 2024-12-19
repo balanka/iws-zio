@@ -10,7 +10,7 @@ import java.time.LocalDate
 
 trait PermissionRepository:
 
-  def create(item: Permission, flag: Boolean): ZIO[Any, RepositoryError, Int]
+  def create(item: Permission): ZIO[Any, RepositoryError, Int]
 
   def create(models: List[Permission]):ZIO[Any, RepositoryError, Int]
 
@@ -26,8 +26,8 @@ trait PermissionRepository:
 
 object PermissionRepository:
 
-  def create(item: Permission, flag: Boolean):ZIO[PermissionRepository, RepositoryError, Int]=
-    ZIO.serviceWithZIO[PermissionRepository](_.create(item, flag))
+  def create(item: Permission):ZIO[PermissionRepository, RepositoryError, Int]=
+    ZIO.serviceWithZIO[PermissionRepository](_.create(item))
 
   def create(models: List[Permission]): ZIO[PermissionRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[PermissionRepository](_.create(models))

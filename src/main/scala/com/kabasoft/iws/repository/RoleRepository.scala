@@ -6,7 +6,7 @@ import zio.*
 import zio.stream.*
 
 trait RoleRepository:
-  def create(item: Role, flag: Boolean): ZIO[Any, RepositoryError, Int]
+  def create(item: Role): ZIO[Any, RepositoryError, Int]
   def create(models: List[Role]):ZIO[Any, RepositoryError, Int]
   def modify(model: Role):ZIO[Any, RepositoryError, Int]
   def modify(models: List[Role]):ZIO[Any, RepositoryError, Int]
@@ -19,8 +19,8 @@ trait RoleRepository:
   def delete(p: (Int, Int, String)): ZIO[Any, RepositoryError, Int]
   
 object RoleRepository:
-    def create(item: Role, flag: Boolean): ZIO[RoleRepository, RepositoryError, Int] =
-      ZIO.serviceWithZIO[RoleRepository](_.create(item, flag))
+    def create(item: Role): ZIO[RoleRepository, RepositoryError, Int] =
+      ZIO.serviceWithZIO[RoleRepository](_.create(item))
     def create(models: List[Role]): ZIO[RoleRepository, RepositoryError, Int] =
       ZIO.serviceWithZIO[RoleRepository](_.create(models))
     def modify(model: Role): ZIO[RoleRepository, RepositoryError, Int] =

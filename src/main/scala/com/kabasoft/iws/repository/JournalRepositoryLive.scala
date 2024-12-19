@@ -19,7 +19,7 @@ final case class JournalRepositoryLive(postgres: Resource[Task, Session[Task]]) 
 
   import JournalRepositorySQL._
   
-  override def create(c: Journal, flag: Boolean = true):ZIO[Any, RepositoryError, Int]=executeWithTx(postgres, c, insert, 1)
+  override def create(c: Journal):ZIO[Any, RepositoryError, Int]=executeWithTx(postgres, c, insert, 1)
   override def create(list: List[Journal]):ZIO[Any, RepositoryError, Int] =
     executeWithTx(postgres, list.map(Journal.encodeIt), insertAll(list.size), list.size)
   override def all(p: (Int, String)):ZIO[Any, RepositoryError, List[Journal]] = queryWithTx(postgres, p, ALL)
