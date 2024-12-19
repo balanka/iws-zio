@@ -57,7 +57,7 @@ object SupplierEndpoint:
   val createSupplierRoute =
     mCreate.implement: (m,_) =>
       ZIO.logInfo(s"Insert supplier  ${m}") *>
-        SupplierRepository.create(m, true)
+        SupplierRepository.create(m)
 
   val supplierAllRoute =
     mAll.implement : p =>

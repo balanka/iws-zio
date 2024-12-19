@@ -19,7 +19,7 @@ final case class AccountRepositoryLive(postgres: Resource[Task, Session[Task]]) 
 
   import AccountRepositorySQL._
 
-  override def create(c: Account, flag: Boolean): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
+  override def create(c: Account): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
   override def create(list: List[Account]): ZIO[Any, RepositoryError, Int] =  executeWithTx(postgres, list.map(Account.encodeIt), insertAll(list.size), list.size)
   override def modify(model: Account): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, Account.encodeIt2, UPDATE, 1)
   override def modify(models: List[Account]): ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, Account.encodeIt2)

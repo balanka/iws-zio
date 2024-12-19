@@ -4,7 +4,7 @@ import com.kabasoft.iws.domain.AppError.RepositoryError
 import zio.*
 
 trait AccountRepository:
-  def create(item: Account, flag: Boolean):ZIO[Any, RepositoryError, Int]
+  def create(item: Account):ZIO[Any, RepositoryError, Int]
   def create(models: List[Account]):ZIO[Any, RepositoryError, Int]
   def modify(model: Account):ZIO[Any, RepositoryError, Int]
   def modify(models: List[Account]):ZIO[Any, RepositoryError, Int]
@@ -15,8 +15,8 @@ trait AccountRepository:
 
 object AccountRepository:
 
-  def create(item: Account, flag: Boolean):ZIO[AccountRepository, RepositoryError, Int]=
-    ZIO.serviceWithZIO[AccountRepository](_.create(item, flag))
+  def create(item: Account):ZIO[AccountRepository, RepositoryError, Int]=
+    ZIO.serviceWithZIO[AccountRepository](_.create(item))
 
   def create(models: List[Account]): ZIO[AccountRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[AccountRepository](_.create(models))

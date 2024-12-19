@@ -72,7 +72,7 @@ object AccountEndpoint:
   val accountCreateRoute =
     mCreate.implement: (m, _) =>
       ZIO.logInfo(s"Insert an account  ${m}")
-        *>  AccountRepository.create(m, true)
+        *>  AccountRepository.create(m)
 
   val accountAllRoute =
     mAll.implement: p =>

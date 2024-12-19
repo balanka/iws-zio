@@ -66,7 +66,7 @@ object AssetEndpoint:
   val createRoute =
     mCreate.implement: (m, _) =>
       ZIO.logInfo(s"Insert asset  ${m}") *>
-        AssetRepository.create(m, true)
+        AssetRepository.create(m)
 
   val mAllRoute =
     mAll.implement: p =>

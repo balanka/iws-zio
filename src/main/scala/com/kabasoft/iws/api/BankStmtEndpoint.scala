@@ -81,7 +81,7 @@ object BankStmtEndpoint:
   val createRoute =
     mCreate.implement: (m, _) =>
       ZIO.logInfo(s"Insert bank statement  ${m}") *>
-        BankStatementRepository.create(m, true)
+        BankStatementRepository.create(m)
 
   val mAllRoute =
     mAll.implement: p =>

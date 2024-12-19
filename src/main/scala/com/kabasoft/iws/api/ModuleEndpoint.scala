@@ -57,7 +57,7 @@ object ModuleEndpoint:
   val createRoute =
     mCreate.implement: (m, _) =>
       ZIO.logInfo(s"Insert module  ${m}") *>
-        ModuleRepository.create(m, true)
+        ModuleRepository.create(m)
 
   val mAllRoute =
     mAll.implement: p =>

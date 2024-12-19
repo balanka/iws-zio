@@ -57,7 +57,7 @@ object MasterfileEndpoint:
   val masterfileCreateRoute =
     mCreate.implement: (m,_) =>
       ZIO.logInfo(s"Insert masterfile  ${m}") *>
-        MasterfileRepository.create(m, true)
+        MasterfileRepository.create(m)
 
   val masterfileAllRoute =
     mAll.implement : p =>

@@ -19,7 +19,7 @@ final case class EmployeeRepositoryLive(postgres: Resource[Task, Session[Task]]
                                         , accRepo:AccountRepository) extends EmployeeRepository, MasterfileCRUD:
     import EmployeeRepositorySQL._
 
-    override def create(c: Employee, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
+    override def create(c: Employee):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
 
     override def create(list: List[Employee]):ZIO[Any, RepositoryError, Int] =
       executeWithTx(postgres, list.map(Employee.encodeIt), insertAll(list.size), list.size)

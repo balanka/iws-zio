@@ -72,7 +72,7 @@ object UserEndpoint:
   val createUserRoute =
     userCreate.implement: (m, _) =>
       ZIO.logInfo(s"Insert user  ${m}") *>
-        UserRepository.create(m, true)
+        UserRepository.create(m)
 
   val allUserRoute =
     userAll.implement: p =>

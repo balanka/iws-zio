@@ -56,7 +56,7 @@ object PermissionEndpoint:
   val createStoreRoute =
     mCreate.implement: (m,_) =>
       ZIO.logInfo(s"Insert permissiom  ${m}") *>
-        PermissionRepository.create(m, true)
+        PermissionRepository.create(m)
 
   val allPermRoute =
     mAll.implement : p =>

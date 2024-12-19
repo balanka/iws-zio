@@ -5,7 +5,7 @@ import com.kabasoft.iws.domain.Asset
 import zio.*
 
 trait AssetRepository:
-  def create(item: Asset, flag: Boolean): ZIO[Any, RepositoryError, Int]
+  def create(item: Asset): ZIO[Any, RepositoryError, Int]
   def create(models: List[Asset]): ZIO[Any, RepositoryError, Int]
   def modify(model: Asset): ZIO[Any, RepositoryError, Int]
   def modify(models: List[Asset]): ZIO[Any, RepositoryError, Int]
@@ -16,8 +16,8 @@ trait AssetRepository:
 
 object AssetRepository:
 
-  def create(item: Asset, flag: Boolean): ZIO[AssetRepository, RepositoryError, Int] =
-    ZIO.serviceWithZIO[AssetRepository](_.create(item, flag))
+  def create(item: Asset): ZIO[AssetRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[AssetRepository](_.create(item))
 
   def create(models: List[Asset]): ZIO[AssetRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[AssetRepository](_.create(models))

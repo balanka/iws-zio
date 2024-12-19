@@ -57,7 +57,7 @@ object StoreEndpoint:
   val createStoreRoute =
     mCreate.implement: (m,_) =>
       ZIO.logInfo(s"Insert store  ${m}") *>
-        StoreRepository.create(m, true)
+        StoreRepository.create(m)
 
   val storeAllRoute =
     mAll.implement : p =>

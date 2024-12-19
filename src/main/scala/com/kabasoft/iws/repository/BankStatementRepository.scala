@@ -5,7 +5,7 @@ import com.kabasoft.iws.domain.{BankStatement, FinancialsTransaction}
 import zio.*
 
 trait BankStatementRepository:
-  def create(item: BankStatement, flag: Boolean):ZIO[Any, RepositoryError, Int]
+  def create(item: BankStatement):ZIO[Any, RepositoryError, Int]
   def create(models: List[BankStatement]):ZIO[Any, RepositoryError, Int]
   def modify(model: BankStatement):ZIO[Any, RepositoryError, Int]
   def modify(models: List[BankStatement]):ZIO[Any, RepositoryError, Int]
@@ -17,8 +17,8 @@ trait BankStatementRepository:
 
 object BankStatementRepository:
 
-  def create(item: BankStatement, flag: Boolean):ZIO[BankStatementRepository, RepositoryError, Int]=
-    ZIO.serviceWithZIO[BankStatementRepository](_.create(item, flag))
+  def create(item: BankStatement):ZIO[BankStatementRepository, RepositoryError, Int]=
+    ZIO.serviceWithZIO[BankStatementRepository](_.create(item))
 
   def create(models: List[BankStatement]): ZIO[BankStatementRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[BankStatementRepository](_.create(models))

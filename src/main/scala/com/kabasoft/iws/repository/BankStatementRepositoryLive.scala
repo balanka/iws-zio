@@ -22,7 +22,7 @@ final case  class BankStatementRepositoryLive(postgres: Resource[Task, Session[T
 
   import BankStatementRepositorySQL.*
 
-  override def create(c: BankStatement, flag: Boolean):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
+  override def create(c: BankStatement):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
   override def create(list: List[BankStatement]):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, 
     list.map(BankStatement.encodeIt), insertAll(list.size), list.size)
   override def modify(model: BankStatement):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, BankStatement.encodeIt2, UPDATE, 1)

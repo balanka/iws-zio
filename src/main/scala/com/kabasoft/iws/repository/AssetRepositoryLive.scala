@@ -16,7 +16,7 @@ import java.time.{Instant, LocalDateTime, ZoneId}
 final case class AssetRepositoryLive(postgres: Resource[Task, Session[Task]]) extends AssetRepository, MasterfileCRUD:
     import AssetRepositorySQL.*
 
-    override def create(c: Asset, flag: Boolean): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
+    override def create(c: Asset): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
     override def create(list: List[Asset]):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(Asset.encodeIt), insertAll(list.size), list.size)
     override def modify(model: Asset):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, Asset.encodeIt2, UPDATE, 1)
     override def modify(models: List[Asset]):ZIO[Any, RepositoryError, Int]= executeBatchWithTxK(postgres, models, UPDATE, Asset.encodeIt2)

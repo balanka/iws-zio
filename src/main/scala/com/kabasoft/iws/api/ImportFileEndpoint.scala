@@ -57,7 +57,7 @@ object ImportFileEndpoint:
   val createImportFileRoute =
     mCreate.implement: (m,_) =>
       ZIO.logInfo(s"Insert store  ${m}") *>
-        ImportFileRepository.create(m, true)
+        ImportFileRepository.create(m)
 
   val importFileAllRoute =
     mAll.implement : p =>

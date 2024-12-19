@@ -57,7 +57,7 @@ object CustomerEndpoint:
   val customerCreateRoute =
     customerCreate.implement: (m, _) =>
       ZIO.logInfo(s"Insert customer  ${m}") *>
-        CustomerRepository.create(m, true)
+        CustomerRepository.create(m)
 
   val customerAllRoute =
     customerAll.implement: p =>

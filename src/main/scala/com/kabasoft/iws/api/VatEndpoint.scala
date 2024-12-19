@@ -56,7 +56,7 @@ object VatEndpoint:
   val createRoute =
     vatCreate.implement: (m,_) =>
       ZIO.logInfo(s"Insert vat  ${m}") *>
-        VatRepository.create(m, true)
+        VatRepository.create(m)
 
   val mAllRoute =
     vatAll.implement : p =>

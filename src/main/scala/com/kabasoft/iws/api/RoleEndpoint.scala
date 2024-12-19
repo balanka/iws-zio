@@ -57,7 +57,7 @@ object RoleEndpoint:
   val creatRoleRoute =
     mCreate.implement: (m, _) =>
       ZIO.logInfo(s"Insert role  ${m}") *>
-        RoleRepository.create(m, true)
+        RoleRepository.create(m)
 
   val roleAllRoute =
     mAll.implement: p =>

@@ -79,7 +79,7 @@ object PayrollTaxRangeEndpoint:
   val createPayrollTaxRoute =
     mCreate.implement: (m, _) =>
       ZIO.logInfo(s"Insert payroll tax   ${m}") *>
-        PayrollTaxRangeRepository.create(m, true)
+        PayrollTaxRangeRepository.create(m)
 
   val payrollTaxAllRoute =
     mAll.implement: p =>

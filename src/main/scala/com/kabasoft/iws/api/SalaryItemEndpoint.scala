@@ -57,7 +57,7 @@ object SalaryItemEndpoint:
   val createStoreRoute =
     mCreate.implement: (m, _) =>
       ZIO.logInfo(s"Insert salary item  ${m}") *>
-        SalaryItemRepository.create(m, true)
+        SalaryItemRepository.create(m)
 
   val storeAllRoute =
     mAll.implement: p =>

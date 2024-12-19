@@ -57,7 +57,7 @@ object EmployeeEndpoint:
   val createEmployeeRoute =
     mCreate.implement: (m,_) =>
       ZIO.logInfo(s"Insert employee  ${m}") *>
-        EmployeeRepository.create(m, true)
+        EmployeeRepository.create(m)
 
   val employeeAllRoute =
     mAll.implement : p =>

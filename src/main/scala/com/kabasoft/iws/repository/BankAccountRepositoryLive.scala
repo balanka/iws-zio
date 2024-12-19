@@ -16,7 +16,7 @@ final case class BankAccountRepositoryLive(postgres: Resource[Task, Session[Task
 
   import BankAccountRepositorySQL.*
 
-  override def create(c: BankAccount, flag: Boolean):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
+  override def create(c: BankAccount):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
   override def create(list: List[BankAccount]):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(BankAccount.encodeIt), insertAll(list.size), list.size)
   override def modify(model: BankAccount):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, BankAccount.encodeIt2, UPDATE, 1)
   override def modify(models: List[BankAccount]):ZIO[Any, RepositoryError, Int]= executeBatchWithTxK(postgres, models, UPDATE, BankAccount.encodeIt2)
