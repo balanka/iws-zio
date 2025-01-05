@@ -13,7 +13,7 @@ val skunkVersion              = "0.6.4"
 val zioPreludeVersion         = "1.0.0-RC35"
 val zioInteropCatsVersion = "23.1.0.3"
 val catsVersion           = "2.12.0"
-val catsEffectVersion     = "3.5.6"
+val catsEffectVersion     = "3.5.7"
 
 
 ThisBuild / resolvers +=
@@ -39,7 +39,7 @@ lazy val root = (project in file("."))
         name         := "iws-skunk",
         organization := "KABA Soft GmbH",
         version      := "1.4.0",
-         scalaVersion := "3.6.1"
+         scalaVersion := "3.6.2"
       )
     ),
     name           := "iws-zio",
