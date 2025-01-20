@@ -38,7 +38,7 @@ lazy val root = (project in file("."))
       List(
         name         := "iws-skunk",
         organization := "KABA Soft GmbH",
-        version      := "1.4.0",
+        version      := "1.5.2",
          scalaVersion := "3.6.2"
       )
     ),
