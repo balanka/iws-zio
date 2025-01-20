@@ -4,7 +4,7 @@ import java.math.BigDecimal
 import java.time.Instant
 
 object AccountBuilder {
-  val companyId ="1000"
+  val companyId ="-1000"
   //val paccountId = "9999"
   val paccountId0 = "9900"
   val paccountId1 = "9901"

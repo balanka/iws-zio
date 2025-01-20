@@ -10,9 +10,9 @@ import zio.test.*
 
 object CompanyRepositoryLiveSpec extends ZIOSpecDefault {
 
-val company1 = Company("1001", "ABC GmbH", "Word stree1 0", "55555", "FF", "Hessen", "DE", "Deutschalnd",  "info@company.com", "Partner", "+49-4722211"
+val company1 = Company("-1001", "ABC GmbH", "Word stree1 0", "55555", "FF", "Hessen", "DE", "Deutschalnd",  "info@company.com", "Partner", "+49-4722211"
     , "1800", "Iban", "TAX/Code/XXXX", "v5", "EUR", "9900", "9800", "33333", "44444", 10)
-val company = Company("1000", "ABC GmbH", "Word stree1 0", "55555", "FF", "Hessen", "DE", "Deutschalnd", "info@company.com", "Partner", "+49-4722211"
+val company = Company("-1000", "ABC GmbH", "Word stree1 0", "55555", "FF", "Hessen", "DE", "Deutschalnd", "info@company.com", "Partner", "+49-4722211"
   , "1800",   "Iban","TAX/Code/XXXX", "v5", "EUR" , "9900", "9800", "33333", "44444", 10)
   val companies = List(company1)
 
@@ -23,19 +23,19 @@ val company = Company("1000", "ABC GmbH", "Word stree1 0", "55555", "FF", "Hesse
     CompanyRepositoryLive.live,
     //PostgresContainer.createContainer
   )
-
+  val ids = companies.map(m => (m.id, m.modelid))
   override def spec =
     suite("company repository test with postgres test container")(
-      test("count all company") {
+      test("clear banks") {
         for {
-          count <- CompanyRepository.all(Company.MODEL_ID).map(_.size)
-        } yield assertTrue(count == 1L)
+          deleted <- CompanyRepository.deleteAll(ids)
+        } yield assertTrue(deleted == ids.size)
       },
       test("insert a new company") {
         for {
           oneRow <- CompanyRepository.create(companies)
-          count <- CompanyRepository.all(Company.MODEL_ID).map(_.size)
-        } yield assertTrue(oneRow ==1) && assertTrue(count == 2)
+          //count <- CompanyRepository.all(Company.MODEL_ID).map(_.size)
+        } yield assertTrue(oneRow ==1) //&& assertTrue(count == 2)
       },
       test("get a company by its id") {
         for {

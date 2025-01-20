@@ -6,13 +6,12 @@ import zio.test.TestAspect.*
 import com.kabasoft.iws.domain.{Bank, Masterfile}
 import com.kabasoft.iws.repository.container.PostgresContainer
 import com.kabasoft.iws.repository.container.PostgresContainer.appResourcesL
-
 import java.time.Instant
 import zio.ZLayer
 
 object BankRepositoryLiveSpec extends ZIOSpecDefault {
 
- val company ="1000"
+ val company ="-1000"
   val id = "4712"
   val name = "MyBank"
 
@@ -27,14 +26,19 @@ object BankRepositoryLiveSpec extends ZIOSpecDefault {
     MasterfileRepositoryLive.live,
     //PostgresContainer.createContainer
   )
-
+  val banksIds: List[(String, Int, String)] = banks.map(acc => (acc.id, acc.modelid, acc.company))
   override def spec =
     suite("Bank repository test with postgres test container")(
+      test("clear banks") {
+          for {
+            deleted <- MasterfileRepository.deleteAll(banksIds)
+          } yield assertTrue(deleted == banksIds.size)
+        },
       test("insert two new banks") {
         for {
           oneRow <- MasterfileRepository.create(banks)
           count <- MasterfileRepository.all((Bank.MODEL_ID, company)).map(_.size)
-        } yield assertTrue(oneRow == 2) && assertTrue(count == 4L)
+        } yield assertTrue(oneRow == 2) && assertTrue(count == 2)
       },
       test("get a Bank by its id") {
         for {
