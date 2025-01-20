@@ -14,6 +14,7 @@ trait BankAccountRepository:
   def getById(Id: (String, Int, String)):ZIO[Any, RepositoryError, BankAccount]
   def getBy(ids: List[String], modelid: Int, company: String):ZIO[Any, RepositoryError, List[BankAccount]]
   def delete(p: (String, Int, String)): ZIO[Any, RepositoryError, Int]
+  def deleteAll(p: List[(String, Int, String)]): ZIO[Any, RepositoryError, Int]
 
 object BankAccountRepository:
 
@@ -40,6 +41,8 @@ object BankAccountRepository:
 
   def getBy(ids: List[String], modelid: Int, company: String): ZIO[BankAccountRepository, RepositoryError, List[BankAccount]]=
     ZIO.serviceWithZIO[BankAccountRepository](_.getBy(ids, modelid, company))
-
   def delete(p: (String, Int, String)): ZIO[BankAccountRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[BankAccountRepository](_.delete(p))
+    
+  def deleteAll(p:List[(String, Int, String)]): ZIO[BankAccountRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[BankAccountRepository](_.deleteAll(p))
