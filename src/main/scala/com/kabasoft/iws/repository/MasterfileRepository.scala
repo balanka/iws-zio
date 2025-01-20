@@ -17,6 +17,7 @@ trait MasterfileRepository:
   def getById(Id: (String, Int, String)): ZIO[Any, RepositoryError, Masterfile]
   def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Masterfile]]
   def delete(p: (String, Int, String)): ZIO[Any, RepositoryError, Int]
+  def deleteAll(p: List[(String, Int, String)]): ZIO[Any, RepositoryError, Int]
 
 object MasterfileRepository:
   def create(item: Masterfile):ZIO[MasterfileRepository, RepositoryError, Int]=
@@ -35,3 +36,5 @@ object MasterfileRepository:
     ZIO.serviceWithZIO[MasterfileRepository](_.getBy(ids, modelid, company).mapError(e => RepositoryError(e.message)))
   def delete(p: (String, Int, String)): ZIO[MasterfileRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[MasterfileRepository](_.delete(p).mapError(e => RepositoryError(e.message)))
+  def deleteAll(p: List[(String, Int, String)]): ZIO[MasterfileRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[MasterfileRepository](_.deleteAll(p))  

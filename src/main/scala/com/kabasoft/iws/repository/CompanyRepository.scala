@@ -17,7 +17,8 @@ trait CompanyRepository:
   def getById(Id: (String, Int)): ZIO[Any, RepositoryError, Company]
   def getBy(ids: List[String], modelid: Int): ZIO[Any, RepositoryError, List[Company]]
   def delete(p: (String, Int)):ZIO[Any, RepositoryError, Int]
-
+  def deleteAll(p:List[(String, Int)]): ZIO[Any, RepositoryError, Int]
+  
 object CompanyRepository:
   def create(item: Company):ZIO[CompanyRepository, RepositoryError, Int]=
     ZIO.serviceWithZIO[CompanyRepository](_.create(item))
@@ -35,5 +36,7 @@ object CompanyRepository:
     ZIO.serviceWithZIO[CompanyRepository](_.getBy(ids, modelid))
   def delete(p: (String, Int)): ZIO[CompanyRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[CompanyRepository](_.delete(p))
+  def deleteAll(p: List[(String, Int)]): ZIO[CompanyRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[CompanyRepository](_.deleteAll(p))  
 
 

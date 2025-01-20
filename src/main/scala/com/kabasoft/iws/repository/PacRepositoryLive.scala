@@ -97,23 +97,14 @@ object PacRepositorySQL:
            WHERE  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
-  val insert: Command[PeriodicAccountBalance] = sql"""INSERT INTO periodic_account_balance VALUES $mfEncoder """.command
+  val insert: Command[PeriodicAccountBalance] =
+    sql"""INSERT INTO periodic_account_balance 
+         (id , account, period, idebit, icredit, debit, credit, currency, company, name, modelid) VALUES $mfEncoder """.command
 
   def insertAll(n:Int): Command[List[PeriodicAccountBalance.TYPE]] =
-    sql"INSERT INTO periodic_account_balance VALUES ${mfCodec.values.list(n)}".command
-
-  val upsert: Command[PeriodicAccountBalance] =
-    sql"""INSERT INTO periodic_account_balance
-           VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET
-           account                = EXCLUDED.account,
-           name                   = EXCLUDED.name,
-           idebit                 = EXCLUDED.idebit,
-            icredit               = EXCLUDED.icredit,
-            debit                 = EXCLUDED.debit,
-            credit                = EXCLUDED.credit,
-          """.command
-
-
+    sql"""INSERT INTO periodic_account_balance 
+         (id , account, period, idebit, icredit, debit, credit, currency, company, name, modelid)
+          VALUES ${mfCodec.values.list(n)}""".command
   
   val UPDATE: Command[BigDecimal *: BigDecimal *: BigDecimal *: BigDecimal *: String *: Int *: String *:EmptyTuple] =
     sql"""UPDATE periodic_account_balance

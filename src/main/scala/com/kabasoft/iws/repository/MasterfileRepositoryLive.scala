@@ -7,6 +7,7 @@ import skunk.codec.all.*
 import skunk.implicits.*
 import zio.stream.interop.fs2z.*
 import zio.{Task, ZIO, ZLayer}
+import zio.prelude.FlipOps
 import com.kabasoft.iws.domain.Masterfile
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import java.time.{Instant, LocalDateTime, ZoneId}
@@ -24,8 +25,9 @@ final case class MasterfileRepositoryLive(postgres: Resource[Task, Session[Task]
   override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, Masterfile] = queryWithTxUnique(postgres, p, BY_ID)
   override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Masterfile]] =
       queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
-  
-  def delete(p: (String, Int, String)): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
+  override def delete(p: (String, Int, String)): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
+  override def deleteAll(p: List[(String, Int, String)]): ZIO[Any, RepositoryError, Int] = p.map(l => executeWithTx(postgres, l, DELETE, 1)).flip.map(_.size)
+    //executeWithTx[ List[(String, Int, String)]](postgres, p, DELETE_ALL(p.size), p.size)
 
 object MasterfileRepositoryLive:
  
@@ -37,7 +39,7 @@ private[repository] object MasterfileRepositorySQL:
   type TYPE = (String, String, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int)
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
-
+ 
   private val mfCodec =
     (varchar(50) *: varchar(255) *: varchar(255) *: varchar *: timestamp *: timestamp *: timestamp *: varchar *: int4)
   
@@ -72,28 +74,21 @@ private[repository] object MasterfileRepositorySQL:
            WHERE  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
-  val insert: Command[Masterfile] = sql"INSERT INTO masterfile VALUES $mfEncoder".command
-  def insertAll(n:Int):Command[List[TYPE]]= sql"INSERT INTO masterfile VALUES ${mfCodec.values.list(n)}".command
+  val insert: Command[Masterfile] =
+    sql"""INSERT INTO masterfile (id, name, description, parent, enterdate,changedate,postingdate, company, modelid )
+         VALUES $mfEncoder""".command
+    
+  def insertAll(n:Int):Command[List[TYPE]]= sql"""INSERT INTO 
+           masterfile (id, name, description, parent, enterdate,changedate,postingdate, company, modelid ) 
+           VALUES ${mfCodec.values.list(n)}""".command
+  
   val UPDATE: Command[Masterfile.TYPE2] =
     sql"""UPDATE masterfile
           SET name = $varchar, description = $varchar, parent = $varchar
           WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
 
-  val upsert: Command[Masterfile] =
-    sql"""INSERT INTO masterfile
-           VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET
-           id                     = EXCLUDED.id,
-           name                   = EXCLUDED.name,
-           description            = EXCLUDED.description,
-            parent                = EXCLUDED.parent,
-            enterdate             = EXCLUDED.enterdate,
-            changedate            = EXCLUDED.changedate,
-            postingdate           = EXCLUDED.postingdate,
-            company               = EXCLUDED.company,
-            modelid               = EXCLUDED.modelid,
-          """.command
-    
-  private val onConflictDoNothing = sql"ON CONFLICT DO NOTHING"
-  
   def DELETE: Command[(String, Int, String)] =
     sql"DELETE FROM masterfile WHERE id = $varchar AND modelid = $int4 AND company = $varchar".command
+
+  def DELETE_ALL(nr:Int): Command[(List[String], Int, String)] =
+    sql"DELETE FROM masterfile WHERE id IN ${varchar.list(nr)} AND modelid = $int4 AND company = $varchar".command

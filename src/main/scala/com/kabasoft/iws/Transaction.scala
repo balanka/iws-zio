@@ -13,11 +13,17 @@ import skunk.implicits._
 // a data type
 case class Pet(name: String, age: Short)
 
-// a service interface
-trait PetService[F[_]] {
-  def tryInsertAll(pets: List[Pet]): F[Unit]
-  def selectAll: F[List[Pet]]
+trait PetService[F[_], A] {
+  def tryInsertAll(pets: List[A]): F[Unit]
+  def selectAll: F[List[A]]
 }
+
+//trait PetService = IService[E, Pet]
+// a service interface
+//trait PetService1[F[_]] {
+//  def tryInsertAll(pets: List[Pet]): F[Unit]
+//  def selectAll: F[List[Pet]]
+//}
 
 // a companion with a constructor
 object PetService {
@@ -39,32 +45,36 @@ object PetService {
       .to[Pet]
 
   // construct a PetService, preparing our statement once on construction
-  def fromSession(s: Session[IO]): IO[PetService[IO]] =
-    s.prepare(insertOne).map { pc =>
-      new PetService[IO] {
+  def fromSession(s: Session[IO]): IO[PetService[IO, Pet]] =
+     s.prepare(insertOne).map { pc =>
+      new PetService[IO, Pet] {
 
         // Attempt to insert all pets, in a single transaction, handling each in turn and rolling
         // back to a savepoint if a unique violation is encountered. Note that a bulk insert with an
         // ON CONFLICT clause would be much more efficient, this is just for demonstration.
         def tryInsertAll(pets: List[Pet]): IO[Unit] =
-          s.transaction.use { xa =>
-            pets.foldMapA { p =>
-              for {
-                _  <- IO.println(s"Trying to insert $p")
-                sp <- xa.savepoint
-                res  <- pc.execute(p).recoverWith {
-                  case SqlState.UniqueViolation(ex) =>
-                    IO.println(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
-                      xa.rollback(sp)
-                }.as(1)
-              } yield res
+          //s.prepare(insertOne).map { pc =>
+            s.transaction.use { xa =>
+              pets.foldMapA { p =>
+                for {
+                  _ <- IO.println(s"Trying to insert $p")
+                  sp <- xa.savepoint
+                  _ <- pc.execute(p).recoverWith {
+                    case SqlState.UniqueViolation(ex) =>
+                      IO.println(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
+                        xa.rollback(sp)
+                  }
+                } yield ()
+              }
             }
-          }
+        
+        def selectAll: IO[List[Pet]] =  s.execute(all)
 
-        def selectAll: IO[List[Pet]] = s.execute(all)
+//        def updateOne(age:Short, name:String):IO[Unit] = for {
+//          _ <- s.prepare(updateOne).execute(age, name)//.updateOne //pc.execute(updateOne(age, name))
+//            } yield ()
       }
     }
-
 }
 
 object TransactionExample extends IOApp {
@@ -106,7 +116,7 @@ object TransactionExample extends IOApp {
   }
 
   // A resource that puts it all together.
-  val resource: Resource[IO, PetService[IO]] =
+  val resource: Resource[IO, PetService[IO, Pet]] =
     for {
       s  <- session
       _  <- withPetsTable(s)
@@ -127,7 +137,7 @@ object TransactionExample extends IOApp {
     resource.use { ps =>
       for {
         _   <- ps.tryInsertAll(pets)
-        //_   <- ps.updateOne()
+       // _   <- ps.updateOne()
         all <- ps.selectAll
         _   <- all.traverse_(p => IO.println(p))
       } yield ExitCode.Success

@@ -47,7 +47,7 @@ private[repository] object StoreRepositorySQL:
   private val mfCodec =
     (varchar *: varchar *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: varchar *: int4)
 
-  private[repository] def encodeIt(st: Store): TYPE =
+  def encodeIt(st: Store): TYPE =
     (
       st.id,
       st.name,

@@ -107,7 +107,12 @@ object TransactionLogRepositorySQL:
            WHERE store =$varchar AND  article =$varchar AND period between $int4 AND $int4 AND company = $varchar
            """.query(mfDecoder)
     
-  val insert: Command[TransactionLog] = sql"""INSERT INTO transaction_log VALUES $mfEncoder """.command
+  val insert: Command[TransactionLog] = 
+    sql"""INSERT INTO transaction_log (id, transid, oid, store, account, article, quantity, stock, wholeStock, unit
+                            ,  price, avgPrice, currency, duedate, text, transdate, postingdate, enterdate
+                            , period, company, modelid) VALUES $mfEncoder """.stripMargin.command
 
   def insertAll(n: Int): Command[List[TransactionLog.TYPE]] =
-    sql"INSERT INTO transaction_log VALUES ${mfCodec.values.list(n)}".command
+    sql"""INSERT INTO transaction_log (id, transid, oid, store, account, article, quantity, stock, wholeStock, unit
+          ,  price, avgPrice, currency, duedate, text, transdate, postingdate, enterdate, period, company, modelid) 
+          VALUES ${mfCodec.values.list(n)}""".command

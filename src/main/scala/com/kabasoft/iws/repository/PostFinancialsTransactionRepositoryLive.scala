@@ -5,9 +5,11 @@ import cats.syntax.all.*
 import cats.*
 import skunk.*
 import skunk.codec.all.*
+import cats.syntax.all.*
 import skunk.implicits.*
 import zio.prelude.{FlipOps, Identity}
 import zio.stream.interop.fs2z.*
+import zio.interop.catz.*
 import zio.{Task, UIO, ZIO, ZLayer}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import MasterfileCRUD.{UpdateCommand, InsertBatch}
@@ -15,46 +17,34 @@ import com.kabasoft.iws.domain.{FinancialsTransaction, Journal, PeriodicAccountB
 
 final case class PostFinancialsTransactionRepositoryLive(postgres: Resource[Task, Session[Task]]) extends
                 PostFinancialsTransactionRepository, MasterfileCRUD:
-
-  private def createPacs4T(models: List[PeriodicAccountBalance]): ZIO[Any, RepositoryError, Int] =
-    val cmd = PacRepositorySQL.insertAll(models.length)
-    val cmds = InsertBatch(models, PeriodicAccountBalance.encodeIt, cmd)
-    executeBatchWithTx(postgres, List.empty, List(cmds))
-    ZIO.succeed(models.size)
-
-  private def createJ4T(models: List[Journal]): ZIO[Any, RepositoryError, Int] =
-    val cmd = JournalRepositorySQL.insertAll(models.length)
-    val cmds = InsertBatch(models, Journal.encodeIt, cmd)
-    executeBatchWithTx(postgres, List.empty, List(cmds))
-    ZIO.succeed(models.size)
-
-  private def modifyPacs4T(models: List[PeriodicAccountBalance]): ZIO[Any, RepositoryError, Int] =
-    execPreparedCommand(postgres, models, PeriodicAccountBalance.encodeIt2, List(PacRepositorySQL.UPDATE))
-
+  
   def delete(p:(Long, Int, String)): ZIO[Any, RepositoryError, Int] =
     executeWithTx(postgres, p, FinancialsTransactionRepositorySQL.DELETE, 1)
+  
+  def transact(s: Session[Task], models: List[FinancialsTransaction], pac2Insert: List[PeriodicAccountBalance]
+               , pac2update: List[PeriodicAccountBalance], journals: List[Journal]): Task[Unit] =
+    s.transaction.use: xa =>
+      s.prepareR(PacRepositorySQL.insert).use: pciPac =>
+        s.prepareR(PacRepositorySQL.UPDATE).use: pcuPac =>
+          s.prepareR(JournalRepositorySQL.insert).use: pciJour =>
+            s.prepareR(FinancialsTransactionRepositorySQL.updatePosted).use: pcuFTr =>
+              tryExec2(xa, pciPac, pciJour, pcuPac, pcuFTr, pac2Insert, journals
+                , pac2update.map(PeriodicAccountBalance.encodeIt2), models.map(FinancialsTransaction.encodeIt3))
 
   override def post(models: List[FinancialsTransaction], pac2Insert: List[PeriodicAccountBalance], pac2update: UIO[List[PeriodicAccountBalance]],
-                    journals: List[Journal]): ZIO[Any, RepositoryError, Int] = for {
-    pac2updatex <- pac2update
-    _ <- ZIO.logInfo(s" New Pacs  to insert into DB ${pac2Insert}")
-    _ <- ZIO.logInfo(s" Old Pacs  to update in DB ${pac2updatex}")
-    _ <- ZIO.logInfo(s" journals  ${journals}")
-    _ <- ZIO.logInfo(s" Transaction posted  ${models}")
-    z = ZIO.when(models.nonEmpty)(updatePostedField4T(models))
-      .zipWith(ZIO.when(pac2Insert.nonEmpty)(createPacs4T(pac2Insert)))((i1, i2) => i1.getOrElse(0) + i2.getOrElse(0))
-      .zipWith(ZIO.when(pac2updatex.nonEmpty)(modifyPacs4T(pac2updatex)))((i1, i2) => i1 + i2.getOrElse(0))
-      .zipWith(ZIO.when(journals.nonEmpty)(createJ4T(journals)))((i1, i2) => i1 + i2.getOrElse(0))
-    nr <- z.mapError(e => {
-      ZIO.logDebug(s" Error >>>>>>>  ${e.toString}")
-      RepositoryError(e.toString)
-    })
-  } yield nr
-
-  private def updatePostedField4T(models: List[FinancialsTransaction]): ZIO[Any, Exception, Int] =
-    val cmds = models.map(model => UpdateCommand(model, FinancialsTransaction.encodeIt3, FinancialsTransactionRepositorySQL.updatePosted))
-    executeBatchWithTx(postgres, cmds, List.empty)
-    ZIO.succeed(models.size)
+                    journals: List[Journal]): ZIO[Any, RepositoryError, Int] = 
+      for {
+          pac2updatex <- pac2update
+                    _ <- ZIO.logInfo(s" New Pacs  to insert into DB ${pac2Insert}")
+                    _ <- ZIO.logInfo(s" Old Pacs  to update in DB ${pac2updatex}")
+                    _ <- ZIO.logInfo(s" journals  ${journals}")
+                    _ <- ZIO.logInfo(s" Transaction posted  ${models}")
+                    nr <-   (postgres
+                              .use:
+                                  session =>
+                                  transact(session, models, pac2Insert, pac2updatex, journals))
+                              .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)
+     } yield nr
 
 object PostFinancialsTransactionRepositoryLive:
     val live: ZLayer[Resource[Task, Session[Task]], Throwable, PostFinancialsTransactionRepository] =

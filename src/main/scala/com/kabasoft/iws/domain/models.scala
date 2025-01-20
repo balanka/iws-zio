@@ -4,7 +4,7 @@ import com.kabasoft.iws.domain.AccountClass.dummy
 import com.kabasoft.iws.domain.ImportFile.MODELID
 
 import java.util.Locale
-import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
+import java.time.{Instant, LocalDate, LocalDateTime, OffsetDateTime, ZoneId}
 import zio.prelude.*
 import zio.stm.*
 import zio.{UIO, *}
@@ -585,7 +585,7 @@ object Account {
 
   val dummy: Account = Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", Account.MODELID, ""
     , false, false, "EUR", zeroAmount, zeroAmount, zeroAmount, zeroAmount, Nil.toSet)
-
+  
   def encodeIt(acc: Account): Account_Tyoe3 =
     (
       acc.id,
@@ -736,7 +736,7 @@ final case class Masterfile(id: String,
                              modelid: Int,
                              company: String
                            ) extends IWS
-object Masterfile:
+object Masterfile: 
   type TYPE=(String, String, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int)
   type TYPE2=(String, String, String, String, Int, String)
   def encodeIt(st: Masterfile):TYPE =
@@ -1657,17 +1657,17 @@ final case class Transaction(id: Long,
   def duplicate: Transaction = copy(oid = id, id = 0, posted = false)
 }
  object Transaction:
-  type TYPE = (Long, Long, Long, String, String, LocalDateTime, LocalDateTime, LocalDateTime, Int, Boolean, Int, String, String)
+  type TYPE = (Long, Long, String, String, OffsetDateTime, OffsetDateTime, OffsetDateTime, Int, Boolean, Int, String, String)
   type TYPE2= (Long, String, String, LocalDateTime, String, Long, Int, String)
   type TYPE3 = (Long, Int, String)
   private type Transaction_Type =
     (Long, Long, Long, String, String, Instant, Instant, Instant, Int, Boolean, Int, String, String)
   def apply(tr: Transaction_Type): Transaction =
     new Transaction(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11, tr._12, tr._13, Nil)
-  def encodeIt(st: Transaction): TYPE = (st.id, st.oid, st.id1, st.store, st.account
-      , st.transdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
-      , st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
-      , st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
+  def encodeIt(st: Transaction): TYPE = (st.oid, st.id1, st.store, st.account
+      , st.transdate.atZone(ZoneId.of("Europe/Paris")).toOffsetDateTime
+      , st.enterdate.atZone(ZoneId.of("Europe/Paris")).toOffsetDateTime
+      , st.postingdate.atZone(ZoneId.of("Europe/Paris")).toOffsetDateTime
       , st.period, st.posted, st.modelid, st.company, st.text)
 
    def encodeIt2(st: Transaction): TYPE2 =
@@ -1711,7 +1711,6 @@ final case class FinancialsTransaction(
   def month: String = common.getMonthAsString(transdate)
   def year: Int     = common.getYear(transdate)
   def getPeriod: Int = common.getPeriod(transdate)
-
   def total: BigDecimal = lines.map(_.amount) reduce ((l1, l2) => l2.add(l1).setScale(2, RoundingMode.HALF_UP))
   def cancel: FinancialsTransaction = copy(oid = id, id = 0, posted = false, lines=lines.map(line=>line.copy( amount = line.amount.negate())))
   def duplicate: FinancialsTransaction = copy(oid = id, id = 0, posted = false)
@@ -1720,8 +1719,9 @@ final case class FinancialsTransaction(
 //account = $int8, side = $bool, oaccount = $varchar, amount = $numeric, duedate = $timestamp, text=$varchar, currency = $varchar
 object FinancialsTransactionDetails:
   val dummy  = FinancialsTransactionDetails(0, 0, "", true, "", zeroAmount, Instant.now(), "", "EUR", "", "", "")
-  type D_TYPE=(Long, Long, String, Boolean, String, scala.math.BigDecimal, LocalDateTime, String, String, String, String, String)
+  type D_TYPE = (Long, Long, String, Boolean, String, scala.math.BigDecimal, LocalDateTime, String, String, String, String, String)
   type TYPE2 = (String, Boolean, String, scala.math.BigDecimal, LocalDateTime, String, String, String, String, Long, String)
+  type D_TYPE4 = (Long, String, Boolean, String, scala.math.BigDecimal, LocalDateTime, String, String, String, String, String)
   
   implicit val monoid: Identity[FinancialsTransactionDetails] =
     new Identity[FinancialsTransactionDetails]:
@@ -1731,6 +1731,11 @@ object FinancialsTransactionDetails:
 
   def encodeIt(dt: FinancialsTransactionDetails): D_TYPE =
     (dt.id, dt.transid, dt.account, dt.side, dt.oaccount, dt.amount
+      , dt.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
+      , dt.text, dt.currency, dt.company, dt.accountName, dt.oaccountName)
+    
+  def encodeIt4(dt: FinancialsTransactionDetails): D_TYPE4 =
+    (dt.transid, dt.account, dt.side, dt.oaccount, dt.amount
       , dt.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
       , dt.text, dt.currency, dt.company, dt.accountName, dt.oaccountName)
 

@@ -51,7 +51,7 @@ object IwsApp extends ZIOAppDefault {
 
   implicit val clock: Clock = Clock.systemUTC
   val env: util.Map[String, String] = System.getenv()
-  //println("env>>>" + env)
+  println("env>>>" + env)
   val hostName: String =  if(env.get("IWS_API_HOST") == null|| env.get("IWS_API_HOST").isEmpty) "0.0.0.0" else env.get("IWS_API_HOST")
   val port: Int =  if(env.get("IWS_API_PORT") == null||env.get("IWS_API_PORT").trim.isEmpty) 8080 else env.get("IWS_API_PORT").toInt
   println("hostName>>> " + hostName + " hostport >>>" + port)

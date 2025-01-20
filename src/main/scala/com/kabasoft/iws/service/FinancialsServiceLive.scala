@@ -49,7 +49,6 @@ final class FinancialsServiceLive(pacRepo: PacRepository
     val model = transaction.copy(period = common.getPeriod(transaction.transdate))
     val pacids = buildPacIds(model)
     for {
-
       pacs <- pacRepo.getBy(pacids, PeriodicAccountBalance.MODELID, company).map(_.filterNot(_.id.equals(PeriodicAccountBalance.dummy.id)))
       newRecords = PeriodicAccountBalance.create(model).filterNot(pac => pacs.map(_.id).contains(pac.id))
         .groupBy(_.id) map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy)}

@@ -12,9 +12,7 @@ import zio.interop.catz.*
 import zio.stream.interop.fs2z.*
 import zio.{Task, ZIO, ZLayer}
 import MasterfileCRUD.{ExecCommand, InsertBatch, UpdateCommand}
-
 import java.time.{Instant, LocalDateTime, ZoneId}
-
 
 final case  class BankStatementRepositoryLive(postgres: Resource[Task, Session[Task]]
                                               , ftrRepo: FinancialsTransactionRepository)
@@ -34,47 +32,21 @@ final case  class BankStatementRepositoryLive(postgres: Resource[Task, Session[T
 
   def delete(p: (Long, Int, String)):ZIO[Any, RepositoryError, Int]=  executeWithTx(postgres, p, DELETE, 1)
   
-  override def post(bs: List[BankStatement], models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =  for {
-    (createTransactionCmd, createDetailsCmd) <- ftrRepo.buildCreate(models)
-    } yield {
-    val bsCmds = bs.map(e => UpdateCommand(e, BankStatement.encode, POST_BANK_STATEMENT))
-    executeBatchWithTx2(postgres, bsCmds, List(createTransactionCmd), List(createDetailsCmd))
-    models.map(_.lines.size).sum + bs.size + models.length
-  }
-
-  def executeBatchWithTx2[A, B, C, D, E, F](postgres: Resource[Task, Session[Task]]
-                                            , commands: List[UpdateCommand[E, F]]
-                                            , insertCommands: List[InsertBatch[A, B]]
-                                            , insertCommands2: List[InsertBatch[C, D]]
-                                           ): Unit =
+  private def transact(s: Session[Task], models: List[FinancialsTransaction], oldmodels: List[BankStatement]): Task[Unit] =
+      s.transaction.use: xa =>
+        s.prepareR(FinancialsTransactionRepositorySQL.insert).use: pciMaster =>
+          s.prepareR(UPDATE).use: pcuMaster =>
+            s.prepareR(FinancialsTransactionRepositorySQL.insertDetails).use: pciDetails =>
+              s.prepareR(FinancialsTransactionRepositorySQL.UPDATE_DETAILS).use: pcuDetails =>
+                tryExec(xa, pciMaster, pciDetails, pcuMaster, pcuDetails
+                  , models, models.flatMap(_.lines).map(FinancialsTransactionDetails.encodeIt4)
+                  , oldmodels.map(BankStatement.encodeIt2), List.empty)
+                
+  override def post(bs: List[BankStatement], models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =
     postgres
       .use: session =>
-        session.transaction.use: xa =>
-          commands.traverse(command =>
-            session
-              .prepare(command.cmd)
-              .flatMap: cmd =>
-                xa.savepoint
-                cmd.execute(command.encoder(command.param))).*>
-          insertCommands.traverse(command =>
-            session
-              .prepare(command.cmd)
-              .flatMap: cmd =>
-                xa.savepoint
-                cmd.execute(command.param.map(command.encoder))).*>
-          insertCommands2.traverse(command =>
-            session
-              .prepare(command.cmd)
-              .flatMap: cmd =>
-                xa.savepoint
-                cmd.execute(command.param.map(command.encoder)))
-            .recoverWith:
-              case SqlState.UniqueViolation(ex) =>
-                ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
-                  xa.rollback
-              case _ =>
-                ZIO.logInfo(s"Error:  rolling back...") *>
-                  xa.rollback
+          transact(session, models, bs)
+      .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size )  
 
 object BankStatementRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]] & FinancialsTransactionRepository, Throwable, BankStatementRepository] =

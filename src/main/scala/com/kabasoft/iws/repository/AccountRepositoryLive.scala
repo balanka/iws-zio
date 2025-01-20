@@ -28,6 +28,7 @@ final case class AccountRepositoryLive(postgres: Resource[Task, Session[Task]]) 
   override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Account]] =
     queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
   override def delete(p: (String, Int, String)): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
+  override def deleteAll(p: List[(String, Int, String)]): ZIO[Any, RepositoryError, Int] = p.map(l => executeWithTx(postgres, l, DELETE, 1)).flip.map(_.size)
 
 object AccountRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]], RepositoryError, AccountRepository] =
@@ -54,7 +55,7 @@ private[repository] object AccountRepositorySQL:
   def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Account] =
     sql"""SELECT id, name, description, enterdate, changedate, postingdate, company, modelid, account, is_debit, balancesheet, currency, idebit, icredit, debit, credit
            FROM   account
-           WHERE id  IN ${varchar.list(nr)} AND  modelid = $int4 AND company = $varchar
+           WHERE id  IN (${varchar.list(nr)}) AND  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val BY_ID: Query[String *: Int *: String *: EmptyTuple, Account] =
@@ -69,10 +70,16 @@ private[repository] object AccountRepositorySQL:
            WHERE  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
-  val insert: Command[Account] = sql"""INSERT INTO account VALUES $mfEncoder """.command
+  val insert: Command[Account] =
+    sql"""INSERT INTO account
+          (id, name, description, enterdate, postingdate, changedate, company, modelid, account,is_debit, balancesheet
+          , currency, idebit, icredit, debit, credit )
+          VALUES $mfEncoder """.command
 
   def insertAll(n:Int): Command[List[Account.TYPE]] =
-    sql"INSERT INTO account VALUES ${mfCodec.values.list(n)}".command
+    sql"""INSERT INTO account (id, name, description, enterdate, postingdate, changedate, company, modelid, account,is_debit, balancesheet
+  , currency, idebit, icredit, debit, credit )
+  VALUES ${mfCodec.values.list(n)}""".command
 
   val UPDATE: Command[Account.TYPE2] =
     sql"""UPDATE account
