@@ -56,6 +56,31 @@ trait MasterfileCRUD:
               xa.rollback(sp))
     yield ()
 
+  def tryExec[A, B, C, D, E, F](xa: Transaction[Task], pciCustomer: PreparedCommand[Task, A]
+                          , pciBankAcc: PreparedCommand[Task, B]
+                          , pcuCustomer: PreparedCommand[Task, C]
+                          , pcuBankAcc: PreparedCommand[Task, D]
+                          , pcdCustomer: PreparedCommand[Task, E]
+                          , pcdBankAcc: PreparedCommand[Task, F]
+                          , customers: List[A], newBankaccounts: List[B]
+                          , oldCustomers: List[C], oldBankaccounts: List[D]
+                          , customer2Delete: List[E], bankacc2Delete: List[F] ): Task[Unit] =
+
+    for
+      _ <- ZIO.logInfo(s"Trying to insert $customers")
+      _ <- ZIO.logInfo(s"Trying to uodate $oldCustomers")
+      sp <- xa.savepoint
+      _ <- exec(pciCustomer, customers) *>
+        exec(pciBankAcc, newBankaccounts) *>
+        exec(pcuCustomer, oldCustomers) *>
+        exec(pcuBankAcc, oldBankaccounts) *>
+        exec(pcdCustomer, customer2Delete) *>
+        exec(pcdBankAcc, bankacc2Delete)
+          .handleErrorWith(ex =>
+            ZIO.logInfo(s"Unique violation: ${ex.getMessage}, rolling back...") *>
+              xa.rollback(sp))
+    yield ()
+
   def tryExec2[A, B, C, D](xa: Transaction[Task], pciPac: PreparedCommand[Task, A]
                            , pciJour: PreparedCommand[Task, B]
                            , pcuPac: PreparedCommand[Task, C]
@@ -200,22 +225,7 @@ trait MasterfileCRUD:
       }
       .mapBoth(e => e, _ => p.size)  
 
-    
-  def executeWithTxa[A](session:  Session[Task], xa:Transaction[Task], p: A, comd: Command[A], size: Int): Task[Int] =
-          session
-            .prepare(comd)
-            .flatMap: cmd =>
-              xa.savepoint
-              cmd.execute(p).recoverWith:
-                case SqlState.UniqueViolation(ex) =>
-                  ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
-                    xa.rollback
-                case _ =>
-                  ZIO.logInfo(s"Error:  rolling back...") *>
-                    xa.rollback
-          .mapBoth(e => e, _ => size)
   
-
   def executeWithTx[A, B](postgres: Resource[Task, Session[Task]], p: A, encoder: A => B, comd: Command[B], size: Int): ZIO[Any, RepositoryError, Int] =
     ZIO.logInfo(s"Executing: $comd with param ${encoder(p)}") *>
       postgres
@@ -259,7 +269,7 @@ trait MasterfileCRUD:
         _ <- pc.execute(p)
       yield ()
     }
-
+  
   def exec[T](pc: PreparedCommand[Task, T], list: List[T]): Task[Unit] =
     list.traverse_ { p =>
       for

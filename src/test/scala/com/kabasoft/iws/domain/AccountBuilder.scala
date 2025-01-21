@@ -1,5 +1,6 @@
 package com.kabasoft.iws.domain
 
+
 import java.math.BigDecimal
 import java.time.Instant
 

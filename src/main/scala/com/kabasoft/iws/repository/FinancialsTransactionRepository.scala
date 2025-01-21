@@ -33,6 +33,7 @@ trait FinancialsTransactionRepository:
   def getBy(ids: List[Long], modelid: Int, company: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]]
 
   def delete(p: (Long, Int, String)): ZIO[Any, RepositoryError, Int]
+  def deleteAll(p: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int]
 
   // def delete(Ids:(List[Long], Int,  String)): Task[List[(Long, Int, String)]]
 
@@ -67,24 +68,17 @@ object FinancialsTransactionRepository:
 //    , (InsertBatch[FinancialsTransaction, FinancialsTransaction.TYPE]
 //    , InsertBatch[FinancialsTransactionDetails, FinancialsTransactionDetails.D_TYPE])]=
 //    ZIO.serviceWithZIO[FinancialsTransactionRepository](_.buildCreate(models))
-
   def delete(id: Long, modelid: Int, company: String): ZIO[FinancialsTransactionRepository, RepositoryError, Int] =
-    ZIO.serviceWithZIO[FinancialsTransactionRepository](_.delete(id, modelid, company))
-
-  //  def delete(Ids:(List[Long], Int,  String)): ZIO[FinancialsTransactionRepository, RepositoryError, List[(Long, Int, String)]]            =
-  //    ZIO.foreach(ids)(delete(_, modelid, company)).mapError(e=>RepositoryError(e.getMessage))
-//  def details(p: (List[Long], String)): ZIO[FinancialsTransactionRepository, RepositoryError, List[FinancialsTransactionDetails]]=
-//    ZIO.serviceWithZIO[FinancialsTransactionRepository](_.details(p))
-    
+      ZIO.serviceWithZIO[FinancialsTransactionRepository](_.delete(id, modelid, company))
+  
+  def deleteAll(p: List[FinancialsTransaction]): ZIO[FinancialsTransactionRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[FinancialsTransactionRepository](_.deleteAll(p))
   def all(Id: (Int, String)): ZIO[FinancialsTransactionRepository, RepositoryError, List[FinancialsTransaction]] =
     ZIO.serviceWithZIO[FinancialsTransactionRepository](_.all(Id))
-
   def getByTransId(id: (Long, String)): ZIO[FinancialsTransactionRepository, RepositoryError, FinancialsTransaction] =
     ZIO.serviceWithZIO[FinancialsTransactionRepository](_.getByTransId(id))
-
   def getBy(ids: List[Long], modelid: Int, companyId: String): ZIO[FinancialsTransactionRepository, RepositoryError, List[FinancialsTransaction]] =
     ZIO.serviceWithZIO[FinancialsTransactionRepository](_.getBy(ids, modelid, companyId))
-  
   def getById(p:(Long, Int, String)): ZIO[FinancialsTransactionRepository, RepositoryError, FinancialsTransaction] =
     ZIO.serviceWithZIO[FinancialsTransactionRepository](_.getById(p))
     

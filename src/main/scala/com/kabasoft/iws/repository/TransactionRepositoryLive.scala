@@ -3,16 +3,15 @@ package com.kabasoft.iws.repository
 import cats.*
 import cats.effect.Resource
 import cats.syntax.all.*
-import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Transaction, TransactionDetails}
-import com.kabasoft.iws.repository.MasterfileCRUD.{UpdateCommand, InsertBatch, ExecCommand}
 import skunk.*
 import skunk.codec.all.*
 import skunk.implicits.*
 import zio.prelude.FlipOps
-import zio.stream.interop.fs2z.*
-import zio.{Task, ZIO, ZLayer, *}
 import zio.interop.catz.*
+import zio.{ZIO, *}
+import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.domain.{Transaction, TransactionDetails, common}
+import com.kabasoft.iws.repository.MasterfileCRUD.{ExecCommand, InsertBatch, UpdateCommand}
 
 import java.time.{Instant, LocalDateTime, ZoneId}
 
@@ -21,11 +20,30 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
 
   import TransactionRepositorySQL.*
 
+  private def newCreate(): Long = {
+    var time = Instant.now().getEpochSecond
+    time *= 1000000000L //convert to nanoseconds
+    val transid = time & ~9223372036854251520L
+    transid
+  }
+
+  def buildId(transactions: List[Transaction]): List[Transaction] =
+    transactions.zipWithIndex.map { case (ftr, i) =>
+      val idx = newCreate() + i.toLong
+      ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
+    }
+  def transactDelete(s: Session[Task], models: List[Transaction]): Task[Unit] =
+    s.transaction.use: xa =>
+      s.prepareR(DELETE).use: pcdMaster =>
+        s.prepareR(DELETE_DETAILS).use: pcdDetails =>
+          tryExec(xa, pcdMaster, pcdDetails, models.map(Transaction.encodeIt3)
+            , models.flatMap(_.lines).map(TransactionDetails.encodeIt3))
+          
   def transact(s: Session[Task], models: List[Transaction]): Task[Unit] =
     s.transaction.use: xa =>
       s.prepareR(insert).use: pciMaster =>
         s.prepareR(insertDetails).use: pciDetails =>
-          tryExec(xa, pciMaster, pciDetails, models, models.flatMap(_.lines).map(TransactionDetails.encodeIt))
+          tryExec(xa, pciMaster, pciDetails, models, models.flatMap(_.lines).map(TransactionDetails.encodeIt4))
 
   def transact(s: Session[Task], models: List[Transaction], oldmodels: List[Transaction]): Task[Unit] =
     s.transaction.use: xa =>
@@ -34,7 +52,7 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
           s.prepareR(insertDetails).use: pciDetails =>
             s.prepareR(UPDATE_DETAILS).use: pcuDetails =>
               tryExec(xa, pciMaster, pciDetails, pcuMaster, pcuDetails
-                , models, models.flatMap(_.lines).map(TransactionDetails.encodeIt)
+                , models, models.flatMap(_.lines).map(TransactionDetails.encodeIt4)
                 , oldmodels.map(Transaction.encodeIt2), oldmodels.flatMap(_.lines).map(TransactionDetails.encodeIt2))
 
   override def create(c:Transaction): ZIO[Any, RepositoryError, Int] = create(List(c))
@@ -43,7 +61,7 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
     (postgres
       .use:
         session =>
-          transact(session, models))
+          transact(session, buildId(models)))
       .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)
 
   override def modify(model: Transaction): ZIO[Any, RepositoryError, Int] = modify(List(model))
@@ -52,7 +70,7 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
     (postgres
       .use:
         session =>
-          transact(session, models))
+          transact(session, List.empty, models))
       .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size) 
   
   override def getById(p: (Long, Int, String)): ZIO[Any, RepositoryError, Transaction] = queryWithTxUnique(postgres, p, BY_ID)
@@ -78,7 +96,13 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
   override def find4Period(fromPeriod: Int, toPeriod: Int, posted:Boolean, companyId: String): ZIO[Any, RepositoryError, List[Transaction]] =
     queryWithTx(postgres, (posted, fromPeriod, toPeriod, companyId), BY_PERIOD)
   override def delete(p:(Long, Int, String)): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
-
+  override def deleteAll(models: List[Transaction]): ZIO[Any, RepositoryError, Int] =
+    (postgres
+      .use:
+        session =>
+          transactDelete(session, models))
+      .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)
+    
 object TransactionRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]] & AccountRepository, Throwable, TransactionRepository] =
     ZLayer.fromFunction(new TransactionRepositoryLive(_, _))
@@ -149,18 +173,22 @@ private[repository] object TransactionRepositorySQL:
            FROM   transaction_details
            WHERE  transid = $int8  AND company = $varchar
            """.query(detailsDecoder)
-    //st.period, st.posted, st.modelid, st.company, st.text
+  
+  val insert: Command[Transaction] =
+    sql"""INSERT INTO transaction (oid, id1, store, account, enterdate, transdate, postingdate, period, posted, modelid
+         , company, text) VALUES $mfEncoder""".command
 
-  val insert: Command[Transaction] = sql"INSERT INTO transaction (oid, id1, store, account, enterdate, transdate, postingdate, period, posted, modelid, company, text) VALUES $mfEncoder".command
+  def insertAll(n:Int): Command[List[Transaction.TYPE]] = 
+    sql"""INSERT INTO transaction (oid, id1, store, account, enterdate, transdate, postingdate, period, posted, modelid
+         , company, text ) VALUES ${transactionCodec1.values.list(n)}""".command
 
-  def insertAll(n:Int): Command[List[Transaction.TYPE]] = sql"INSERT INTO transaction VALUES ${transactionCodec1.values.list(n)}".command
-
-  val insertDetails: Command[(Long, Long, String, String, BigDecimal, String, BigDecimal, String, LocalDateTime,  String, String, String)] =
-    sql"""INSERT INTO transaction_details (id, transid, article, article_name, quantity, unit, price, currency, duedate, vat_code
-          , text, company) VALUES $transactionDetailsCodec""".command
+  val insertDetails: Command[TransactionDetails.D_TYPE1] =
+    sql"""INSERT INTO transaction_details (transid, article, article_name, quantity, unit, price, currency, duedate, vat_code
+          , text, company) VALUES ($transactionDetailsCodec2 )""".command
     
-  def insertAllDetails(n:Int): Command[List[(Long, Long, String, String, BigDecimal, String, BigDecimal, String, LocalDateTime,  String, String, String)]] =
-    sql"INSERT INTO transaction_details VALUES ${transactionDetailsCodec.values.list(n)}".command
+//  def insertAllDetails(n:Int): Command[List[TransactionDetails.D_TYPE1]] =
+//    sql"""INSERT INTO transaction_details (transid, article, article_name, quantity, unit, price, currency
+//          , duedate, vat_code, text, company) VALUES ${transactionDetailsCodec.values.list(n)}""".stripMargin.command
 
   val updatePosted: Command[Long *: Int *:  String *: EmptyTuple] =
     sql"""UPDATE transaction UPDATE SET posted = true
@@ -175,7 +203,7 @@ private[repository] object TransactionRepositorySQL:
   val UPDATE_DETAILS: Command[TransactionDetails.TYPE2] =
     sql"""UPDATE transaction_details
           SET transid=$int8, article = $varchar, quantity = $numeric, unit = $varchar, price = $numeric, currency = $varchar
-          , duedate = $timestamp, text=$varchar, article_name = $varchar, article_nvat_codeame = $varchar
+          , duedate = $timestamp, text=$varchar, article_name = $varchar, vat_code = $varchar
           WHERE id=$int8 and company= $varchar""".command
 
   def DELETE: Command[(Long, Int, String)] =

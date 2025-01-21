@@ -63,8 +63,10 @@ final case class SupplierRepositoryLive(postgres: Resource[Task, Session[Task]]
   override def getBy(ids: List[String], modelid: Int, company: String):ZIO[Any, RepositoryError, List[Supplier]] =
     queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
   def delete(p: (String, Int, String)):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
-  override def deleteAll(p: List[(String, Int, String)]): ZIO[Any, RepositoryError, Int] =
-     p.map(l => executeWithTx(postgres, l, DELETE, 1)).flip.map(_.size)
+  override def deleteAll(p: (List[String], Int, String)): ZIO[Any, RepositoryError, Int] = 
+    executeWithTx(postgres, p, DELETE_ALL(p._1.size), p._1.size)
+      .mapBoth(e => e, _ => p._1.size)
+     //p.map(l => executeWithTx(postgres, l, DELETE, 1)).flip.map(_.size)
 
 object SupplierRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]] & BankAccountRepository, RepositoryError, SupplierRepository] =
@@ -153,6 +155,9 @@ private[repository] object SupplierRepositorySQL:
           , state= $varchar, country= $varchar, phone= $varchar, email= $varchar, account= $varchar, oaccount= $varchar
           , vatcode= $varchar
           WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
-  
+
   def DELETE: Command[(String, Int, String)] =
     sql"DELETE FROM supplier WHERE id = $varchar AND modelid = $int4 AND company = $varchar".command
+    
+  def DELETE_ALL (nr:Int) : Command[(List[String], Int, String)] =
+    sql"DELETE FROM supplier WHERE id  IN ( ${varchar.list(nr)} )  AND modelid = $int4 AND company = $varchar".command

@@ -23,15 +23,15 @@ object SupplierRepositoryLiveSpec extends ZIOSpecDefault {
  // val supplierId1 = "70005"
   val nameSupplie1 = "Sonstige KFZ Lieferant"
   val newName = "New Supplier name"
-  val ids = suppliers.map(m => (m.id, m.modelid, m.company))
+  val ids = suppliers.map(_.id)
   val bankAccountIds = suppliers.flatMap(_.bankaccounts.map(m => (m.id, m.modelid, m.company)))
 
   override def spec =
     suite("Supplier repository test with postgres test container")(
-      test("clear customers") {
+      test("clear suppliers") {
         for
           deletedBankAcc <- BankAccountRepository.deleteAll(bankAccountIds)
-          deleted <- SupplierRepository.deleteAll(ids)
+          deleted <- SupplierRepository.deleteAll((ids, Supplier.MODELID, companyId))
         yield assertTrue(deletedBankAcc == bankAccountIds.size) && assertTrue(deleted == ids.size)
       },
       test("insert two new supplier, modify one and look it up by id") {

@@ -4,7 +4,7 @@ import cats.*
 import cats.effect.Resource
 import cats.syntax.all.*
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails}
+import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, common}
 import skunk.*
 import skunk.codec.all.*
 import skunk.implicits.*
@@ -30,6 +30,26 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
       idx <- queryWithTxUnique(postgres, TRANS_ID)
     yield c.copy(id = idx, lines = c.lines.map(l => l.copy(transid = idx)))
 
+  private def newCreate(): Long = {
+    var time = Instant.now().getEpochSecond
+    time *= 1000000000L //convert to nanoseconds
+    val transid = time & ~9223372036854251520L
+    transid
+  }
+
+  def buildId(transactions: List[FinancialsTransaction]): List[FinancialsTransaction] =
+    transactions.zipWithIndex.map { case (ftr, i) =>
+      val idx = newCreate() + i.toLong
+      ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
+    }
+
+  def transactDelete(s: Session[Task], models: List[FinancialsTransaction]): Task[Unit] =
+    s.transaction.use: xa =>
+      s.prepareR(DELETE).use: pcdMaster =>
+        s.prepareR(DELETE_DETAILS).use: pcdDetails =>
+          tryExec(xa, pcdMaster, pcdDetails, models.map(FinancialsTransaction.encodeIt3)
+            , models.flatMap(_.lines).map(FinancialsTransactionDetails.encodeIt3))
+          
   def transact(s: Session[Task], models: List[FinancialsTransaction]): Task[Unit] =
     s.transaction.use: xa =>
       s.prepareR(insert).use: pciMaster =>
@@ -52,7 +72,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
     (postgres
       .use:
         session =>
-          transact(session, models))
+          transact(session, buildId(models)))
         .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)
 
   override def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = modify(List(model))
@@ -61,7 +81,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
     (postgres
       .use:
         session =>
-          transact(session, models))
+          transact(session, List.empty, models))
       .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)
   
   def list(p: (Int, String)):ZIO[Any, RepositoryError, List[FinancialsTransaction]] = queryWithTx(postgres, p, ALL)
@@ -95,6 +115,14 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
   def find4Period(fromPeriod: Int, toPeriod: Int, modelid:Int, companyId: String, posted:Boolean): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =
     queryWithTx(postgres, (modelid, companyId, posted, fromPeriod, toPeriod), FIND_4_PERIOD)
   def delete(p: (Long, Int, String)): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
+  override def deleteAll(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =
+    (postgres
+      .use: 
+        session =>
+          transactDelete(session,  models))
+    .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)
+
+
 
 object FinancialsTransactionRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]] & AccountRepository, Throwable, FinancialsTransactionRepository] =
@@ -106,6 +134,8 @@ object FinancialsTransactionRepositorySQL:
 
   private val financialsTransactionCodec =
     (int8 *: int8 *: int8 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: int4 *: bool *: int4 *: varchar *: varchar *: int4 *: int4)
+  private val financialsTransactionCodec4 =
+    int8 *: int8 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: int4 *: bool *: int4 *: varchar *: varchar *: int4 *: int4   
   private val financialsDetailsTransactionCodec =
     (int8 *: int8 *: varchar *: bool *: varchar *: numeric(12, 2) *: timestamp *: varchar *: varchar *: varchar *: varchar *: varchar)
   private val financialsDetailsTransactionCodec4 =
@@ -117,9 +147,7 @@ object FinancialsTransactionRepositorySQL:
         , toInstant(postingdate), period, posted, modelid, company, text, type_journal, file_content)
 
 
-  val mfEncoder: Encoder[FinancialsTransaction] = financialsTransactionCodec.values.contramap(FinancialsTransaction.encodeIt)
-  //val detailsEncoder: Encoder[FinancialsTransactionDetails] = financialsDetailsTransactionCodec.values.contramap(FinancialsTransactionDetails.encodeIt)
- // val detailsEncoder4: Encoder[FinancialsTransactionDetails] = financialsDetailsTransactionCodec4.values.contramap(FinancialsTransactionDetails.encodeIt4)
+  val mfEncoder: Encoder[FinancialsTransaction] = financialsTransactionCodec4.values.contramap(FinancialsTransaction.encodeIt4)
 
   def detailsDecoder: Decoder[FinancialsTransactionDetails] = financialsDetailsTransactionCodec.map:
       case (id, transid, account, side, oaccount, amount, duedate, text, currency, company, accountName, oaccountName) =>
@@ -203,18 +231,22 @@ object FinancialsTransactionRepositorySQL:
            WHERE id= $int8 AND company = $varchar 
            """.query(mfDecoder)  
 
-  val insert: Command[FinancialsTransaction] = sql"""INSERT INTO master_compta VALUES $mfEncoder """.command
+  val insert: Command[FinancialsTransaction] =
+    sql"""INSERT INTO master_compta
+         (oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content) VALUES $mfEncoder """.command
 
   def insertAll(n:Int): Command[List[FinancialsTransaction.TYPE]] =
-    sql"INSERT INTO master_compta VALUES ${financialsTransactionCodec.values.list(n)}".command
+    sql"""INSERT INTO master_compta 
+          (oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content)
+         VALUES ${financialsTransactionCodec.values.list(n)}""".command
 
   val insertDetails: Command[FinancialsTransactionDetails.D_TYPE4] =
     sql"""INSERT INTO details_compta (transid, account, side, oaccount, amount, duedate, text, currency, company
-          , accountName, oaccountName) VALUES $financialsDetailsTransactionCodec4""".command
+          , account_name, oaccount_name) VALUES  ($financialsDetailsTransactionCodec4)""".command
     
   def insertAllDetails(n:Int): Command[List[FinancialsTransactionDetails.D_TYPE4]] =
     sql"""INSERT INTO details_compta (transid, account, side, oaccount, amount, duedate, text, currency, company
-          , accountName, oaccountName) VALUES ${financialsDetailsTransactionCodec4.values.list(n)}""".command
+          , account_name, oaccount_name) VALUES (${financialsDetailsTransactionCodec4.values.list(n)})""".command
 
   val UPDATE: Command[FinancialsTransaction.TYPE2] =
     sql"""UPDATE master_compta

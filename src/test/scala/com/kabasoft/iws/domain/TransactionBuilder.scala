@@ -7,7 +7,7 @@ import java.math.{BigDecimal, RoundingMode}
 import java.time.Instant
 
 object TransactionBuilder {
-  val company ="1000"
+  val company ="-1000"
   val lineTransactionId1 = 1L
   val lineTransactionId2 = 2L
 

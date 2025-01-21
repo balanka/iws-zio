@@ -6,7 +6,7 @@ import java.math.{BigDecimal, RoundingMode}
 import java.time.Instant
 
 object FinancialsTransactionBuilder {
-  val company ="1000"
+  val company ="-1000"
   val transactionId = -1L// 4711L
   val transactionId2 = -2L// 4711L
   val lineTransactionId1 = 1L

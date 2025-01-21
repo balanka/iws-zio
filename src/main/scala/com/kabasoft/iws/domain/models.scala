@@ -1597,6 +1597,7 @@ final case class TransactionDetails( id: Long, transid: Long, article: String, a
 object TransactionDetails:
   val dummy = TransactionDetails(0, 0, "", "", zeroAmount, "", zeroAmount, "", Instant.now(), "",  "",  "")
   type D_TYPE = (Long, Long, String, String, scala.math.BigDecimal, String, scala.math.BigDecimal, String, LocalDateTime, String, String, String)
+  type D_TYPE1 = (Long, String, String, scala.math.BigDecimal, String, scala.math.BigDecimal, String, LocalDateTime,  String, String, String)
   type TYPE2 = (Long, String, scala.math.BigDecimal, String, scala.math.BigDecimal, String, LocalDateTime, String, String, String, Long, String)
   implicit val monoid: Identity[TransactionDetails] =
     new Identity[TransactionDetails]:
@@ -1607,6 +1608,11 @@ object TransactionDetails:
   def encodeIt(dt: TransactionDetails): D_TYPE =
     (dt.id, dt.transid, dt.article, dt.articleName, dt.quantity, dt.unit, dt.price, dt.currency
       , dt.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime, dt.vatCode, dt.text,  dt.company)
+
+  def encodeIt4(dt: TransactionDetails): D_TYPE1 =
+    (dt.transid, dt.article, dt.articleName, dt.quantity, dt.unit, dt.price, dt.currency
+      , dt.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime, dt.vatCode, dt.text, dt.company)
+    
   private type TransactionDetails_Type = (Long, Long, String, String, BigDecimal, String, BigDecimal, String, Instant,  String, String, String)
 
   def apply(tr: TransactionDetails_Type): TransactionDetails =
@@ -1753,12 +1759,21 @@ object FinancialsTransaction:
   private type FinancialsTransaction_Type =
     (Long, Long, Long, String, String, Instant, Instant, Instant, Int, Boolean, Int, String, String, Int, Int)
   type TYPE=(Long, Long, Long, String, String, LocalDateTime, LocalDateTime, LocalDateTime, Int, Boolean, Int, String, String, Int, Int)
+  type TYPE4=(Long, Long, String, String, LocalDateTime, LocalDateTime, LocalDateTime, Int, Boolean, Int, String, String, Int, Int)
   type TYPE2= (Long, String, String, String, Int, Int, Long, Int, String)
 
   def apply(tr: FinancialsTransaction_Type): FinancialsTransaction =
     new FinancialsTransaction(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11, tr._12, tr._13, tr._14)
-  def encodeIt(st: FinancialsTransaction):TYPE =
-      (  st.id, st.oid, st.id1, st.costcenter, st.account
+
+  def encodeIt(st: FinancialsTransaction): TYPE =
+    (st.id, st.oid, st.id1, st.costcenter, st.account
+      , st.transdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
+      , st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
+      , st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
+      , st.period, st.posted, st.modelid, st.company, st.text, st.typeJournal, st.file_content)
+    
+  def encodeIt4(st: FinancialsTransaction):TYPE4 =
+      (   st.oid, st.id1, st.costcenter, st.account
         , st.transdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
         , st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
         , st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
