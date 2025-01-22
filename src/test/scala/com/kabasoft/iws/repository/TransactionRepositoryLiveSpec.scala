@@ -34,13 +34,9 @@ object TransactionRepositoryLiveSpec extends ZIOSpecDefault {
         val list =List(ftr1, ftr2)
 
         for {
-          _<- ZIO.logInfo(s" ftr >>>>>>> $list")
           oneRow <- TransactionRepository.create(list)
-          all <- TransactionRepository.all(ftr1.modelid, companyId)//.map(_.size)
-          _<- ZIO.logInfo(s" ftr >>>>>>> $all")
+          all <- TransactionRepository.all(ftr1.modelid, companyId)
           ftr = all.headOption.getOrElse(ftr1)
-          _<- ZIO.logInfo(s" ftr >>>>>>> $ftr")
-          //ftr <- TransactionRepository.getById((ftr1.id, ftr1.modelid, companyId))
           count <- TransactionRepository.all(ftr1.modelid, companyId).map(_.size)
           nrUpdatedLines <- TransactionRepository.modify(ftr.copy(lines=ftr.lines.map(_.copy(text="Modified"))))
           nrUpdated <- TransactionRepository.modify(ftr.copy(text=terms))
