@@ -26,8 +26,8 @@ trait PacRepository:
   def findBalance4Period(fromPeriod: Int, toPeriod: Int, company: String):ZIO[Any, RepositoryError, List[PeriodicAccountBalance]]
   //def find4Period(fromPeriod: Int, toPeriod: Int, company: String): Task[List[PeriodicAccountBalance]]
   def find4AccountPeriod(accountId: String,  toPeriod: Int, companyId: String):ZIO[Any, RepositoryError, List[PeriodicAccountBalance]]
- // def getBalances4Period( toPeriod: Int, companyId: String): ZStream[Any, RepositoryError, PeriodicAccountBalance]
-
+  
+  def deleteAllTest(): ZIO[Any, RepositoryError, Int]
 
 object PacRepository:
   def create(item: PeriodicAccountBalance): ZIO[PacRepository, RepositoryError, Int] =
@@ -62,6 +62,9 @@ object PacRepository:
   
   def find4AccountPeriod(accountId: String,  toPeriod: Int, companyId: String): ZIO[PacRepository, RepositoryError, List[PeriodicAccountBalance]] =
     ZIO.serviceWithZIO[PacRepository](_.find4AccountPeriod(accountId, toPeriod, companyId))
+
+  def deleteAllTest(): ZIO[PacRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[PacRepository](_.deleteAllTest())
 
 //  def find4PeriodZ(accountId: String,  toPeriod: Int, company: String): ZIO[PacRepository, RepositoryError, PeriodicAccountBalance] =
 //    ZStream.service[PacRepository] flatMap (_.find4PeriodZ(accountId,  toPeriod, company)).mapError(e => RepositoryError(e.getMessage))

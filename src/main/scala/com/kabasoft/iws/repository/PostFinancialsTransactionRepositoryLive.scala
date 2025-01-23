@@ -43,7 +43,8 @@ final case class PostFinancialsTransactionRepositoryLive(postgres: Resource[Task
                               .use:
                                   session =>
                                   transact(session, models, pac2Insert, pac2updatex, journals))
-                              .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)
+                              .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size
+                                + models.size +pac2Insert.size+pac2updatex.size+journals.size)
      } yield nr
 
 object PostFinancialsTransactionRepositoryLive:

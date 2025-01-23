@@ -37,7 +37,12 @@ final case class JournalRepositoryLive(postgres: Resource[Task, Session[Task]]) 
   private def findBalance4Period(fromPeriod: Int, toPeriod: Int, company: String):ZIO[Any, RepositoryError, List[Journal]]=
     queryWithTx(postgres, (fromPeriod, toPeriod, company), BALANCE_QUERY)
 
-
+  override def deleteAllTest(): ZIO[Any, RepositoryError, Int] =
+    postgres
+      .use: session =>
+        session.execute(DELETE_TEST)
+      .mapBoth(e => RepositoryError(e.getMessage), _ => 1)
+    
 object JournalRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]], RepositoryError, JournalRepository] =
     ZLayer.fromFunction(new JournalRepositoryLive(_))
@@ -45,9 +50,11 @@ object JournalRepositoryLive:
 object JournalRepositorySQL:
   def toInstant(localDateTime: LocalDateTime): Instant = localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
   val mfCodec =
-    (int8 *: int8 *: int8 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *:int4 *: numeric(12,2) *: numeric(12,2) *: numeric(12,2) *: numeric(12,2) *: numeric(12,2) *: varchar *: bool *: varchar *: int4 *: int4 *: varchar *: int4)
+    (int8 *: int8 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *:int4 *: numeric(12,2) *: numeric(12,2) *: numeric(12,2) *: numeric(12,2) *: numeric(12,2) *: varchar *: bool *: varchar *: int4 *: int4 *: varchar *: int4)
+  val mfCodec2 =
+    (int8 *: int8 *: int8 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: int4 *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: varchar *: bool *: varchar *: int4 *: int4 *: varchar *: int4)
 
-  val mfDecoder: Decoder[Journal] = mfCodec.map :
+  val mfDecoder: Decoder[Journal] = mfCodec2.map :
     case (id, transid, oid, account, oaccount, transdate, enterdate, postingdate, period, amount, idebit, debit
          , icredit, credit, currency, side, text, month, year, company, modelid) =>
       Journal (id, transid, oid, account, oaccount, toInstant(transdate), toInstant(postingdate), toInstant(enterdate)
@@ -83,10 +90,17 @@ object JournalRepositorySQL:
            WHERE  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
-  val insert: Command[Journal] = sql"""INSERT INTO journal VALUES $mfEncoder """.command
+  val insert: Command[Journal] =
+    sql"""INSERT INTO journal (
+          transid, oid, account, oaccount, transdate, enterdate, postingdate, period, amount, idebit, debit
+          , icredit, credit,currency, side, text, month, year, company, modelid)
+          VALUES $mfEncoder """.command
 
   def insertAll(n:Int): Command[List[Journal.TYPE]] =
-    sql"INSERT INTO journal VALUES ${mfCodec.values.list(n)}".command
+    sql"""INSERT INTO journal (
+         transid, oid, account, oaccount, transdate, enterdate, postingdate, period, amount, idebit, debit
+         , icredit, credit,currency, side, text, month, year, company, modelid )
+          VALUES ${mfCodec.values.list(n)}""".command
   
 
   val FIND_QUERY: Query[Int *: Int *: String *: EmptyTuple, Journal] =
@@ -125,3 +139,5 @@ object JournalRepositorySQL:
        group By account, currency, company, modelid)
        order By account desc
        """.query(mfDecoder)
+
+  def DELETE_TEST: Command[Void] = sql"""DELETE FROM journal WHERE  company = '-1000'""".command

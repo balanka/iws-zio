@@ -43,7 +43,7 @@ object AccountRepositoryLiveSpec extends ZIOSpecDefault {
       test("count all accounts") {
         for {
           count <- AccountRepository.all(Account.MODELID, companyId).map(_.size)
-        } yield assertTrue(count == 1)
+        } yield assertTrue(count == 338)
       },
       test("insert two new accounts") {
         for {

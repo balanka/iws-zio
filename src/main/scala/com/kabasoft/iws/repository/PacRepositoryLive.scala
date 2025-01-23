@@ -7,6 +7,7 @@ import skunk.*
 import skunk.codec.all.*
 import skunk.implicits.*
 import zio.prelude.FlipOps
+import zio.interop.catz.*
 import zio.stream.interop.fs2z.*
 import zio.{Task, ZIO, ZLayer }
 import com.kabasoft.iws.domain.PeriodicAccountBalance
@@ -20,14 +21,8 @@ final case class PacRepositoryLive(postgres: Resource[Task, Session[Task]]) exte
   override def create(c: PeriodicAccountBalance):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
 
   override def create(list: List[PeriodicAccountBalance]):ZIO[Any, RepositoryError, Int] =
-    executeWithTx(postgres, list.map(PeriodicAccountBalance.encodeIt), insertAll(list.size), list.size)
-    
-//  override def modify(model: PeriodicAccountBalance):ZIO[Any, RepositoryError, Int]= 
-//    executeWithTx(postgres, model, PeriodicAccountBalance.encodeIt2, UPDATE, 1)
-//
-//  override def modify(models: List[PeriodicAccountBalance]):ZIO[Any, RepositoryError, Int] = 
-//    executeBatchWithTxK(postgres, models, UPDATE, PeriodicAccountBalance.encodeIt2)
-
+    executeWithTx(postgres, list.distinct.map(PeriodicAccountBalance.encodeIt), insertAll(list.size), list.distinct.size)
+  
   override def update(models: List[PeriodicAccountBalance]):ZIO[Any, RepositoryError, Int] =
     executeBatchWithTxK(postgres, models , UPDATE, PeriodicAccountBalance.encodeIt2)
 
@@ -36,7 +31,9 @@ final case class PacRepositoryLive(postgres: Resource[Task, Session[Task]]) exte
   override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, PeriodicAccountBalance] = queryWithTxUnique(postgres, p, BY_ID)
 
   override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]] =
-    queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
+    if (ids.isEmpty)
+      ZIO.succeed(List.empty)
+    else queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
   
   override def findBalance4Period( period: Int, company: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]] =
     queryWithTx(postgres, (period, company), FIND_4_PERIOD_QUERY)
@@ -46,9 +43,15 @@ final case class PacRepositoryLive(postgres: Resource[Task, Session[Task]]) exte
     val fromPeriod = year.concat("01").toInt
     queryWithTx(postgres, (account, fromPeriod, toPeriod, company), BALANCE_4_ACCOUNT_PERIOD)
   }
-    
-  def findBalance4Period(fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]]=
+
+  override def findBalance4Period(fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]]=
     queryWithTx(postgres, (fromPeriod, toPeriod, company), BALANCE_QUERY)
+  
+  override def deleteAllTest(): ZIO[Any, RepositoryError, Int] =
+    postgres
+      .use: session =>
+           session.execute(DELETE_TEST)
+       .mapBoth(e => RepositoryError(e.getMessage), _ => 1)
     
 object PacRepositoryLive:
   
@@ -82,7 +85,7 @@ object PacRepositorySQL:
   def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), PeriodicAccountBalance] =
     sql"""SELECT id, account, period, idebit, icredit, debit, credit, currency, company, name, modelid
            FROM   periodic_account_balance
-           WHERE id  IN ${varchar.list(nr)} AND  modelid = $int4 AND company = $varchar
+           WHERE id  IN (${varchar.list(nr)} ) AND  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val BY_ID: Query[String *: Int *: String *: EmptyTuple, PeriodicAccountBalance] =
@@ -109,10 +112,10 @@ object PacRepositorySQL:
   val UPDATE: Command[BigDecimal *: BigDecimal *: BigDecimal *: BigDecimal *: String *: Int *: String *:EmptyTuple] =
     sql"""UPDATE periodic_account_balance
             UPDATE SET
-            idebit                 = $numeric(12,2),
-            icredit               = $numeric(12,2),
-            debit                 = $numeric(12,2),
-            credit                = $numeric(12,2)
+            idebit                = $numeric,
+            icredit               = $numeric,
+            debit                 = $numeric,
+            credit                = $numeric
             WHERE id =$varchar AND period = $int4 AND  company =$varchar
           """.command  
 
@@ -129,7 +132,8 @@ object PacRepositorySQL:
        WHERE period = $int4 AND  company =$varchar
        order By account desc
        """.query(mfDecoder)
-
+//  id: String,account: String,period: Int,idebit: BigDecimal,icredit: BigDecimal,debit: BigDecimal,
+//  credit: BigDecimal,currency: String,company: String,name: String,
   val BALANCE_QUERY: Query[Int *: Int *:String *: EmptyTuple, PeriodicAccountBalance] =
    sql"""select Max(id) as id, account, Max(period) as period,SUM(idebit) as idebit,
       SUM(icredit) as icredit, SUM(debit) as debit, SUM(credit) as credit,
@@ -138,7 +142,7 @@ object PacRepositorySQL:
       WHERE period BETWEEN $int4 AND  $int4 and  company =$varchar
       group By(account, currency, company, name, modelid)
       order By account desc
-      """.query(mfDecoder)
+      """.query(mfDecoder2)
 
   val BALANCE_4_ACCOUNT_PERIOD: Query[String *: Int *: Int *: String *: EmptyTuple, PeriodicAccountBalance] =
     sql"""select id, account, period, idebit, icredit, debit, credit, currency, company, name, modelid
@@ -160,7 +164,11 @@ object PacRepositorySQL:
        Group By(account, currency, company, name, modelid)
        Order By account desc
        """.query(mfDecoder2)
-  
-  
-  def DELETE: Command[(String, Int, String)] =
-    sql"DELETE FROM periodic_account_balance WHERE id = $varchar AND modelid = $int4 AND company = $varchar".command
+
+  def DELETE: Command[(String, String)] =
+    sql"""DELETE FROM periodic_account_balance WHERE id = $varchar  AND company = $varchar""".command
+    
+  def DELETE_TEST: Command[Void] =
+    sql"""DELETE FROM periodic_account_balance WHERE  company ='-1000'""".command
+  def DELETE_ALL(nr: Int): Command[(List[String], String)] =
+    sql"""DELETE FROM periodic_account_balance WHERE id IN ( ${varchar.list(nr)} ) AND company = $varchar""".command

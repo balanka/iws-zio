@@ -157,12 +157,12 @@ trait MasterfileCRUD:
          session
           .prepare(q)
           .flatMap(ps => ps.unique(p))
-       .mapBoth(e => RepositoryError(e.getMessage), a => a).debug("Data/Error")
+       .mapBoth(e => RepositoryError(e.getMessage), a => a)//.debug("Data/Error")
 
   def queryWithTxUnique[ A](postgres: Resource[Task, Session[Task]],  q: Query[Void, A]): ZIO[Any, RepositoryError, A] =
     postgres.use: session =>
                 session.unique(q)
-            .mapBoth(e => RepositoryError(e.getMessage), a => a).debug("Data/Error")
+            .mapBoth(e => RepositoryError(e.getMessage), a => a)//.debug("Data/Error")
 
   def executeWithTx[A](postgres: Resource[Task, Session[Task]], p: A, comd: Command[A], size: Int): ZIO[Any, RepositoryError, Int] =
     postgres
@@ -180,7 +180,7 @@ trait MasterfileCRUD:
                   ZIO.logInfo(s"Error:  rolling back...") *>
                     xa.rollback
       .mapBoth(e => RepositoryError(e.getMessage), _ => size)
-
+  
   def executeWithTx[A](session: Session[Task], p: A, comd: Command[A], size: Int): Task[Int] =
     session.transaction.use: xa =>
       session

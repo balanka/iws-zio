@@ -13,6 +13,14 @@ final class FinancialsServiceLive(pacRepo: PacRepository
                                   , repository4PostingTransaction:PostFinancialsTransactionRepository)
              extends FinancialsService:
 
+  override def buildPacId(period: Int, accountId: String): String = PeriodicAccountBalance.createId(period, accountId)
+
+  override def buildPacIds(model: FinancialsTransaction): List[String] = {
+    val pacIds: List[String] = model.lines.map(line => buildPacId(model.getPeriod, line.account))
+    val pacOids: List[String] = model.lines.map(line => buildPacId(model.getPeriod, line.oaccount))
+    (pacIds ++ pacOids).distinct
+  }
+  
   override def journal(accountId: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[Journal]] =
     for {
       queries <- journalRepo.find4Period(accountId, fromPeriod, toPeriod, company).map(_.toList)
@@ -60,16 +68,7 @@ final class FinancialsServiceLive(pacRepo: PacRepository
     } yield post
 
   }
-
-  private def buildPacId(period: Int, accountId: String): String =
-    PeriodicAccountBalance.createId(period, accountId)
-
-  private def buildPacIds(model: FinancialsTransaction): List[String] = {
-    val pacIds: List[String] = model.lines.map(line => buildPacId(model.getPeriod, line.account))
-    val pacOids: List[String] = model.lines.map(line => buildPacId(model.getPeriod, line.oaccount))
-    (pacIds ++ pacOids).distinct
-  }
-
+  
   private def updatePac(model: FinancialsTransaction, tpacs: List[TPeriodicAccountBalance]): ZIO[Any, Nothing, List[TPeriodicAccountBalance]] = {
   val result = for{
     newRecords<- groupById(PeriodicAccountBalance.create(model)).map(TPeriodicAccountBalance.apply).flip

@@ -12,7 +12,7 @@ trait JournalRepository:
   def getById(Id: (Long, String)): ZIO[Any, RepositoryError, Journal]
   def getByPeriod(period:Int,  company: String): ZIO[Any, RepositoryError, List[Journal]]
   def find4Period(accountId: String, fromPeriod: Int, toPeriod: Int, companyId: String): ZIO[Any, RepositoryError, List[Journal]]
-
+  def deleteAllTest(): ZIO[Any, RepositoryError, Int]
 
 object JournalRepository:
 
@@ -32,4 +32,6 @@ object JournalRepository:
 
   def find4Period(accountId: String, fromPeriod: Int, toPeriod: Int,  company: String): ZIO[JournalRepository, RepositoryError, List[Journal]] =
     ZIO.serviceWithZIO[JournalRepository] (_.find4Period(accountId, fromPeriod, toPeriod, company))
-
+  
+  def deleteAllTest(): ZIO[JournalRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[JournalRepository] (_.deleteAllTest())
