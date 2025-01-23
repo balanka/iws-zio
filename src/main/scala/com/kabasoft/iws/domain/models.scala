@@ -19,7 +19,7 @@ import scala.math.Ordering
 
 object common:
   val zeroAmount: BigDecimal = BigDecimal.valueOf(0, 2)
-  private val dummyBalance = Balance("dummy", zeroAmount, zeroAmount, zeroAmount, zeroAmount)
+  val dummyBalance = Balance("dummy", zeroAmount, zeroAmount, zeroAmount, zeroAmount)
 
   val DummyUser: User = User(-1, "dummy", "dummy", "dummy", "dummyhash2", "dummyphone", "dummy@user.com", "dummy", "dummymenu", "0000", 111)
 
@@ -441,6 +441,10 @@ final case class Balance(id: String, idebit: BigDecimal, icredit: BigDecimal, de
   def crediting(amount: BigDecimal): Balance = copy(credit = credit.add(amount))
   def idebiting(amount: BigDecimal): Balance = copy(idebit = idebit.add(amount))
   def icrediting(amount: BigDecimal): Balance = copy(icredit = icredit.add(amount))
+  object Balance {
+    def apply(pac: PeriodicAccountBalance): Balance = new Balance(pac.account, pac.idebit, pac.icredit, pac.debit, pac.credit)
+  }
+
 
 
 trait AccountT extends IWS:
@@ -653,16 +657,13 @@ object Account {
           .debiting(subALl.debit)
           .crediting(subALl.credit)
           .copy(subAccounts = sub)
-  
-  def unwrapData(account: Account): List[Account] = {
-    def unwrapData_(res: Set[Account]): Set[Account] =
-      res.flatMap: acc =>
-        acc.subAccounts.toList match 
-          case Nil                     => if (acc.balance.compareTo(zeroAmount) == 0 && acc.subAccounts.isEmpty) Set.empty[Account] else Set(acc)
-          case (head: Account) :: tail => Set(acc, head) ++ unwrapData_(tail.toSet)
-    
-    unwrapData_(account.subAccounts).toList
-  }
+
+  private def unwrapData_(res: Set[Account]): Set[Account] =
+    res.flatMap: acc =>
+      acc.subAccounts.toList match
+        case Nil => if (acc.balance.compareTo(zeroAmount) == 0 && acc.subAccounts.isEmpty) Set.empty[Account] else Set(acc)
+        case (head: Account) :: tail => Set(acc, head) ++ unwrapData_(tail.toSet)
+  def unwrapData(account: Account): List[Account] = unwrapData_(account.subAccounts).toList
 
   def withChildren(accId: String, accList: List[Account]): Account =
     accList.find(x => x.id == accId) match
@@ -1248,6 +1249,7 @@ final case class PeriodicAccountBalance(
 }
 
 object PeriodicAccountBalance:
+  import com.kabasoft.iws.domain.common.given
   type TYPE2 = (scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, String, Int, String)
   type TYPE = (String, String, Int, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, String, String, String, Int)
   val MODELID                                   = 106
@@ -1269,9 +1271,11 @@ object PeriodicAccountBalance:
       name,
       PeriodicAccountBalance.MODELID
     )
-
-  def create(model: FinancialsTransaction): List[PeriodicAccountBalance] =
-    model.lines.flatMap:line =>
+  def create(model: FinancialsTransaction): List[PeriodicAccountBalance] = 
+    createx(model).groupBy(_.id).map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy)}.toList
+    
+  def createx(model: FinancialsTransaction): List[PeriodicAccountBalance] =
+    model.lines.flatMap: line =>
       List(
         PeriodicAccountBalance.apply(
           PeriodicAccountBalance.createId(model.period, line.account),
@@ -1299,7 +1303,8 @@ object PeriodicAccountBalance:
           line.oaccountName,
           PeriodicAccountBalance.MODELID
         )
-      )
+      )//.groupBy(_.id) map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy)}
+      
   def applyT(tpac: TPeriodicAccountBalance): ZIO[Any, Nothing, PeriodicAccountBalance] = for {
     idebit  <- tpac.idebit.get.commit
     icredit <- tpac.icredit.get.commit
@@ -1810,12 +1815,12 @@ final case class Journal(
   company: String,
   modelid: Int)
 object Journal:
-   type TYPE = (Long, Long, Long, String, String, LocalDateTime, LocalDateTime, LocalDateTime, Int, scala.math.BigDecimal,
+   type TYPE = ( Long, Long, String, String, LocalDateTime, LocalDateTime, LocalDateTime, Int, scala.math.BigDecimal,
      scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, String, Boolean,
      String, Int, Int, String, Int)
 
    def encodeIt(st: Journal): TYPE =
-     (st.id, st.transid, st.oid, st.account, st.oaccount
+     (st.transid, st.oid, st.account, st.oaccount
        , st.transdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
        , st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
        , st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime, st.period

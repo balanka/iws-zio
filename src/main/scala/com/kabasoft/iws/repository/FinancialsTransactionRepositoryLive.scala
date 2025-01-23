@@ -99,21 +99,39 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
 
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
     transactions <- list(p)
-    details <- transactions.map(withLines).flip
+    details     <-  transactions.map(withLines).flip
   } yield details
 
-  override def getById(p: (Long, Int, String)):ZIO[Any, RepositoryError, FinancialsTransaction] = queryWithTxUnique(postgres, p, BY_ID)
-  override def getBy(ids: List[Long],  modelid: Int, company: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =
-    queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
-  override def getByIds(ids: List[Long], modelid: Int, company: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =
-    queryWithTx(postgres, (ids, modelid, company), BY_IDS(ids.length))
-  override def getByModelId(modelid: (Int, String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =
-    queryWithTx(postgres, modelid, BY_MODEL_ID)
-  override def getByTransId(p: (Long, String)): ZIO[Any, RepositoryError, FinancialsTransaction] =
-    queryWithTxUnique(postgres, p, BY_TRANS_ID)
+  override def getById(p: (Long, Int, String)):ZIO[Any, RepositoryError, FinancialsTransaction] = for { 
+    transaction <- queryWithTxUnique(postgres, p, BY_ID)
+    details <- withLines(transaction)
+} yield details
+    
+  override def getBy(ids: List[Long],  modelid: Int, company: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
+    transactions <- queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
+    details <- transactions.map(withLines).flip
+  } yield details
+    
+//  override def getByIds(ids: List[Long], modelid: Int, company: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =
+//    queryWithTx(postgres, (ids, modelid, company), BY_IDS(ids.length))
+    
+  override def getByModelId(modelid: (Int, String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =for {
+    transactions <- queryWithTx(postgres, modelid, BY_MODEL_ID)
+    details <- transactions.map(withLines).flip
+  } yield details
+    
+  override def getByTransId(p: (Long, String)): ZIO[Any, RepositoryError, FinancialsTransaction] =for {
+    transaction <- queryWithTxUnique(postgres, p, BY_TRANS_ID)
+    details <- withLines(transaction)
+  } yield details
+  
 
-  def find4Period(fromPeriod: Int, toPeriod: Int, modelid:Int, companyId: String, posted:Boolean): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =
-    queryWithTx(postgres, (modelid, companyId, posted, fromPeriod, toPeriod), FIND_4_PERIOD)
+  def find4Period(fromPeriod: Int, toPeriod: Int, modelid:Int, companyId: String, posted:Boolean): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
+    transactions <- queryWithTx(postgres, (modelid, companyId, posted, fromPeriod, toPeriod), FIND_4_PERIOD)
+    details <-  transactions.map(withLines).flip
+  } yield details
+  
+    
   def delete(p: (Long, Int, String)): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
   override def deleteAll(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =
     (postgres

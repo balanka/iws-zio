@@ -115,7 +115,7 @@ object FinancialsEndpoint:
     trPostAll.implement: p =>
       ZIO.logInfo(s"Post all financials transaction by id ${p._1.split(',').map(_.toLong).toList}") *>
         //TransactionRepository.postAll((p._1, p._2)) *>
-        FinancialsTransactionRepository.getByIds(p._1.split(',').map(_.toLong).toList, p._2, p._3)
+        FinancialsTransactionRepository.getBy(p._1.split(',').map(_.toLong).toList, p._2, p._3)
 
   val financialsByIdRoute =
     mById.implement: p =>
