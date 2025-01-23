@@ -26,7 +26,7 @@ final class PostCustomerInvoiceLive(vatRepo: VatRepository
                                   ZIO[Any, RepositoryError, List[(Transaction, FinancialsTransaction)]] = for {
     accounts <- accRepo.all(Account.MODELID, company.id)
     customers <- customerRepo.all(Customer.MODELID, company.id)
-    articles <- artRepo.getBy(transactions.flatMap(m => m.lines.map(_.article)), Article.MODELID, company.id)
+    articles <- artRepo.getBy(transactions.flatMap(_.lines.map(_.article)), Article.MODELID, company.id)
     vatIds  = articles.map(_.vatCode).distinct
     vats <-  vatRepo.getBy(vatIds, Vat.MODEL_ID, company.id)
     newFTransactions = transactions.map(buildTransaction(_,  accounts, customers

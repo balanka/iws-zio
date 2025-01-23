@@ -8,6 +8,7 @@ import zio._
 final class AccountServiceLive(accRepo: AccountRepository, pacRepo: PacRepository) extends AccountService:
   def getBalance(accId: String, toPeriod: Int, companyId: String): ZIO[Any, RepositoryError, List[Account]] =
     (for {
+      _<- ZIO.logInfo(s" >>>>>>>> toPeriod: $toPeriod for companyId $companyId" )
       accounts <- accRepo.all((Account.MODELID, companyId))
       period00 = toPeriod.toString.slice(0, 4).concat("00").toInt
       pacBalances <- pacRepo.findBalance4Period(toPeriod, companyId)
