@@ -16,7 +16,7 @@ trait TransactionLogRepository:
   def find4StorePeriod(store: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[TransactionLog]]
   def find4ArticlePeriod(article: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[TransactionLog]]
   def find4StoreArticlePeriod(store: String, article: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[TransactionLog]]
-
+  def deleteAll(): ZIO[Any, RepositoryError, Int]
 
 object TransactionLogRepository:
 
@@ -24,9 +24,9 @@ object TransactionLogRepository:
     ZIO.serviceWithZIO[TransactionLogRepository](_.create(item))
   def create(items: List[TransactionLog]): ZIO[TransactionLogRepository, RepositoryError, Int]         =
     ZIO.serviceWithZIO[TransactionLogRepository](_.create(items))
- // def delete(Id:(Long, Int, String)): ZIO[TransactionLogRepository, RepositoryError, Int]    =
- //   ZIO.serviceWithZIO[TransactionLogRepository](_.delete(Id))
 
+  def deleteAll(): ZIO[TransactionLogRepository, RepositoryError, Int]=
+    ZIO.serviceWithZIO[TransactionLogRepository](_.deleteAll())
   //def getBy(ids: List[Long], modelid: Int, company: String): ZIO[TransactionLogRepository, RepositoryError, List[TransactionLog]] =
  //   ZIO.serviceWithZIO[TransactionLogRepository](_.getBy(ids, modelid, company))
 
@@ -39,5 +39,5 @@ object TransactionLogRepository:
   def find4ArticlePeriod(article: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[TransactionLogRepository, RepositoryError, List[TransactionLog]] =
    ZIO.serviceWithZIO[TransactionLogRepository](_.find4ArticlePeriod(article, fromPeriod, toPeriod, company))
 
-def find4StoreArticlePeriod(store: String, article: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[TransactionLogRepository, RepositoryError, List[TransactionLog]] =
+  def find4StoreArticlePeriod(store: String, article: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[TransactionLogRepository, RepositoryError, List[TransactionLog]] =
   ZIO.serviceWithZIO[TransactionLogRepository](_.find4StoreArticlePeriod(store, article, fromPeriod, toPeriod, company))

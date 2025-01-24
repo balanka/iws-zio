@@ -204,7 +204,7 @@ object Article {
       String, String, String, String, String, Int, Instant, Instant, Instant
     )
   type Article_Type3 = (String, String, String, String, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, String, Boolean, String, String, String, String, String, String, Int, LocalDateTime, LocalDateTime, LocalDateTime)
-  type TYPE22 = (String, String, String, scala.math.BigDecimal, String, Boolean, String, String, String, String, String, String, Int, String)
+  type TYPE22 = (String, String, String, scala.math.BigDecimal,  scala.math.BigDecimal, scala.math.BigDecimal,String, Boolean, String, String, String, String, String, String, Int, String)
   def apply(art: Article_): Article = new Article(
     art.id,
     art.name,
@@ -349,7 +349,7 @@ object Article {
       st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
     )
   def encodeIt2(st: Article): TYPE22 =
-    (st.name, st.description, st.parent, st.sprice, st.currency, st.stocked, st.quantityUnit,
+    (st.name, st.description, st.parent, st.sprice, st.pprice, st.avgPrice, st.currency, st.stocked, st.quantityUnit,
       st.packUnit, st.stockAccount, st.expenseAccount, st.vatCode, st.id, st.modelid, st.company)
     
   def encodeIt3(st: Article):TYPE2 =
@@ -1100,7 +1100,7 @@ final case class TStock(id:String, store:String, article:String, quantity:TRef[B
 object Stock {
   import com.kabasoft.iws.domain.common.{reduce, given}
   val MODELID = 37
-  val dummy: Stock =   make("-1", "-1", zeroAmount, "-1",  "")
+  val dummy: Stock =   make("-1", "-1", zeroAmount, "", "-1")
   type TYPE2 = (scala.math.BigDecimal, String)
   type TYPE3 = (scala.math.BigDecimal, String, String, Int, String)
   type TYPE = (String, String, String, scala.math.BigDecimal, String, String, Int)
@@ -1687,20 +1687,29 @@ final case class Transaction(id: Long,
        , st.text, st.id, st.modelid, st.company)
   def encodeIt3(st: Transaction):TYPE3= (st.id, st.modelid, st.company)
 
-final case class TransactionLog(id:Long, transid:Long, oid:Long, store:String, account:String, article:String,
+final case class TransactionLog(id:Long, id1:Long, transid:Long, oid:Long, store:String, account:String, article:String,
                                 quantity:BigDecimal, stock:BigDecimal, wholeStock:BigDecimal, unit:String, price:BigDecimal, avgPrice:BigDecimal,
                                 currency:String, duedate:Instant, text:String, transdate:Instant, postingdate:Instant, enterdate:Instant,
                                 period:Int, company:String, modelid:Int)
 object TransactionLog:
-  type TYPE = (Long, Long, Long, String, String, String, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal
+  type TYPE = (Long, Long, Long, Long, String, String, String, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal
+    , String, scala.math.BigDecimal, scala.math.BigDecimal, String, LocalDateTime, String, LocalDateTime, LocalDateTime, LocalDateTime, Int, String, Int)
+  type TYPE2 = (Long, Long, Long, String, String, String, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal
   , String, scala.math.BigDecimal, scala.math.BigDecimal, String, LocalDateTime, String, LocalDateTime, LocalDateTime, LocalDateTime, Int, String, Int)
   def encodeIt(st: TransactionLog): TYPE =
-    (st.id, st.transid, st.oid, st.store, st.account, st.article, st.quantity, st.stock, st.wholeStock, st.unit, st.price, st.avgPrice, st.currency
+    (st.id, st.id1, st.transid, st.oid, st.store, st.account, st.article, st.quantity, st.stock, st.wholeStock, st.unit, st.price, st.avgPrice, st.currency
       , st.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime, st.text
       , st.transdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
       , st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
       , st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime, st.period, st.company, st.modelid)
 
+  def encodeIt2(st: TransactionLog): TYPE2 =
+    (st.id1, st.transid, st.oid, st.store, st.account, st.article, st.quantity, st.stock, st.wholeStock, st.unit, st.price, st.avgPrice, st.currency
+      , st.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime, st.text
+      , st.transdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
+      , st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
+      , st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime, st.period, st.company, st.modelid)
+    
 final case class FinancialsTransaction(
   id: Long,
   oid: Long,

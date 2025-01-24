@@ -47,7 +47,7 @@ final case class PacRepositoryLive(postgres: Resource[Task, Session[Task]]) exte
   override def findBalance4Period(fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]]=
     queryWithTx(postgres, (fromPeriod, toPeriod, company), BALANCE_QUERY)
   
-  override def deleteAllTest(): ZIO[Any, RepositoryError, Int] =
+  override def deleteAll(): ZIO[Any, RepositoryError, Int] =
     postgres
       .use: session =>
            session.execute(DELETE_TEST)

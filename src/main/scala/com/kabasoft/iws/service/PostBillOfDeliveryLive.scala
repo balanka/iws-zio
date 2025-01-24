@@ -15,7 +15,8 @@ final class PostBillOfDeliveryLive(pacRepo: PacRepository
                                    , repository4PostingTransaction:PostTransactionRepository
                                   ) extends PostBillOfDelivery:
 
-  override def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int]  =
+  override def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int]  = {
+    if (transactions.isEmpty || transactions.flatMap(_.lines).isEmpty ) throw IllegalStateException(" Error: Empty transaction may not be posted!!!")
     for {
       _ <- ZIO.foreachDiscard(transactions.map(_.id))(
         id => ZIO.logDebug(s"Posting bill of delivery  transaction  with id ${id} of company ${transactions.head.company}"))
@@ -24,6 +25,7 @@ final class PostBillOfDeliveryLive(pacRepo: PacRepository
       post <- postTransaction(transactions, company, Nil, oldStocks)
       nr <- repository4PostingTransaction.post(post._1, post._2, post._3, post._4, post._5, post._6, post._7, post._8)
     } yield nr
+  }
 
   private def postTransaction(transactions: List[Transaction], company: Company, newStock:List[Stock], oldStocks:List[Stock]):
   ZIO[Any, RepositoryError, (List[Transaction], List[PeriodicAccountBalance], ZIO[Any, Nothing, List[PeriodicAccountBalance]],

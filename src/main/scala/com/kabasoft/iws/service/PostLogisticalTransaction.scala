@@ -120,7 +120,7 @@ trait  PostLogisticalTransaction:
     models.flatMap(tr => tr.lines.map(line => // Extract lines transaction from each transaction 
       allStock.find(_.id == tr.store.concat(line.article).concat(tr.company).concat("")) // Find stock for article  in  store
         .flatMap(st => articles.find(_.id == st.article).map(article => // Find article for the line
-          TransactionLog(0L, tr.id, tr.oid, tr.store, tr.account, line.article, line.quantity // build TransactionLog
+          TransactionLog(0L, tr.id, tr.id1, tr.oid, tr.store, tr.account, line.article, line.quantity // build TransactionLog
             , st.quantity, /*article.wholeStock*/ zeroAmount, article.quantityUnit, article.pprice, article.avgPrice
             , article.currency, line.duedate, line.text, tr.transdate, tr.postingdate, tr.enterdate, tr.period, tr.company, tr.modelid)
         ))).map(_.toList)).flatten

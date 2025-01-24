@@ -73,10 +73,22 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
           transact(session, List.empty, models))
       .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size) 
   
-  override def getById(p: (Long, Int, String)): ZIO[Any, RepositoryError, Transaction] = queryWithTxUnique(postgres, p, BY_ID)
-  override def getByModelId( p: (Int, String)): ZIO[Any, RepositoryError, List[Transaction]] = queryWithTx(postgres, p, BY_MODEL_ID)
-  override def getByIds(ids: List[Long], modelid: Int, companyId: String): ZIO[Any, RepositoryError, List[Transaction]] =
-    queryWithTx(postgres, (ids, modelid, companyId), ALL_BY_ID(ids.length))
+  override def getById(p: (Long, Int, String)): ZIO[Any, RepositoryError, Transaction] = for {
+    transaction <- queryWithTxUnique(postgres, p, BY_ID)
+    details <- withLines(transaction)
+  } yield details
+    
+  override def getByModelId( p: (Int, String)): ZIO[Any, RepositoryError, List[Transaction]] = for {
+    transactions <- queryWithTx(postgres, p, BY_MODEL_ID)
+    details <- transactions.map(withLines).flip
+  } yield details
+    
+  override def getByIds(ids: List[Long], modelid: Int, companyId: String): ZIO[Any, RepositoryError, List[Transaction]] = for {
+    transactions <- queryWithTx(postgres, (ids, modelid, companyId), ALL_BY_ID(ids.length))
+    details <- transactions.map(withLines).flip
+  } yield details
+    
+    
 
   def list(p: (Int, String)): ZIO[Any, RepositoryError, List[Transaction]] = queryWithTx(postgres, p, ALL)
   private def getDetails(p: (Long, String)): ZIO[Any, RepositoryError, List[TransactionDetails]] = queryWithTx(postgres, p, DETAILS1)
@@ -141,13 +153,13 @@ private[repository] object TransactionRepositorySQL:
   def ALL_BY_ID(nr: Int): Query[(List[Long], Int, String), Transaction] =
     sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text
            FROM   transaction
-           WHERE id  IN ${int8.list(nr)} AND  modelid = $int4 AND company = $varchar
+           WHERE id  IN (${int8.list(nr)}) AND  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val BY_ID: Query[Long *: Int *: String *: EmptyTuple, Transaction] =
     sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text
            FROM   transaction
-           WHERE id = $int8 AND modelid = $int4 AND company = $varchar
+           WHERE id1 = $int8 AND modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val BY_MODEL_ID: Query[Int *: String *: EmptyTuple, Transaction] =

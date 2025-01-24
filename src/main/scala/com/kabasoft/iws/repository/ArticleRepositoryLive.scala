@@ -28,6 +28,10 @@ final case class ArticleRepositoryLive(postgres: Resource[Task, Session[Task]]) 
     queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
   def delete(p: (String, Int, String)): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
 
+  override def deleteAll(p: (List[String], Int, String)): ZIO[Any, RepositoryError, Int] =
+    executeWithTx(postgres, p, DELETE_ALL(p._1.size), p._1.size)
+      .mapBoth(e => e, _ => p._1.size)
+    
 object ArticleRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]], RepositoryError, ArticleRepository] =
     ZLayer.fromFunction(new ArticleRepositoryLive(_))
@@ -49,7 +53,7 @@ private[repository] object ArticleRepositorySQL:
   def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Article] =
   sql"""SELECT id, name, description, parent, sprice, pprice, avg_price, currency, stocked, quantity_unit, pack_unit, stock_account, expense_account, vat_code, company, modelid, enterdate, changedate, postingdate
            FROM   article
-           WHERE id  IN ${varchar.list(nr)} AND  modelid = $int4 AND company = $varchar
+           WHERE id  IN ( ${varchar.list(nr)} ) AND  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val BY_ID: Query[String *: Int *: String *: EmptyTuple, Article] =
@@ -64,33 +68,33 @@ private[repository] object ArticleRepositorySQL:
            WHERE  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
-  val insert: Command[Article] = sql"INSERT INTO masterfile VALUES $mfEncoder".command
-  def insertAll(n: Int): Command[List[Article.Article_Type3]] = sql"INSERT INTO article VALUES ${mfCodec.values.list(n)}".command
+  val insert: Command[Article] = sql"""INSERT INTO article (id, name, description, parent, sprice, pprice, avg_price
+        , currency, stocked, quantity_unit, pack_unit, stock_account, expense_account, vat_code, company, modelid
+        , enterdate, changedate, postingdate) VALUES $mfEncoder""".stripMargin.command
+  
+  def insertAll(n: Int): Command[List[Article.Article_Type3]] =
+    sql"""INSERT INTO article (id, name, description, parent, sprice, pprice, avg_price, currency, stocked
+         , quantity_unit, pack_unit, stock_account, expense_account, vat_code, company, modelid, enterdate, changedate
+         , postingdate) VALUES ${mfCodec.values.list(n)}""".command
+    
   val UPDATE: Command[Article.TYPE22] =
     sql"""UPDATE article
-          SET name = $varchar, description = $varchar, parent = $varchar, sprice= $numeric, currency =$varchar, stocked=$bool
+          SET name = $varchar, description = $varchar, parent = $varchar, sprice= $numeric, pprice= $numeric
+          , avg_price= $numeric, currency =$varchar, stocked=$bool
            , quantity_unit=$varchar, pack_unit=$varchar, stock_account=$varchar, expense_account=$varchar, vat_code=$varchar
           WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
-
-  val upsert: Command[Article] =
-  sql"""INSERT INTO article
-           VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET
-           id                     = EXCLUDED.id,
-           name                   = EXCLUDED.name,
-           description            = EXCLUDED.description,
-            account               = EXCLUDED.parent
-          """.command
   
   val updatePrices: Command[BigDecimal *: BigDecimal *: BigDecimal *: String *: Int *: String *: EmptyTuple] =
     sql"""UPDATE article
             UPDATE SET
-            sprice                 = $numeric(12,2),
-            pprice               = $numeric(12,2),
-            avgPrice                 = $numeric(12,2),
+            sprice                 = $numeric,
+            pprice                 = $numeric,
+            avg_price              = $numeric,
             WHERE id =$varchar AND modelid = $int4 AND  company =$varchar
           """.command
-    
-  private val onConflictDoNothing = sql"ON CONFLICT DO NOTHING"
-
+  
   def DELETE: Command[(String, Int, String)] =
-  sql"DELETE FROM article WHERE id = $varchar AND modelid = $int4 AND company = $varchar".command
+       sql"DELETE FROM article WHERE id = $varchar AND modelid = $int4 AND company = $varchar".command
+
+  def DELETE_ALL(nr: Int): Command[(List[String], Int, String)] =
+    sql"DELETE FROM article WHERE id  IN ( ${varchar.list(nr)} )  AND modelid = $int4 AND company = $varchar".command

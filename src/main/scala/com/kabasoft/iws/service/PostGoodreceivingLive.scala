@@ -16,23 +16,26 @@ final class PostGoodreceivingLive(pacRepo: PacRepository
                                   , repository4PostingTransaction:PostTransactionRepository)
                                     extends PostGoodreceiving:
 
-  override def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int]  =
-    if (transactions.isEmpty) ZIO.succeed(0) else for {
-    _ <- ZIO.foreachDiscard(transactions.map(_.id))(
+  override def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int]  = 
+    if (transactions.isEmpty || transactions.flatMap(_.lines).isEmpty) throw IllegalStateException(" Error: Empty transaction may not be posted!!!")
+    for 
+      _ <- ZIO.foreachDiscard(transactions.map(_.id))(
       id => ZIO.logDebug(s"Posting Goodreceiving transaction  with id ${id} of company ${transactions.head.company}"))
-    stockIds = Stock.create(transactions).map(_.id).distinct
-    oldStocks <- stockRepo.getBy(stockIds, Stock.MODELID, company.id)
-    newStock <- buildNewStock(transactions, oldStocks).flip
-    post <- postTransaction(transactions, company, newStock, oldStocks)
-    nr <- repository4PostingTransaction.post(post._1, post._2, post._3, post._4, post._5, post._6, post._7, post._8)
-    } yield nr
+      stockIds = Stock.create(transactions).map(_.id).distinct
+      oldStocks <- stockRepo.getBy(stockIds, Stock.MODELID, company.id)
+      newStock <- buildNewStock(transactions, oldStocks).flip
+      post <- postTransaction(transactions, company, newStock, oldStocks)
+      nr <- repository4PostingTransaction.post(post._1, post._2, post._3, post._4, post._5, post._6, post._7, post._8)
+    yield nr
 
   private def postTransaction(transactions: List[Transaction], company: Company, newStock:List[Stock], oldStocks:List[Stock]):
   ZIO[Any, RepositoryError, (List[Transaction], List[PeriodicAccountBalance], ZIO[Any, Nothing, List[PeriodicAccountBalance]],
                              List[TransactionLog], List[Journal], List[Stock], List[Stock], List[Article])] = for {
 
     accounts <- accRepo.all(Account.MODELID, company.id)
-    articles <- artRepo.getBy(transactions.flatMap(m => m.lines.map(_.article)), Article.MODELID, company.id)
+    articleIdsx = transactions.flatMap(m => m.lines.map(_.article))
+    articleIds = articleIdsx.distinct
+    articles <- artRepo.getBy(articleIds, Article.MODELID, company.id)
     accountIds = articles.map(art => (art.stockAccount, company.purchasingClearingAcc))
     pacids = accountIds.flatMap(id => transactions.map(tr => buildPacId(tr.period, id))).flatten
     pacs <- pacRepo.getBy(pacids, Stock.MODELID, company.id).map(_.filterNot(_.id.equals(PeriodicAccountBalance.dummy.id)))
@@ -87,7 +90,9 @@ final class PostGoodreceivingLive(pacRepo: PacRepository
     }).filterNot(_.article == Stock.dummy.article).toList
 
   private def makeJournal(models: List[Transaction],  pacListx: List[PeriodicAccountBalance], tpacList: List[UIO[PeriodicAccountBalance]],
-                          articles:List[Article] ): ZIO[Any, Nothing, List[Journal]] = for {
+                          articles:List[Article] ): ZIO[Any, Nothing, List[Journal]] =
+    if (articles.isEmpty) throw IllegalStateException(" Error: a  goodreceiving transaction without article may not be posted!!!")
+    for {
       pacList <- tpacList.flip
       journal = models.flatMap(model =>
           model.lines.flatMap { line =>

@@ -28,8 +28,8 @@ object PacRepositoryLiveSpec extends ZIOSpecDefault {
     suite("Periodic account balance repository  test with postgres test container")(
       test("clear PACs ") {
         for
-          deleted <- PacRepository.deleteAllTest()
-        yield assertTrue(deleted >=0) 
+          deleted <- PacRepository.deleteAll()
+        yield assertTrue(deleted ==1) 
       },
       test("create 3 pacs") {
         for {

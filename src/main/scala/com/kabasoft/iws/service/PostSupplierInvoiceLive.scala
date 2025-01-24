@@ -12,13 +12,14 @@ final class PostSupplierInvoiceLive(vatRepo: VatRepository
                                     , repository4PostingFinancialsTransaction:PostFinancialsTransactionRepository )
                                     extends PostSupplierInvoice:
   override def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int]  =
-    if (transactions.isEmpty) ZIO.succeed(0) else for {
-    _ <- ZIO.foreachDiscard(transactions.map(_.id))(
-      id => ZIO.logDebug(s"Posting supplier invoice transaction  with id ${id} of company ${transactions.head.company}"))
-    post <- postTransaction(transactions, company).map(_.unzip)
-    nrPostedTransaction <- repository4PostingTransaction.post(post._1, Nil, ZIO.succeed(Nil), Nil, Nil, Nil, Nil, Nil )
-    nrPostedFinancialsTransaction <- repository4PostingFinancialsTransaction.post(post._2, Nil, ZIO.succeed(Nil), Nil)
-    } yield nrPostedTransaction + nrPostedFinancialsTransaction
+   if (transactions.isEmpty || transactions.flatMap(_.lines).isEmpty) throw IllegalStateException(" Error: Empty transaction may not be posted!!!")
+   for {
+     _ <- ZIO.foreachDiscard(transactions.map(_.id))(
+       id => ZIO.logDebug(s"Posting supplier invoice transaction  with id ${id} of company ${transactions.head.company}"))
+     post <- postTransaction(transactions, company).map(_.unzip)
+     nrPostedTransaction <- repository4PostingTransaction.post(post._1, Nil, ZIO.succeed(Nil), Nil, Nil, Nil, Nil, Nil)
+     nrPostedFinancialsTransaction <- repository4PostingFinancialsTransaction.post(post._2, Nil, ZIO.succeed(Nil), Nil)
+   } yield nrPostedTransaction + nrPostedFinancialsTransaction
 
   private def postTransaction(transactions: List[Transaction], company: Company):
                      ZIO[Any, RepositoryError, List[(Transaction, FinancialsTransaction)]] = for {

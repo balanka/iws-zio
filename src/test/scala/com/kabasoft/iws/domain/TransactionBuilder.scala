@@ -31,7 +31,7 @@ object TransactionBuilder {
   val text5 = "Note for  good  or service ordered from supplier"
   val text6 = "Note for goods  and or  services ordered by customer"
   val currency = "EUR"
-  val store = "311"
+  val store = "001"
   val qttyUnit = "stk"
   val vatCode = "v5"
 

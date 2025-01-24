@@ -39,6 +39,13 @@ final case class StockRepositoryLive(postgres: Resource[Task, Session[Task]]) ex
   
   override def delete(p: (String, Int, String)):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, p, DELETE, 1)
 
+  override def deleteAll(): ZIO[Any, RepositoryError, Int] =
+    (postgres
+      .use:
+        session =>
+          session.execute(DELETE_ALL)
+      .mapBoth(e => RepositoryError(e.getMessage), _ => 1))
+    
 object StockRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]], RepositoryError, StockRepository] =
     ZLayer.fromFunction(new StockRepositoryLive(_))
@@ -60,7 +67,7 @@ private[repository] object StockRepositorySQL:
   def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Stock] =
     sql"""SELECT id, store, article, quantity, charge, company, modelid
            FROM   stock
-           WHERE id  IN ${varchar.list(nr)} AND  modelid = $int4 AND company = $varchar
+           WHERE id  IN ( ${varchar.list(nr)} ) AND  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val BY_ID: Query[String *: Int *: String *: EmptyTuple, Stock] =
@@ -108,8 +115,9 @@ private[repository] object StockRepositorySQL:
             quantity  = $numeric(12,2)
             WHERE id =$varchar
           """.command
-    
-  private val onConflictDoNothing = sql"ON CONFLICT DO NOTHING"
-
+  
   def DELETE: Command[(String, Int, String)] =
     sql"DELETE FROM stock WHERE id = $varchar AND modelid = $int4 AND company = $varchar".command
+
+  def DELETE_ALL: Command[Void] =
+    sql"""DELETE FROM stock WHERE company = '-1000'""".command  

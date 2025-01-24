@@ -305,6 +305,7 @@ create table if not exists transaction_log
 (
     id           bigint  default nextval('transaction_log_id_seq'::regclass) not null primary key,
     transid      bigint                            not null,
+    id1          bigint                            ,
     oid          bigint                            ,
     store   varchar(50)                       not null,
     account      varchar(50)                       not null,

@@ -13,7 +13,8 @@ trait ArticleRepository:
   def getById(Id: (String, Int, String)): ZIO[Any, RepositoryError, Article]
   def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Article]]
   def delete(p: (String, Int, String)): ZIO[Any, RepositoryError, Int]
-
+  def deleteAll(p: (List[String], Int, String)): ZIO[Any, RepositoryError, Int]
+  
 object ArticleRepository:
 
   def create(item: Article):ZIO[ArticleRepository, RepositoryError, Int]=
@@ -39,3 +40,6 @@ object ArticleRepository:
 
   def delete(p: (String, Int, String)): ZIO[ArticleRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[ArticleRepository](_.delete(p))
+    
+  def deleteAll(p: (List[String], Int, String)): ZIO[ArticleRepository, RepositoryError, Int]=
+    ZIO.serviceWithZIO[ArticleRepository](_.deleteAll(p))

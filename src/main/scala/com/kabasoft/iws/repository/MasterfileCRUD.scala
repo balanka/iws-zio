@@ -20,12 +20,25 @@ object MasterfileCRUD:
   final case class InsertBatch[A, B](param: List[A], encoder: A => B, cmd: Command[List[B]])
   
 trait MasterfileCRUD:
+  def tryExec[A](xa: Transaction[Task]
+                    , pc: PreparedCommand[Task, A]
+                    , models: List[A]): Task[Unit] =
+
+    for
+     // _ <- ZIO.logInfo(s"Trying to insert $models")
+      sp <- xa.savepoint
+      _ <- exec(pc, models)
+          .handleErrorWith(ex =>
+            ZIO.logInfo(s"Unique violation: ${ex.getMessage}, rolling back...") *>
+              xa.rollback(sp))
+    yield ()
+    
   def tryExec [A, B](xa: Transaction[Task], pciCustomer: PreparedCommand[Task, A]
                       , pciBankAcc: PreparedCommand[Task, B]
                       , customers: List[A], bankaccounts:List[B]): Task[Unit] =
 
     for
-      _ <- ZIO.logInfo(s"Trying to insert $customers")
+      //_ <- ZIO.logInfo(s"Trying to insert $customers")
       sp <- xa.savepoint
       _ <- exec(pciCustomer, customers) *>
         exec(pciBankAcc, bankaccounts)
@@ -44,8 +57,8 @@ trait MasterfileCRUD:
               , oldCustomers: List[C], oldBankaccounts: List[D]): Task[Unit] =
 
     for
-      _ <- ZIO.logInfo(s"Trying to insert $customers")
-      _ <- ZIO.logInfo(s"Trying to uodate $oldCustomers")
+      //_ <- ZIO.logInfo(s"Trying to insert $customers")
+      //_ <- ZIO.logInfo(s"Trying to uodate $oldCustomers")
       sp <- xa.savepoint
       _ <- exec(pciCustomer, customers) *>
         exec(pciBankAcc, newBankaccounts) *>
@@ -67,8 +80,8 @@ trait MasterfileCRUD:
                           , customer2Delete: List[E], bankacc2Delete: List[F] ): Task[Unit] =
 
     for
-      _ <- ZIO.logInfo(s"Trying to insert $customers")
-      _ <- ZIO.logInfo(s"Trying to uodate $oldCustomers")
+      //_ <- ZIO.logInfo(s"Trying to insert $customers")
+      //_ <- ZIO.logInfo(s"Trying to uodate $oldCustomers")
       sp <- xa.savepoint
       _ <- exec(pciCustomer, customers) *>
         exec(pciBankAcc, newBankaccounts) *>
@@ -89,9 +102,9 @@ trait MasterfileCRUD:
                            , pac2update: List[C], models: List[D]): Task[Unit] =
 
     for
-      _ <- ZIO.logInfo(s"Trying to insert PAC $pac2Insert")
-      _ <- ZIO.logInfo(s"Trying to update  PAC$pac2update")
-      _ <- ZIO.logInfo(s"Trying to insert Journal $journals")
+      //_ <- ZIO.logInfo(s"Trying to insert PAC $pac2Insert")
+      //_ <- ZIO.logInfo(s"Trying to update  PAC$pac2update")
+      //_ <- ZIO.logInfo(s"Trying to insert Journal $journals")
       sp <- xa.savepoint
       _ <- exec(pciPac, pac2Insert) *>
         exec(pciJour, journals) *>
@@ -120,9 +133,9 @@ trait MasterfileCRUD:
                           , models:List[H]): Task[Unit] =
 
     for
-      _ <- ZIO.logInfo(s"Trying to insert PAC $newPac")
-      _ <- ZIO.logInfo(s"Trying to update  PAC$pac2update")
-      _ <- ZIO.logInfo(s"Trying to insert Journal $journals")
+      //_ <- ZIO.logInfo(s"Trying to insert PAC $newPac")
+      //_ <- ZIO.logInfo(s"Trying to update  PAC$pac2update")
+      //_ <- ZIO.logInfo(s"Trying to insert Journal $journals")
       sp <- xa.savepoint
       _ <- exec(pciPac, newPac) *>
         exec(pciStock, newStock) *>
@@ -261,19 +274,11 @@ trait MasterfileCRUD:
                     ZIO.logInfo(s"Error:  rolling back...") *>
                     xa.rollback
          .mapBoth(e => RepositoryError(e.getMessage), _ => size)
-
-  def exec1[A, B](pc: PreparedCommand[Task, B], list: List[A], encoder:A=>B): Task[Unit] =
-    list.map(encoder).traverse_ { p =>
-      for
-        _ <- ZIO.logInfo(s"Trying to run an insert/update/delete command $p")
-        _ <- pc.execute(p)
-      yield ()
-    }
   
   def exec[T](pc: PreparedCommand[Task, T], list: List[T]): Task[Unit] =
     list.traverse_ { p =>
       for
-        _ <-  ZIO.logInfo(s"Trying to run an insert/update/delete command $p")
+        //_ <-  ZIO.logInfo(s"Trying to run an insert/update/delete command $p")
         _ <- pc.execute(p)
       yield ()
     }
@@ -321,22 +326,6 @@ trait MasterfileCRUD:
     
   type TYPE [A, B] = (PreparedCommand[Task, List[B]], List[A],  A => B)
   
-  def executeWithoutTx[A, B]( command: PreparedCommand[Task, List[B]],  p: List[A], encoder: A => B): Task[Int] =
-          command.execute(p.map(encoder)).mapBoth(e => e, _ => p.size)
-
-  def executeWithTxa[A](session: Session[Task], xa: Transaction[Task], p: A, command: Command[A]): Task[Int]=
-    session
-      .prepare(command)
-      .flatMap: cmd =>
-         executeWithTx(xa, cmd, p)
-
-  def executeWithTxR[A, B](session: Session[Task], xa:Transaction[Task], p: List[A], encoder: A => B, command: Command[List[B]]): Task[Int] =
-         session
-           .prepare(command)
-            .flatMap: cmd =>
-              executeWithTx(xa, cmd, p, encoder)
-
-
   def executeBatchWithTxK[A, B](postgres: Resource[Task, Session[Task]], params: List[A], cmdx: Command[B], encode: A => B): ZIO[Any, RepositoryError, Int] = for {
      u <- postgres
        .use: session =>
@@ -356,27 +345,6 @@ trait MasterfileCRUD:
                  })
        .mapBoth(e => RepositoryError(e.getMessage), _ => params.size).as(params.size)
    } yield u
-
-def execPreparedCommand[A, B](postgres: Resource[Task, Session[Task]], params:List[A], encoder:A=>B, commands: List[Command[B]]): ZIO[Any, RepositoryError, Int] = for {
-  u <- postgres
-    .use: session =>
-      session.transaction.use: xa =>
-        commands.traverse(cmdx =>
-          session
-          .prepare(cmdx)
-          .flatMap: cmd =>
-           params.traverse(param =>
-             cmd.execute(encoder(param)).recoverWith {
-                case SqlState.UniqueViolation(ex) =>
-                  ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
-                    xa.rollback
-                case _ =>
-                  ZIO.logInfo(s"Error:  rolling back...") *>
-                    xa.rollback
-              })
-        )
-    .mapBoth(e => RepositoryError(e.getMessage), list => commands.size) //.as(params.size)
-} yield u
 
 def executeBatchWithTZ[A, B, C, D](session: Session[Task]
                                    , commands: List[InsertBatch[A, B]]

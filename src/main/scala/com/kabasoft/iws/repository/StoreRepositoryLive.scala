@@ -75,7 +75,7 @@ private[repository] object StoreRepositorySQL:
   def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Store] =
     sql"""SELECT id, name, description, account, enterdate, changedate, postingdate, company, modelid
            FROM   store
-           WHERE id  IN ${varchar.list(nr)} AND  modelid = $int4 AND company = $varchar
+           WHERE id  IN ( ${varchar.list(nr)}) AND  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val BY_ID: Query[String *: Int *: String *: EmptyTuple, Store] =
@@ -99,22 +99,7 @@ private[repository] object StoreRepositorySQL:
     sql"""UPDATE store
           SET name = $varchar, description = $varchar, account = $varchar
           WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
-    
-  val upsert: Command[Store] =
-    sql"""INSERT INTO store
-           VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET
-           id                     = EXCLUDED.id,
-           name                   = EXCLUDED.name,
-           description            = EXCLUDED.description,
-            account               = EXCLUDED.account,
-            enterdate             = EXCLUDED.enterdate,
-            changedate            = EXCLUDED.changedate,
-            postingdate           = EXCLUDED.postingdate,
-            company               = EXCLUDED.company,
-            modelid               = EXCLUDED.modelid,
-          """.command
-
-  private val onConflictDoNothing = sql"ON CONFLICT DO NOTHING"
+  
 
   def DELETE: Command[(String, Int, String)] =
     sql"DELETE FROM store WHERE id = $varchar AND modelid = $int4 AND company = $varchar".command
