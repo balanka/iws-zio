@@ -42,11 +42,11 @@ final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[
                     , articles: List[Article]): ZIO[Any, RepositoryError, Int] =
        for {
           pac2updatex <- pac2update
-                      _ <- ZIO.when(newPac.nonEmpty)(ZIO.logInfo(s" New Pacs  to insert into DB ${newPac}"))
-                      _ <- ZIO.when(pac2updatex.nonEmpty)(ZIO.logInfo(s" Old Pacs  to update in DB ${pac2updatex}"))
-                      _ <- ZIO.when(transLogEntries.nonEmpty)(ZIO.logInfo(s" Transaction log  ${transLogEntries}"))
-                      _ <- ZIO.when(journals.nonEmpty)(ZIO.logInfo(s" journals  ${journals}"))
-                      _ <- ZIO.logInfo(s" Transaction posted  ${models}")
+//                      _ <- ZIO.when(newPac.nonEmpty)(ZIO.logInfo(s" New Pacs  to insert into DB ${newPac}"))
+//                      _ <- ZIO.when(pac2updatex.nonEmpty)(ZIO.logInfo(s" Old Pacs  to update in DB ${pac2updatex}"))
+//                      _ <- ZIO.when(transLogEntries.nonEmpty)(ZIO.logInfo(s" Transaction log  ${transLogEntries}"))
+//                      _ <- ZIO.when(journals.nonEmpty)(ZIO.logInfo(s" journals  ${journals}"))
+//                      _ <- ZIO.logInfo(s" Transaction posted  ${models}")
                       nr <-   (postgres
                     .use:
                       session =>

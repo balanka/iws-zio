@@ -25,7 +25,6 @@ trait MasterfileCRUD:
                     , models: List[A]): Task[Unit] =
 
     for
-     // _ <- ZIO.logInfo(s"Trying to insert $models")
       sp <- xa.savepoint
       _ <- exec(pc, models)
           .handleErrorWith(ex =>
@@ -38,7 +37,6 @@ trait MasterfileCRUD:
                       , customers: List[A], bankaccounts:List[B]): Task[Unit] =
 
     for
-      //_ <- ZIO.logInfo(s"Trying to insert $customers")
       sp <- xa.savepoint
       _ <- exec(pciCustomer, customers) *>
         exec(pciBankAcc, bankaccounts)
@@ -57,8 +55,6 @@ trait MasterfileCRUD:
               , oldCustomers: List[C], oldBankaccounts: List[D]): Task[Unit] =
 
     for
-      //_ <- ZIO.logInfo(s"Trying to insert $customers")
-      //_ <- ZIO.logInfo(s"Trying to uodate $oldCustomers")
       sp <- xa.savepoint
       _ <- exec(pciCustomer, customers) *>
         exec(pciBankAcc, newBankaccounts) *>
@@ -80,8 +76,6 @@ trait MasterfileCRUD:
                           , customer2Delete: List[E], bankacc2Delete: List[F] ): Task[Unit] =
 
     for
-      //_ <- ZIO.logInfo(s"Trying to insert $customers")
-      //_ <- ZIO.logInfo(s"Trying to uodate $oldCustomers")
       sp <- xa.savepoint
       _ <- exec(pciCustomer, customers) *>
         exec(pciBankAcc, newBankaccounts) *>
@@ -102,9 +96,6 @@ trait MasterfileCRUD:
                            , pac2update: List[C], models: List[D]): Task[Unit] =
 
     for
-      //_ <- ZIO.logInfo(s"Trying to insert PAC $pac2Insert")
-      //_ <- ZIO.logInfo(s"Trying to update  PAC$pac2update")
-      //_ <- ZIO.logInfo(s"Trying to insert Journal $journals")
       sp <- xa.savepoint
       _ <- exec(pciPac, pac2Insert) *>
         exec(pciJour, journals) *>
@@ -133,9 +124,6 @@ trait MasterfileCRUD:
                           , models:List[H]): Task[Unit] =
 
     for
-      //_ <- ZIO.logInfo(s"Trying to insert PAC $newPac")
-      //_ <- ZIO.logInfo(s"Trying to update  PAC$pac2update")
-      //_ <- ZIO.logInfo(s"Trying to insert Journal $journals")
       sp <- xa.savepoint
       _ <- exec(pciPac, newPac) *>
         exec(pciStock, newStock) *>
@@ -256,76 +244,15 @@ trait MasterfileCRUD:
                     ZIO.logInfo(s"Error:  rolling back...") *>
                       xa.rollback
         .mapBoth(e => RepositoryError(e.getMessage), _ => size)
-
-  def executeWithTxW[A, B](session: Session[Task], p: A, encoder:A=>B, comd: Command[B], size: Int): ZIO[Any, RepositoryError, Int] =
-    ZIO.logInfo(s"Executing: $comd with param ${encoder(p)}") *>
-    // postgres
-      // .use: session =>
-          session.transaction.use: xa =>
-            session
-             .prepare(comd)
-             .flatMap: cmd =>
-               xa.savepoint
-                cmd.execute(encoder(p)).recoverWith:
-                  case SqlState.UniqueViolation(ex) =>
-                    ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
-                    xa.rollback
-                  case _ =>
-                    ZIO.logInfo(s"Error:  rolling back...") *>
-                    xa.rollback
-         .mapBoth(e => RepositoryError(e.getMessage), _ => size)
   
   def exec[T](pc: PreparedCommand[Task, T], list: List[T]): Task[Unit] =
     list.traverse_ { p =>
       for
-        //_ <-  ZIO.logInfo(s"Trying to run an insert/update/delete command $p")
         _ <- pc.execute(p)
       yield ()
     }
-
-  def executeBatchWithTx[A, B, C, D](postgres: Resource[Task, Session[Task]]
-                                    , commands: List[UpdateCommand[A,B]]
-                                    , commandLPs: List[InsertBatch[C, D]]): Unit =
-    postgres
-      .use: session =>
-        session.transaction.use: xa =>
-          commands.traverse(command =>
-            session
-              .prepare(command.cmd)
-              .flatMap: cmd =>
-                 xa.savepoint
-                 cmd.execute(command.encoder(command.param))).*>
-          commandLPs.traverse(command =>
-                session
-                  .prepare(command.cmd)
-                  .map: cmd =>
-                     //exec1(cmd, command.param, command.encoder)).*>
-                      xa.savepoint
-                      cmd.execute(command.param.map(command.encoder)))
-            .recoverWith:
-             case SqlState.UniqueViolation(ex) =>
-                 ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
-                  xa.rollback
-             case _ =>
-                 ZIO.logInfo(s"Error:  rolling back...") *>
-                 xa.rollback
-  
-
-  def executeWithTxR[A, B](xa: Transaction[Task], p: List[A], encoder: A => B
-                           , command: PreparedCommand[Task, List[B]], size: Int): Task[Int] =
-    xa.savepoint
-    command.execute(p.map(encoder)).recoverWith {
-        case SqlState.UniqueViolation(ex) =>
-          ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
-            xa.rollback
-        case _ =>
-          ZIO.logInfo(s"Error:  rolling back...") *>
-            xa.rollback
-      }
-      .mapBoth(e => e, _ => size)
     
   type TYPE [A, B] = (PreparedCommand[Task, List[B]], List[A],  A => B)
-  
   def executeBatchWithTxK[A, B](postgres: Resource[Task, Session[Task]], params: List[A], cmdx: Command[B], encode: A => B): ZIO[Any, RepositoryError, Int] = for {
      u <- postgres
        .use: session =>
@@ -368,66 +295,9 @@ def executeBatchWithTZ[A, B, C, D](session: Session[Task]
             ZIO.logInfo(s"Error:  rolling back...") *> xa.rollback
     .mapBoth(e => e, _ => commands.map(x=>x.param).size + commandLPs.map(x=>x.param).size)        
 
-  def xy[C, F](session: Session[Task], deleteCommands: List[ExecCommand[C, F]]) =
-      deleteCommands.traverse: command =>
-        session
-         .prepare(command.cmd)
-         .flatMap: cmd =>
-            command.param.traverse: p =>
-               cmd.execute(command.encoder(p))
 
-  def xx[A, B](session: Session[Task], insertCommands: List[InsertBatch[A, B]]) =
-       insertCommands.traverse: command =>
-         session
-          .prepare(command.cmd)
-          .flatMap: cmd =>
-           //xa.savepoint
-             cmd.execute(command.param.map(command.encoder))
-  def xx2[C, D](session: Session[Task], insertCommands: List[InsertBatch[C, D]]) =
-        insertCommands.traverse: command =>
-          session
-            .prepare(command.cmd)
-            .flatMap: cmd =>
-            //xa.savepoint
-               cmd.execute(command.param.map(command.encoder))
-  def ax[A, B](session: Session[Task], updateCommands: List[UpdateCommand[A, B]]) =
-       //session.transaction.use: xa =>
-         updateCommands.traverse: command =>
-           session
-             .prepare(command.cmd)
-             .flatMap: cmd =>
-             //xa.savepoint
-               cmd.execute(command.encoder(command.param))
 
-  def ax2[C, E](session: Session[Task], commandLPs: List[ExecCommand[C, E]]) =
-        commandLPs.traverse: command =>
-           session
-             .prepare(command.cmd)
-             .flatMap: cmd =>
-             //xa.savepoint
-                command.param.traverse: p =>
-                   cmd.execute(command.encoder(p))
-  def executeBatchWithTx2[A, B, C, D, E, F](postgres: Resource[Task, Session[Task]]
-                                          , commands: List[UpdateCommand[A, B]]
-                                          , insertCommands: List[InsertBatch[A, B]]
-                                          , deleteCommands: List[ExecCommand[C, F]]
-                                          , insertCommands2: List[InsertBatch[C, D]]
-                                          , commandLPs: List[ExecCommand[C, E]],
-                                         ): Unit = {
-    postgres
-      .use:
-      session =>
-        session.transaction.use: xa =>
-          ax(session, commands)
-          .*>(xy(session, deleteCommands))
-          .*>(xx(session, insertCommands))
-          .*>(xx2(session, insertCommands2))
-          .*>(ax2(session, commandLPs))
-          .recoverWith:
-             case SqlState.UniqueViolation(ex)=>
-               ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
-               xa.rollback
-             case _ =>
-                  ZIO.logInfo(s"Error:  rolling back...") *>
-                  xa.rollback
-}
+
+
+
+

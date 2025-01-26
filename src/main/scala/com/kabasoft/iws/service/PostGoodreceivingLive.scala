@@ -56,8 +56,8 @@ final class PostGoodreceivingLive(pacRepo: PacRepository
     newRecords = allPacs.filter(id=> ids.contains(id))
     //allPacs.filterNot(pac => pacs.map(_.id).contains(pac.id))
     //  .groupBy(_.id) map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy) }
-    _<- ZIO.logInfo(s">>>>>>>>>>newRecords  $newRecords")
-    _<- ZIO.logInfo(s">>>>>>>>>>newRecords2  $newRecords2")
+//    _<- ZIO.logInfo(s">>>>>>>>>>newRecords  $newRecords")
+//    _<- ZIO.logInfo(s">>>>>>>>>>newRecords2  $newRecords2")
     tpacs <- pacs.map(TPeriodicAccountBalance.apply).flip
     oldPacs <- updatePac(allPacs, tpacs).map(e => e.map(PeriodicAccountBalance.applyT))
     

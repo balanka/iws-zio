@@ -96,10 +96,10 @@ object TransactionServiceLiveSpec extends ZIOSpecDefault {
         val stock1 = Stock.buildId(ftr1.store, artId1, "", ftr1.company)
         for 
           stocks <- StockRepository.getBy(createdStock.map(stock=>stock.id), Stock.MODELID, ftr1.company)
-          stock0 <- StockRepository.getById (stock0, Stock.MODELID, ftr1.company).debug(s"stock0 >>> ${artId0}")
-          stock1 <- StockRepository.getById (stock1, Stock.MODELID, ftr1.company).debug(s"stock1 >>> ${artId1}")
-          article0 <- ArticleRepository.getById ( artId0, Article.MODELID, ftr1.company).debug(s"article0 >>> ${artId0}")
-          article1 <- ArticleRepository.getById ( artId1, Article.MODELID, ftr1.company).debug(s"article1 >>> ${artId1}")
+          stock0 <- StockRepository.getById (stock0, Stock.MODELID, ftr1.company)//.debug(s"stock0 >>> ${artId0}")
+          stock1 <- StockRepository.getById (stock1, Stock.MODELID, ftr1.company)//.debug(s"stock1 >>> ${artId1}")
+          article0 <- ArticleRepository.getById ( artId0, Article.MODELID, ftr1.company)//.debug(s"article0 >>> ${artId0}")
+          article1 <- ArticleRepository.getById ( artId1, Article.MODELID, ftr1.company)//.debug(s"article1 >>> ${artId1}")
         yield assertTrue(stocks.size == 2, stock0.quantity.compareTo(quantityStock0)==0
             ,  stock1.quantity.compareTo(quantityStock1)==0
             , article0.avgPrice.compareTo(avgPrice0)==0
@@ -124,10 +124,10 @@ object TransactionServiceLiveSpec extends ZIOSpecDefault {
           transactionIds:List[(Long, Int)] = all.map(tr =>(tr.id1, tr.modelid))
           postedRows <- TransactionService.postAll(transactionIds, ftr1.company)
           stocks <- StockRepository.getBy(createdStock.map(stock=>stock.id), Stock.MODELID, ftr1.company)
-          stock0 <- StockRepository.getById (stock0, Stock.MODELID, ftr1.company).debug(s"stock02 >>> ${artId0}")
-          stock1 <- StockRepository.getById (stock1, Stock.MODELID, ftr1.company).debug(s"stock12 >>> ${artId1}")
-          article0 <- ArticleRepository.getById ( artId0, Article.MODELID, ftr1.company).debug(s"article02 >>> ${artId0}")
-          article1 <- ArticleRepository.getById ( artId1, Article.MODELID, ftr1.company).debug(s"article12 >>> ${artId1}")
+          stock0 <- StockRepository.getById (stock0, Stock.MODELID, ftr1.company)//.debug(s"stock02 >>> ${artId0}")
+          stock1 <- StockRepository.getById (stock1, Stock.MODELID, ftr1.company)//.debug(s"stock12 >>> ${artId1}")
+          article0 <- ArticleRepository.getById ( artId0, Article.MODELID, ftr1.company)//.debug(s"article02 >>> ${artId0}")
+          article1 <- ArticleRepository.getById ( artId1, Article.MODELID, ftr1.company)//.debug(s"article12 >>> ${artId1}")
         yield assertTrue(oneRow ==  list.size+list.flatMap(_.lines).size ) &&
           assertTrue(postedRows == 3) &&
            assertTrue(stocks.size == 2, stock0.quantity.compareTo(quantityStock0)==0
