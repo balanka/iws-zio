@@ -4,7 +4,7 @@ import java.math.{BigDecimal, RoundingMode}
 import java.time.Instant
 
 object BankStatementBuilder {
-  val company ="1000"
+  val company ="-1000"
   val id = "4711"
   val posted = false
   val amount = new BigDecimal("2000.00").setScale(2, RoundingMode.HALF_UP)
