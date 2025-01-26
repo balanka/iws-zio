@@ -20,11 +20,14 @@ trait  PostLogisticalTransaction:
     (PeriodicAccountBalance.createId(period, accountId._1), PeriodicAccountBalance.createId(period, accountId._2))
 
   def buildPacsFromTransaction(model: Transaction, articles: List[Article], accounts: List[Account], accountId: String): List[PeriodicAccountBalance] =
-    model.lines.flatMap:line =>
-      val stockAccountIds: List[String] = articleId2AccountId(line.article, articles, accounts)
-      stockAccountIds.map(accountId => createPac(accountId, model, line, debitCredit = true)) ++
-      List(createPac(accountId, model, line, debitCredit = false))
+    val x:List[PeriodicAccountBalance] = model.lines.flatMap:line =>
+           val stockAccountIds: List[String] = articleId2AccountId(line.article, articles, accounts)
+           stockAccountIds.map(accountId => createPac(accountId, model, line, debitCredit = true)) ++
+           List(createPac(accountId, model, line, debitCredit = false))
+    x.groupBy(_.id).map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy) }.toList
     
+  
+
 
   def buildTransaction(model: Transaction, accounts: List[Account], suppliers: List[BusinessPartner]
                        , vats: List[Vat], accountId: String, modelid: Int): (Transaction, FinancialsTransaction) = {
@@ -56,11 +59,12 @@ trait  PostLogisticalTransaction:
       common.reduce(v, PeriodicAccountBalance.dummy)
     }).toList
 
-  def updatePac(oldPacs: List[PeriodicAccountBalance], tpacs: List[TPeriodicAccountBalance]): ZIO[Any, Nothing, List[TPeriodicAccountBalance]] =
-    for {
-      newRecords <- groupById(oldPacs).map(TPeriodicAccountBalance.apply).flip
-      _ <- newRecords.map(pac => transfer(pac, tpacs)).flip
-    } yield if (tpacs.nonEmpty) tpacs else newRecords
+  def updatePac(oldPacs: List[PeriodicAccountBalance], tpacs: List[TPeriodicAccountBalance]): ZIO[Any, Nothing, List[TPeriodicAccountBalance]] = 
+    for 
+        newRecords <- groupById(oldPacs).map(TPeriodicAccountBalance.apply).flip
+        _ <- newRecords.map(pac => transfer(pac, tpacs)).flip
+    yield if (tpacs.nonEmpty) tpacs else newRecords
+  
 
 
   def transfer(pac: TPeriodicAccountBalance, tpacs: List[TPeriodicAccountBalance]): ZIO[Any, Nothing, Option[Unit]] =

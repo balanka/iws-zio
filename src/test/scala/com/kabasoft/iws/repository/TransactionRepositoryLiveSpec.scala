@@ -26,7 +26,7 @@ object TransactionRepositoryLiveSpec extends ZIOSpecDefault {
         for
           ftr1D <- TransactionRepository.all(ftr1.modelid, companyId)
           ftr2D <- TransactionRepository.all(ftr2.modelid, companyId)
-          deleted <- TransactionRepository.deleteAll(ftr1D++ftr2D)
+          deleted <- TransactionRepository.deleteAll()
         yield  assertTrue(deleted == ftr1D.size+ftr1D.flatMap(_.lines).size+ftr2D.size+ftr2D.flatMap(_.lines).size)
       },
       test("insert a logistical transactions, modify, gets a  good receiving and a supplier invoice  transaction by transId and count the Nr all transactions ") {

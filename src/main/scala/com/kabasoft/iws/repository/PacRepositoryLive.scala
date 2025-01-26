@@ -33,7 +33,10 @@ final case class PacRepositoryLive(postgres: Resource[Task, Session[Task]]) exte
   override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]] =
     if (ids.isEmpty)
       ZIO.succeed(List.empty)
-    else queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
+    else {
+      val x= queryWithTx(postgres, (ids, 106, company), ALL_BY_ID(ids.length))
+      x
+    }
   
   override def findBalance4Period( period: Int, company: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]] =
     queryWithTx(postgres, (period, company), FIND_4_PERIOD_QUERY)

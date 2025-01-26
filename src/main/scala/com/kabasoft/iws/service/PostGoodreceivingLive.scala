@@ -37,13 +37,30 @@ final class PostGoodreceivingLive(pacRepo: PacRepository
     articleIds = articleIdsx.distinct
     articles <- artRepo.getBy(articleIds, Article.MODELID, company.id)
     accountIds = articles.map(art => (art.stockAccount, company.purchasingClearingAcc))
-    pacids = accountIds.flatMap(id => transactions.map(tr => buildPacId(tr.period, id))).flatten
+    pacids = accountIds.flatMap(id => transactions.map(tr => buildPacId(tr.period, id))).flatten.distinct
     pacs <- pacRepo.getBy(pacids, Stock.MODELID, company.id).map(_.filterNot(_.id.equals(PeriodicAccountBalance.dummy.id)))
+//    _<- ZIO.logInfo(s">>>>>>>>>> PAC IDS$pacids")
+//    _<-  ZIO.logInfo(s">>>>>>>>>>PACS $pacs")
     allPacs = transactions.flatMap(tr => buildPacsFromTransaction(tr, articles, accounts, company.purchasingClearingAcc))
-    newRecords = allPacs.filterNot(pac => pacs.map(_.id).contains(pac.id))
-      .groupBy(_.id) map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy) }
+//    _<- ZIO.logInfo(s">>>>>>>>>>allPacs  $allPacs")
+    ids = pacs.map(_.id)
+   allIds = allPacs.map(_.id)
+    newIds = allIds.diff(ids)
+    newIds1 =  allIds.filterNot(ids.toSet)
+      newIds2 =  allIds.filterNot(ids.contains)
+//    _<- ZIO.logInfo(s">>>>>>>>>>newIds  $newIds")
+//    _<- ZIO.logInfo(s">>>>>>>>>>newIds1  $newIds1")
+//    _<- ZIO.logInfo(s">>>>>>>>>>newIds2  $newIds2")
+//    _<- ZIO.logInfo(s">>>>>>>>>>newIds2  $newIds2")
+    newRecords2 = allPacs.diff(pacs)
+    newRecords = allPacs.filter(id=> ids.contains(id))
+    //allPacs.filterNot(pac => pacs.map(_.id).contains(pac.id))
+    //  .groupBy(_.id) map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy) }
+    _<- ZIO.logInfo(s">>>>>>>>>>newRecords  $newRecords")
+    _<- ZIO.logInfo(s">>>>>>>>>>newRecords2  $newRecords2")
     tpacs <- pacs.map(TPeriodicAccountBalance.apply).flip
     oldPacs <- updatePac(allPacs, tpacs).map(e => e.map(PeriodicAccountBalance.applyT))
+    
     journalEntries <- makeJournal(transactions, newRecords.toList, oldPacs, articles)
     stocks <- updateStock(transactions, oldStocks)
     transLogEntries <- buildTransactionLog(transactions, stocks, newStock, articles)
@@ -51,9 +68,10 @@ final class PostGoodreceivingLive(pacRepo: PacRepository
   } yield (transactions, newRecords.toList, oldPacs.flip,
       transLogEntries, journalEntries, stocks, newStock, updatedArticle)
 
-  private def updateStock(transactions: List[Transaction], oldStocks:List[Stock]): ZIO[Any, Nothing, List[Stock]] = for{
+  private def updateStock(transactions: List[Transaction], oldStocks:List[Stock]): ZIO[Any, Nothing, List[Stock]] = 
+    for 
       updatedStock <- updateOldStock(transactions, oldStocks).map(_.map(Stock.apply).flip).flatten
-    }yield   updatedStock
+    yield   updatedStock
 
   private def updateArticleAvgPrice(line: TransactionDetails, stocks:List[Stock], articles:List[Article]): ZIO[Any, Nothing, List[Article]] =
     articles.map ( article => {

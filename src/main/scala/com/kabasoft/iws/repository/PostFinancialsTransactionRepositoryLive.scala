@@ -35,10 +35,10 @@ final case class PostFinancialsTransactionRepositoryLive(postgres: Resource[Task
                     journals: List[Journal]): ZIO[Any, RepositoryError, Int] = 
       for {
           pac2updatex <- pac2update
-                    _ <- ZIO.logInfo(s" New Pacs  to insert into DB ${pac2Insert}")
-                    _ <- ZIO.logInfo(s" Old Pacs  to update in DB ${pac2updatex}")
-                    _ <- ZIO.logInfo(s" journals  ${journals}")
-                    _ <- ZIO.logInfo(s" Transaction posted  ${models}")
+//                    _ <- ZIO.logInfo(s" New Pacs  to insert into DB ${pac2Insert}")
+//                    _ <- ZIO.logInfo(s" Old Pacs  to update in DB ${pac2updatex}")
+//                    _ <- ZIO.logInfo(s" journals  ${journals}")
+//                    _ <- ZIO.logInfo(s" Transaction posted  ${models}")
                     nr <-   (postgres
                               .use:
                                   session =>

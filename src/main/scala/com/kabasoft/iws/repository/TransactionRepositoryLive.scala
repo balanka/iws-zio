@@ -20,18 +20,13 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
 
   import TransactionRepositorySQL.*
 
-  private def newCreate(): Long = {
-    var time = Instant.now().getEpochSecond
-    time *= 1000000000L //convert to nanoseconds
-    val transid = time & ~9223372036854251520L
-    transid
-  }
-
+  
   def buildId(transactions: List[Transaction]): List[Transaction] =
     transactions.zipWithIndex.map { case (ftr, i) =>
-      val idx = newCreate() + i.toLong
+      val idx = Instant.now().getNano + i.toLong
       ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
     }
+
   def transactDelete(s: Session[Task], models: List[Transaction]): Task[Unit] =
     s.transaction.use: xa =>
       s.prepareR(DELETE).use: pcdMaster =>
@@ -39,6 +34,7 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
           tryExec(xa, pcdMaster, pcdDetails, models.map(Transaction.encodeIt3)
             , models.flatMap(_.lines).map(TransactionDetails.encodeIt3))
           
+    
   def transact(s: Session[Task], models: List[Transaction]): Task[Unit] =
     s.transaction.use: xa =>
       s.prepareR(insert).use: pciMaster =>
@@ -108,12 +104,12 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
   override def find4Period(fromPeriod: Int, toPeriod: Int, posted:Boolean, companyId: String): ZIO[Any, RepositoryError, List[Transaction]] =
     queryWithTx(postgres, (posted, fromPeriod, toPeriod, companyId), BY_PERIOD)
   override def delete(p:(Long, Int, String)): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
-  override def deleteAll(models: List[Transaction]): ZIO[Any, RepositoryError, Int] =
+  override def deleteAll(): ZIO[Any, RepositoryError, Int] =
     (postgres
       .use:
         session =>
-          transactDelete(session, models))
-      .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)
+          session.execute(DELETE_All)*> session.execute(DELETE_ALL_DETAILS)
+      .mapBoth(e => RepositoryError(e.getMessage), _ => 1))
     
 object TransactionRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]] & AccountRepository, Throwable, TransactionRepository] =
@@ -220,4 +216,7 @@ private[repository] object TransactionRepositorySQL:
 
   def DELETE: Command[(Long, Int, String)] =
     sql"DELETE FROM transaction WHERE id = $int8 AND modelid = $int4 AND company = $varchar".command
+
+  def DELETE_All: Command[Void] = sql"DELETE FROM transaction WHERE  company = '-1000'".command   
   val DELETE_DETAILS: Command[(Long, String)] = sql"DELETE FROM transaction_details WHERE id = $int8 AND company = $varchar".command
+  val DELETE_ALL_DETAILS: Command[Void] = sql"DELETE FROM transaction_details WHERE  company = '-1000'".command

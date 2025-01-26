@@ -14,7 +14,7 @@ trait TransactionRepository:
 
   def delete(p:(Long, Int, String)): ZIO[Any, RepositoryError, Int]
 
-  def deleteAll(p: List[Transaction]): ZIO[Any, RepositoryError, Int]
+  def deleteAll(): ZIO[Any, RepositoryError, Int]
 //  def delete(ids: List[Long], modelid: Int, company: String): ZIO[Any, RepositoryError, Int] =
 //    ZIO.foreach(ids)(delete(_, modelid, company))
 
@@ -55,8 +55,8 @@ object TransactionRepository:
   def delete(id: Long, modelid: Int, company: String): ZIO[TransactionRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[TransactionRepository](_.delete(id, modelid, company))
 
-  def deleteAll(p: List[Transaction]): ZIO[TransactionRepository, RepositoryError, Int] =
-    ZIO.serviceWithZIO[TransactionRepository](_.deleteAll(p))
+  def deleteAll(): ZIO[TransactionRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[TransactionRepository](_.deleteAll())
     
 //  def delete(ids: List[Long], modelid: Int, company: String): ZIO[TransactionRepository, RepositoryError, List[(Long, Int, String)]] =
 //    ZIO.serviceWithZIO[TransactionRepository](_.delete(ids, modelid, company))

@@ -32,7 +32,7 @@ trait MasterfileCRUD:
             ZIO.logInfo(s"Unique violation: ${ex.getMessage}, rolling back...") *>
               xa.rollback(sp))
     yield ()
-    
+  
   def tryExec [A, B](xa: Transaction[Task], pciCustomer: PreparedCommand[Task, A]
                       , pciBankAcc: PreparedCommand[Task, B]
                       , customers: List[A], bankaccounts:List[B]): Task[Unit] =
@@ -221,7 +221,7 @@ trait MasterfileCRUD:
             xa.rollback
       }
       .mapBoth(e => e, _ => 1)
-
+ 
   def executeWithTx[A, B](xa: Transaction[Task]
                           , command: PreparedCommand[Task, List[B]]
                           , p: List[A]
