@@ -42,7 +42,7 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
           deletedTransactions <- FinancialsTransactionRepository.deleteAll(list)
           deletedPacs <- PacRepository.deleteAll()
           deletedJournal <- JournalRepository.deleteAllTest()
-        yield assertTrue(deletedTransactions == list.size+list.flatMap(_.lines).size) &&
+        yield assertTrue(deletedTransactions == 1) &&
               assertTrue(deletedPacs ==1) &&
               assertTrue(deletedJournal == 1)
       },

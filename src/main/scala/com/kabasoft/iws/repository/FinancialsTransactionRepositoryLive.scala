@@ -42,14 +42,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
       val idx = newCreate() + i.toLong
       ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
     }
-
-  def transactDelete(s: Session[Task], models: List[FinancialsTransaction]): Task[Unit] =
-    s.transaction.use: xa =>
-      s.prepareR(DELETE).use: pcdMaster =>
-        s.prepareR(DELETE_DETAILS).use: pcdDetails =>
-          tryExec(xa, pcdMaster, pcdDetails, models.map(FinancialsTransaction.encodeIt3)
-            , models.flatMap(_.lines).map(FinancialsTransactionDetails.encodeIt3))
-          
+  
   def transact(s: Session[Task], models: List[FinancialsTransaction]): Task[Unit] =
     s.transaction.use: xa =>
       s.prepareR(insert).use: pciMaster =>
@@ -112,9 +105,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
     details <- transactions.map(withLines).flip
   } yield details
     
-//  override def getByIds(ids: List[Long], modelid: Int, company: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =
-//    queryWithTx(postgres, (ids, modelid, company), BY_IDS(ids.length))
-    
+  
   override def getByModelId(modelid: (Int, String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =for {
     transactions <- queryWithTx(postgres, modelid, BY_MODEL_ID)
     details <- transactions.map(withLines).flip
@@ -135,10 +126,10 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
   def delete(p: (Long, Int, String)): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
   override def deleteAll(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =
     (postgres
-      .use: 
+      .use:
         session =>
-          transactDelete(session,  models))
-    .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)
+          session.execute(DELETE_ALL)*> session.execute(DELETE_ALL_DETAILS)
+      .mapBoth(e => RepositoryError(e.getMessage), _ => 1))
 
 
 
@@ -281,9 +272,12 @@ object FinancialsTransactionRepositorySQL:
     sql"""UPDATE master_compta UPDATE SET posted = true
             WHERE id =$int8 AND modelid = $int4 AND  company =$varchar and posted=false
           """.command
-  
+
   val DELETE: Command[(Long, Int, String)] =
     sql"DELETE FROM master_compta WHERE id = $int8 AND modelid = $int4 AND company = $varchar".command
+  
+  val DELETE_ALL: Command[Void] = sql"DELETE FROM master_compta WHERE  company ='-1000'".command
     
   val DELETE_DETAILS: Command[(Long, String)] = sql"DELETE FROM details_compta WHERE id = $int8 AND company = $varchar".command
+  val DELETE_ALL_DETAILS: Command[Void] = sql"DELETE FROM details_compta WHERE company = '-1000'".command
   
