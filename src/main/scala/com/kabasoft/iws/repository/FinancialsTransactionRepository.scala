@@ -2,7 +2,6 @@ package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails}
-import com.kabasoft.iws.repository.MasterfileCRUD.InsertBatch
 import zio.*
 import zio.stream.*
 

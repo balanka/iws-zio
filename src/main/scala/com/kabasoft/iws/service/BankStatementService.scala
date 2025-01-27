@@ -11,7 +11,7 @@ trait BankStatementService {
                       char: String,
                       extension: String,
                       company: String,
-                      buildFn: String => BankStatement
+                      buildFn: (String, String) => BankStatement
   ): ZIO[Any, RepositoryError, Int]
   def post(id: Long, companyId:String): ZIO[Any, RepositoryError, BankStatement]
   def post(ids: List[Long], companyId:String): ZIO[Any, RepositoryError, List[BankStatement]]
@@ -28,7 +28,7 @@ object BankStatementService {
                       char: String ="\"",
                       extension: String,
                       company: String,
-                      buildFn: String => BankStatement = BankStatement.from
+                      buildFn: (String, String) => BankStatement = BankStatement.from
   ): ZIO[BankStatementService, RepositoryError, Int] =
     ZIO.service[BankStatementService].flatMap(_.importBankStmt(path, header, char, extension, company, buildFn))
 }

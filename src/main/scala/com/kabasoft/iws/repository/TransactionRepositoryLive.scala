@@ -11,8 +11,6 @@ import zio.interop.catz.*
 import zio.{ZIO, *}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{Transaction, TransactionDetails, common}
-import com.kabasoft.iws.repository.MasterfileCRUD.{ExecCommand, InsertBatch, UpdateCommand}
-
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Task]]
@@ -220,3 +218,4 @@ private[repository] object TransactionRepositorySQL:
   def DELETE_All: Command[Void] = sql"DELETE FROM transaction WHERE  company = '-1000'".command   
   val DELETE_DETAILS: Command[(Long, String)] = sql"DELETE FROM transaction_details WHERE id = $int8 AND company = $varchar".command
   val DELETE_ALL_DETAILS: Command[Void] = sql"DELETE FROM transaction_details WHERE  company = '-1000'".command
+  val NEXT_ID:Query[Void, Long] = sql"SELECT NEXTVAL('master_compta_id_seq')".query(int8)

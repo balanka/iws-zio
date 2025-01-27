@@ -9,20 +9,12 @@ import zio.*
 import zio.interop.catz.*
 import cats.syntax.applicativeError.catsSyntaxApplicativeError
 import com.kabasoft.iws.domain.{Article, TransactionLog}
-import com.kabasoft.iws.repository.MasterfileCRUD.{ExecCommand, InsertBatch, UpdateCommand}
 import skunk.data.Completion
 import zio.stream.ZStream
 import zio.stream.interop.fs2z.*
 
-object MasterfileCRUD:
-  final case class UpdateCommand[A, B](param: A, encoder: A => B, cmd: Command[B])
-  final case class ExecCommand[A, B](param: List[A], encoder: A => B, cmd: Command[B])
-  final case class InsertBatch[A, B](param: List[A], encoder: A => B, cmd: Command[List[B]])
-  
 trait MasterfileCRUD:
-  def tryExec[A](xa: Transaction[Task]
-                    , pc: PreparedCommand[Task, A]
-                    , models: List[A]): Task[Unit] =
+  def tryExec[A](xa: Transaction[Task], pc: PreparedCommand[Task, A], models: List[A]): Task[Unit] =
 
     for
       sp <- xa.savepoint
@@ -248,11 +240,11 @@ trait MasterfileCRUD:
   def exec[T](pc: PreparedCommand[Task, T], list: List[T]): Task[Unit] =
     list.traverse_ { p =>
       for
+        //transid <- sql"SELECT NEXTVAL('master_compta_id_seq')".query[Long].unique
         _ <- pc.execute(p)
       yield ()
     }
-    
-  type TYPE [A, B] = (PreparedCommand[Task, List[B]], List[A],  A => B)
+  
   def executeBatchWithTxK[A, B](postgres: Resource[Task, Session[Task]], params: List[A], cmdx: Command[B], encode: A => B): ZIO[Any, RepositoryError, Int] = for {
      u <- postgres
        .use: session =>
@@ -273,27 +265,6 @@ trait MasterfileCRUD:
        .mapBoth(e => RepositoryError(e.getMessage), _ => params.size).as(params.size)
    } yield u
 
-def executeBatchWithTZ[A, B, C, D](session: Session[Task]
-                                   , commands: List[InsertBatch[A, B]]
-                                   , commandLPs: List[InsertBatch[C, D]]): Task[Int] =
-      session.transaction.use: xa =>
-        (commands.traverse(command =>
-          session
-            .prepare(command.cmd)
-            .flatMap: cmd =>
-              xa.savepoint
-              cmd.execute(command.param.map(command.encoder)).debug(" Executing InsertBatch A"))*>
-          commandLPs.traverse(command =>
-            session
-              .prepare(command.cmd)
-              .flatMap: cmd =>
-                xa.savepoint
-                cmd.execute(command.param.map(command.encoder)).debug(" Executing InsertBatch B"))).recoverWith:
-          case SqlState.UniqueViolation(ex) =>
-            ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *> xa.rollback
-          case _ =>
-            ZIO.logInfo(s"Error:  rolling back...") *> xa.rollback
-    .mapBoth(e => e, _ => commands.map(x=>x.param).size + commandLPs.map(x=>x.param).size)        
 
 
 

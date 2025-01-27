@@ -2,6 +2,8 @@ package com.kabasoft.iws.service
 
 import com.kabasoft.iws.config.appConfig
 import com.kabasoft.iws.domain.AccountBuilder.companyId
+
+import com.kabasoft.iws.domain.BankStatementBuilder.{bs, bs1} 
 import com.kabasoft.iws.domain.{BankStatement, BankStatementBuilder}
 import com.kabasoft.iws.repository.container.PostgresContainer
 import com.kabasoft.iws.repository.container.PostgresContainer.appResourcesL
@@ -30,12 +32,19 @@ object BankStatementServiceLiveSpec extends ZIOSpecDefault {
 
   override def spec =
     suite("Bank statement service  test with postgres test container")(
-      test("create,ge all bank stmt  and post all bank statement"){
+      test("clear logistical all bank statement for the company with id=-1000 ") {
+        for
+          deleted <- BankStatementRepository.deleteAll()
+        yield assertTrue(deleted == 1)
+      },
+      test("create, get and post all bank statement"){
         for {
-          created <- BankStatementRepository.create(BankStatementBuilder.bs)
-          bs <- BankStatementRepository.all(BankStatement.MODELID, companyId)
-          postedBS <- BankStatementService.post(bs.map(_.id), companyId).map(_.size)
-        } yield  assertTrue(created == 2) && assertTrue(postedBS == 4)
+          created <- BankStatementRepository.create(bs)
+          all <- BankStatementRepository.all(bs1.modelid, bs1.company)
+          postedBS <- BankStatementService.post(all.map(_.id), bs1.company).map(_.size)
+        } yield  assertTrue(created == 2) &&
+                 assertTrue(all.size == 2) &&
+                 assertTrue(postedBS == 2) 
      }
     ).provideLayerShared(testServiceLayer) @@ sequential
 }

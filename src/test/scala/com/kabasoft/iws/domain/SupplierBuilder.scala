@@ -5,19 +5,18 @@ import com.kabasoft.iws.domain.AccountBuilder.{accountRecvId, companyId, incacco
 import java.time.Instant
 
 object SupplierBuilder {
-  val supplierId1 = "4711"
-  val supplierId2 = "4712"
+  val supplierId1 = "4711000"
+  val supplierId2 = "4712000"
   val supId = "700000x"
   val supIdx = "70001x"
   val vat = "v5"
   val supName= "Dummy"
   val accId = "331040"
-  val supplierIban3 = "DE84480501610047008271"
-  val iban = "DE8448050161004700827X"
+                        
+  val bankAccountId0 = "DE844805016104782700XXX"
+  val bankAccountId =  "DE855805016104782700XXX"
   val name = "Sontige Lieferant Rechts und Beratung"
   val vtime = Instant.parse("2018-01-01T10:00:00.00Z")
-  val bankAccountId0 = "4811XXXX"
-  val bankAccountId = "4912XXXX"
   val bankAccount0 = BankAccount(bankAccountId0, "SPBIDE3XXX", supplierId1, companyId, BankAccount.MODEL_ID)
   val bankAccount = BankAccount(bankAccountId, "SPBIDE3XXX", supplierId1, companyId, BankAccount.MODEL_ID)
   val bankAccounts = List(bankAccount0, bankAccount)

@@ -1,7 +1,7 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.config.appConfig
-import com.kabasoft.iws.domain.SupplierBuilder.{bankAccount, supplier1, supplierIban3, suppliers}
+import com.kabasoft.iws.domain.SupplierBuilder.{bankAccount, supplier1, bankAccountId0, suppliers}
 import com.kabasoft.iws.domain.AccountBuilder.companyId
 import com.kabasoft.iws.domain.{BankAccount, Supplier}
 import com.kabasoft.iws.repository.container.PostgresContainer

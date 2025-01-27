@@ -11,7 +11,6 @@ import zio.stream.interop.fs2z.*
 import zio.{Task, ZIO, UIO, ZLayer}
 import com.kabasoft.iws.domain.{Article,  Masterfile, PeriodicAccountBalance, Journal, Stock, Transaction, TransactionLog }
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import MasterfileCRUD.{UpdateCommand, InsertBatch}
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[Task]]) extends PostTransactionRepository, MasterfileCRUD:

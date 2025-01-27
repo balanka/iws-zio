@@ -12,7 +12,6 @@ import zio.stream.interop.fs2z.*
 import zio.interop.catz.*
 import zio.{Task, UIO, ZIO, ZLayer}
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import MasterfileCRUD.{UpdateCommand, InsertBatch}
 import com.kabasoft.iws.domain.{FinancialsTransaction, Journal, PeriodicAccountBalance}
 
 final case class PostFinancialsTransactionRepositoryLive(postgres: Resource[Task, Session[Task]]) extends

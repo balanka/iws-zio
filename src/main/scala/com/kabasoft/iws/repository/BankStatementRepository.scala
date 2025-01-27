@@ -13,6 +13,7 @@ trait BankStatementRepository:
   def getById(Id: (Long, Int, String)): ZIO[Any, RepositoryError, BankStatement]
   def getBy(ids: List[Long], modelid: Int, company: String): ZIO[Any, RepositoryError, List[BankStatement]]
   def delete(p: (Long, Int, String)):ZIO[Any, RepositoryError, Int]
+  def deleteAll(): ZIO[Any, RepositoryError, Int]
   def post(bs: List[BankStatement], transactions: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int]
 
 object BankStatementRepository:
@@ -40,6 +41,9 @@ object BankStatementRepository:
 
   def delete(p: (Long, Int, String)): ZIO[BankStatementRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[BankStatementRepository](_.delete(p))
+
+  def deleteAll(): ZIO[BankStatementRepository, RepositoryError, Int]=
+    ZIO.serviceWithZIO[BankStatementRepository](_.deleteAll())
 
 //  def update(model: BankStatement): ZIO[BankStatementRepository, RepositoryError, BankStatement] =
 //    ZIO.serviceWithZIO[BankStatementRepository](_.update(model))

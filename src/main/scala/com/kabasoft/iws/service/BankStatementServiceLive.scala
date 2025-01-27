@@ -25,14 +25,14 @@ final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository
 
   private def postBankStmtCreateTransaction(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, Int] =
     for {
-      accounts <- ZIO.logDebug(s"get account by modelid  ${companyId}  ") *> accountRepo.all((Account.MODELID, companyId))
-      company <- ZIO.logDebug(s"get company by id  ${companyId}  ") *> companyRepo.getById((companyId, Company.MODEL_ID))
-      bankStmt <- ZIO.logDebug(s"get bankStmt by ids  ${ids}  ") *>
+      accounts <- ZIO.logInfo(s"get account by modelid  ${companyId}  ") *> accountRepo.all((Account.MODELID, companyId))
+      company <- ZIO.logInfo(s"get company by id  ${companyId}  ") *> companyRepo.getById((companyId, Company.MODEL_ID))
+      bankStmt <- ZIO.logInfo(s"get bankStmt by ids  ${ids}  ") *>
         bankStmtRepo.getBy(ids, BankStatement.MODELID, companyId).map(_.toList)
       vat <- vatRepo.all((Vat.MODEL_ID, company.id))
-      transactions <- ZIO.logDebug(s"Got bankStmt  ${bankStmt}  ") *> buildTransactions(bankStmt, vat, company, accounts)
-      posted <- ZIO.logDebug(s"Created transactions  ${transactions}  ") *> bankStmtRepo.post(bankStmt, transactions.flatten)
-      _ <- ZIO.logDebug(s"Transaction posted ${posted}  ")
+      transactions <- ZIO.logInfo(s"Got bankStmt  ${bankStmt}  ") *> buildTransactions(bankStmt, vat, company, accounts)
+      posted <- ZIO.logInfo(s"Created transactions  ${transactions}  ") *> bankStmtRepo.post(bankStmt, transactions.flatten)
+      _ <- ZIO.logInfo(s"Transaction posted ${posted}  ")
     } yield posted
 
   override def post(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, List[BankStatement]] =
@@ -125,7 +125,7 @@ final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository
                              char: String,
                              extension: String,
                              company: String,
-                             buildFn: String => BankStatement = BankStatement.from
+                             buildFn: (String, String) => BankStatement = BankStatement.from
                            ): ZIO[Any, RepositoryError, Int] = {
   for {
     bs <- ZIO.logDebug(s"path ${path}") *>
@@ -139,7 +139,7 @@ final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository
             .tap(e => ZIO.logDebug(s"Element ${e}"))
             .filterNot(p => p.replaceAll(char, "").startsWith(header))
             //.map(p => buildFn(p))
-            .map(p => buildFn(p.replaceAll(char, ""))) //.replaceAll("Spk ", "Spk")))
+            .map(p => buildFn(p.replaceAll(char, ""), company)) //.replaceAll("Spk ", "Spk")))
         }
         .mapError(e => RepositoryError(e.getMessage))
         .runCollect

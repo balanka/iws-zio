@@ -12,28 +12,14 @@ import zio.stream.interop.fs2z.*
 import zio.{Task, ZIO, ZLayer}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.BankAccount
-import com.kabasoft.iws.repository.MasterfileCRUD.InsertBatch
-
 
 final case class BankAccountRepositoryLive(postgres: Resource[Task, Session[Task]]) extends BankAccountRepository, MasterfileCRUD:
 
   import BankAccountRepositorySQL.*
 
   override def create(c: BankAccount):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
-  override def create(list: List[BankAccount]):ZIO[Any, RepositoryError, Int] = {
-    val insertBankAccountsCmd = BankAccountRepositorySQL.insertAll(list.size)
-    //val insertBankAccountsCmd = BankAccountRepositorySQL.insertAll(c.bankaccounts.size)
-    val createBankAccountsCmd = InsertBatch(list, BankAccount.encodeIt, insertBankAccountsCmd)
-    //val createCustomerCmd = InsertBatch(List., Customer.encodeIt, insertCustomerCmd)
-    postgres.use: session =>
-      executeBatchWithTZ(session, List.empty, List(createBankAccountsCmd))
-    .mapBoth(e => RepositoryError(e.getMessage), r1 => r1)
-  
-  //executeBatchWithTZ(postgres, List(createCustomerCmd),  List(createBankAccountsCmd))
-  //executeBatchWithTx3(postgres, List.empty, List(createCustomerCmd), List.empty, List(createBankAccountsCmd), List.empty)
- // ZIO.succeed(models.size + models.flatMap(_.bankaccounts).size)
-}  
-  //executeWithTx(postgres, list.map(BankAccount.encodeIt), insertAll(list.size), list.size)
+  override def create(list: List[BankAccount]):ZIO[Any, RepositoryError, Int] = 
+    executeWithTx(postgres, list.map(BankAccount.encodeIt), insertAll(list.size), list.size)
   override def modify(model: BankAccount):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, BankAccount.encodeIt2, UPDATE, 1)
   override def modify(models: List[BankAccount]):ZIO[Any, RepositoryError, Int]= executeBatchWithTxK(postgres, models, UPDATE, BankAccount.encodeIt2)
   override def bankAccout4All(p: Int): ZIO[Any, RepositoryError, List[BankAccount]] = queryWithTx(postgres, p, BANK_ACCOUNT_4_ALL)

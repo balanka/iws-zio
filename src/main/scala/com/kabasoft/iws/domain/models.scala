@@ -899,6 +899,7 @@ object BankStatement  {
   val FIELD_SEPARATOR = ';'
   val NUMBER_FORMAT   = NumberFormat.getInstance(Locale.GERMAN)
   type TYPE = (Long, String, LocalDateTime, LocalDateTime, String, String, String, String, String, scala.math.BigDecimal, String, String, String, String, Boolean, Int, Int)
+  type TYPE4 = (String, LocalDateTime, LocalDateTime, String, String, String, String, String, scala.math.BigDecimal, String, String, String, String, Boolean, Int, Int)
   type TYPE2 = (Boolean, Int, Long, Int, String)
   type TYPE3 = (LocalDateTime, String, String, Long, Int, String)
   type BS_Type = (
@@ -950,7 +951,7 @@ object BankStatement  {
       .atStartOfDay(zoneId)
       .toInstant
 
-  def from(s: String): BankStatement = {
+  def from(s: String, company:String): BankStatement = {
     val values      = s.split(FIELD_SEPARATOR)
     val companyIban = values(0)
     val bid         = -1L
@@ -983,7 +984,7 @@ object BankStatement  {
       amount,
       currency,
       info,
-      COMPANY,
+      company,
       companyIban,
       posted,
       MODELID,
@@ -992,9 +993,17 @@ object BankStatement  {
      println ("BankStatement>>"+bs)
     bs
   }
-  
+
   def encodeIt(st: BankStatement): TYPE =
     (st.id, st.depositor
+      , st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
+      , st.valuedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
+      , st.postingtext, st.purpose, st.beneficiary, st.accountno
+      , st.bankCode, scala.math.BigDecimal(st.amount), st.currency, st.info, st.company
+      , st.companyIban, st.posted, st.modelid, st.period
+    )
+  def encodeIt4(st: BankStatement): TYPE4 =
+      (st.depositor
       , st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
       , st.valuedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
       , st.postingtext, st.purpose, st.beneficiary, st.accountno
