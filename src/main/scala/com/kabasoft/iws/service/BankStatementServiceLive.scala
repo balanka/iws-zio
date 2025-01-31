@@ -30,8 +30,8 @@ final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository
       bankStmt <- ZIO.logInfo(s"get bankStmt by ids  ${ids}  ") *>
         bankStmtRepo.getBy(ids, BankStatement.MODELID, companyId).map(_.toList)
       vat <- vatRepo.all((Vat.MODEL_ID, company.id))
-      transactions <- ZIO.logInfo(s"Got bankStmt  ${bankStmt}  ") *> buildTransactions(bankStmt, vat, company, accounts)
-      posted <- ZIO.logInfo(s"Created transactions  ${transactions}  ") *> bankStmtRepo.post(bankStmt, transactions.flatten)
+      transactions <- ZIO.logInfo(s"Got bankStmt  ${bankStmt}  ") *> buildTransactions(bankStmt, vat, company, accounts).debug("<<<<<<created transactions")
+      posted <- ZIO.logInfo(s"Created transactions  ${transactions}  ") *> bankStmtRepo.post(bankStmt.map(_.copy(posted=true)), transactions.flatten)
       _ <- ZIO.logInfo(s"Transaction posted ${posted}  ")
     } yield posted
 
@@ -39,8 +39,8 @@ final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository
     postBankStmtCreateTransaction(ids, companyId) *> bankStmtRepo.getBy(ids, BankStatement.MODELID, companyId).map(_.toList)
 
   private def buildTransactions(bs: List[BankStatement], vats: List[Vat], company: Company, accounts: List[Account]): 
-                      ZIO[Any, RepositoryError, List[List[FinancialsTransaction]]] =
-    bs.map(stmt =>
+                      ZIO[Any, RepositoryError, List[List[FinancialsTransaction]]] = {
+    val result = bs.map(stmt =>
       (if (stmt.amount.compareTo(zeroAmount) >= 0) {
         customerRepo.getByIban(stmt.accountno, Customer.MODELID, stmt.company)
       } else {
@@ -48,12 +48,16 @@ final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository
       }).map(s => {
         List(buildPaymentSettlement(stmt, s, company, accounts), buildReceivablesPayables(stmt, s, vats.find(_.id == s.vatcode), accounts))
       })
-    ).flip.mapError(e => RepositoryError(e.message))
+    ).flip//.mapError(e => RepositoryError(e.message))
+    result 
+  }
+
   private def getX(optVat: Option[Vat], bs: BankStatement): Option[(String, BigDecimal)] =
   optVat.map(vat => {
     val vatAccount = if (bs.amount.compareTo(zeroAmount) >= 0) vat.outputVatAccount else vat.inputVatAccount
-    val x = BigDecimal.valueOf(1).divide(BigDecimal.valueOf(1).add(vat.percent))
-    val netAmount = bs.amount.multiply(x)
+    val vatValue = bs.amount.multiply(vat.percent)
+    val netValue = bs.amount.subtract(vatValue)
+    val netAmount = netValue.setScale(2, RoundingMode.HALF_UP)
     (vatAccount, netAmount)
   }) //.mapError(e=>RepositoryError(e.getMessage))
   
@@ -61,46 +65,38 @@ final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository
                                      , partner: BusinessPartner
                                      , optVat: Option[Vat]
                                      , accounts: List[Account]): FinancialsTransaction = {
-
-  val modelid = if (bs.amount.compareTo(zeroAmount) >= 0) RECEIVABLES.id else PAYABLES.id
-
-  def buildLines(): List[FinancialsTransactionDetails] = {
+    val modelid = if (bs.amount.compareTo(zeroAmount) >= 0) RECEIVABLES.id else PAYABLES.id
+    buildTransaction(bs, partner, modelid, buildLines(bs, partner, optVat, accounts))
+  }
+  def buildLines(bs: BankStatement, partner: BusinessPartner, optVat: Option[Vat], accounts: List[Account]): List[FinancialsTransactionDetails] = {
     val emptyLines = List.empty[FinancialsTransactionDetails]
-    val lines: List[FinancialsTransactionDetails] = getX(optVat, bs).map(vatAccountAndNetAmount => {
-      val vatAccount = vatAccountAndNetAmount._1
-      val netAmount = vatAccountAndNetAmount._2
+    val lines = getX(optVat, bs).map((vatAccount, netAmount) => {
       val vatAmount = bs.amount.abs().subtract(netAmount.abs()).setScale(2, RoundingMode.HALF_UP)
       val oaccountName = accounts.find(_.id == partner.oaccount).fold(s"OAccount with id ${partner.oaccount} not found!!!")(_.name)
       val accountName = accounts.find(_.id == partner.account).fold(s"Account with id ${partner.account} not found!!!")(_.name)
       val vatAccountName = accounts.find(_.id == vatAccount).fold(s"Account with id ${partner.account} not found!!!")(_.name)
-      val netLine = buildDetails(partner.oaccount, oaccountName, partner.account, accountName, netAmount)
+      val netLine = buildDetails(bs, partner.oaccount, oaccountName, partner.account, accountName, netAmount)
       if (vatAmount.abs().compareTo(zeroAmount) > 0) {
-        val vatLine = buildDetails(vatAccount, vatAccountName, partner.account, accountName, vatAmount)
+        val vatLine = buildDetails(bs, vatAccount, vatAccountName, partner.account, accountName, vatAmount)
         List(netLine, vatLine)
       } else List(netLine)
     }).getOrElse(emptyLines)
     lines
   }
 
-  def buildDetails(account: String
+  def buildDetails(bs: BankStatement
+                   , account: String
                    , accountName: String
                    , oaccount: String
                    , oaccountName: String
-                   , amount: BigDecimal): FinancialsTransactionDetails = {
-    def generate(account: String
-                 , accountName: String
-                 , oaccount: String
-                 , oaccountName: String) =
-      FinancialsTransactionDetails(-1L, -1L, account, side = true, oaccount, amount.abs(), bs.valuedate, bs.purpose, bs.currency, bs.company, accountName, oaccountName)
-
+                   , amount: BigDecimal): FinancialsTransactionDetails = 
     if (bs.amount.compareTo(zeroAmount) < 0)
-      generate(account, oaccount, accountName, oaccountName)
-    //FinancialsTransactionDetails(-1L, -1L, account, side = true, oaccount, amount.abs(), bs.valuedate, bs.purpose, bs.currency, accountName, oaccountName)
-    else generate(oaccount, account, oaccountName, accountName)
-    //FinancialsTransactionDetails(-1L, -1L, oaccount, side = true, account, amount.abs(), bs.valuedate, bs.purpose, bs.currency, oaccountName, accountName)
-  }
-  buildTransaction(bs, partner, modelid, buildLines())
-}
+    FinancialsTransactionDetails(-1L, -1L, account, side = true, oaccount, amount.abs(), bs.valuedate, bs.purpose
+      , bs.currency, bs.company, accountName, oaccountName)
+    else FinancialsTransactionDetails(-1L, -1L, oaccount, side = true, account, amount.abs(), bs.valuedate, bs.purpose
+      , bs.currency, bs.company, oaccountName, accountName)
+ // buildTransaction(bs, partner, modelid, buildLines())
+//}
   private def buildPaymentSettlement(bs: BankStatement, partner: BusinessPartner, company: Company, accounts: List[Account]): FinancialsTransaction = {
   val bankAccountName = accounts.find(_.id == company.bankAcc).fold(s"Bank account with id ${company.bankAcc} not found!!!")(_.name)
   val accountName = accounts.find(_.id == partner.account).fold(s"Account with id ${partner.account} not found!!!")(_.name)
@@ -128,7 +124,7 @@ final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository
                              buildFn: (String, String) => BankStatement = BankStatement.from
                            ): ZIO[Any, RepositoryError, Int] = {
   for {
-    bs <- ZIO.logDebug(s"path ${path}") *>
+    bs <- ZIO.logInfo(s"path ${path} char>>>> $char") *>
       ZStream
         .fromJavaStream(Files.walk(Paths.get(path)))
         .filter(p => !Files.isDirectory(p) && p.toString.endsWith(extension))
@@ -136,15 +132,15 @@ final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository
           ZStream
             .fromPath(files)
             .via(ZPipeline.utf8Decode >>> ZPipeline.splitLines)
-            .tap(e => ZIO.logDebug(s"Element ${e}"))
-            .filterNot(p => p.replaceAll(char, "").startsWith(header))
-            //.map(p => buildFn(p))
-            .map(p => buildFn(p.replaceAll(char, ""), company)) //.replaceAll("Spk ", "Spk")))
+            .tap(e => ZIO.logInfo(s"Element ${e}"))
+            .filterNot(p => p.replaceAll("\"", "").startsWith(header))
+            //.map(p => buildFn(p.replaceAll(char, ""), company))
+            .map(p => buildFn(p.replaceAll("\"", ""), company)) 
         }
         .mapError(e => RepositoryError(e.getMessage))
         .runCollect
-        .map(_.toList)
-    nr <- bankStmtRepo.create(bs).mapBoth(e => RepositoryError(e.message), list => list)
+        .map(_.toList).debug("parsed Bankstatement >>>>>>")
+    nr <- bankStmtRepo.create(bs).mapBoth(e => RepositoryError(e.message), i => i)
   } yield nr
 }
 

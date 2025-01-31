@@ -20,26 +20,9 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
 
   import FinancialsTransactionRepositorySQL._
   
-  def getId: ZIO[Any, RepositoryError, Long] = 
-     for 
-        idx <- queryWithTxUnique(postgres, TRANS_ID)
-     yield idx
-
-  private def setTransId(c: FinancialsTransaction): ZIO[Any, RepositoryError, FinancialsTransaction] = 
-    for 
-      idx <- queryWithTxUnique(postgres, TRANS_ID)
-    yield c.copy(id = idx, lines = c.lines.map(l => l.copy(transid = idx)))
-
-  private def newCreate(): Long = {
-    var time = Instant.now().getEpochSecond
-    time *= 1000000000L //convert to nanoseconds
-    val transid = time & ~9223372036854251520L
-    transid
-  }
-
   def buildId(transactions: List[FinancialsTransaction]): List[FinancialsTransaction] =
     transactions.zipWithIndex.map { case (ftr, i) =>
-      val idx = newCreate() + i.toLong
+      val idx = Instant.now().getNano + i.toLong
       ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
     }
   

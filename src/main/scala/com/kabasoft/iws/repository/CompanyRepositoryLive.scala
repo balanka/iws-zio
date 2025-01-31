@@ -25,6 +25,15 @@ final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
         s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
           tryExec(xa, pciCustomer, pciBankAcc, newCustomers, newCustomers.flatMap(_.bankaccounts))
 
+  def transactM(s: Session[Task], models: List[Company], bankAccounts: List[BankAccount]): Task[Unit] =
+    s.transaction.use: xa =>
+      s.prepareR(insert).use: pciCustomer =>
+        s.prepareR(CompanyRepositorySQL.UPDATE).use: pcuCustomer =>
+          s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
+            s.prepareR(BankAccountRepositorySQL.UPDATE).use: pcuBankAcc =>
+              tryExec(xa, pciCustomer, pciBankAcc, pcuCustomer, pcuBankAcc, List.empty
+                , bankAccounts, models.map(Company.encodeIt2), List.empty)
+              
   def transact(s: Session[Task], newCustomers: List[Company], oldCustomers: List[Company]): Task[Unit] =
     s.transaction.use: xa =>
       s.prepareR(insert).use: pciCustomer =>
@@ -45,12 +54,15 @@ final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
 
   override def modify(model: Company): ZIO[Any, RepositoryError, Int] = modify(List(model))
 
-  override def modify(models: List[Company]): ZIO[Any, RepositoryError, Int] =
+  override def modify(modelsx: List[Company]): ZIO[Any, RepositoryError, Int] =
+    val bankaccountsx = modelsx.flatMap(_.bankaccounts).filter(_.modelid < 0)
+                               .map(m => m.copy(modelid = BankAccount.MODEL_ID))
+    val models = modelsx.map(_.copy(bankaccounts = bankaccountsx))
     (postgres
       .use:
         session =>
-          transact(session, List.empty, models))
-      .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.bankaccounts).size + models.size)
+          transactM(session, models, bankaccountsx))
+    .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.bankaccounts).size + models.size)
 
   def list(p: Int): ZIO[Any, RepositoryError, List[Company]] =  queryWithTx(postgres, p, ALL)
   

@@ -24,15 +24,8 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
       val idx = Instant.now().getNano + i.toLong
       ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
     }
-
-  def transactDelete(s: Session[Task], models: List[Transaction]): Task[Unit] =
-    s.transaction.use: xa =>
-      s.prepareR(DELETE).use: pcdMaster =>
-        s.prepareR(DELETE_DETAILS).use: pcdDetails =>
-          tryExec(xa, pcdMaster, pcdDetails, models.map(Transaction.encodeIt3)
-            , models.flatMap(_.lines).map(TransactionDetails.encodeIt3))
-          
     
+  
   def transact(s: Session[Task], models: List[Transaction]): Task[Unit] =
     s.transaction.use: xa =>
       s.prepareR(insert).use: pciMaster =>

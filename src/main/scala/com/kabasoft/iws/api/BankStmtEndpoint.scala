@@ -57,8 +57,8 @@ object BankStmtEndpoint:
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ).out[BankStatement] ?? Doc.p(mModifyAPIDoc)
-
-  private val bsPost     = Endpoint(RoutePattern.GET / "bspost"/string("company")?? Doc.p(companyDoc) / string("id")?? Doc.p(idDoc))
+  
+  private val bsPost     = Endpoint(RoutePattern.GET / "bs/post"/string("company")?? Doc.p(companyDoc) / string("id")?? Doc.p(idDoc))
   .header(HeaderCodec.authorization)
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
     HttpCodec.error[AuthenticationError](Status.Unauthorized)
@@ -70,7 +70,7 @@ object BankStmtEndpoint:
     .header(HeaderCodec.authorization)
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
-    ).out[Int] ?? Doc.p(mPostAPIDoc)
+    ).out[List[BankStatement]] ?? Doc.p(mPostAPIDoc)
 
   private val mDelete = Endpoint(RoutePattern.DELETE / "bs" / string("id") ?? Doc.p(modelidDoc) / int("modelid") ?? Doc.p(modelidDoc)
     / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
@@ -102,7 +102,8 @@ object BankStmtEndpoint:
   val importBSRoute =
     bsImportAPI.implement: (path, header, char, extension, company, h) =>
       ZIO.logInfo(s"Import bank statement header:${header} char:${char} extension: ${extension} company ${company} path: ${path.replace(".", "/")}") *>
-        BankStatementService.importBankStmt(path.replace(".", "/"), header, char, extension, company )
+        BankStatementService.importBankStmt(path.replace(".", "/"), header, char, extension, company ) *>
+        BankStatementRepository.all(BankStatement.MODELID, company)
 
   val bsPostBSRoute  =
     bsPost.implement: (company, id, h) =>

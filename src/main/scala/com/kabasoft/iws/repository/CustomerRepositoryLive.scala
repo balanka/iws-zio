@@ -26,6 +26,15 @@ final case class CustomerRepositoryLive(postgres: Resource[Task, Session[Task]]
             s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
               tryExec(xa, pciCustomer, pciBankAcc, newCustomers,  newCustomers.flatMap(_.bankaccounts))
 
+    def transactM(s: Session[Task], models: List[Customer], bankAccounts: List[BankAccount]): Task[Unit] =
+      s.transaction.use: xa =>
+        s.prepareR(insert).use: pciCustomer =>
+          s.prepareR(CustomerRepositorySQL.UPDATE).use: pcuCustomer =>
+            s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
+              s.prepareR(BankAccountRepositorySQL.UPDATE).use: pcuBankAcc =>
+                tryExec(xa, pciCustomer, pciBankAcc, pcuCustomer, pcuBankAcc, List.empty
+                 , bankAccounts, models.map(Customer.encodeIt2), List.empty)
+
     def transact(s: Session[Task], newCustomers: List[Customer], oldCustomers: List[Customer]): Task[Unit] =
        s.transaction.use: xa =>
          s.prepareR(insert).use: pciCustomer =>
@@ -46,11 +55,14 @@ final case class CustomerRepositoryLive(postgres: Resource[Task, Session[Task]]
   
     override def modify(model: Customer):ZIO[Any, RepositoryError, Int] = modify(List(model))
      
-    override def modify(models: List[Customer]):ZIO[Any, RepositoryError, Int] =
+    override def modify(modelsx: List[Customer]):ZIO[Any, RepositoryError, Int] =
+      val bankaccountsx = modelsx.flatMap(_.bankaccounts).filter(_.modelid < 0)
+                                 .map(m => m.copy(modelid = BankAccount.MODEL_ID))
+      val models = modelsx.map(_.copy(bankaccounts = bankaccountsx))
       (postgres
         .use: 
           session => 
-            transact(session, List.empty, models))
+            transactM(session, models, bankaccountsx))
              .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.bankaccounts).size + models.size)
       
     override def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Customer]] = for {

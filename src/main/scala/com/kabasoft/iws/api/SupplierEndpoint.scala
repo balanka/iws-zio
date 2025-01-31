@@ -24,7 +24,7 @@ object SupplierEndpoint:
   private val mCreate = Endpoint(RoutePattern.POST / "sup")
     .in[Supplier]
     .header(HeaderCodec.authorization)
-    .out[Int]
+    .out[Supplier]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     )?? Doc.p(mCreateAPIFoc)
@@ -48,6 +48,7 @@ object SupplierEndpoint:
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ).out[Supplier] ?? Doc.p(mModifyAPIDoc)
+  
   private val mDelete = Endpoint(RoutePattern.DELETE / "sup" / string("id") ?? Doc.p(modelidDoc) /int("modelid")?? Doc.p(modelidDoc)
     / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
@@ -57,16 +58,17 @@ object SupplierEndpoint:
   val createSupplierRoute =
     mCreate.implement: (m,_) =>
       ZIO.logInfo(s"Insert supplier  ${m}") *>
-        SupplierRepository.create(m)
+        SupplierRepository.create(m) *>
+        SupplierRepository.getById ((m.id, m.modelid, m.company) )
 
   val supplierAllRoute =
     mAll.implement : p =>
-      ZIO.logInfo(s"Insert supplier  ${p}") *>
+      ZIO.logInfo(s"Find all supplier  ${p}") *>
         SupplierRepository.all((p._1, p._2))
 
   val supplierByIdRoute =
     mById.implement: p =>
-      ZIO.logInfo (s"Modify supplier  ${p}") *>
+      ZIO.logInfo (s"Find by id supplier  ${p}") *>
         SupplierRepository.getById(p._1, p._2, p._3)
 
   val modifySupplierRoute =

@@ -3,7 +3,7 @@ import cats.*
 import cats.effect.Resource
 import cats.syntax.all.*
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{BankStatement, FinancialsTransaction, FinancialsTransactionDetails}
+import com.kabasoft.iws.domain.{BankStatement, common, FinancialsTransaction, FinancialsTransactionDetails}
 import skunk.*
 import skunk.codec.all.*
 import skunk.implicits.*
@@ -19,7 +19,12 @@ final case  class BankStatementRepositoryLive(postgres: Resource[Task, Session[T
 
   import BankStatementRepositorySQL.*
 
-
+  def buildId(transactions: List[FinancialsTransaction]): List[FinancialsTransaction] =
+    transactions.zipWithIndex.map { case (ftr, i) =>
+    val idx = Instant.now().getNano + i.toLong
+    ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
+  }
+    
   private def transact(s: Session[Task], models: List[FinancialsTransaction], oldmodels: List[BankStatement]): Task[Unit] =
     s.transaction.use: xa =>
       s.prepareR(FinancialsTransactionRepositorySQL.insert).use: pciMaster =>
@@ -51,7 +56,7 @@ final case  class BankStatementRepositoryLive(postgres: Resource[Task, Session[T
   override def post(bs: List[BankStatement], models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =
     postgres
       .use: session =>
-          transact(session, models, bs)
+          transact(session, buildId(models), bs)
       .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size )  
 
 object BankStatementRepositoryLive:
@@ -111,15 +116,9 @@ private[repository] object BankStatementRepositorySQL:
          VALUES ${bankStatementCodec4.values.list(n)}""".stripMargin.command
 
   val UPDATE: Command[BankStatement.TYPE3] =
-    sql"""UPDATE bankstatement SET valuedate=$timestamp, accountno= $varchar, bank_code= $varchar
-          WHERE id=$int8 and modelid=$int4 and company= $varchar""".command
-  
-  val POST_BANK_STATEMENT: Command[Boolean *: Int *: Long *: Int *: String *: EmptyTuple] =
-    sql"""UPDATE bankstatement SET
-           posted                 = $bool,
-           period                 = $int4,
-          WHERE  id = $int8 AND modelid = $int4 AND company = $varchar
-          """.command
+    sql"""UPDATE bankstatement SET valuedate=$timestamp, accountno= $varchar
+          , bank_code= $varchar, period= $int4, posted = $bool  
+          WHERE id =$int8 and modelid =$int4 and company = $varchar""".command
   
   def DELETE: Command[(Long, Int, String)] =
     sql"DELETE FROM bankstatement WHERE id = $int8 AND modelid = $int4 AND company = $varchar".command

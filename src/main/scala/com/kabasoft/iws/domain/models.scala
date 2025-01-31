@@ -892,7 +892,6 @@ final case class BankStatement(
 object BankStatement  {
   val MODELID         = 18
   val CENTURY         = "20"
-  val COMPANY         = "1000"
   //val COMPANY_IBAN    = "DE47480501610043006329"
   val zoneId          = ZoneId.of("Europe/Berlin")
   val DATE_FORMAT     = "dd.MM.yyyy"
@@ -901,7 +900,7 @@ object BankStatement  {
   type TYPE = (Long, String, LocalDateTime, LocalDateTime, String, String, String, String, String, scala.math.BigDecimal, String, String, String, String, Boolean, Int, Int)
   type TYPE4 = (String, LocalDateTime, LocalDateTime, String, String, String, String, String, scala.math.BigDecimal, String, String, String, String, Boolean, Int, Int)
   type TYPE2 = (Boolean, Int, Long, Int, String)
-  type TYPE3 = (LocalDateTime, String, String, Long, Int, String)
+  type TYPE3 = (LocalDateTime, String, String, Int, Boolean, Long, Int, String)
   type BS_Type = (
     Long,
     String,
@@ -945,7 +944,8 @@ object BankStatement  {
   def fullDate(partialDate: String): Instant = 
     val index    = partialDate.lastIndexOf(".")
     val pYear    = partialDate.substring(index + 1)
-    val fullDate = partialDate.substring(0, index + 1).concat(CENTURY.concat(pYear))
+    val year    = if (pYear.length ==2) CENTURY.concat(pYear) else pYear
+    val fullDate = partialDate.substring(0, index + 1).concat(year) //concat(CENTURY.concat(pYear))
     LocalDate
       .parse(fullDate, DateTimeFormatter.ofPattern(DATE_FORMAT))
       .atStartOfDay(zoneId)
@@ -1011,7 +1011,8 @@ object BankStatement  {
       , st.companyIban, st.posted, st.modelid, st.period
     )
   def encode(st: BankStatement):TYPE2 = (st.posted, common.getPeriod(st.valuedate), st.id, st.modelid, st.company)  
-  def encodeIt2(st: BankStatement):TYPE3 = (st.valuedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime, st.accountno, st.bankCode, st.id, st.modelid, st.company)
+  def encodeIt2(st: BankStatement):TYPE3 = (st.valuedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
+    , st.accountno, st.bankCode, common.getPeriod(st.valuedate), st.posted, st.id, st.modelid, st.company)
 }
 final case class Module(
   id: String,
