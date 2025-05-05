@@ -1,16 +1,16 @@
-val zioVersion                 = "2.1.13"
-val zioHttpVersion             = "3.0.1"
+val zioVersion                 = "2.1.17"
+val zioHttpVersion             = "3.2.0"
 val zioJsonVersion             = "0.7.3"
-val zioConfigVersion           = "4.0.2"
+val zioConfigVersion           = "4.0.4"
 val logbackVersion             = "1.2.7"
 val testcontainersVersion      = "1.20.3"
 val testcontainersScalaVersion = "0.41.4"
 val postgresql                 = "42.7.4"
 val JwtCoreVersion             = "9.1.1"
-val zioSchemaVersion           = "1.5.0"
+val zioSchemaVersion           = "1.6.6"
 val skunkVersion              = "0.6.4"
 //val skunkVersion              = "1.0.0-M7"
-val zioPreludeVersion         = "1.0.0-RC35"
+val zioPreludeVersion         = "1.0.0-RC39"
 val zioInteropCatsVersion = "23.1.0.3"
 val catsVersion           = "2.12.0"
 val catsEffectVersion     = "3.5.7"
@@ -18,11 +18,12 @@ val catsEffectVersion     = "3.5.7"
 
 ThisBuild / resolvers +=
   "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
-ThisBuild / scalacOptions += "-Wconf:any:wv"
+ThisBuild / scalacOptions ++= Seq("-Wunused:all","-Xmax-inlines",  "128") //"-Wconf:any:wv"
+//scalacOptions ++= Seq("-Xmax-inlines", "50")
 maintainer := "batexy@gmail.com"
 //dockerBaseImage := "eclipse-temurin:21-alpine"
 //dockerBaseImage := "amazoncorretto:21.0.2-alpine3.19"
-dockerBaseImage := "openjdk:23-slim"
+dockerBaseImage := "openjdk:25-slim"
 
 assemblyMergeStrategy in assembly := {
   case PathList("META-INF", xs @ _*) => MergeStrategy.discard
@@ -38,8 +39,8 @@ lazy val root = (project in file("."))
       List(
         name         := "iws-skunk",
         organization := "KABA Soft GmbH",
-        version      := "1.5.2",
-         scalaVersion := "3.6.2"
+        version      := "1.5.6",
+         scalaVersion := "3.6.4"
       )
     ),
     name           := "iws-zio",

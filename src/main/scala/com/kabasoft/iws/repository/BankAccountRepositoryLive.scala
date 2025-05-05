@@ -20,8 +20,8 @@ final case class BankAccountRepositoryLive(postgres: Resource[Task, Session[Task
   override def create(c: BankAccount):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
   override def create(list: List[BankAccount]):ZIO[Any, RepositoryError, Int] = 
     executeWithTx(postgres, list.map(BankAccount.encodeIt), insertAll(list.size), list.size)
-  override def modify(model: BankAccount):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, BankAccount.encodeIt2, UPDATE, 1)
-  override def modify(models: List[BankAccount]):ZIO[Any, RepositoryError, Int]= executeBatchWithTxK(postgres, models, UPDATE, BankAccount.encodeIt2)
+  override def modify(model: BankAccount):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, BankAccount.encodeIt2, UPDATE_BANK_ACCOUNT, 1)
+  override def modify(models: List[BankAccount]):ZIO[Any, RepositoryError, Int]= executeBatchWithTxK(postgres, models, UPDATE_BANK_ACCOUNT, BankAccount.encodeIt2)
   override def bankAccout4All(p: Int): ZIO[Any, RepositoryError, List[BankAccount]] = queryWithTx(postgres, p, BANK_ACCOUNT_4_ALL)
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[BankAccount]] = queryWithTx(postgres, p, ALL)
   override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, BankAccount] = queryWithTxUnique(postgres, p, BY_ID)
@@ -78,10 +78,17 @@ object BankAccountRepositorySQL:
 
   def insertAll(n:Int): Command[List[BankAccount.TYPE]] =
     sql"INSERT INTO bankaccount (id, owner, bic, company, modelid) VALUES ${mfCodec.values.list(n)}".command
-
+  
   val UPDATE: Command[BankAccount.TYPE2] =
+    sql"""UPDATE bankaccount SET bic = $varchar, owner = $varchar
+          WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
+    
+  val UPDATE_BANK_ACCOUNT: Command[BankAccount.TYPE2] =
     sql"""UPDATE bankaccount SET bic = $varchar, owner = $varchar
           WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
   
   def DELETE: Command[(String, Int, String)] =
     sql"DELETE FROM bankaccount WHERE id = $varchar AND modelid = $int4 AND company = $varchar".command
+
+  def DELETE_BANK_ACCOUNT: Command[(String, String, String, String)] =
+    sql"DELETE FROM bankaccount WHERE id = $varchar  AND bic = $varchar AND owner = $varchar AND company = $varchar".command

@@ -24,7 +24,7 @@ object EmployeeEndpoint:
   private val mCreate = Endpoint(RoutePattern.POST / "emp")
     .in[Employee]
     .header(HeaderCodec.authorization)
-    .out[Int]
+    .out[Employee]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     )?? Doc.p(mCreateAPIFoc)
@@ -56,8 +56,9 @@ object EmployeeEndpoint:
 
   val createEmployeeRoute =
     mCreate.implement: (m,_) =>
-      ZIO.logInfo(s"Insert employee  ${m}") *>
-        EmployeeRepository.create(m)
+      ZIO.logInfo(s"Insert employee  ${m}") 
+        *> EmployeeRepository.create(m)
+        *> EmployeeRepository.getById(m.id, m.modelid, m.company)
 
   val employeeAllRoute =
     mAll.implement : p =>

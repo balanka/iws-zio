@@ -46,7 +46,7 @@ final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository
       } else {
         supplierRepo.getByIban(stmt.accountno, Supplier.MODELID, stmt.company)
       }).map(s => {
-        List(buildPaymentSettlement(stmt, s, company, accounts), buildReceivablesPayables(stmt, s, vats.find(_.id == s.vatcode), accounts))
+        List(buildPaymentSettlement(stmt, s, company, accounts), buildReceivablesPayables(stmt, s, vats.find(_.id == s.vatCode), accounts))
       })
     ).flip//.mapError(e => RepositoryError(e.message))
     result 
@@ -131,16 +131,17 @@ final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository
         .flatMap { files =>
           ZStream
             .fromPath(files)
-            .via(ZPipeline.utf8Decode >>> ZPipeline.splitLines)
+            .via(ZPipeline.iso_8859_1Decode >>> ZPipeline.splitLines)
             .tap(e => ZIO.logInfo(s"Element ${e}"))
             .filterNot(p => p.replaceAll("\"", "").startsWith(header))
+            .tap(e => ZIO.logInfo(s"Element2>> ${e}"))
             //.map(p => buildFn(p.replaceAll(char, ""), company))
             .map(p => buildFn(p.replaceAll("\"", ""), company)) 
         }
         .mapError(e => RepositoryError(e.getMessage))
         .runCollect
         .map(_.toList).debug("parsed Bankstatement >>>>>>")
-    nr <- bankStmtRepo.create(bs).mapBoth(e => RepositoryError(e.message), i => i)
+    nr <- bankStmtRepo.create(bs).debug("persisting").mapBoth(e => RepositoryError(e.message), i => i)
   } yield nr
 }
 
