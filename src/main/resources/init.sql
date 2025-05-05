@@ -188,6 +188,8 @@ create table   if not exists store
     postingdate  timestamp   default CURRENT_TIMESTAMP not null,
     changedate timestamp   default CURRENT_TIMESTAMP not null,
     enterdate    timestamp   default CURRENT_TIMESTAMP not null,
+    stock_account varchar(50),
+    expese_account varchar(50),
     company       varchar(50)                    not null,
     modelid       integer                        not null
 );
