@@ -28,7 +28,7 @@ object AccountEndpoint:
   private val mCreate = Endpoint(RoutePattern.POST / "acc")
     .in[Account]
     .header(HeaderCodec.authorization)
-    .out[Int]
+    .out[Account]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ) ?? Doc.p(mCreateAPIFoc)
@@ -73,6 +73,7 @@ object AccountEndpoint:
     mCreate.implement: (m, _) =>
       ZIO.logInfo(s"Insert an account  ${m}")
         *>  AccountRepository.create(m)
+        *>  AccountRepository.getById(m.id, m.modelid, m.company)
 
   val accountAllRoute =
     mAll.implement: p =>

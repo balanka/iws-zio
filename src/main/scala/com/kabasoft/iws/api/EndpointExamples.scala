@@ -1,6 +1,7 @@
 package com.kabasoft.iws.api
 
 import zio._
+
 import zio.http._
 import zio.http.codec.PathCodec.path
 import zio.http.codec._
@@ -42,13 +43,13 @@ object EndpointExamples extends ZIOAppDefault {
       val locator =
         EndpointLocator.fromURL(URL.decode("http://localhost:8080").toOption.get)
 
-      val executor: EndpointExecutor[Any, Unit] =
+      val executor: EndpointExecutor[Any, Unit, Scope] =
         EndpointExecutor(client, locator)
 
       val x1: Invocation[Int, Int, ZNothing, Int, None] = getUser(42)
-      val x2                                            = getUserPosts(42, 200, "adam")
+      val x2 = getUserPosts(42, 200, "adam")
 
-      val result1: ZIO[Scope, Nothing, Int]          = executor(x1)
+      val result1: ZIO[Scope, Nothing, Int] = executor(x1)
       val result2: ZIO[Scope, Nothing, List[String]] = executor(x2)
 
       result1.zip(result2).debug

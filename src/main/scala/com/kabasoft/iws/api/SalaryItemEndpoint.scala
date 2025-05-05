@@ -24,7 +24,7 @@ object SalaryItemEndpoint:
   private val mCreate = Endpoint(RoutePattern.POST / "s_item")
     .in[SalaryItem]
     .header(HeaderCodec.authorization)
-    .out[Int]
+    .out[SalaryItem]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ) ?? Doc.p(mCreateAPIFoc)
@@ -56,8 +56,10 @@ object SalaryItemEndpoint:
 
   val createStoreRoute =
     mCreate.implement: (m, _) =>
-      ZIO.logInfo(s"Insert salary item  ${m}") *>
-        SalaryItemRepository.create(m)
+      ZIO.logInfo(s"Insert salary item  ${m}") 
+        *> SalaryItemRepository.create(m)
+        *> SalaryItemRepository.getById(m.id, m.modelid, m.company)
+      
 
   val storeAllRoute =
     mAll.implement: p =>

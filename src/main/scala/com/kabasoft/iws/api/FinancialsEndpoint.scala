@@ -37,7 +37,7 @@ object FinancialsEndpoint:
   private val mCreate = Endpoint(RoutePattern.POST / "ftr")
     .in[FinancialsTransaction]
     .header(HeaderCodec.authorization)
-    .out[Int]
+    .out[FinancialsTransaction]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ) ?? Doc.p(mCreateAPIFoc)
@@ -89,8 +89,9 @@ object FinancialsEndpoint:
 
   val financialsCreateRoute =
     mCreate.implement: (m, _) =>
-      ZIO.logInfo(s"Insert financials transaction  ${m}") *>
-        FinancialsTransactionRepository.create(m)
+      ZIO.logInfo(s"Insert financials transaction  ${m}") 
+        *> FinancialsTransactionRepository.create(m)
+        *> FinancialsTransactionRepository.getById(m.id, m.modelid, m.company)
 
   val financialsAllRoute =
     mAll.implement: p =>

@@ -26,7 +26,7 @@ object AssetEndpoint:
   private val mCreate = Endpoint(RoutePattern.POST / "asset")
     .in[Asset]
     .header(HeaderCodec.authorization)
-    .out[Int]
+    .out[Asset]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ) ?? Doc.p(mCreateAPIFoc)
@@ -65,8 +65,9 @@ object AssetEndpoint:
 
   val createRoute =
     mCreate.implement: (m, _) =>
-      ZIO.logInfo(s"Insert asset  ${m}") *>
-        AssetRepository.create(m)
+      ZIO.logInfo(s"Insert asset  ${m}")
+        *>  AssetRepository.create(m)
+        *>  AssetRepository.getById(m.id, m.modelid, m.company)
 
   val mAllRoute =
     mAll.implement: p =>

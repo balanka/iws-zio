@@ -33,7 +33,7 @@ final class PostBillOfDeliveryLive(pacRepo: PacRepository
 
     accounts <- accRepo.all(Account.MODELID, company.id)
     articles <- artRepo.getBy(transactions.flatMap(m => m.lines.map(_.article)), Article.MODELID, company.id)
-    accountIds = articles.map(art => (art.stockAccount, company.salesClearingAcc))
+    accountIds = articles.map(art => (art.account, company.salesClearingAcc))
     pacids = accountIds.flatMap(id => transactions.map(tr => buildPacId(tr.period, id))).flatten
     pacs <- pacRepo.getBy(pacids, PeriodicAccountBalance.MODELID, company.id).map(_.filterNot(_.id.equals(PeriodicAccountBalance.dummy.id)))
     allPacs = transactions.flatMap(tr => buildPacsFromTransaction(tr, articles, accounts, company.salesClearingAcc))
@@ -62,7 +62,7 @@ final class PostBillOfDeliveryLive(pacRepo: PacRepository
       pacList <- tpacList.flip
       journal = models.flatMap(model =>
           model.lines.flatMap { line =>
-            val accountId = articles.filter(_.id == line.article).map(art => (art.stockAccount, art.expenseAccount)).head
+            val accountId = articles.filter(_.id == line.article).map(art => (art.account, art.oaccount)).head
             val pacId = buildPacId2(model.getPeriod, (accountId._1, accountId._2))
             val pac = findOrBuildPac(pacId._1, model.getPeriod, pacList ++ pacListx)
             val poac = findOrBuildPac(pacId._2, model.getPeriod, pacList ++ pacListx)

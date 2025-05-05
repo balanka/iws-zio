@@ -12,8 +12,7 @@ import zio.{Task, ZIO, ZLayer }
 import com.kabasoft.iws.domain.Account
 import com.kabasoft.iws.domain.AppError.RepositoryError
 
-
-import java.time.{ Instant, LocalDateTime, ZoneId }
+import java.time.{Instant, LocalDateTime, OffsetDateTime, ZoneId}
 
 final case class AccountRepositoryLive(postgres: Resource[Task, Session[Task]]) extends AccountRepository, MasterfileCRUD:
 
@@ -86,8 +85,6 @@ private[repository] object AccountRepositorySQL:
           SET name = $varchar, description = $varchar, account = $varchar, is_debit=$bool
           , balancesheet= $bool, currency =$varchar
           WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
-
-  private val onConflictDoNothing = sql"ON CONFLICT DO NOTHING"
   
   def DELETE: Command[(String, Int, String)] =
     sql"DELETE FROM account WHERE id = $varchar AND modelid = $int4 AND company = $varchar".command

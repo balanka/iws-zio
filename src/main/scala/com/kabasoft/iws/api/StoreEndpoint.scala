@@ -24,7 +24,7 @@ object StoreEndpoint:
   private val mCreate = Endpoint(RoutePattern.POST / "store")
     .in[Store]
     .header(HeaderCodec.authorization)
-    .out[Int]
+    .out[Store]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     )?? Doc.p(mCreateAPIFoc)
@@ -56,8 +56,9 @@ object StoreEndpoint:
 
   val createStoreRoute =
     mCreate.implement: (m,_) =>
-      ZIO.logInfo(s"Insert store  ${m}") *>
-        StoreRepository.create(m)
+      ZIO.logInfo(s"Insert store  ${m}") 
+        *> StoreRepository.create(m)
+        *> StoreRepository.getById(m.id, m.modelid, m.company)
 
   val storeAllRoute =
     mAll.implement : p =>

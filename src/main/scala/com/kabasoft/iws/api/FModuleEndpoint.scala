@@ -23,7 +23,7 @@ object FModuleEndpoint:
   private val mCreate = Endpoint(RoutePattern.POST / "fmodule")
     .in[Fmodule]
     .header(HeaderCodec.authorization)
-    .out[Int]
+    .out[Fmodule]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     )?? Doc.p(mCreateAPIFoc)
@@ -56,8 +56,9 @@ object FModuleEndpoint:
 
   val createFmoduleRoute =
     mCreate.implement: (m,_) =>
-      ZIO.logInfo(s"Insert fmodule  ${m}") *>
-        FModuleRepository.create(m)
+      ZIO.logInfo(s"Insert fmodule  ${m}") 
+        *> FModuleRepository.create(m)
+        *> FModuleRepository.getById(m.id, m.modelid, m.company)
 
   val fmoduleAllRoute =
     mAll.implement : p =>

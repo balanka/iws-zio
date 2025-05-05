@@ -31,16 +31,29 @@ final case class CustomerRepositoryLive(postgres: Resource[Task, Session[Task]]
         s.prepareR(insert).use: pciCustomer =>
           s.prepareR(CustomerRepositorySQL.UPDATE).use: pcuCustomer =>
             s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
-              s.prepareR(BankAccountRepositorySQL.UPDATE).use: pcuBankAcc =>
+              s.prepareR(BankAccountRepositorySQL.UPDATE_BANK_ACCOUNT).use: pcuBankAcc =>
                 tryExec(xa, pciCustomer, pciBankAcc, pcuCustomer, pcuBankAcc, List.empty
                  , bankAccounts, models.map(Customer.encodeIt2), List.empty)
 
+    def transact(s: Session[Task], newCustomers: List[Customer], newbankAccount: List[BankAccount], oldCustomers: List[Customer]
+                 , oldbankAcc2Update: List[BankAccount], bankAcc2Delete: List[BankAccount]): Task[Unit] =
+      s.transaction.use: xa =>
+       s.prepareR(insert).use: pciCustomer =>
+         s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
+           s.prepareR(CustomerRepositorySQL.UPDATE).use: pcuCustomer =>
+            s.prepareR(BankAccountRepositorySQL.UPDATE_BANK_ACCOUNT).use: pcuBankAcc =>
+              s.prepareR(BankAccountRepositorySQL.DELETE_BANK_ACCOUNT).use: pcdBankAcc =>
+               tryExec(xa, pciCustomer, pciBankAcc, pcuCustomer, pcuBankAcc, pcdBankAcc
+                 , newCustomers, newbankAccount
+                 , oldCustomers.map(Customer.encodeIt2), oldbankAcc2Update.map(BankAccount.encodeIt2)
+                , bankAcc2Delete.map(BankAccount.encodeIt3))
+            
     def transact(s: Session[Task], newCustomers: List[Customer], oldCustomers: List[Customer]): Task[Unit] =
        s.transaction.use: xa =>
          s.prepareR(insert).use: pciCustomer =>
            s.prepareR(CustomerRepositorySQL.UPDATE).use: pcuCustomer =>
              s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
-               s.prepareR(BankAccountRepositorySQL.UPDATE).use: pcuBankAcc =>
+               s.prepareR(BankAccountRepositorySQL.UPDATE_BANK_ACCOUNT).use: pcuBankAcc =>
                  tryExec(xa, pciCustomer, pciBankAcc, pcuCustomer, pcuBankAcc, newCustomers
                    , newCustomers.flatMap(_.bankaccounts), oldCustomers.map(Customer.encodeIt2)
                    , oldCustomers.flatMap(_.bankaccounts).map(BankAccount.encodeIt2))
@@ -55,16 +68,28 @@ final case class CustomerRepositoryLive(postgres: Resource[Task, Session[Task]]
   
     override def modify(model: Customer):ZIO[Any, RepositoryError, Int] = modify(List(model))
      
-    override def modify(modelsx: List[Customer]):ZIO[Any, RepositoryError, Int] =
-      val bankaccountsx = modelsx.flatMap(_.bankaccounts).filter(_.modelid < 0)
-                                 .map(m => m.copy(modelid = BankAccount.MODEL_ID))
-      val models = modelsx.map(_.copy(bankaccounts = bankaccountsx))
-      (postgres
-        .use: 
-          session => 
-            transactM(session, models, bankaccountsx))
-             .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.bankaccounts).size + models.size)
-      
+    override def modify(models: List[Customer]):ZIO[Any, RepositoryError, Int] = {
+      val oldLines2Update = models.flatMap(_.bankaccounts).filter(bankAccount => bankAccount.modelid>0 
+          && bankAccount.company.contains("-"))
+        .map(bankAccount =>bankAccount.copy(company = bankAccount.company.replace("-","")))
+      val newLine2Insert = models.flatMap(_.bankaccounts).filter(bankAccount =>bankAccount.modelid === -1 
+                                && bankAccount.company.contains("-"))
+                                  .map(bankAccount => bankAccount.copy(modelid = BankAccount.MODEL_ID,
+                                             company = bankAccount.company.replace("-", "")))
+      val oldLine2Delete = models.flatMap(_.bankaccounts).filter(_.modelid === -2)
+        .map(bankAccount => bankAccount.copy(company = bankAccount.company.replace("-", "")))
+        ZIO.logInfo(s"models ${models}") *>
+          ZIO.logInfo(s"oldLines2Update ${oldLines2Update}") *>
+          ZIO.logInfo(s"newLine2Insert ${newLine2Insert}")*>
+          ZIO.logInfo(s"oldLine2Delete ${oldLine2Delete}")*>
+      postgres
+        .use:
+          session =>
+            transact(session, List.empty, newLine2Insert, models, oldLines2Update,  oldLine2Delete)
+        .mapBoth(e => RepositoryError(e.getMessage), _ => 
+          models.size+newLine2Insert.size+oldLines2Update.size+oldLine2Delete.size)
+    }
+ 
     override def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Customer]] = for {
                   customer <- list(Id)
                   bankAccounts_ <- bankAccRepo.bankAccout4All(BankAccount.MODEL_ID)
@@ -88,64 +113,64 @@ private[repository] object CustomerRepositorySQL:
       localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 
     private val mfCodec =
-        (varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar *:varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: int4 *:timestamp *: timestamp *: timestamp)
+        (varchar *: varchar *: varchar *: varchar *: varchar*: varchar *: varchar *: varchar *: varchar *:varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: int4 *:timestamp *: timestamp *: timestamp)
 
     val mfDecoder: Decoder[Customer] = mfCodec.map:
-      case (id, name, description, street, zip, city, state, country, phone, email, account, oaccount, vatcode, company, modelid, enterdate, changedate, postingdate) =>
+      case (id, name, description, street, zip, city, state, country, phone, email, account, oaccount, taxCode, vatCode, company, modelid, enterdate, changedate, postingdate) =>
         Customer.apply(
-          (id, name, description, street, zip, city, state, country, phone, email, account, oaccount,
-             vatcode, company, modelid, toInstant(enterdate), toInstant(changedate), toInstant(postingdate)))
+          (id, name, description, street, zip, city, state, country, phone, email, account, oaccount, taxCode
+            , vatCode, company, modelid, toInstant(enterdate), toInstant(changedate), toInstant(postingdate)))
   
     val mfEncoder: Encoder[Customer] = mfCodec.values.contramap(Customer.encodeIt)
   
     def base =
-      sql""" SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, vatcode, company
-             , modelid, enterdate, changedate, postingdate
+      sql""" SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
+             , vatCode, company, modelid, enterdate, changedate, postingdate
              FROM   customer """
 
     def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Customer] =
-      sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, vatcode, company
-             , modelid, enterdate, changedate, postingdate
+      sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
+            , vatCode, company, modelid, enterdate, changedate, postingdate
              FROM   customer
              WHERE id  IN (${varchar.list(nr)} ) AND  modelid = $int4 AND company = $varchar
              """.query(mfDecoder)
 
     val BY_IBAN: Query[String *: Int *: String *: EmptyTuple, Customer] =
       sql"""SELECT cu.id, cu.name, cu.description, cu.street, cu.zip, cu.city, cu.state, cu.country, cu.phone
-            , cu.email, cu.account, cu.oaccount, cu.vatcode, cu.company
+            , cu.email, cu.account, cu.oaccount, cu.vatcode, cu.tax_code, cu.company
              , cu.modelid, cu.enterdate, cu.changedate, cu.postingdate
                  FROM   customer cu, bankaccount bankAcc
                  WHERE cu.id = bankAcc.owner AND bankAcc.id = $varchar AND
                   cu.modelid = $int4 AND cu.company = $varchar """.query(mfDecoder)
   
     val BY_ID: Query[String *: Int *: String *: EmptyTuple, Customer] =
-      sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, vatcode, company
-             , modelid, enterdate, changedate, postingdate
+      sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
+            , vatCode, company, modelid, enterdate, changedate, postingdate
              FROM   customer
              WHERE id = $varchar AND modelid = $int4 AND company = $varchar
              """.query(mfDecoder)
 
     val ALL: Query[Int *: String *: EmptyTuple, Customer] =
-      sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, vatcode, company
-             , modelid, enterdate, changedate, postingdate
+      sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
+            , vatCode, company, modelid, enterdate, changedate, postingdate
              FROM   customer
              WHERE  modelid = $int4 AND company = $varchar
              """.query(mfDecoder)
 
     val insert: Command[Customer] =
       sql"""INSERT INTO customer (id, name, description, street, zip, city, state, country, phone, email, account
-            , oaccount, vatcode, company, modelid, enterdate, changedate, postingdate)
+            , oaccount, tax_code, vatCode, company, modelid, enterdate, changedate, postingdate)
             VALUES $mfEncoder """.command
 
     def insertAll(n: Int): Command[List[Customer.TYPE2]] =
       sql"""INSERT INTO customer (id, name, description, street, zip, city, state, country, phone, email, account
-            , oaccount, vatcode, company, modelid, enterdate, changedate, postingdate)
+            , oaccount, tax_code, vatCode, company, modelid, enterdate, changedate, postingdate)
            VALUES ${mfCodec.values.list(n)}""".command
 
     val UPDATE: Command[Customer.TYPE3] =
       sql"""UPDATE customer SET name= $varchar, description= $varchar, street= $varchar, zip= $varchar, city= $varchar
             , state= $varchar, country= $varchar, phone= $varchar, email= $varchar, account= $varchar, oaccount= $varchar
-            , vatcode= $varchar
+            , tax_code= $varchar, vatcode= $varchar
             WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
 
     def DELETE: Command[(String, Int, String)] =

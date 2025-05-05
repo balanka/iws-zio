@@ -23,7 +23,7 @@ object VatEndpoint:
   private val vatCreate = Endpoint(RoutePattern.POST / "vat")
     .in[Vat]
     .header(HeaderCodec.authorization)
-    .out[Int]
+    .out[Vat]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     )?? Doc.p(mCreateAPIFoc)
@@ -55,8 +55,9 @@ object VatEndpoint:
 
   val createRoute =
     vatCreate.implement: (m,_) =>
-      ZIO.logInfo(s"Insert vat  ${m}") *>
-        VatRepository.create(m)
+      ZIO.logInfo(s"Insert vat  ${m}") 
+        *> VatRepository.create(m)
+        *> VatRepository.getById(m.id, m.modelid, m.company)
 
   val mAllRoute =
     vatAll.implement : p =>
@@ -65,7 +66,7 @@ object VatEndpoint:
 
   val mByIdRoute =
     vatById.implement: p =>
-      ZIO.logInfo (s"Modify vat  ${p}") *>
+      ZIO.logInfo (s" Find vat by id ${p}") *>
         VatRepository.getById(p._1, p._2, p._3)
 
   val mModifyRoute =

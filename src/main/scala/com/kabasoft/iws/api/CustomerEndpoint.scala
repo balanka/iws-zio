@@ -24,7 +24,7 @@ object CustomerEndpoint:
   private val customerCreate = Endpoint(RoutePattern.POST / "cust")
     .in[Customer]
     .header(HeaderCodec.authorization)
-    .out[Int]
+    .out[Customer]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ) ?? Doc.p(mCreateAPIFoc)
@@ -56,8 +56,9 @@ object CustomerEndpoint:
 
   val customerCreateRoute =
     customerCreate.implement: (m, _) =>
-      ZIO.logInfo(s"Insert customer  ${m}") *>
-        CustomerRepository.create(m)
+      ZIO.logInfo(s"Insert customer  ${m}") 
+        *> CustomerRepository.create(m)
+        *> CustomerRepository.getById(m.id, m.modelid, m.company)
 
   val customerAllRoute =
     customerAll.implement: p =>

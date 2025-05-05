@@ -25,7 +25,7 @@ object UserEndpoint:
   private val userCreate = Endpoint(RoutePattern.POST / "user")
     .in[User]
     .header(HeaderCodec.authorization)
-    .out[Int]
+    .out[User]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ) ?? Doc.p(mCreateAPIFoc)
@@ -71,8 +71,9 @@ object UserEndpoint:
 
   val createUserRoute =
     userCreate.implement: (m, _) =>
-      ZIO.logInfo(s"Insert user  ${m}") *>
-        UserRepository.create(m)
+      ZIO.logInfo(s"Insert user  ${m}") 
+        *> UserRepository.create(m)
+        *> UserRepository.getById(m.id, m.modelid, m.company)
 
   val allUserRoute =
     userAll.implement: p =>

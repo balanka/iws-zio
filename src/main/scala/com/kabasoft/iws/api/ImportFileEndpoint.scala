@@ -24,7 +24,7 @@ object ImportFileEndpoint:
   private val mCreate = Endpoint(RoutePattern.POST / "store")
     .in[ImportFile]
     .header(HeaderCodec.authorization)
-    .out[Int]
+    .out[ImportFile]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     )?? Doc.p(mCreateAPIFoc)
@@ -56,8 +56,9 @@ object ImportFileEndpoint:
 
   val createImportFileRoute =
     mCreate.implement: (m,_) =>
-      ZIO.logInfo(s"Insert store  ${m}") *>
-        ImportFileRepository.create(m)
+      ZIO.logInfo(s"Insert store  ${m}") 
+        *> ImportFileRepository.create(m)
+        *> ImportFileRepository.getById(m.id, m.modelid, m.company)
 
   val importFileAllRoute =
     mAll.implement : p =>

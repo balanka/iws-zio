@@ -24,7 +24,7 @@ object ModuleEndpoint:
   private val mCreate = Endpoint(RoutePattern.POST / "module")
     .in[Module]
     .header(HeaderCodec.authorization)
-    .out[Int]
+    .out[Module]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ) ?? Doc.p(mCreateAPIFoc)
@@ -56,8 +56,9 @@ object ModuleEndpoint:
 
   val createRoute =
     mCreate.implement: (m, _) =>
-      ZIO.logInfo(s"Insert module  ${m}") *>
-        ModuleRepository.create(m)
+      ZIO.logInfo(s"Insert module  ${m}") 
+        *> ModuleRepository.create(m)
+        *> ModuleRepository.getById(m.id, m.modelid, m.company)
 
   val mAllRoute =
     mAll.implement: p =>

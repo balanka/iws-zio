@@ -110,8 +110,9 @@ private[repository] object BankStatementRepositorySQL:
          , bank_code, amount, currency, info, company, company_iban, posted, modelid, period) 
           VALUES $mfEncoder """.command
 
+  //
   def insertAll(n:Int): Command[List[BankStatement.TYPE4]] =
-    sql"""INSERT INTO bankstatement (depositor, postingdate, valuedate, postingtext, purpose, beneficiary, accountno
+    sql"""INSERT INTO bankstatement ( depositor, postingdate, valuedate, postingtext, purpose, beneficiary, accountno
          , bank_code, amount, currency, info, company, company_iban, posted, modelid, period) 
          VALUES ${bankStatementCodec4.values.list(n)}""".stripMargin.command
 

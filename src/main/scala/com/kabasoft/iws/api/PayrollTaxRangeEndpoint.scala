@@ -24,7 +24,7 @@ object PayrollTaxRangeEndpoint:
   private val mCreate = Endpoint(RoutePattern.POST / "payrollTax")
     .in[PayrollTaxRange]
     .header(HeaderCodec.authorization)
-    .out[Int]
+    .out[PayrollTaxRange]
     .outErrors[AppError](
       HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
@@ -78,8 +78,9 @@ object PayrollTaxRangeEndpoint:
 
   val createPayrollTaxRoute =
     mCreate.implement: (m, _) =>
-      ZIO.logInfo(s"Insert payroll tax   ${m}") *>
-        PayrollTaxRangeRepository.create(m)
+      ZIO.logInfo(s"Insert payroll tax   ${m}") 
+        *> PayrollTaxRangeRepository.create(m)
+        *> PayrollTaxRangeRepository.getById(m.id, m.modelid, m.company)
 
   val payrollTaxAllRoute =
     mAll.implement: p =>

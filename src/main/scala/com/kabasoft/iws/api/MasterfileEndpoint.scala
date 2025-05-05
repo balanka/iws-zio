@@ -24,7 +24,7 @@ object MasterfileEndpoint:
   private val mCreate = Endpoint(RoutePattern.POST / "mf")
     .in[Masterfile]
     .header(HeaderCodec.authorization)
-    .out[Int]
+    .out[Masterfile]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     )?? Doc.p(mCreateAPIFoc)
@@ -56,8 +56,9 @@ object MasterfileEndpoint:
 
   val masterfileCreateRoute =
     mCreate.implement: (m,_) =>
-      ZIO.logInfo(s"Insert masterfile  ${m}") *>
-        MasterfileRepository.create(m)
+      ZIO.logInfo(s"Insert masterfile  ${m}") 
+        *> MasterfileRepository.create(m)
+        *> MasterfileRepository.getById(m.id, m.modelid, m.company)
 
   val masterfileAllRoute =
     mAll.implement : p =>

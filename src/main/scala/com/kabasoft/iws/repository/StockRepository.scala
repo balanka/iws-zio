@@ -11,7 +11,9 @@ trait StockRepository:
  def modify(model: Stock):ZIO[Any, RepositoryError, Int]
  def modify(models: List[Stock]):ZIO[Any, RepositoryError, Int]
  def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Stock]]
-  def getById(Id: (String, Int, String)): ZIO[Any, RepositoryError, Stock]
+ def getById(Id: (String, Int, String)): ZIO[Any, RepositoryError, Stock]
+ def getByStore(Id: (String, Int, String)): ZIO[Any, RepositoryError, List[Stock]]
+ def getByArticle(Id: (String, Int, String)): ZIO[Any, RepositoryError, List[Stock]]
  def getByStoreArticle(Id: (String, String, Int, String)): ZIO[Any, RepositoryError, List[Stock]]
  def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError,List[Stock]]
  def delete(p: (String, Int, String)):ZIO[Any, RepositoryError, Int]
@@ -36,6 +38,12 @@ object StockRepository:
     
   def getById(Id: (String, Int, String)): ZIO[StockRepository, RepositoryError, Stock] =
     ZIO.serviceWithZIO[StockRepository](_.getById(Id))
+
+  def getByStore(Id: (String, Int, String)): ZIO[StockRepository, RepositoryError, List[Stock]] =
+    ZIO.serviceWithZIO[StockRepository](_.getByStore(Id))
+
+  def getByArticle(Id: (String, Int, String)): ZIO[StockRepository, RepositoryError, List[Stock]] =
+    ZIO.serviceWithZIO[StockRepository](_.getByArticle(Id))
     
   def getByStoreArticle(Id: (String, String, Int, String)): ZIO[StockRepository, RepositoryError, List[Stock]] =
     ZIO.serviceWithZIO[StockRepository](_.getByStoreArticle(Id))

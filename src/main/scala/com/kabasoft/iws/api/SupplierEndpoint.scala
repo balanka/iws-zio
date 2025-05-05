@@ -63,8 +63,8 @@ object SupplierEndpoint:
 
   val supplierAllRoute =
     mAll.implement : p =>
-      ZIO.logInfo(s"Find all supplier  ${p}") *>
-        SupplierRepository.all((p._1, p._2))
+      ZIO.logInfo(s"Find all supplier  ${p}") 
+        *> SupplierRepository.all((p._1, p._2))
 
   val supplierByIdRoute =
     mById.implement: p =>

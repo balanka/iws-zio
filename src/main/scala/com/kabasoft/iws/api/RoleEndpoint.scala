@@ -24,7 +24,7 @@ object RoleEndpoint:
   private val mCreate = Endpoint(RoutePattern.POST / "role")
     .in[Role]
     .header(HeaderCodec.authorization)
-    .out[Int]
+    .out[Role]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ) ?? Doc.p(mCreateAPIFoc)
@@ -56,8 +56,9 @@ object RoleEndpoint:
 
   val creatRoleRoute =
     mCreate.implement: (m, _) =>
-      ZIO.logInfo(s"Insert role  ${m}") *>
-        RoleRepository.create(m)
+      ZIO.logInfo(s"Insert role  ${m}") 
+        *> RoleRepository.create(m)
+        *> RoleRepository.getById(m.id, m.modelid, m.company)
 
   val roleAllRoute =
     mAll.implement: p =>

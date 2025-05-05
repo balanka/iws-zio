@@ -10,11 +10,14 @@ import zio.prelude.FlipOps
 import zio.interop.catz.*
 import zio.{ZIO, *}
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Transaction, TransactionDetails, common}
+import com.kabasoft.iws.domain.{Article, Transaction, TransactionDetails, common, Vat}
+
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Task]]
-                                            , accRepo: AccountRepository) extends TransactionRepository, MasterfileCRUD:
+                                            , accRepo: AccountRepository
+                                            , articleRepo: ArticleRepository) extends TransactionRepository, MasterfileCRUD:
+                                            //, vatRepo: VatRepository) extends TransactionRepository, MasterfileCRUD:
 
   import TransactionRepositorySQL.*
 
@@ -24,7 +27,6 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
       val idx = Instant.now().getNano + i.toLong
       ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
     }
-    
   
   def transact(s: Session[Task], models: List[Transaction]): Task[Unit] =
     s.transaction.use: xa =>
@@ -32,17 +34,57 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
         s.prepareR(insertDetails).use: pciDetails =>
           tryExec(xa, pciMaster, pciDetails, models, models.flatMap(_.lines).map(TransactionDetails.encodeIt4))
 
-  def transact(s: Session[Task], models: List[Transaction], oldmodels: List[Transaction]): Task[Unit] =
-    s.transaction.use: xa =>
-      s.prepareR(insert).use: pciMaster =>
-        s.prepareR(UPDATE).use: pcuMaster =>
-          s.prepareR(insertDetails).use: pciDetails =>
-            s.prepareR(UPDATE_DETAILS).use: pcuDetails =>
-              tryExec(xa, pciMaster, pciDetails, pcuMaster, pcuDetails
-                , models, models.flatMap(_.lines).map(TransactionDetails.encodeIt4)
-                , oldmodels.map(Transaction.encodeIt2), oldmodels.flatMap(_.lines).map(TransactionDetails.encodeIt2))
+//  def transact(s: Session[Task], models: List[Transaction], oldmodels: List[Transaction]): Task[Unit] =
+//    s.transaction.use: xa =>
+//      s.prepareR(insert).use: pciMaster =>
+//        s.prepareR(UPDATE).use: pcuMaster =>
+//          s.prepareR(insertDetails).use: pciDetails =>
+//            s.prepareR(UPDATE_DETAILS).use: pcuDetails =>
+//              tryExec(xa, pciMaster, pciDetails, pcuMaster, pcuDetails
+//                , models, models.flatMap(_.lines).map(TransactionDetails.encodeIt4)
+//                , oldmodels.map(Transaction.encodeIt2), oldmodels.flatMap(_.lines).map(TransactionDetails.encodeIt2))
 
-  override def create(c:Transaction): ZIO[Any, RepositoryError, Int] = create(List(c))
+//  def transact(s: Session[Task], models: List[Transaction], newines2Insert: List[TransactionDetails]
+//               , oldmodels: List[Transaction], oldLines2Update: List[TransactionDetails]): Task[Unit] =
+//    s.transaction.use: xa =>
+//      s.prepareR(insert).use: pciMaster =>
+//        s.prepareR(UPDATE).use: pcuMaster =>
+//          s.prepareR(insertDetails).use: pciDetails =>
+//            s.prepareR(UPDATE_DETAILS).use: pcuDetails =>
+//              tryExec(xa, pciMaster, pciDetails, pcuMaster, pcuDetails
+//                , models, newines2Insert.map(TransactionDetails.encodeIt4)
+//                , oldmodels.map(Transaction.encodeIt2), oldLines2Update.map(TransactionDetails.encodeIt2))
+          
+  def transact(s: Session[Task], models: List[Transaction], newLines2Insert: List[TransactionDetails]
+             , oldmodels: List[Transaction], oldLines2Update: List[TransactionDetails]
+             ,  oldLines2Delete: List[TransactionDetails]): Task[Unit] =
+     s.transaction.use: xa =>
+       s.prepareR(insert).use: pciMaster =>
+         s.prepareR(UPDATE).use: pcuMaster =>
+           s.prepareR(insertDetails).use: pciDetails =>
+             s.prepareR(UPDATE_DETAILS).use: pcuDetails =>
+               s.prepareR(DELETE_DETAILS).use: pcdDetails =>
+                 tryExec(xa, pciMaster, pciDetails, pcuMaster, pcuDetails, pcdDetails
+                  , models, newLines2Insert.map(TransactionDetails.encodeIt4)
+                  , oldmodels.map(Transaction.encodeIt2), oldLines2Update.map(TransactionDetails.encodeIt2)
+                  , oldLines2Delete.map(TransactionDetails.encodeIt3))
+
+  def transact(s: Session[Task], models: List[Transaction], newLines2Insert: List[TransactionDetails]
+             , oldmodels: List[Transaction], oldLines2Update: List[TransactionDetails]
+             , oldmodels2Delete: List[Transaction], oldLines2Delete: List[TransactionDetails]): Task[Unit] =
+  s.transaction.use: xa =>
+    s.prepareR(insert).use: pciMaster =>
+      s.prepareR(UPDATE).use: pcuMaster =>
+        s.prepareR(insertDetails).use: pciDetails =>
+          s.prepareR(UPDATE_DETAILS).use: pcuDetails =>
+            s.prepareR(DELETE).use: pcdMaster =>
+              s.prepareR(DELETE_DETAILS).use: pcdDetails =>
+                tryExec(xa, pciMaster, pciDetails, pcuMaster, pcuDetails, pcdMaster, pcdDetails
+                  , models, newLines2Insert.map(TransactionDetails.encodeIt4)
+                  , oldmodels.map(Transaction.encodeIt2), oldLines2Update.map(TransactionDetails.encodeIt2)
+                  , oldmodels2Delete.map(Transaction.encodeIt3)
+                  , oldLines2Delete.map(TransactionDetails.encodeIt3))
+  override def create(c: Transaction): ZIO[Any, RepositoryError, Int] = create(List(c))
 
   override def create(models: List[Transaction]): ZIO[Any, RepositoryError, Int] =
     (postgres
@@ -53,13 +95,24 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
 
   override def modify(model: Transaction): ZIO[Any, RepositoryError, Int] = modify(List(model))
 
-  override def modify(models: List[Transaction]): ZIO[Any, RepositoryError, Int] =
-    (postgres
-      .use:
-        session =>
-          transact(session, List.empty, models))
-      .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size) 
-  
+  override def modify(models: List[Transaction]): ZIO[Any, RepositoryError, Int] = {
+    val oldLines2Update = models.flatMap(_.lines).filter(line => line.id > 0 && line.company.contains("-"))
+      .map(line => line.copy(company = line.company.replace("-", "")))
+    val newLine2Insert = models.flatMap(_.lines).filter(line => line.id === -1L && line.company.contains("-"))
+      .map(line => line.copy(company = line.company.replace("-", "")))
+
+    val oldLine2Delete = models.flatMap(_.lines).filter(line => line.transid === -2L) 
+//    ZIO.logInfo(s"models ${models}") *>
+//      ZIO.logInfo(s"oldLines2Update ${oldLines2Update}") *>
+//      ZIO.logInfo(s"newLine2Insert ${newLine2Insert}") *>
+//      ZIO.logInfo(s"oldLine2Delete ${oldLine2Delete}") *>
+      postgres
+        .use:
+          session =>
+            transact(session, List.empty, newLine2Insert, models, oldLines2Update, oldLine2Delete)
+        .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)
+  }
+
   override def getById(p: (Long, Int, String)): ZIO[Any, RepositoryError, Transaction] = for {
     transaction <- queryWithTxUnique(postgres, p, BY_ID)
     details <- withLines(transaction)
@@ -82,7 +135,13 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
 
   private def getByTransId1(trans: Transaction): ZIO[Any, RepositoryError, Transaction] = for {
     lines_ <- getDetails(trans.id1, trans.company)
-  } yield trans.copy(lines = if (lines_.nonEmpty) lines_ else List.empty[TransactionDetails])
+    articles <- articleRepo.getBy(lines_.map(_.article), Article.MODELID, trans.company)
+   // vats <- vatRepo.getBy(trans.lines.map(_.vatCode), Vat.MODEL_ID, trans.company)
+  } yield trans.copy(lines = if (lines_.nonEmpty) {
+    lines_.map(line =>line.copy(articleName=articles.find(art=>art.id ===line.article).fold(line.articleName)(article =>article.name),
+                                unit=articles.find(art=>art.id ===line.article).fold(line.unit)(article =>article.quantityUnit)))
+                           // vatName=vats.find(vat=>vat.id ===line.vatCode).fold(line.vatName)(vat =>vat.name) ))
+  } else List.empty[TransactionDetails])
 
   private def withLines(trans: Transaction): ZIO[Any, RepositoryError, Transaction] =
     getByTransId1(trans)
@@ -103,8 +162,8 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
       .mapBoth(e => RepositoryError(e.getMessage), _ => 1))
     
 object TransactionRepositoryLive:
-  val live: ZLayer[Resource[Task, Session[Task]] & AccountRepository, Throwable, TransactionRepository] =
-    ZLayer.fromFunction(new TransactionRepositoryLive(_, _))
+  val live: ZLayer[Resource[Task, Session[Task]] & AccountRepository& ArticleRepository, Throwable, TransactionRepository] =
+    ZLayer.fromFunction(new TransactionRepositoryLive(_, _, _))
 
 private[repository] object TransactionRepositorySQL:
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
@@ -208,7 +267,8 @@ private[repository] object TransactionRepositorySQL:
   def DELETE: Command[(Long, Int, String)] =
     sql"DELETE FROM transaction WHERE id = $int8 AND modelid = $int4 AND company = $varchar".command
 
-  def DELETE_All: Command[Void] = sql"DELETE FROM transaction WHERE  company = '-1000'".command   
-  val DELETE_DETAILS: Command[(Long, String)] = sql"DELETE FROM transaction_details WHERE id = $int8 AND company = $varchar".command
-  val DELETE_ALL_DETAILS: Command[Void] = sql"DELETE FROM transaction_details WHERE  company = '-1000'".command
+  def DELETE_All: Command[Void] = sql"DELETE FROM transaction WHERE  company = '-1000'".command
+  val DELETE_DETAILS : Command[(Long, String)] = sql"DELETE FROM transaction_details WHERE id = $int8 AND company = $varchar".command
+  val DELETE_ALL_DETAILS: Command[Void] = sql"DELETE FROM transaction_details WHERE  id=-2 and company = '-1000'".command
   val NEXT_ID:Query[Void, Long] = sql"SELECT NEXTVAL('master_compta_id_seq')".query(int8)
+  //id  IN (${varchar.list(nr)})

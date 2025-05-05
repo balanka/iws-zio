@@ -29,9 +29,10 @@ object PacEndpoint:
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized),
     ).out[List[PeriodicAccountBalance]] ?? Doc.p(mAllAPIDoc)
-
+// http://localhost:8091/pac/106/1000/1810/202101  
   private val pacByAccountPeriod = Endpoint(RoutePattern.GET / "pac" /string("company") ?? Doc.p(companyDoc) 
-    /string("accountId") ?? Doc.p(accountIdDoc) / int("toPeriod") ?? Doc.p(periodFromToDoc)
+    /string("accountId") ?? Doc.p(accountIdDoc) 
+    / int("toPeriod") ?? Doc.p(periodFromToDoc)
     ).header(HeaderCodec.authorization)
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized),
@@ -53,6 +54,8 @@ object PacEndpoint:
     pacByPeriod.implement: p =>
       ZIO.logInfo(s"Get the PAC entries for period  $p._2 and company $p._1 ") *>
         PacRepository.findBalance4Period(p._2, p._1)
+      //pac/106/1000/1810/202101  
+      ///pac/1000/1810/202101
       
   val pacByAccountPeriodRoute =
     pacByAccountPeriod.implement: p =>

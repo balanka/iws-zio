@@ -11,7 +11,7 @@ trait  PostLogisticalTransaction:
   private def filterIWS[A <: IWS](list: List[A], param: String): List[A] = list.filter(_.id == param)
 
   private def articleId2AccountId(articleId: String, articles: List[Article], accounts: List[Account]): List[String] =
-    filterIWS(articles, articleId).flatMap(art => filterIWS(accounts, art.stockAccount).map(_.id))
+    filterIWS(articles, articleId).flatMap(art => filterIWS(accounts, art.account).map(_.id))
 
   def buildPacId(period: Int, accountId: (String, String)): List[String] =
     List(PeriodicAccountBalance.createId(period, accountId._1), PeriodicAccountBalance.createId(period, accountId._2))

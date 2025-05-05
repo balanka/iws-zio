@@ -23,7 +23,7 @@ object PermissionEndpoint:
   private val mCreate = Endpoint(RoutePattern.POST / "perm")
     .in[Permission]
     .header(HeaderCodec.authorization)
-    .out[Int]
+    .out[Permission]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     )?? Doc.p(mCreateAPIFoc)
@@ -55,8 +55,9 @@ object PermissionEndpoint:
 
   val createStoreRoute =
     mCreate.implement: (m,_) =>
-      ZIO.logInfo(s"Insert permissiom  ${m}") *>
-        PermissionRepository.create(m)
+      ZIO.logInfo(s"Insert permissiom  ${m}") 
+        *> PermissionRepository.create(m)
+        *> PermissionRepository.getById(m.id, m.modelid, m.company)
 
   val allPermRoute =
     mAll.implement : p =>

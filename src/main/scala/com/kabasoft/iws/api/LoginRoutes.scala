@@ -28,7 +28,7 @@ object LoginRoutes:
     
     println(s"checkLogin >>>>>> ${loginRequest.password}")
     println(s"pwd >>>>>> ${Utils.jwtEncode(loginRequest.password, defaultLifeSpan)}")
-    println(s"user >>>>>> $user")
+    //println(s"user >>>>>> $user")
     val pwd = Utils.jwtDecode(user.hash).get.subject.getOrElse("Subject")
     val pwdR = loginRequest.password
     val usernameR = loginRequest.userName

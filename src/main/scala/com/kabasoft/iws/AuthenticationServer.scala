@@ -66,7 +66,7 @@ object AuthenticationServer extends ZIOAppDefault {
               //Response.text(jwtEncode(username, 15*24*60*60L))
               Response.text(jwtEncode(username, 15*24*60*60L))
             else
-              Response.unauthorized("Invalid username or password.")
+              Response.unauthorized("400:Invalid username or password.")
         },
     ) @@ Middleware.debug
 

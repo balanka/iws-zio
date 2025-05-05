@@ -36,7 +36,7 @@ final class PostGoodreceivingLive(pacRepo: PacRepository
     articleIdsx = transactions.flatMap(m => m.lines.map(_.article))
     articleIds = articleIdsx.distinct
     articles <- artRepo.getBy(articleIds, Article.MODELID, company.id)
-    accountIds = articles.map(art => (art.stockAccount, company.purchasingClearingAcc))
+    accountIds = articles.map(art => (art.account, company.purchasingClearingAcc))
     pacids = accountIds.flatMap(id => transactions.map(tr => buildPacId(tr.period, id))).flatten.distinct
     pacs <- pacRepo.getBy(pacids, Stock.MODELID, company.id).map(_.filterNot(_.id.equals(PeriodicAccountBalance.dummy.id)))
     allPacs = transactions.flatMap(tr => buildPacsFromTransaction(tr, articles, accounts, company.purchasingClearingAcc))
@@ -96,7 +96,7 @@ final class PostGoodreceivingLive(pacRepo: PacRepository
       pacList <- tpacList.flip
       journal = models.flatMap(model =>
           model.lines.flatMap { line =>
-            val accountId = articles.filter(_.id == line.article).map(art => (art.stockAccount, art.expenseAccount)).head
+            val accountId = articles.filter(_.id == line.article).map(art => (art.account, art.oaccount)).head
             val pacId = buildPacId2(model.getPeriod, (accountId._1, accountId._2))
             val pac = findOrBuildPac(pacId._1, model.getPeriod, pacList ++ pacListx)
             val poac = findOrBuildPac(pacId._2, model.getPeriod, pacList ++ pacListx)
