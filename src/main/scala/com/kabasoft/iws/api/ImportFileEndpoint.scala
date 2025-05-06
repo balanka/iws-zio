@@ -71,7 +71,7 @@ object ImportFileEndpoint:
         ImportFileRepository.getById(p._1, p._2, p._3)
 
   val modifyImportFileRoute =
-    mModify.implement: (h, m) =>
+    mModify.implement: (_, m) =>
       ZIO.logInfo (s"Modify store  ${m}") *>
         ImportFileRepository.modify (m) *>
         ImportFileRepository.getById ((m.id, m.modelid, m.company) )

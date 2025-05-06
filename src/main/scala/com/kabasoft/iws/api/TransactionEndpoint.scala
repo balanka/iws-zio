@@ -1,24 +1,21 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.AppError.*
+import com.kabasoft.iws.domain.AppError._
 import com.kabasoft.iws.domain.{AppError, Transaction}
 import com.kabasoft.iws.repository.TransactionRepository
-import com.kabasoft.iws.service.TransactionService
-import com.kabasoft.iws.api.Protocol.*
-import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, transactionSchema,
-          transactionDetailsSchema,repositoryErrorSchema}
-import zio.*
+import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, transactionSchema
+          ,repositoryErrorSchema}
+import zio._
 import zio.http.RoutePattern
 import zio.schema.annotation.description
-import zio.schema.{DeriveSchema, Schema}
-import zio.*
-import zio.http.*
+import zio.schema.Schema
+import zio._
+import zio.http._
 import zio.http.codec.PathCodec.{path, int, string, long}
-import zio.http.codec.*
-import zio.http.endpoint.AuthType.None
-import zio.http.endpoint.{AuthType, Endpoint}
-import zio.http.endpoint.openapi.{OpenAPIGen, SwaggerUI}
+import zio.http.codec._
+import zio.http.endpoint.Endpoint
+
 
 object TransactionEndpoint:
   val modelidDoc = "The modelId for identifying the typ of transaction "
@@ -108,19 +105,19 @@ object TransactionEndpoint:
         TransactionRepository.getById(p._1, p._2, p._3)
 
   val modifyTransactionRoute =
-    mModify.implement: (h, m) =>
+    mModify.implement: (_, m) =>
       ZIO.logInfo(s"Modify transaction  ${m}") *>
         TransactionRepository.modify(m) *>
         TransactionRepository.getById((m.id, m.modelid, m.company))
 
   val trCancelnRoute =
-    trCanceln.implement: (h, ftr) =>
+    trCanceln.implement: (_, ftr) =>
       ZIO.logInfo(s"Canceln  transaction ${ftr}") *>
         TransactionRepository.create(ftr.cancel)  *>
         TransactionRepository.getById((ftr.id, ftr.modelid, ftr.company))
 
   val trDuplicateRoute =
-    trDuplicate.implement: (h, ftr) =>
+    trDuplicate.implement: (_, ftr) =>
       ZIO.logInfo(s"Duplicate  transaction ${ftr}") *>
         TransactionRepository.create(ftr.duplicate) *>
         TransactionRepository.getById((ftr.id, ftr.modelid, ftr.company))

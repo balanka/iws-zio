@@ -91,7 +91,7 @@ object AccountEndpoint:
       AccountService.getBalance(accId,  to, company)    
 
   val accountModifyRoute =
-    mModify.implement: (h, m) =>
+    mModify.implement: (_, m) =>
       ZIO.logInfo(s"Modify an account  ${m}") *>
         AccountRepository.modify(m) *>
         AccountRepository.getById((m.id, m.modelid, m.company))

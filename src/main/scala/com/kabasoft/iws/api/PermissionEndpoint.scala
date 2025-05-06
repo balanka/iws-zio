@@ -70,7 +70,7 @@ object PermissionEndpoint:
         PermissionRepository.getById(p._1, p._2, p._3)
 
   val modifyPermRoute =
-    mModify.implement: (h, m) =>
+    mModify.implement: (_, m) =>
       ZIO.logInfo (s"Modify store  ${m}") *>
         PermissionRepository.modify (m) *>
         PermissionRepository.getById ((m.id, m.modelid, m.company) )

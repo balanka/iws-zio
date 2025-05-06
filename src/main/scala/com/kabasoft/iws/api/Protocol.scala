@@ -5,9 +5,7 @@ import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{Account, Article, Asset, BankAccount, BankStatement, Bom, Company,
   Customer, Employee, EmployeeSalaryItemDTO, FinancialsTransaction, FinancialsTransactionDetails, Fmodule, ImportFile,
   Journal, LoginRequest, Masterfile, PayrollTaxRange, PeriodicAccountBalance, Permission, Role, SalaryItem,
-  Supplier, TransactionDetails, User, UserRight, Vat}
-import com.kabasoft.iws.domain.{Article, Bom, FinancialsTransaction, FinancialsTransactionDetails, Journal, Stock, Store, 
-  Transaction, TransactionDetails}
+  Supplier, Transaction, TransactionDetails, User, UserRight, Vat, Stock, Store}
 import zio.json._
 
 object Protocol:

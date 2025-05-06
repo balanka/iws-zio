@@ -93,7 +93,7 @@ object PayrollTaxRangeEndpoint:
         PayrollTaxRangeRepository.getById(p._1, p._2, p._3)
 
   val modifyPayrollTaxRoute =
-    mModify.implement: (h, m) =>
+    mModify.implement: (_, m) =>
       ZIO.logInfo(s"Modify payroll tax  ${m}") *>
         PayrollTaxRangeRepository.modify(m) *>
         PayrollTaxRangeRepository.getById((m.id, m.modelid, m.company))

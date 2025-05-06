@@ -72,7 +72,7 @@ object SalaryItemEndpoint:
         SalaryItemRepository.getById(p._1, p._2, p._3)
 
   val modifyStoreRoute =
-    mModify.implement: (h, m) =>
+    mModify.implement: (_, m) =>
       ZIO.logInfo(s"Modify salary item  ${m}") *>
         SalaryItemRepository.modify(m) *>
         SalaryItemRepository.getById((m.id, m.modelid, m.company))

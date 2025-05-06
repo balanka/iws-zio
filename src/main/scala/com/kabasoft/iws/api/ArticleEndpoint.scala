@@ -71,7 +71,7 @@ object ArticleEndpoint:
         ArticleRepository.getById(p._1, p._2, p._3)
 
   val modifyArtRoute =
-    mModify.implement: (h, m) =>
+    mModify.implement: (_, m) =>
       ZIO.logInfo(s"Modify article  ${m}") *>
         ArticleRepository.modify(m) *>
         ArticleRepository.getById((m.id, m.modelid, m.company))

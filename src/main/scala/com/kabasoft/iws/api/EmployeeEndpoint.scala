@@ -71,7 +71,7 @@ object EmployeeEndpoint:
         EmployeeRepository.getById(p._1, p._2, p._3)
 
   val modifyEmployeeRoute =
-    mModify.implement: (h, m) =>
+    mModify.implement: (_, m) =>
       ZIO.logInfo (s"Modify employee  ${m}") *>
         EmployeeRepository.modify (m) *>
         EmployeeRepository.getById ((m.id, m.modelid, m.company) )

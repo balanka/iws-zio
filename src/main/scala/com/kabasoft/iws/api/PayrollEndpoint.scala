@@ -1,12 +1,12 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.AppError
-import com.kabasoft.iws.domain.AppError.*
+import com.kabasoft.iws.domain.AppError._
 import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, repositoryErrorSchema}
 import com.kabasoft.iws.service.EmployeeService
-import zio.*
-import zio.http.*
-import zio.http.codec.*
+import zio._
+import zio.http._
+import zio.http.codec._
 import zio.http.codec.PathCodec.{int, path, string}
 import zio.http.endpoint.Endpoint
 import zio.schema.Schema

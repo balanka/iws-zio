@@ -80,13 +80,13 @@ object AssetEndpoint:
         AssetRepository.getById(p._1, p._2, p._3)
 
   val mModifyRoute =
-    mModify.implement: (h, m) =>
+    mModify.implement: (_, m) =>
       ZIO.logInfo(s"Modify asset  ${m}") *>
         AssetRepository.modify(m) *>
         AssetRepository.getById((m.id, m.modelid, m.company))
       
   val mGenerateDeprRoute =
-    assetGenerateDepr.implement: (modelid, company, h) =>
+    assetGenerateDepr.implement: (modelid, company, _) =>
       ZIO.logInfo(s"Generate asset depreciation plan modelid = ${modelid} comapany = $company") *>
         AssetsService.generate(modelid, company)
       

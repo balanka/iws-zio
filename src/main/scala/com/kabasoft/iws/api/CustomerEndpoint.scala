@@ -71,7 +71,7 @@ object CustomerEndpoint:
         CustomerRepository.getById(p._1, p._2, p._3)
 
   val customerModifyRoute =
-    customerModify.implement: (h, m) =>
+    customerModify.implement: (_, m) =>
       ZIO.logInfo(s"Modify customer  ${m}") *>
         CustomerRepository.modify(m) *>
         CustomerRepository.getById((m.id, m.modelid, m.company))

@@ -5,20 +5,16 @@ import com.kabasoft.iws.domain.AppError.*
 import com.kabasoft.iws.domain.{AppError, FinancialsTransaction}
 import com.kabasoft.iws.repository.FinancialsTransactionRepository
 import com.kabasoft.iws.service.TransactionService
-import com.kabasoft.iws.api.Protocol.*
-import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, ftransactionDetailsSchema, ftransactionSchema, repositoryErrorSchema, transactionDetailsSchema, transactionSchema}
+import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, ftransactionSchema, repositoryErrorSchema}
 import zio.*
 import zio.http.RoutePattern
-import zio.schema.annotation.description
-import zio.schema.{DeriveSchema, Schema}
-import zio.*
-import zio.http.*
+import zio.schema.Schema
+import zio._
+import zio.http._
 import zio.http.codec.PathCodec.{int, long, path, string}
-import zio.http.codec.*
-import zio.http.endpoint.AuthType.None
-import zio.http.endpoint.{AuthType, Endpoint}
-import zio.http.endpoint.openapi.{OpenAPIGen, SwaggerUI}
-
+import zio.http.codec._
+import zio.http.endpoint.Endpoint
 
 object FinancialsEndpoint:
   val modelidDoc = "The modelId for identifying the typ of financials transaction (Customer / Ventor invoice, setllement, payment, etc... )"
@@ -110,19 +106,19 @@ object FinancialsEndpoint:
         FinancialsTransactionRepository.getById(p._1, p._2, p._3)
 
   val financialsModifyRoute =
-    mModify.implement: (h, m) =>
+    mModify.implement: (_, m) =>
       ZIO.logInfo(s"Modify financials transaction  ${m}") *>
         FinancialsTransactionRepository.modify(m) *>
         FinancialsTransactionRepository.getById((m.id, m.modelid, m.company))
 
   val financialsCancelnRoute =
-    trCanceln.implement: (h, ftr) =>
+    trCanceln.implement: (_, ftr) =>
       ZIO.logInfo(s"Canceln  financials transaction ${ftr}") *>
         FinancialsTransactionRepository.create(ftr.cancel) *>
         FinancialsTransactionRepository.getById((ftr.id, ftr.modelid, ftr.company))
 
   val financialsDuplicateRoute =
-    trDuplicate.implement: (h, ftr) =>
+    trDuplicate.implement: (_, ftr) =>
       ZIO.logInfo(s"Duplicate  transaction ${ftr}") *>
         FinancialsTransactionRepository.create(ftr.duplicate) *>
         FinancialsTransactionRepository.getById((ftr.id, ftr.modelid, ftr.company))

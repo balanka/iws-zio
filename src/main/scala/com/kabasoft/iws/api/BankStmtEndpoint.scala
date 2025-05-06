@@ -94,19 +94,19 @@ object BankStmtEndpoint:
         BankStatementRepository.getById(p._1, p._2, p._3)
 
   val mModifyRoute =
-    mModify.implement: (h, m) =>
+    mModify.implement: (_, m) =>
       ZIO.logInfo(s"Modify bank statement  ${m}") *>
         BankStatementRepository.modify(m) *>
         BankStatementRepository.getById((m.id, m.modelid, m.company))
 
   val importBSRoute =
-    bsImportAPI.implement: (path, header, char, extension, company, h) =>
+    bsImportAPI.implement: (path, header, char, extension, company, _) =>
       ZIO.logInfo(s"Import bank statement header:${header} char:${char} extension: ${extension} company ${company} path: ${path.replace(".", "/")}") *>
         BankStatementService.importBankStmt(path.replace(".", "/"), header, char, extension, company ) *>
         BankStatementRepository.all(BankStatement.MODELID, company)
 
   val bsPostBSRoute  =
-    bsPost.implement: (company, id, h) =>
+    bsPost.implement: (company, id, _) =>
       ZIO.logInfo (s"Post Bank statements  by id ${id} for company ${company}") *>
       BankStatementService.post (buildIds (id), company)
 

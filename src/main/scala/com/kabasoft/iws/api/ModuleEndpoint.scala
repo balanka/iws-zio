@@ -71,7 +71,7 @@ object ModuleEndpoint:
         ModuleRepository.getById(p._1, p._2, p._3)
 
   val mModifyRoute =
-    mModify.implement: (h, m) =>
+    mModify.implement: (_, m) =>
       ZIO.logInfo(s"Modify module  ${m}") *>
         ModuleRepository.modify(m) *>
         ModuleRepository.getById((m.id, m.modelid, m.company))

@@ -71,7 +71,7 @@ object MasterfileEndpoint:
         MasterfileRepository.getById(p._1, p._2, p._3)
 
   val masterfileModifyRoute =
-    mModify.implement: (h, m) =>
+    mModify.implement: (_, m) =>
       ZIO.logInfo (s"Modify masterfile  ${m}") *>
         MasterfileRepository.modify (m) *>
         MasterfileRepository.getById ((m.id, m.modelid, m.company) )

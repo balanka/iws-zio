@@ -67,7 +67,7 @@ object CompanyEndpoint:
         CompanyRepository.getById((id, modelid))
 
   val modifyCompanyRoute =
-    mModify.implement: (h, m) =>
+    mModify.implement: (_, m) =>
       ZIO.logInfo (s"Modify company  ${m}") *>
         CompanyRepository.modify (m) *>
         CompanyRepository.getById ((m.id, m.modelid) )

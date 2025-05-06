@@ -35,12 +35,12 @@ object JournalEndpoint:
     ).out[List[Journal]] ?? Doc.p(mByAccountFromToPeriodDoc)
   
   val journalByPeriodRoute =
-    mByPeriod.implement: (period, company, h) =>
+    mByPeriod.implement: (period, company, _) =>
       ZIO.logInfo (s"Get entries 4 period  $period company  $company") *>
         JournalRepository.getByPeriod(period, company)
 
   val journalByAccountFromToRoute =
-    mByAccount4Period.implement: (company, accountId, from, to, h) =>
+    mByAccount4Period.implement: (company, accountId, from, to, _) =>
       ZIO.logInfo(s"Get entries 4 account  $accountId, from $from, to $to and  company $company") *>
         JournalRepository.find4Period(accountId, from, to, company)
   

@@ -91,13 +91,13 @@ object UserEndpoint:
         UserRepository.getByUserName(p._1, p._2, p._3)
 
   val modifyUserRoute =
-    userModify.implement: (h, m) =>
+    userModify.implement: (_, m) =>
       ZIO.logInfo(s"Modify user  ${m}") *>
         UserRepository.modify(m) *>
         UserRepository.getByUserName(m.userName, m.modelid, m.company)
       
   val modifyUserPwdRoute =
-    userModifyPwd.implement: (h, m) =>
+    userModifyPwd.implement: (_, m) =>
       ZIO.logInfo(s"Modify user's pwd  ${m}") *>
         UserRepository.modifyPwd(m) *>
         UserRepository.getByUserName(m.userName, m.modelid, m.company)

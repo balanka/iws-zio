@@ -72,7 +72,7 @@ object SupplierEndpoint:
         SupplierRepository.getById(p._1, p._2, p._3)
 
   val modifySupplierRoute =
-    mModify.implement: (h, m) =>
+    mModify.implement: (_, m) =>
       ZIO.logInfo (s"Modify supplier  ${m}") *>
         SupplierRepository.modify (m) *>
         SupplierRepository.getById ((m.id, m.modelid, m.company) )

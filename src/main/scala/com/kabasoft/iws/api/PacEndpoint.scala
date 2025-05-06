@@ -1,6 +1,6 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.domain.AppError.*
+import com.kabasoft.iws.domain.AppError._ 
 import com.kabasoft.iws.domain.{AppError, PeriodicAccountBalance}
 import com.kabasoft.iws.repository.PacRepository
 import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, pacSchema, repositoryErrorSchema}
