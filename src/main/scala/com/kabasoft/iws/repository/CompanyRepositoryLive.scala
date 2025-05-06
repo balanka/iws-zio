@@ -1,17 +1,15 @@
 package com.kabasoft.iws.repository
-import cats.*
+import cats._
 import cats.effect.Resource
-import cats.syntax.all.*
+import cats.syntax.all._
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{BankAccount, Company}
-import skunk.*
-import skunk.codec.all.*
-import skunk.implicits.*
-import zio.interop.catz.*
+import skunk._
+import skunk.codec.all._
+import skunk.implicits._
+import zio.interop.catz._
 import zio.prelude.FlipOps
-import zio.stream.interop.fs2z.*
 import zio.{Task, ZIO, ZLayer}
-import zio.prelude.FlipOps
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]

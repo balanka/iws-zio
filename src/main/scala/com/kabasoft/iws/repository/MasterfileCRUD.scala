@@ -2,16 +2,12 @@ package com.kabasoft.iws.repository
 
 import cats.*
 import cats.syntax.all.*
-import cats.effect.{IO, Resource}
+import cats.effect.Resource
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import skunk.*
-import zio.*
-import zio.interop.catz.*
-import cats.syntax.applicativeError.catsSyntaxApplicativeError
-import com.kabasoft.iws.domain.{Article, TransactionLog}
+import skunk._
+import zio._
+import zio.interop.catz._
 import skunk.data.Completion
-import zio.stream.ZStream
-import zio.stream.interop.fs2z.*
 
 trait MasterfileCRUD:
   def tryExec[A](xa: Transaction[Task], pc: PreparedCommand[Task, A], models: List[A]): Task[Unit] =

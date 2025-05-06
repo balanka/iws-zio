@@ -1,14 +1,11 @@
 package com.kabasoft.iws.domain
 
+import zio.prelude._
+import zio.stm._
+import zio.{UIO, _}
 import com.kabasoft.iws.domain.AccountClass.dummy
-import com.kabasoft.iws.domain.ImportFile.MODELID
-
 import java.util.Locale
 import java.time.{Instant, LocalDate, LocalDateTime, OffsetDateTime, ZoneId}
-import zio.prelude.*
-import zio.stm.*
-import zio.{UIO, *}
-
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
 import scala.collection.immutable.{::, List, Nil}
@@ -20,8 +17,6 @@ import scala.math.Ordering
 object common:
   val zeroAmount: BigDecimal = BigDecimal.valueOf(0, 2)
   val dummyBalance = Balance("dummy", zeroAmount, zeroAmount, zeroAmount, zeroAmount)
-
-  val DummyUser: User = User(-1, "dummy", "dummy", "dummy", "dummyhash2", "dummyphone", "dummy@user.com", "dummy", "dummymenu", "0000", 111)
 
   def reduce[A: Identity](all: Iterable[A], dummy: A): A =
     all.toList match

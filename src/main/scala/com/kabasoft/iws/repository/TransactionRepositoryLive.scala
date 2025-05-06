@@ -1,23 +1,22 @@
 package com.kabasoft.iws.repository
 
-import cats.*
+import cats._
 import cats.effect.Resource
-import cats.syntax.all.*
-import skunk.*
-import skunk.codec.all.*
-import skunk.implicits.*
+import cats.syntax.all._
+import skunk._
+import skunk.codec.all._
+import skunk.implicits._
 import zio.prelude.FlipOps
-import zio.interop.catz.*
-import zio.{ZIO, *}
+import zio.interop.catz._
+import zio.{ZIO, _}
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Article, Transaction, TransactionDetails, common, Vat}
+import com.kabasoft.iws.domain.{Article, Transaction, TransactionDetails, common}
 
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Task]]
                                             , accRepo: AccountRepository
                                             , articleRepo: ArticleRepository) extends TransactionRepository, MasterfileCRUD:
-                                            //, vatRepo: VatRepository) extends TransactionRepository, MasterfileCRUD:
 
   import TransactionRepositorySQL.*
 
@@ -33,28 +32,7 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
       s.prepareR(insert).use: pciMaster =>
         s.prepareR(insertDetails).use: pciDetails =>
           tryExec(xa, pciMaster, pciDetails, models, models.flatMap(_.lines).map(TransactionDetails.encodeIt4))
-
-//  def transact(s: Session[Task], models: List[Transaction], oldmodels: List[Transaction]): Task[Unit] =
-//    s.transaction.use: xa =>
-//      s.prepareR(insert).use: pciMaster =>
-//        s.prepareR(UPDATE).use: pcuMaster =>
-//          s.prepareR(insertDetails).use: pciDetails =>
-//            s.prepareR(UPDATE_DETAILS).use: pcuDetails =>
-//              tryExec(xa, pciMaster, pciDetails, pcuMaster, pcuDetails
-//                , models, models.flatMap(_.lines).map(TransactionDetails.encodeIt4)
-//                , oldmodels.map(Transaction.encodeIt2), oldmodels.flatMap(_.lines).map(TransactionDetails.encodeIt2))
-
-//  def transact(s: Session[Task], models: List[Transaction], newines2Insert: List[TransactionDetails]
-//               , oldmodels: List[Transaction], oldLines2Update: List[TransactionDetails]): Task[Unit] =
-//    s.transaction.use: xa =>
-//      s.prepareR(insert).use: pciMaster =>
-//        s.prepareR(UPDATE).use: pcuMaster =>
-//          s.prepareR(insertDetails).use: pciDetails =>
-//            s.prepareR(UPDATE_DETAILS).use: pcuDetails =>
-//              tryExec(xa, pciMaster, pciDetails, pcuMaster, pcuDetails
-//                , models, newines2Insert.map(TransactionDetails.encodeIt4)
-//                , oldmodels.map(Transaction.encodeIt2), oldLines2Update.map(TransactionDetails.encodeIt2))
-          
+  
   def transact(s: Session[Task], models: List[Transaction], newLines2Insert: List[TransactionDetails]
              , oldmodels: List[Transaction], oldLines2Update: List[TransactionDetails]
              ,  oldLines2Delete: List[TransactionDetails]): Task[Unit] =

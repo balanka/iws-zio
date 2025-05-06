@@ -1,21 +1,15 @@
 package com.kabasoft.iws.repository
 
 import cats.effect.Resource
-import cats.syntax.all.*
+import cats.syntax.all._
 import cats._
-import skunk.*
-import skunk.codec.all.*
-import skunk.implicits.*
-import zio.interop.catz.*
-import zio.prelude.FlipOps
-import zio.stream.ZStream
-import zio.stream.interop.fs2z.*
-import zio.{Chunk, Task, UIO, ZIO, ZLayer}
-import java.time.LocalDate
+import skunk._
+import skunk.codec.all._
+import skunk.implicits._
+import zio.interop.catz._
+import zio.{Task, ZIO, ZLayer}
 import com.kabasoft.iws.domain.Stock
 import com.kabasoft.iws.domain.AppError.RepositoryError
-
-import java.time.{Instant, LocalDateTime, ZoneId, ZoneOffset}
 
 final case class StockRepositoryLive(postgres: Resource[Task, Session[Task]]) extends StockRepository, MasterfileCRUD:
 

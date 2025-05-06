@@ -1,6 +1,6 @@
 package com.kabasoft.iws.service
-import com.kabasoft.iws.domain.*
-import com.kabasoft.iws.domain.common.{given, *}
+import com.kabasoft.iws.domain._
+import com.kabasoft.iws.domain.common.{given, _}
 import zio._
 import zio.prelude.FlipOps
 

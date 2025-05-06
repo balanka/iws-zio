@@ -1,18 +1,17 @@
 package com.kabasoft.iws.repository
 
 import cats.effect.Resource
-import cats.syntax.all.*
+import cats.syntax.all._
 import cats._
-import skunk.*
-import skunk.codec.all.*
-import skunk.implicits.*
+import skunk._
+import skunk.codec.all._
+import skunk.implicits._
 import zio.prelude.FlipOps
-import zio.stream.interop.fs2z.*
 import zio.{Task, ZIO, ZLayer }
 import com.kabasoft.iws.domain.Account
 import com.kabasoft.iws.domain.AppError.RepositoryError
 
-import java.time.{Instant, LocalDateTime, OffsetDateTime, ZoneId}
+import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class AccountRepositoryLive(postgres: Resource[Task, Session[Task]]) extends AccountRepository, MasterfileCRUD:
 
