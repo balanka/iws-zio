@@ -2,7 +2,7 @@ package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.Asset
-import zio.*
+import zio._
 
 trait AssetRepository:
   def create(item: Asset): ZIO[Any, RepositoryError, Int]

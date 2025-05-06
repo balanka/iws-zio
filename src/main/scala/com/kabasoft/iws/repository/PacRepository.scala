@@ -3,7 +3,6 @@ package com.kabasoft.iws.repository
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.PeriodicAccountBalance
 import zio._
-import zio.stream._
 
 trait PacRepository:
 

@@ -2,7 +2,7 @@ package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.BankAccount
-import zio.*
+import zio._
 
 trait BankAccountRepository:
   def create(item: BankAccount): ZIO[Any, RepositoryError, Int]

@@ -1,13 +1,12 @@
 package com.kabasoft.iws.repository
 
 import cats.effect.Resource
-import cats.syntax.all.*
-import cats.*
-import skunk.*
-import skunk.codec.all.*
-import skunk.implicits.*
-import zio.prelude.FlipOps
-import zio.stream.interop.fs2z.*
+import cats.syntax.all._
+import cats._
+import skunk._
+import skunk.codec.all._
+import skunk.implicits._
+//import zio.stream.interop.fs2z.*
 import zio.{Task, ZIO, ZLayer}
 import com.kabasoft.iws.domain.{Role, User, UserRight, UserRole}
 import com.kabasoft.iws.domain.AppError.RepositoryError
@@ -127,19 +126,7 @@ private[repository] object UserRepositorySQL:
   def insertAll(n:Int): Command[List[TYPE]] =
     sql"INSERT INTO users VALUES ${mfCodec.values.list(n)}".command
 
-  val upsert: Command[User] =
-    sql"""INSERT INTO users
-           VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET
-            user_name               = EXCLUDED.user_name,
-            first_name              = EXCLUDED.first_name,
-            last_name               = EXCLUDED.last_name,
-            phone                   = EXCLUDED.phone,
-            email                   = EXCLUDED.email,
-            department              = EXCLUDED.department,
-            menu                    = EXCLUDED.menu
-            company                    = EXCLUDED.company
-            modelid                    = EXCLUDED.modelid
-          """.command
+
     
   val UPDATE: Command[User.TYPE2] =
     sql"""UPDATE users
@@ -153,8 +140,6 @@ private[repository] object UserRepositorySQL:
             hash              = EXCLUDED.hash
             WHERE user_name = $varchar AND modelid = $int4 AND company = $varchar
           """.command
-
-  private val onConflictDoNothing = sql"ON CONFLICT DO NOTHING"
-
+  
   def DELETE: Command[(String, Int, String)] =
     sql"DELETE FROM users WHERE id = $varchar AND modelid = $int4 AND company = $varchar".command

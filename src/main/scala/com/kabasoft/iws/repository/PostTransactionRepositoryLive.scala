@@ -1,17 +1,12 @@
 package com.kabasoft.iws.repository
 import cats.effect.Resource
-import cats.syntax.all.*
+import cats.syntax.all._
 import cats._
-import skunk.*
-import skunk.codec.all.*
-import skunk.implicits.*
-import zio.prelude.FlipOps
-import zio.interop.catz.*
-import zio.stream.interop.fs2z.*
-import zio.{Task, ZIO, UIO, ZLayer}
-import com.kabasoft.iws.domain.{Article,  Masterfile, PeriodicAccountBalance, Journal, Stock, Transaction, TransactionLog }
+import skunk._
+import zio.interop.catz.asyncInstance
+import zio.{Task, UIO, ZIO, ZLayer}
+import com.kabasoft.iws.domain.{Article, PeriodicAccountBalance, Journal, Stock, Transaction, TransactionLog }
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[Task]]) extends PostTransactionRepository, MasterfileCRUD:
   
@@ -31,6 +26,7 @@ final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[
                       tryExec3(xa, pciPac, pciStock, pciJour, pciTransLog, pcuPac, pcuStock, pcuArt, pcuFTr, newPac
                         , newStock, journals, transLogEntries, pac2update.map(PeriodicAccountBalance.encodeIt2)
                         , stock2update.map(Stock.encodeIt3), articles.map(Article.encodeIt2), models.map(Transaction.encodeIt3))
+                      
   override def post(models: List[Transaction]
                     , newPac: List[PeriodicAccountBalance]
                     , pac2update: UIO[List[PeriodicAccountBalance]]

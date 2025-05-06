@@ -1,7 +1,7 @@
 package com.kabasoft.iws.repository
 import com.kabasoft.iws.domain.Account
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import zio.*
+import zio._
 
 trait AccountRepository:
   def create(item: Account):ZIO[Any, RepositoryError, Int]

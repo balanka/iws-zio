@@ -1,9 +1,8 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails}
-import zio.*
-import zio.stream.*
+import com.kabasoft.iws.domain.FinancialsTransaction
+import zio._
 
 trait FinancialsTransactionRepository:
 

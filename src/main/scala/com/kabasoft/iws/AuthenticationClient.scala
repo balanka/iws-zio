@@ -2,8 +2,8 @@ package com.kabasoft.iws
 import com.kabasoft.iws.api.Protocol.given
 import com.kabasoft.iws.api.Utils
 import com.kabasoft.iws.domain.User
-import zio.*
-import zio.http.*
+import zio._
+import zio.http._
 import zio.json.DecoderOps
 
 object AuthenticationClient extends ZIOAppDefault {

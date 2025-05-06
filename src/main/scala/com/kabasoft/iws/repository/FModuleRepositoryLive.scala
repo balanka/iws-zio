@@ -1,12 +1,10 @@
 package com.kabasoft.iws.repository
 import cats.effect.Resource
-import cats.syntax.all.*
+import cats.syntax.all._
 import cats._
-import skunk.*
-import skunk.codec.all.*
-import skunk.implicits.*
-import zio.prelude.FlipOps
-import zio.stream.interop.fs2z.*
+import skunk._
+import skunk.codec.all._
+import skunk.implicits._
 import zio.{Task, ZIO, ZLayer }
 import com.kabasoft.iws.domain.Fmodule
 import com.kabasoft.iws.domain.AppError.RepositoryError
@@ -113,21 +111,6 @@ private[repository] object FModuleRepositorySQL:
     sql"""UPDATE fmodule
           SET name = $varchar, description = $varchar, account = $varchar, is_debit=$bool, parent=$varchar
           WHERE id=$int4 and modelid=$int4 and company= $varchar""".command
-    
-  val upsert: Command[Fmodule] =
-    sql"""INSERT INTO fmodule
-           VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET
-           id                   = EXCLUDED.id,
-           name                 = EXCLUDED.name,
-           description          = EXCLUDED.description,
-            account          = EXCLUDED.account,
-            is_debit           = EXCLUDED.is_debit,
-            parent              = EXCLUDED.parent,
-            company              = EXCLUDED.company,
-            modelid              = EXCLUDED.modelid,
-          """.command
-
-  private val onConflictDoNothing = sql"ON CONFLICT DO NOTHING"
-
+  
   def DELETE: Command[(Int, Int, String)] =
     sql"DELETE FROM fmodule WHERE id = $int4 AND modelid = $int4 AND company = $varchar".command

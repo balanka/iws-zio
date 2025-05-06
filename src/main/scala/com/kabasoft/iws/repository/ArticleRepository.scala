@@ -2,7 +2,7 @@ package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.Article
-import zio.*
+import zio._
 
 trait ArticleRepository:
   def create(item: Article): ZIO[Any, RepositoryError, Int]

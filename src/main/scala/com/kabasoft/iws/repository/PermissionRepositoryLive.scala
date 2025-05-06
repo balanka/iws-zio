@@ -1,16 +1,16 @@
 package com.kabasoft.iws.repository
 
-import cats.*
+import cats.syntax.all._
+import cats._
+import skunk._
+import skunk.codec.all._
+import skunk.implicits.sql
+//import skunk.syntax.all.sql
+//import skunk.syntax.stringcontext.sql
 import cats.effect.Resource
-import cats.syntax.all.*
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.Permission
-import skunk.*
-import skunk.codec.all.*
-import skunk.implicits.*
-import zio.stream.interop.fs2z.*
 import zio.{Task, ZIO, ZLayer}
-
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class PermissionRepositoryLive(postgres: Resource[Task, Session[Task]]) extends PermissionRepository, MasterfileCRUD:
@@ -87,22 +87,6 @@ private[repository] object PermissionRepositorySQL:
     sql"""UPDATE permission
           SET name = $varchar, description = $varchar
           WHERE id=$int4 and modelid=$int4 and company= $varchar""".command
-    
-  val upsert: Command[Permission] =
-    sql"""INSERT INTO permission
-           VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET
-           id                     = EXCLUDED.id,
-           name                   = EXCLUDED.name,
-           description            = EXCLUDED.description,
-            account               = EXCLUDED.parent,
-            enterdate             = EXCLUDED.enterdate,
-            changedate            = EXCLUDED.changedate,
-            postingdate           = EXCLUDED.postingdate,
-            company               = EXCLUDED.company,
-            modelid               = EXCLUDED.modelid,
-          """.command
-    
-  private val onConflictDoNothing = sql"ON CONFLICT DO NOTHING"
   
   def DELETE: Command[(Int, Int, String)] =
     sql"DELETE FROM permission WHERE id = $int4 AND modelid = $int4 AND company = $varchar".command

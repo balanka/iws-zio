@@ -3,7 +3,6 @@ package com.kabasoft.iws.repository
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.Journal
 import zio._
-import zio.stream._
 
 trait JournalRepository:
   def create(item: Journal): ZIO[Any, RepositoryError, Int]

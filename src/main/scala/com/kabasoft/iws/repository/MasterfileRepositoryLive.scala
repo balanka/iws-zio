@@ -1,11 +1,10 @@
 package com.kabasoft.iws.repository
 import cats.effect.Resource
-import cats.syntax.all.*
-import cats.*
-import skunk.*
-import skunk.codec.all.*
-import skunk.implicits.*
-import zio.stream.interop.fs2z.*
+import cats.syntax.all._
+import cats._
+import skunk._
+import skunk.codec.all._
+import skunk.implicits._
 import zio.{Task, ZIO, ZLayer}
 import zio.prelude.FlipOps
 import com.kabasoft.iws.domain.Masterfile

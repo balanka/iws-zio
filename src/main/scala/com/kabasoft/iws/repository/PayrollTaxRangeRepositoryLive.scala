@@ -1,16 +1,15 @@
 package com.kabasoft.iws.repository
 
 import cats.effect.Resource
-import cats.syntax.all.*
+import cats.syntax.all._
 import cats._
-import skunk.*
-import skunk.codec.all.*
-import skunk.implicits.*
+import skunk._
+import skunk.codec.all._
+import skunk.implicits._
 import zio.prelude.FlipOps
-import zio.stream.interop.fs2z.*
 import zio.{Task, ZIO, ZLayer}
 
-import com.kabasoft.iws.repository.Schema.{payrollTaxRangeSchema, repositoryErrorSchema}
+//import com.kabasoft.iws.repository.Schema.{payrollTaxRangeSchema, repositoryErrorSchema}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.PayrollTaxRange
 final case  class PayrollTaxRangeRepositoryLive(postgres: Resource[Task, Session[Task]]) extends PayrollTaxRangeRepository, MasterfileCRUD:
@@ -67,20 +66,6 @@ private[repository] object PayrollTaxRangeRepositorySQL:
   val insert: Command[PayrollTaxRange] = sql"""INSERT INTO payroll_tax_range VALUES $mfEncoder """.command
 
   def insertAll(n: Int): Command[List[PayrollTaxRange.TYPE]] = sql"INSERT INTO payroll_tax_range VALUES ${mfCodec.values.list(n)}".command
-
-  val upsert: Command[PayrollTaxRange] =
-    sql"""INSERT INTO payroll_tax_range
-            VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET
-            id                     = EXCLUDED.id,
-            from_amount            = EXCLUDED.from_amount,
-            to_amount              = EXCLUDED.to_amount,
-             tax                   = EXCLUDED.tax,
-             tax_class             = EXCLUDED.tax_class,
-             company               = EXCLUDED.company,
-             modelid               = EXCLUDED.modelid,
-           """.command
-
-  private val onConflictDoNothing = sql"ON CONFLICT DO NOTHING"
 
   def DELETE: Command[(String, Int, String)] =
     sql"DELETE FROM payroll_tax_range WHERE id = $varchar AND modelid = $int4 AND company = $varchar".command  

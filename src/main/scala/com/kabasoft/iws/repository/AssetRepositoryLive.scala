@@ -1,15 +1,13 @@
 package com.kabasoft.iws.repository
 
-import cats.*
+import cats._
 import cats.effect.Resource
 import cats.syntax.all.*
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.Asset
-import skunk.*
-import skunk.codec.all.*
-import skunk.implicits.*
-import zio.prelude.FlipOps
-import zio.stream.interop.fs2z.*
+import skunk._
+import skunk.codec.all._
+import skunk.implicits._
 import zio.{Task, ZIO, ZLayer}
 import java.time.{Instant, LocalDateTime, ZoneId}
 

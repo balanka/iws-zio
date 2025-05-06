@@ -2,8 +2,7 @@ package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{Role, UserRight, UserRole}
-import zio.*
-import zio.stream.*
+import zio._
 
 trait RoleRepository:
   def create(item: Role): ZIO[Any, RepositoryError, Int]

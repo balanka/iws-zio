@@ -1,14 +1,12 @@
 package com.kabasoft.iws.repository
 
 import cats.effect.Resource
-import cats.syntax.all.*
+import cats.syntax.all._
 import cats._
-import skunk.*
-import skunk.codec.all.*
-import skunk.implicits.*
-import zio.prelude.FlipOps
-import zio.stream.interop.fs2z.*
-import zio.{ Task, ZIO, ZLayer }
+import skunk._
+import skunk.codec.all._
+import skunk.implicits._
+import zio.{Task, ZIO, ZLayer }
 import com.kabasoft.iws.domain.ImportFile
 import com.kabasoft.iws.domain.AppError.RepositoryError
 
@@ -80,22 +78,6 @@ private[repository] object ImportFileRepositorySQL:
     sql"""UPDATE bankstatement_file
           SET name = $varchar, description = $varchar, extension = $varchar
           WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
-    
-  val upsert: Command[ImportFile] =
-    sql"""INSERT INTO bankstatement_file
-           VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET
-            id                     = EXCLUDED.id,
-            name                   = EXCLUDED.name,
-            description            = EXCLUDED.description,
-            extension              = EXCLUDED.extension,
-            enterdate              = EXCLUDED.enterdate,
-            changedate             = EXCLUDED.changedate,
-            postingdate            = EXCLUDED.postingdate,
-            company                = EXCLUDED.company,
-            modelid                = EXCLUDED.modelid,
-          """.command
-    
-  private val onConflictDoNothing = sql"ON CONFLICT DO NOTHING"
   
   def DELETE: Command[(String, Int, String)] =
     sql"DELETE FROM bankstatement_file WHERE id = $varchar AND modelid = $int4 AND company = $varchar".command

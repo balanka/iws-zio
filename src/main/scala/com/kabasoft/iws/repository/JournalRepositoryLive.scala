@@ -3,11 +3,10 @@ package com.kabasoft.iws.repository
 import cats.effect.Resource
 import cats.syntax.all.*
 import cats._
-import skunk.*
-import skunk.codec.all.*
-import skunk.implicits.*
-import zio.interop.catz.*
-import zio.stream.interop.fs2z.*
+import skunk._
+import skunk.codec.all._
+import skunk.implicits._
+import zio.interop.catz._
 import zio.{Task, ZIO, ZLayer }
 import com.kabasoft.iws.domain.Journal
 import com.kabasoft.iws.domain.AppError.RepositoryError

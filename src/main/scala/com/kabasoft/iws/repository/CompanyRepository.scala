@@ -1,12 +1,9 @@
 package com.kabasoft.iws.repository
 
-import zio.Task
-import zio.*
-import zio.stream.*
-import com.kabasoft.iws.domain.Company
-import zio.stream._
-import com.kabasoft.iws.domain.AppError.RepositoryError
 import zio._
+import com.kabasoft.iws.domain.Company
+import com.kabasoft.iws.domain.AppError.RepositoryError
+
 
 trait CompanyRepository:
   def create(item: Company):ZIO[Any, RepositoryError, Int]

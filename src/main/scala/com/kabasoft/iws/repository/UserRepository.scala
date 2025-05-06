@@ -3,8 +3,6 @@ package com.kabasoft.iws.repository
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.User
 import zio._
-import zio.stream._
-
 trait UserRepository:
   def create(item: User):ZIO[Any, RepositoryError, Int]
   def create(models: List[User]):ZIO[Any, RepositoryError, Int]

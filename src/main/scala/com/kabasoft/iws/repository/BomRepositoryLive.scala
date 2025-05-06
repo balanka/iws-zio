@@ -1,14 +1,13 @@
 package com.kabasoft.iws.repository
 
-import cats.*
+import cats._
 import cats.effect.Resource
-import cats.syntax.all.*
+import cats.syntax.all._
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.Bom
-import skunk.*
-import skunk.codec.all.*
-import skunk.implicits.*
-import zio.stream.interop.fs2z.*
+import skunk._
+import skunk.codec.all._
+import skunk.implicits._
 import zio.{Task, ZIO, ZLayer}
 
 final case class BomRepositoryLive(postgres: Resource[Task, Session[Task]]) extends BomRepository, MasterfileCRUD:
@@ -71,22 +70,6 @@ private[repository] object BomRepositorySQL:
   val UPDATE: Command[Bom.TYPE2] =
     sql"""UPDATE bom SET parent = $varchar, description = $varchar, quantity = $numeric
           WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
-    
-  val upsert: Command[Bom] =
-    sql"""INSERT INTO bom
-           VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET
-           id                     = EXCLUDED.id,
-           name                   = EXCLUDED.name,
-           description            = EXCLUDED.description,
-            account               = EXCLUDED.parent,
-            enterdate             = EXCLUDED.enterdate,
-            changedate            = EXCLUDED.changedate,
-            postingdate           = EXCLUDED.postingdate,
-            company               = EXCLUDED.company,
-            modelid               = EXCLUDED.modelid,
-          """.command
-
-  private val onConflictDoNothing = sql"ON CONFLICT DO NOTHING"
-
+  
   def DELETE: Command[(String, Int, String)] =
     sql"DELETE FROM bom WHERE id = $varchar AND modelid = $int4 AND company = $varchar".command

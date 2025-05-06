@@ -1,21 +1,21 @@
 package com.kabasoft.iws.resources
 
-import cats.effect.*
+import cats.effect._
 import cats.effect.kernel.{Resource, Temporal}
 import cats.effect.std.Console
-import cats.syntax.all.*
+//import cats.syntax.all._
 import fs2.io.net.Network
-import skunk.codec.text.*
-import skunk.implicits.*
+//import skunk.codec.text._
+//import skunk.implicits._
 import skunk.util.Typer
 import skunk.{Session, SessionPool}
-import zio.{Task, ZIO}
-import natchez.Trace.Implicits.noop // needed for skunk
+import zio.Task
+//import natchez.Trace.Implicits.noop // needed for skunk
 import com.kabasoft.iws.config.AppConfig
 import com.kabasoft.iws.config.AppConfig.PostgreSQLConfig
 //import Tracer.Implicits.noop
 //import org.typelevel.otel4s.trace.Tracer.Implicits.noop
-import zio.interop.catz.asyncInstance
+//import zio.interop.catz.asyncInstance
 
 sealed abstract class AppResources private (
     val postgres: Resource[Task, Session[Task]]

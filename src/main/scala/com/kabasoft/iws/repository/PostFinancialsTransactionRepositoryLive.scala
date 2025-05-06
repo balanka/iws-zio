@@ -1,15 +1,10 @@
 package com.kabasoft.iws.repository
 
 import cats.effect.Resource
-import cats.syntax.all.*
-import cats.*
-import skunk.*
-import skunk.codec.all.*
-import cats.syntax.all.*
-import skunk.implicits.*
-import zio.prelude.{FlipOps, Identity}
-import zio.stream.interop.fs2z.*
-import zio.interop.catz.*
+import cats.syntax.all._
+import cats._
+import skunk._
+import zio.interop.catz.asyncInstance
 import zio.{Task, UIO, ZIO, ZLayer}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{FinancialsTransaction, Journal, PeriodicAccountBalance}
