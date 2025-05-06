@@ -6,10 +6,10 @@ import com.kabasoft.iws.domain.common.zeroAmount
 import com.kabasoft.iws.domain.{Account, BankStatement, BusinessPartner, Company, Customer, FinancialsTransaction, FinancialsTransactionDetails, Supplier, Vat, common}
 import com.kabasoft.iws.repository.{AccountRepository, BankStatementRepository, CompanyRepository, CustomerRepository, FinancialsTransactionRepository, SupplierRepository, VatRepository}
 import zio.prelude.FlipOps
-import zio.stream.*
-import zio.*
+import zio.stream._
+import zio._
 
-import java.math.{BigDecimal, MathContext, RoundingMode}
+import java.math.{BigDecimal, RoundingMode}
 import java.nio.file.{Files, Paths}
 import java.time.Instant
 final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository

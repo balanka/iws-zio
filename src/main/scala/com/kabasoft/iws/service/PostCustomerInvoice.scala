@@ -1,8 +1,8 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.*
-import zio.*
+import com.kabasoft.iws.domain._
+import zio._
 
 trait  PostCustomerInvoice extends PostLogisticalTransaction:
   def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int]

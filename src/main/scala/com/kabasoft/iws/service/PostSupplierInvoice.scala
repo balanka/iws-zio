@@ -1,7 +1,7 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.*
+import com.kabasoft.iws.domain._
 import zio._
 
 trait  PostSupplierInvoice extends PostLogisticalTransaction:

@@ -1,12 +1,10 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.common.{given, *}
-import com.kabasoft.iws.domain.*
+import com.kabasoft.iws.domain._
 import com.kabasoft.iws.repository.{AccountRepository, ArticleRepository, CompanyRepository, JournalRepository,
   PacRepository, PostTransactionRepository, StockRepository, TransactionLogRepository, TransactionRepository}
 import zio._
-import zio.prelude.DebugOps
 
 final class TransactionServiceLive(trRepo: TransactionRepository
                                    , orderService:PostOrder

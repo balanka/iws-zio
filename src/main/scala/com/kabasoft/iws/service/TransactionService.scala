@@ -1,7 +1,7 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Journal, PeriodicAccountBalance}
+//import com.kabasoft.iws.domain.{Journal, PeriodicAccountBalance}
 import zio._
 
 trait TransactionService:

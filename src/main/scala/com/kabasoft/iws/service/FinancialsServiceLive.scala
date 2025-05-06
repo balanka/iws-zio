@@ -1,7 +1,7 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.common.{given, *}
+import com.kabasoft.iws.domain.common.given
 import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, Journal, PeriodicAccountBalance, TPeriodicAccountBalance, common}
 import com.kabasoft.iws.repository.{FinancialsTransactionRepository, JournalRepository, PacRepository, PostFinancialsTransactionRepository}
 import zio._

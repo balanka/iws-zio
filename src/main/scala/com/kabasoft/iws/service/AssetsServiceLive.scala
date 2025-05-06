@@ -16,7 +16,7 @@ final class AssetsServiceLive(assetRepo: AssetRepository
   override def generate( period:Int, company: String): ZIO[Any, RepositoryError, Int] = for {
     _<- ZIO.logInfo(s" Generating  transaction for the period  ${period} and   company ${company}")
     transactions <- build(company).debug("transactions")
-    nr           <-  ZIO.succeed(transactions).map(_.size) 
+    nr           <-  ftrRepo.create(transactions) //ZIO.succeed(transactions).map(_.size) 
   }yield nr
 
   private def build(companyId: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
