@@ -6,7 +6,6 @@ import cats._
 import skunk._
 import skunk.codec.all._
 import skunk.implicits._
-import zio.interop.catz._
 import zio.prelude.FlipOps
 import zio.{Task, ZIO, ZLayer}
 import com.kabasoft.iws.domain.AppError.RepositoryError

@@ -71,7 +71,7 @@ object FModuleEndpoint:
         FModuleRepository.getById(p._1, p._2, p._3)
 
   val modifyFmoduleRoute =
-    mModify.implement: (h, m) =>
+    mModify.implement: (_, m) =>
       ZIO.logInfo (s"Modify fmodule  ${m}") *>
         FModuleRepository.modify (m) *>
         FModuleRepository.getById ((m.id, m.modelid, m.company) )

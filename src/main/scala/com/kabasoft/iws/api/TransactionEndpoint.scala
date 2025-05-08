@@ -4,18 +4,15 @@ import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.AppError._
 import com.kabasoft.iws.domain.{AppError, Transaction}
 import com.kabasoft.iws.repository.TransactionRepository
-import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, transactionSchema
-          ,repositoryErrorSchema}
+import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, transactionSchema, repositoryErrorSchema}
 import zio._
 import zio.http.RoutePattern
 import zio.schema.annotation.description
 import zio.schema.Schema
-import zio._
 import zio.http._
 import zio.http.codec.PathCodec.{path, int, string, long}
 import zio.http.codec._
 import zio.http.endpoint.Endpoint
-
 
 object TransactionEndpoint:
   val modelidDoc = "The modelId for identifying the typ of transaction "

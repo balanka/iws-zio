@@ -57,12 +57,12 @@ object CompanyEndpoint:
         *> CompanyRepository.getById(m.id, m.modelid)
 
   val companyAllRoute =
-    mAll.implement : (modelid, h)=>
+    mAll.implement : (modelid, _)=>
       ZIO.logInfo(s"get all company  ${modelid}") *>
         CompanyRepository.all(modelid)
 
   val companyByIdRoute =
-    mById.implement: (id, modelid, h)=>
+    mById.implement: (id, modelid, _)=>
       ZIO.logInfo (s"Get company  id: ${id} modelid: ${modelid} ") *>
         CompanyRepository.getById((id, modelid))
 

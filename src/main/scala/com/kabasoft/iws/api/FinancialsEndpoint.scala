@@ -1,16 +1,15 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.AppError.*
+import com.kabasoft.iws.domain.AppError._
 import com.kabasoft.iws.domain.{AppError, FinancialsTransaction}
 import com.kabasoft.iws.repository.FinancialsTransactionRepository
 import com.kabasoft.iws.service.TransactionService
 import com.kabasoft.iws.api.Protocol._
 import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, ftransactionSchema, repositoryErrorSchema}
-import zio.*
+import zio._
 import zio.http.RoutePattern
 import zio.schema.Schema
-import zio._
 import zio.http._
 import zio.http.codec.PathCodec.{int, long, path, string}
 import zio.http.codec._

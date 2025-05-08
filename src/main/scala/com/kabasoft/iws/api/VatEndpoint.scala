@@ -70,7 +70,7 @@ object VatEndpoint:
         VatRepository.getById(p._1, p._2, p._3)
 
   val mModifyRoute =
-    vatModify.implement: (h, m) =>
+    vatModify.implement: (_, m) =>
       ZIO.logInfo (s"Modify vat  ${m}") *>
         VatRepository.modify (m) *>
         VatRepository.getById ((m.id, m.modelid, m.company) )

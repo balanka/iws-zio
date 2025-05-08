@@ -7,7 +7,6 @@ import com.kabasoft.iws.domain.AppError.RepositoryError
 import skunk._
 import zio._
 import zio.interop.catz._
-import skunk.data.Completion
 
 trait MasterfileCRUD:
   def tryExec[A](xa: Transaction[Task], pc: PreparedCommand[Task, A], models: List[A]): Task[Unit] =
