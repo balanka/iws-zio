@@ -160,35 +160,35 @@ private[repository] object EmployeeRepositorySQL:
     val base =
       sql""" SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
              , vatcode, company, salary, modelid, enterdate, changedate, postingdate
-             FROM   employee """
+             FROM   employee ORDER BY id ASC"""
 
     def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Employee] =
       sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
             , vatcode, company, salary, modelid, enterdate, changedate, postingdate
              FROM   employee
              WHERE id  IN ${varchar.list(nr)} AND  modelid = $int4 AND company = $varchar
-             """.query(mfDecoder)
+             ORDER BY id ASC""".query(mfDecoder)
 
     val BY_ID: Query[String *: Int *: String *: EmptyTuple, Employee] =
       sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
             , vatcode, company, salary, modelid, enterdate, changedate, postingdate
              FROM   employee
              WHERE id = $varchar AND modelid = $int4 AND company = $varchar
-             """.query(mfDecoder)
+             ORDER BY id ASC""".query(mfDecoder)
 
     val ALL: Query[Int *: String *: EmptyTuple, Employee] =
       sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
             , vatcode, company, salary, modelid, enterdate, changedate, postingdate
              FROM   employee
              WHERE  modelid = $int4 AND company = $varchar
-             """.query(mfDecoder)
+             ORDER BY id ASC""".query(mfDecoder)
       
       
     val EMPLOYEE_SALARY_ITEM: Query[String, EmployeeSalaryItem]  =
      sql""" select id, owner, account, amount, percentage, text, company 
             FROM   employee_salary_item
              WHERE  company = $varchar
-          """.query(salaryItemDecoder)
+          ORDER BY id ASC""".query(salaryItemDecoder)
 
     val insert: Command[Employee] = sql"INSERT INTO employee VALUES $mfEncoder".command
     def insertAll(n: Int): Command[List[Employee.TYPE2]] = sql"INSERT INTO employee VALUES ${mfCodec.values.list(n)}".command

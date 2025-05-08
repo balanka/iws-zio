@@ -75,25 +75,25 @@ private[repository] object StoreRepositorySQL:
 
   def base =
     sql""" SELECT id, name, description, costcenter, account, oaccount, enterdate, changedate, postingdate
-           , company, modelid FROM   store """
+           , company, modelid FROM   store ORDER BY id ASC"""
 
   def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Store] =
     sql"""SELECT id, name, description, costcenter, account, oaccount, enterdate, changedate, postingdate, company, modelid
            FROM   store
            WHERE id  IN ( ${varchar.list(nr)}) AND  modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val BY_ID: Query[String *: Int *: String *: EmptyTuple, Store] =
     sql"""SELECT id, name, description, costcenter,  account, oaccount, enterdate, changedate, postingdate, company, modelid
            FROM   store
            WHERE id = $varchar AND modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val ALL: Query[Int *: String *: EmptyTuple, Store] =
     sql"""SELECT id, name, description, costcenter,  account, oaccount, enterdate, changedate, postingdate, company, modelid
            FROM   store
            WHERE  modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val insert: Command[Store] = sql"""INSERT INTO store VALUES $mfEncoder """.command
 

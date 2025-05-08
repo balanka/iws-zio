@@ -127,14 +127,14 @@ private[repository] object SupplierRepositorySQL:
   def base =
     sql""" SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
              , vatCode, company, modelid, enterdate, changedate,postingdate
-             FROM   supplier """
+             FROM   supplier ORDER BY id ASC"""
 
   def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Supplier] =
     sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account,  oaccount, tax_code
              , vatCode, company, modelid, enterdate, changedate, postingdate
              FROM   supplier
              WHERE id  IN ( ${varchar.list(nr)} ) AND  modelid = $int4 AND company = $varchar
-             """.query(mfDecoder)
+             ORDER BY id ASC""".query(mfDecoder)
 
   val BY_IBAN: Query[String *: Int *: String *: EmptyTuple, Supplier] =
     sql"""SELECT su.id, su.name, su.description, su.street, su.zip, su.city, su.state, su.country, su.phone
@@ -142,21 +142,21 @@ private[repository] object SupplierRepositorySQL:
              , su.modelid, su.enterdate, su.changedate, su.postingdate
                  FROM   supplier su, bankaccount bankAcc
                  WHERE su.id = bankAcc.owner AND bankAcc.id = $varchar AND
-                  su.modelid = $int4 AND su.company = $varchar """.query(mfDecoder)
+                  su.modelid = $int4 AND su.company = $varchar ORDER BY id ASC""".query(mfDecoder)
   
   val BY_ID: Query[String *: Int *: String *: EmptyTuple, Supplier] =
     sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
           , vatCode, company, modelid, enterdate, changedate, postingdate
              FROM   supplier
              WHERE id = $varchar AND modelid = $int4 AND company = $varchar
-             """.query(mfDecoder)
+             ORDER BY id ASC""".query(mfDecoder)
 
   val ALL: Query[Int *: String *: EmptyTuple, Supplier] =
     sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
           , vatCode, company, modelid, enterdate, changedate, postingdate
              FROM   supplier
              WHERE  modelid = $int4 AND company = $varchar
-             """.query(mfDecoder)
+             ORDER BY id ASC""".query(mfDecoder)
 
   val insert: Command[Supplier] = 
     sql"""INSERT INTO supplier (id, name, description, street, zip, city, state, country, phone, email, account

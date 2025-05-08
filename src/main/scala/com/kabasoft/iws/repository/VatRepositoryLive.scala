@@ -48,26 +48,26 @@ private[repository] object VatRepositorySQL:
 
     def base =
     sql""" SELECT id, name, description, percent, input_vat_account, outputVatAccount, enterdate, changedate,postingdate, company, modelid
-         FROM   vat """
+         FROM   vat ORDER BY id ASC """
 
     def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Vat] =
     sql"""
          SELECT id, name, description, percent, input_vat_account, outputVatAccount, enterdate, changedate,postingdate, company, modelid
          FROM   vat
          WHERE id  IN ${varchar.list(nr)} AND  modelid = $int4 AND company = $varchar
-         """.query(mfDecoder)
+         ORDER BY id ASC """.query(mfDecoder)
 
     val BY_ID: Query[String *: Int *: String *: EmptyTuple, Vat] =
     sql"""SELECT id, name, description, percent, input_vat_account, output_vat_account, enterdate, changedate,postingdate, company, modelid
          FROM   vat
          WHERE id = $varchar AND modelid = $int4 AND company = $varchar
-         """.query(mfDecoder)
+         ORDER BY id ASC """.query(mfDecoder)
 
     val ALL: Query[Int *: String *: EmptyTuple, Vat] =
     sql"""SELECT id, name, description, percent, input_vat_account, output_vat_account, enterdate, changedate,postingdate, company, modelid
          FROM   vat
          WHERE  modelid = $int4 AND company = $varchar
-         """.query(mfDecoder)
+         ORDER BY id ASC """.query(mfDecoder)
 
     val insert: Command[Vat] = sql"""INSERT INTO vat VALUES $mfEncoder""".command
 

@@ -110,7 +110,7 @@ private[repository] object CompanyRepositorySQL:
     sql""" id, name, street, zip, city, state, country, email, partner, phone, bank_acc, iban, tax_code, vat_code
           , currency, locale, balance_sheet_acc, income_stmt_acc, purchasing_clearing_acc, sales_clearing_acc
           , cash_acc, modelid
-           FROM   company """
+           FROM   company ORDER BY id ASC"""
 
   def ALL_BY_ID(nr: Int): Query[(List[String], Int), Company] =
     sql"""SELECT id, name, street, zip, city, state, country, email, partner, phone, bank_acc, iban, tax_code, vat_code
@@ -118,7 +118,7 @@ private[repository] object CompanyRepositorySQL:
           , sales_clearing_acc, cash_acc, modelid
            FROM   company
            WHERE id  IN ${varchar.list(nr)} AND  modelid = $int4
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val BY_ID: Query[String *: Int *: EmptyTuple, Company] =
     sql"""SELECT id, name, street, zip, city, state, country, email, partner, phone, bank_acc, iban, tax_code, vat_code
@@ -126,7 +126,7 @@ private[repository] object CompanyRepositorySQL:
           , sales_clearing_acc, cash_acc, modelid
            FROM   company
            WHERE id = $varchar AND modelid = $int4
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val ALL: Query[Int, Company] =
      sql"""SELECT id, name, street, zip, city, state, country, email, partner, phone, bank_acc, iban, tax_code, vat_code
@@ -134,7 +134,7 @@ private[repository] object CompanyRepositorySQL:
           , sales_clearing_acc, cash_acc, modelid
            FROM   company
            WHERE  modelid = $int4
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val insert: Command[Company] = sql"""INSERT INTO company 
     (id, name, street, zip, city, state, country, email, partner, phone, bank_acc, iban, tax_code, vat_code,

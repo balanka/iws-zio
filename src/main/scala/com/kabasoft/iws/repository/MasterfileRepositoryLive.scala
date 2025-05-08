@@ -52,26 +52,26 @@ private[repository] object MasterfileRepositorySQL:
 
   val base =
     sql""" SELECT id, name, description, parent, enterdate, changedate,postingdate, company, modelid
-           FROM   masterfile """
+           FROM   masterfile ORDER BY id ASC"""
 
   
   def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Masterfile] = 
     sql"""SELECT id, name, description, parent, enterdate, changedate,postingdate, company, modelid
            FROM   masterfile
            WHERE id  IN ${varchar.list(nr)} AND  modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val BY_ID: Query[String *: Int *: String *: EmptyTuple, Masterfile] =
     sql"""SELECT id, name, description, parent, enterdate, changedate,postingdate, company, modelid
            FROM   masterfile
            WHERE id = $varchar AND modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val ALL: Query[Int *: String *: EmptyTuple, Masterfile] =
     sql"""SELECT id, name, description, parent, enterdate, changedate,postingdate, company, modelid
            FROM   masterfile
            WHERE  modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val insert: Command[Masterfile] =
     sql"""INSERT INTO masterfile (id, name, description, parent, enterdate,changedate,postingdate, company, modelid )

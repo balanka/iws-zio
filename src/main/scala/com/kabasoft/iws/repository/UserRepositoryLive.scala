@@ -95,31 +95,31 @@ private[repository] object UserRepositorySQL:
 
   def base =
     sql""" SELECT id, user_name, first_name, last_name, hash, phone, email, department, menu, company, modelid
-           FROM   users """
+           FROM   users ORDER BY ORDER BY user_name ASC """
 
   def ALL_BY_ID(nr: Int): Query[(List[Int], Int, String), User] =
     sql"""SELECT id, user_name, first_name, last_name, hash, phone, email, department, menu, company, modelid
            FROM   users
            WHERE id  IN ${int4.list(nr)} AND  modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY user_name ASC""".query(mfDecoder)
 
   val BY_ID: Query[Int *: Int *: String *: EmptyTuple, User] =
     sql"""SELECT id, user_name, first_name, last_name, hash, phone, email, department, menu, company, modelid
            FROM   users
            WHERE id = $int4 AND modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY user_name ASC""".query(mfDecoder)
     
   val BY_NAME: Query[String *: Int *: String *: EmptyTuple, User] =
     sql"""SELECT id, user_name, first_name, last_name, hash, phone, email, department, menu, company, modelid
            FROM   users
            WHERE user_name = $varchar AND modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY user_name ASC""".query(mfDecoder)
 
   val ALL: Query[Int *: String *: EmptyTuple, User] =
     sql"""SELECT id, user_name, first_name, last_name, hash, phone, email, department, menu, company, modelid
            FROM   users
            WHERE  modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY user_name ASC""".query(mfDecoder)
 
   val insert: Command[User] = sql"""INSERT INTO User VALUES $mfEncoder """.command
 

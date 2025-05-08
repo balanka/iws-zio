@@ -46,25 +46,25 @@ private[repository] object ModuleRepositorySQL:
   
   def base =
     sql""" SELECT id, name, description, path, parent, enterdate, changedate,postingdate, company, modelid
-           FROM   module """
+           FROM   module ORDER BY id ASC"""
 
   def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Module] =
     sql""" SELECT id, name, description, path, parent, enterdate, changedate,postingdate, company, modelid
            FROM   module
            WHERE id  IN ${varchar.list(nr)} AND  modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val BY_ID: Query[String *: Int *: String *: EmptyTuple, Module] =
     sql"""SELECT id, name, description, path, parent, enterdate, changedate,postingdate, company, modelid
            FROM   module
            WHERE id = $varchar AND modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val ALL: Query[Int *: String *: EmptyTuple, Module] =
     sql"""SELECT id, name, description, path, parent, enterdate, changedate,postingdate, company, modelid
            FROM   module
            WHERE  modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val insert: Command[Module] = sql"""INSERT INTO module VALUES $mfEncoder""".command
   def insertAll(n:Int): Command[List[Module.TYPE]] = sql"INSERT INTO module VALUES ${mfCodec.values.list(n)}".command

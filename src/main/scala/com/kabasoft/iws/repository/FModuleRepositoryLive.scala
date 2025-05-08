@@ -83,25 +83,25 @@ private[repository] object FModuleRepositorySQL:
 
   def base =
     sql""" SELECT id, name, description, enterdate, changedate,postingdate, account, is_debit, parent, modelid, company
-           FROM   fmodule """
+           FROM   fmodule ORDER BY id ASC"""
 
   def ALL_BY_ID(nr: Int): Query[(List[Int], Int, String), Fmodule] =
     sql"""SELECT id, name, description, enterdate, changedate,postingdate, account, is_debit, parent, modelid, company
            FROM   fmodule
            WHERE id  IN ${int4.list(nr)} AND  modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val BY_ID: Query[Int *: Int *: String *: EmptyTuple, Fmodule] =
     sql"""SELECT id, name, description, enterdate, changedate,postingdate, account, is_debit, parent, modelid, company
            FROM   fmodule
            WHERE id = $int4 AND modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val ALL: Query[Int *: String *: EmptyTuple, Fmodule] =
     sql"""SELECT id, name, description, enterdate, changedate, postingdate, account, is_debit, parent, modelid, company
            FROM   fmodule
            WHERE  modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val insert: Command[Fmodule] = sql"""INSERT INTO fmodule VALUES $mfEncoder """.command
 

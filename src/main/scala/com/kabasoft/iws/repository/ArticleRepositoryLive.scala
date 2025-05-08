@@ -54,25 +54,25 @@ private[repository] object ArticleRepositorySQL:
       Article(id, name, description, parent, sprice.bigDecimal, pprice.bigDecimal, avgPrice.bigDecimal, currency, stocked, quantityUnit, packUnit, account, oaccount, vatCode, company, modelid, toInstant(enterdate), toInstant(changedate), toInstant(postingdate))
   def base =
   sql""" SELECT id, name, description, parent, sprice, pprice, avg_price, currency, stocked, quantity_unit, pack_unit, account, oaccount, vat_code, company, modelid, enterdate, changedate, postingdate
-           FROM   article """
+           FROM   article ORDER BY id ASC"""
 
   def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Article] =
   sql"""SELECT id, name, description, parent, sprice, pprice, avg_price, currency, stocked, quantity_unit, pack_unit, account, oaccount, vat_code, company, modelid, enterdate, changedate, postingdate
            FROM   article
            WHERE id  IN ( ${varchar.list(nr)} ) AND  modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val BY_ID: Query[String *: Int *: String *: EmptyTuple, Article] =
   sql"""SELECT id, name, description, parent, sprice, pprice, avg_price, currency, stocked, quantity_unit, pack_unit, account, oaccount, vat_code, company, modelid, enterdate, changedate, postingdate
            FROM   article
            WHERE id = $varchar AND modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val ALL: Query[Int *: String *: EmptyTuple, Article] =
   sql"""SELECT id, name, description, parent, sprice, pprice, avg_price, currency, stocked, quantity_unit, pack_unit, account, oaccount, vat_code, company, modelid, enterdate, changedate, postingdate
            FROM   article
            WHERE  modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val insert: Command[Article] = sql"""INSERT INTO article (id, name, description, parent, sprice, pprice, avg_price
         , currency, stocked, quantity_unit, pack_unit, account, oaccount, vat_code, company, modelid

@@ -48,25 +48,25 @@ private[repository] object AccountRepositorySQL:
 
   def base =
     sql""" SELECT id, name, description, enterdate, changedate, postingdate, company, modelid, account, is_debit, balancesheet, currency, idebit, icredit, debit, credit
-           FROM   account """
+           FROM   account ORDER BY id ASC"""
   
   def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Account] =
     sql"""SELECT id, name, description, enterdate, changedate, postingdate, company, modelid, account, is_debit, balancesheet, currency, idebit, icredit, debit, credit
            FROM   account
            WHERE id  IN (${varchar.list(nr)}) AND  modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val BY_ID: Query[String *: Int *: String *: EmptyTuple, Account] =
     sql""" SELECT id, name, description, enterdate, changedate, postingdate, company, modelid, account, is_debit, balancesheet, currency, idebit, icredit, debit, credit
            FROM   account
            WHERE id = $varchar AND modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val ALL: Query[Int *: String *: EmptyTuple, Account] =
     sql"""SELECT id, name, description, enterdate, changedate, postingdate, company, modelid, account, is_debit, balancesheet, currency, idebit, icredit, debit, credit
            FROM   account
            WHERE  modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val insert: Command[Account] =
     sql"""INSERT INTO account

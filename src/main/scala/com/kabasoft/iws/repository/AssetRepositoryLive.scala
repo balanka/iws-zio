@@ -46,28 +46,28 @@ private[repository] object AssetRepositorySQL:
     def base =
       sql""" SELECT id, name, description, changedate, enterdate, postingdate, company, modelid, account, oaccount,
               dep_method, amount, rate, life_span, scrap_value, frequency, currency
-             FROM   asset """
+             FROM   asset ORDER BY id ASC"""
 
     def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Asset] =
       sql"""SELECT id, name, description, changedate, enterdate, postingdate, company, modelid, account, oaccount,
               dep_method, amount, rate, life_span, scrap_value, frequency, currency
              FROM   asset
              WHERE id  IN ${varchar.list(nr)} AND  modelid = $int4 AND company = $varchar
-             """.query(mfDecoder)
+             ORDER BY id ASC""".query(mfDecoder)
 
     val BY_ID: Query[String *: Int *: String *: EmptyTuple, Asset] =
       sql"""SELECT id, name, description, changedate, enterdate, postingdate, company, modelid, account, oaccount,
               dep_method, amount, rate, life_span, scrap_value, frequency, currency
              FROM   asset
              WHERE id = $varchar AND modelid = $int4 AND company = $varchar
-             """.query(mfDecoder)
+             ORDER BY id ASC""".query(mfDecoder)
 
     val ALL: Query[Int *: String *: EmptyTuple, Asset] =
       sql"""SELECT id, name, description, changedate, enterdate, postingdate, company, modelid, account, oaccount,
               dep_method, amount, rate, life_span, scrap_value, frequency, currency
              FROM   asset
              WHERE  modelid = $int4 AND company = $varchar
-             """.query(mfDecoder)
+             ORDER BY id ASC""".query(mfDecoder)
 
     val insert: Command[Asset] = sql"""INSERT INTO asset VALUES $mfEncoder """.command
 

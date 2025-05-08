@@ -126,14 +126,14 @@ private[repository] object CustomerRepositorySQL:
     def base =
       sql""" SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
              , vatCode, company, modelid, enterdate, changedate, postingdate
-             FROM   customer """
+             FROM   customer ORDER BY id ASC"""
 
     def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Customer] =
       sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
             , vatCode, company, modelid, enterdate, changedate, postingdate
              FROM   customer
              WHERE id  IN (${varchar.list(nr)} ) AND  modelid = $int4 AND company = $varchar
-             """.query(mfDecoder)
+             ORDER BY id ASC""".query(mfDecoder)
 
     val BY_IBAN: Query[String *: Int *: String *: EmptyTuple, Customer] =
       sql"""SELECT cu.id, cu.name, cu.description, cu.street, cu.zip, cu.city, cu.state, cu.country, cu.phone
@@ -141,21 +141,21 @@ private[repository] object CustomerRepositorySQL:
              , cu.modelid, cu.enterdate, cu.changedate, cu.postingdate
                  FROM   customer cu, bankaccount bankAcc
                  WHERE cu.id = bankAcc.owner AND bankAcc.id = $varchar AND
-                  cu.modelid = $int4 AND cu.company = $varchar """.query(mfDecoder)
+                  cu.modelid = $int4 AND cu.company = $varchar ORDER BY id ASC""".query(mfDecoder)
   
     val BY_ID: Query[String *: Int *: String *: EmptyTuple, Customer] =
       sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
             , vatCode, company, modelid, enterdate, changedate, postingdate
              FROM   customer
              WHERE id = $varchar AND modelid = $int4 AND company = $varchar
-             """.query(mfDecoder)
+             ORDER BY id ASC""".query(mfDecoder)
 
     val ALL: Query[Int *: String *: EmptyTuple, Customer] =
       sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
             , vatCode, company, modelid, enterdate, changedate, postingdate
              FROM   customer
              WHERE  modelid = $int4 AND company = $varchar
-             """.query(mfDecoder)
+             ORDER BY id ASC""".query(mfDecoder)
 
     val insert: Command[Customer] =
       sql"""INSERT INTO customer (id, name, description, street, zip, city, state, country, phone, email, account

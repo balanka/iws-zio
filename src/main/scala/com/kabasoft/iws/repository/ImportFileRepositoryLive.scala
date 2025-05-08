@@ -55,19 +55,19 @@ private[repository] object ImportFileRepositorySQL:
     sql"""SELECT id, name, description, extension, enterdate, changedate,postingdate, company, modelid
            FROM   bankstatement_file
            WHERE id  IN ${varchar.list(nr)} AND  modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val BY_ID: Query[String *: Int *: String *: EmptyTuple, ImportFile] =
     sql"""SELECT id, name, description, extension, enterdate, changedate,postingdate, company, modelid
            FROM   bankstatement_file
            WHERE id = $varchar AND modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val ALL: Query[Int *: String *: EmptyTuple, ImportFile] =
     sql"""SELECT id, name, description, extension, enterdate, changedate,postingdate, company, modelid
            FROM   bankstatement_file
            WHERE  modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+           ORDER BY id ASC""".query(mfDecoder)
 
   val insert: Command[ImportFile] = sql"""INSERT INTO bankstatement_file VALUES $mfEncoder """.command
 
