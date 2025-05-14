@@ -33,13 +33,16 @@ final case class UserRepositoryLive(postgres: Resource[Task, Session[Task]], rep
   private def setRoleAndRight(p: (String, List[User]) ):ZIO[Any, RepositoryError, List[User]] = for {
     roles <- repo.all(Role.MODEL_ID, p._1)
     user_rights <- repo.allRights(UserRight.MODEL_ID, p._1)
-    user_roles <- repo.userRoles(UserRole.MODEL_ID, p._1)
+    user_roles <- repo.allUserRoles(UserRole.MODEL_ID, p._1)
     users_ = p._2
   }yield {
     val  rolesx: List[Role] = roles.map( r=>r.copy(rights = r.rights.:::(user_rights.filter(rt => rt.roleid == r.id))))
     val user_role = rolesx.filter(r=> user_roles.map(_.roleid).contains(r.id))
-    val users  = users_.map(u => u.copy(roles = user_role, rights = u.roles.flatMap(_.rights)))
-    users
+    //val users = users_.map(u => u.copy(roles = user_role, rights = u.roles.flatMap(_.rights)))
+    val users  = users_.map(u => u.copy(roles = user_role,
+                                       rights = rolesx.filter(rid=>u.roles.map(_.id).contains(rid)).flatMap(_.rights)))
+    val usersx  = users.map(u => u.copy(rights =u.roles.flatMap(_.rights)))
+    usersx
   }
 
   override def getById(p: (Int, Int, String)):ZIO[Any, RepositoryError, User] = for {
@@ -102,6 +105,11 @@ private[repository] object UserRepositorySQL:
            FROM   users
            WHERE id  IN ${int4.list(nr)} AND  modelid = $int4 AND company = $varchar
            ORDER BY user_name ASC""".query(mfDecoder)
+
+
+//  val ROLE_RIGHTS: Query[Int *:String *: EmptyTuple, (Int, Int, String, String, Int)] =
+//     sql"""SELECT moduleid, roleid, short, company, modelid from user_right
+//            where roleid=$int4 and company=$varchar """.query(Int, Int, String, String, Int)
 
   val BY_ID: Query[Int *: Int *: String *: EmptyTuple, User] =
     sql"""SELECT id, user_name, first_name, last_name, hash, phone, email, department, menu, company, modelid

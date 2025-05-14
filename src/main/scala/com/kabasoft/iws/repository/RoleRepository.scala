@@ -10,7 +10,8 @@ trait RoleRepository:
   def modify(model: Role):ZIO[Any, RepositoryError, Int]
   def modify(models: List[Role]):ZIO[Any, RepositoryError, Int]
   def all(Id: (Int, String)):ZIO[Any, RepositoryError, List[Role]]
-  def userRoles(p: (Int, String)): ZIO[Any, RepositoryError, List[UserRole]]
+  def allUserRoles(p: (Int, String)): ZIO[Any, RepositoryError, List[UserRole]]
+  def userRoles(p: (Int, Int, String)): ZIO[Any, RepositoryError, List[UserRole]]
   def allRights(p: (Int, String)):ZIO[Any, RepositoryError, List[UserRight]]
   def userRights(p: (Int, Int, String)):ZIO[Any, RepositoryError, List[UserRight]]
   def getById(Id: (Int, Int, String)):ZIO[Any, RepositoryError, Role]
@@ -28,8 +29,10 @@ object RoleRepository:
       ZIO.serviceWithZIO[RoleRepository](_.modify(models))
     def all(Id: (Int, String)): ZIO[RoleRepository, RepositoryError, List[Role]] =
       ZIO.serviceWithZIO[RoleRepository](_.all(Id))
-    def userRoles(p: (Int, String)): ZIO[RoleRepository, RepositoryError, List[UserRole]] =
-      ZIO.serviceWithZIO[RoleRepository](_.userRoles(p))
+    def userRoles(p: (Int, Int, String)): ZIO[RoleRepository, RepositoryError, List[UserRole]] =
+     ZIO.serviceWithZIO[RoleRepository](_.userRoles(p))   
+    def allUserRoles(p: (Int, String)): ZIO[RoleRepository, RepositoryError, List[UserRole]] =
+      ZIO.serviceWithZIO[RoleRepository](_.allUserRoles(p))
     def allRights(p: (Int, String)): ZIO[RoleRepository, RepositoryError, List[UserRight]] =
        ZIO.serviceWithZIO[RoleRepository](_.allRights(p))
     def userRights(p: (Int, Int, String)): ZIO[RoleRepository, RepositoryError, List[UserRight]] =

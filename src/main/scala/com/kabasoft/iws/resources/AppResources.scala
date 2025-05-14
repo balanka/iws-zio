@@ -1,6 +1,6 @@
 package com.kabasoft.iws.resources
 
-import cats.effect._
+//import cats.effect._
 import cats.effect.kernel.{Resource, Temporal}
 import cats.effect.std.Console
 //import cats.syntax.all._

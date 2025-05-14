@@ -1,8 +1,9 @@
 package com.kabasoft.iws
 
-import zio.config.*, typesafe.*, magnolia.*
-import zio.{ Config, TaskLayer, ZLayer }
-import zio.Config.Secret
+import zio.config._
+import typesafe._
+import magnolia._
+import zio.ZLayer
 
 object config:
   final case class AppConfig(postgreSQL: AppConfig.PostgreSQLConfig,

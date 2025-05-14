@@ -3,10 +3,9 @@ package com.kabasoft.iws
 import com.kabasoft.iws.api.Utils.{bearerAuthWithContext, jwtEncode}
 
 import java.time.Clock
-import scala.util.Try
-import zio.*
-import zio.http.*
-import pdi.jwt.{Jwt, JwtAlgorithm, JwtClaim}
+import zio._
+import zio.http._
+
 
 /**
  * This is an example to demonstrate bearer Authentication middleware. The
@@ -20,27 +19,7 @@ object AuthenticationServer extends ZIOAppDefault {
 
   // Secret Authentication key
   val SECRET_KEY = "secretKey"
-
-//  def jwtEncode(username: String, key: String): String =
-//    Jwt.encode(JwtClaim(subject = Some(username)).issuedNow.expiresIn(300), key, JwtAlgorithm.HS512)
-//
-//  def jwtDecode(token: String, key: String): Try[JwtClaim] =
-//    Jwt.decode(token, key, Seq(JwtAlgorithm.HS512))
-
-//  val bearerAuthWithContext: HandlerAspect[Any, String] =
-//    HandlerAspect.interceptIncomingHandler(Handler.fromFunctionZIO[Request] { request =>
-//      request.header(Header.Authorization) match {
-//        case Some(Header.Authorization.Bearer(token)) =>
-//          ZIO
-//            .fromTry(jwtDecode(token.value.asString, SECRET_KEY))
-//            .orElseFail(Response.badRequest("Invalid or expired token!"))
-//            .flatMap(claim => ZIO.fromOption(claim.subject).orElseFail(Response.badRequest("Missing subject claim!")))
-//            .map(u => (request, u))
-//
-//        case _ => ZIO.fail(Response.unauthorized.addHeaders(Headers(Header.WWWAuthenticate.Bearer(realm = "Access"))))
-//      }
-//    })
-
+  
   def routes: Routes[Any, Response] =
     Routes(
       // A route that is accessible only via a jwt token

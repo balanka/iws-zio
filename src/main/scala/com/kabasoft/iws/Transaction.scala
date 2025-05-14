@@ -34,9 +34,9 @@ object PetService {
       .command
       .to[Pet]
     
-  private val updateOne: Command[(Short, String)] =
-    sql"UPDATE pets set age=$int2  WHERE name=$varchar"
-      .command
+//  private val updateOne: Command[(Short, String)] =
+//    sql"UPDATE pets set age=$int2  WHERE name=$varchar"
+//      .command
       
   // query to select all pets
   private val all: Query[Void, Pet] =

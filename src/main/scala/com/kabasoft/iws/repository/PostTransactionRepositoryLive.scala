@@ -1,7 +1,5 @@
 package com.kabasoft.iws.repository
 import cats.effect.Resource
-import cats.syntax.all._
-import cats._
 import skunk._
 import zio.interop.catz.asyncInstance
 import zio.{Task, UIO, ZIO, ZLayer}

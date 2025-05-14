@@ -21,11 +21,22 @@ final case class RoleRepositoryLive(postgres: Resource[Task, Session[Task]]) ext
     executeWithTx(postgres, list.map(Role.encodeIt), insertAll(list.size), list.size)
   override def modify(model: Role):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, Role.encodeIt2, UPDATE, 1)
   override def modify(models: List[Role]):ZIO[Any, RepositoryError, Int]= executeBatchWithTxK(postgres, models, UPDATE, Role.encodeIt2)
-  override def all(p: (Int, String)):ZIO[Any, RepositoryError,  List[Role]] = queryWithTx(postgres, p, ALL)
+  def list(p: (Int, String)): ZIO[Any, RepositoryError, List[Role]] = queryWithTx(postgres, p, ALL)
+  override def allRights(p: (Int, String)): ZIO[Any, RepositoryError, List[UserRight]] = queryWithTx(postgres, p, ALL_RIGHTS)
+  
+  override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Role]] = for {
+    roles_ <- list(p)
+    user_rights <- allRights(UserRight.MODEL_ID, p._2)
+  } yield {
+   val roles:List[Role] = roles_.map(r => r.copy(rights = r.rights.:::(user_rights.filter(rt => rt.roleid == r.id))))
+    roles
+  }
+ 
   //def allUserRoles(p: (Int, String)):ZIO[Any, RepositoryError,  List[UserRole]] = queryWithTx(postgres, p, ALL_USER_ROLE)
-  override def allRights(p: (Int,  String)):ZIO[Any, RepositoryError, List[UserRight]] = queryWithTx(postgres, p, ALL_RIGHTS)
+ 
   override def userRights(p: (Int, Int, String)):ZIO[Any, RepositoryError, List[UserRight]] = queryWithTx(postgres, p, USER_RIGHTS)
-  override def userRoles(p: (Int, String)):ZIO[Any, RepositoryError, List[UserRole]] = queryWithTx(postgres, p, USER_ROLE)
+  override def allUserRoles(p: (Int, String)):ZIO[Any, RepositoryError, List[UserRole]] = queryWithTx(postgres, p, ALL_USER_ROLE)
+  override def userRoles(p: (Int, Int, String)): ZIO[Any, RepositoryError, List[UserRole]] = queryWithTx(postgres, p, USER_ROLE)
 
 //  override def allUserRoles(p: (Int, Int, String)): ZIO[Any, RepositoryError, List[UserRole]] = for {
 //    roles <- userRole((p._1, p._2, p._3))
@@ -97,11 +108,11 @@ private[repository] object RoleRepositorySQL:
            FROM   user_right
            WHERE roleid = $int4 AND modelid = $int4 AND company = $varchar
            """.query(rightDecoder)
-
-  val USER_ROLE: Query[Int *:String *: EmptyTuple, UserRole] =
+           
+  val USER_ROLE: Query[Int *:Int *:String *: EmptyTuple, UserRole] =
     sql"""SELECT userid, roleid, company, modelid
            FROM   user_role
-           WHERE   modelid = $int4 AND company = $varchar
+           WHERE   userid = $int4 AND modelid = $int4 AND company = $varchar
            """.query(userRoleDecoder)
 
   val ALL_USER_ROLE: Query[Int *: String *: EmptyTuple, UserRole] =

@@ -1,7 +1,7 @@
 package com.kabasoft.iws.api
 import com.kabasoft.iws.domain.AppError.*
 import com.kabasoft.iws.domain.{AppError, BankStatement}
-import com.kabasoft.iws.repository.Schema.{bankStatementsSchema, repositoryErrorSchema, transactionDetailsSchema}
+import com.kabasoft.iws.repository.Schema.{bankStatementsSchema, repositoryErrorSchema}
 import com.kabasoft.iws.repository.Schema._
 import com.kabasoft.iws.repository._
 import com.kabasoft.iws.service.BankStatementService

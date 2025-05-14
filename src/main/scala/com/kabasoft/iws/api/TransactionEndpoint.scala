@@ -7,7 +7,7 @@ import com.kabasoft.iws.repository.TransactionRepository
 import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, transactionSchema, repositoryErrorSchema}
 import zio._
 import zio.http.RoutePattern
-import zio.schema.annotation.description
+//import zio.schema.annotation.description
 import zio.schema.Schema
 import zio.http._
 import zio.http.codec.PathCodec.{path, int, string, long}

@@ -1,10 +1,9 @@
 package com.kabasoft.iws
 import com.kabasoft.iws.healthcheck.expose
 import com.kabasoft.iws.api.LoginRoutes.loginRoutes
-import com.kabasoft.iws.api.Utils
 import com.kabasoft.iws.config.AppConfig
 import com.kabasoft.iws.resources.AppResources
-import zio.interop.catz.*
+import zio.interop.catz._
 import cats.effect.std.Console
 import natchez.Trace.Implicits.noop
 import com.kabasoft.iws.config.appConfig
