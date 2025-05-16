@@ -1895,7 +1895,7 @@ object UserRole:
 object UserRight:
   val MODEL_ID  = 131
 
-final case class  Permission (id:Int, name:String, description:String,
+final case class  Permission (id:Int, name:String, description:String, short:String,
                               changedate: Instant,
                               postingdate: Instant,
                               enterdate: Instant,
@@ -1903,16 +1903,16 @@ final case class  Permission (id:Int, name:String, description:String,
                               company:String )
 object Permission:
   val MODEL_ID  =141
-  type TYPE = (Int, String, String, LocalDateTime, LocalDateTime, LocalDateTime, Int, String)
-  type TYPE2 = (String, String,  Int, Int, String)
+  type TYPE = (Int, String, String, String, LocalDateTime, LocalDateTime, LocalDateTime, Int, String)
+  type TYPE2 = (String, String, String, Int, Int, String)
   def encodeIt(st: Permission): TYPE =
-    (st.id, st.name, st.description,
+    (st.id, st.name, st.description, st.short,
       st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.modelid, st.company)
 
-  def encodeIt2(st: Permission): TYPE2 = (st.name, st.description, st.id, st.modelid, st.company)
+  def encodeIt2(st: Permission): TYPE2 = (st.name, st.description, st.short, st.id, st.modelid, st.company)
 
 final case class  Fmodule (id:Int, name:String, description:String,
                            changedate: Instant,

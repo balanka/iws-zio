@@ -39,14 +39,15 @@ private[repository] object PermissionRepositorySQL:
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 
   private val mfCodec =
-    (int4 *:  varchar *: varchar  *: timestamp *: timestamp *: timestamp *: int4 *: varchar )
+    (int4 *:  varchar *: varchar *: varchar  *:timestamp *: timestamp *: timestamp *: int4 *: varchar )
 
   val mfDecoder: Decoder[Permission] = mfCodec.map {
-    case (id, name, description, enterdate, changedate, postingdate, modelid, company) =>
+    case (id, name, description, short, enterdate, changedate, postingdate, modelid, company) =>
       Permission(
         id,
         name,
         description,
+        short,
         toInstant(enterdate),
         toInstant(changedate),
         toInstant(postingdate),
@@ -57,23 +58,23 @@ private[repository] object PermissionRepositorySQL:
   val mfEncoder: Encoder[Permission] = mfCodec.values.contramap(Permission.encodeIt)
 
   def base =
-    sql""" SELECT id, name, description, enterdate, changedate,postingdate, company, modelid
+    sql""" SELECT id, name, description, short, enterdate, changedate,postingdate, company, modelid
            FROM   permission """
   
   def ALL_BY_ID(nr: Int): Query[(List[Int], Int, String), Permission] =
-    sql"""SELECT id, name, description, enterdate, changedate,postingdate, company, modelid
+    sql"""SELECT id, name, description, short, enterdate, changedate,postingdate, company, modelid
            FROM   permission
            WHERE id  IN ${int4.list(nr)} AND  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val BY_ID: Query[Int *: Int *: String *: EmptyTuple, Permission] =
-    sql"""SELECT id, name, description, enterdate, changedate, postingdate, modelid, company 
+    sql"""SELECT id, name, description, short, enterdate, changedate, postingdate, modelid, company 
            FROM   permission
            WHERE id = $int4 AND modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val ALL: Query[Int *: String *: EmptyTuple, Permission] =
-    sql"""SELECT id, name, description, enterdate, changedate,postingdate, modelid, company 
+    sql"""SELECT id, name, description, short, enterdate, changedate,postingdate, modelid, company 
            FROM   permission
            WHERE  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
@@ -85,7 +86,7 @@ private[repository] object PermissionRepositorySQL:
 
   val UPDATE: Command[Permission.TYPE2] =
     sql"""UPDATE permission
-          SET name = $varchar, description = $varchar
+          SET name = $varchar, description = $varchar, short= $varchar
           WHERE id=$int4 and modelid=$int4 and company= $varchar""".command
   
   def DELETE: Command[(Int, Int, String)] =
