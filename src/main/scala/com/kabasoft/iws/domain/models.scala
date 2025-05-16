@@ -1837,7 +1837,8 @@ final case class User(
   company: String = "1000",
   modelid: Int = User.MODELID,
   roles:List[Role] = List.empty[Role],
-  rights:List[UserRight]=List.empty[UserRight]
+  rights:List[UserRight]=List.empty[UserRight],
+  modules:List[Int]=List.empty[Int]
 )
 //first_name = $varchar, last_name = $varchar, phone = $varchar, email=$varchar, department=$varchar
 //          , menu=$varchar

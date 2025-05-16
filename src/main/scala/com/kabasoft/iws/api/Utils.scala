@@ -41,7 +41,7 @@ object Utils {
           ZIO.logInfo(s"token.value.asString >>>>>>${token.value.asString}")*>
           ZIO
             .fromTry(jwtDecode(token.value.asString, SECRET_KEY))
-            .orElseFail(Response.badRequest(s"Invalid or expired token! 400 "))
+            .orElseFail(Response.badRequest(s"Invalid or expired token! 400  value:${token.value.asString} "))
             .flatMap(claim => ZIO.logInfo(s"claim >>>>>>n ${claim}")*>ZIO.fromOption(claim.subject)
               .orElseFail(Response.badRequest(s"Missing subject claim! 400 ${claim}")))
             .map(u => (request, u))
