@@ -114,31 +114,31 @@ private[repository] object SupplierRepositorySQL:
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 
   private val mfCodec =
-    (varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar *:varchar *: varchar *: varchar *: varchar *: varchar *: varchar *:varchar *: int4 *:timestamp *: timestamp *: timestamp)
+    (varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar *:varchar *: varchar *: varchar *: varchar *: varchar *: varchar *:varchar *:varchar *: int4 *:timestamp *: timestamp *: timestamp)
     
   val mfDecoder: Decoder[Supplier] = mfCodec.map:
-    case (id, name, description, street, zip, city, state, country, phone, email, account, oaccount, taxCode, vatCode, company, modelid, enterdate, changedate, postingdate) =>
+    case (id, name, description, street, zip, city, state, country, phone, email, account, oaccount, taxCode, vatCode, currency, company, modelid, enterdate, changedate, postingdate) =>
       Supplier(id, name, description, street, zip, city, state, country, phone, email, account, oaccount, taxCode , vatCode
-        , company, modelid, toInstant(enterdate), toInstant(changedate), toInstant(postingdate), List.empty[BankAccount])
+        , currency, company, modelid, toInstant(enterdate), toInstant(changedate), toInstant(postingdate), List.empty[BankAccount])
 
   val mfEncoder: Encoder[Supplier] = mfCodec.values.contramap(Supplier.encodeIt)
 
 
   def base =
     sql""" SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-             , vatCode, company, modelid, enterdate, changedate,postingdate
+             , vatCode, currency, company, modelid, enterdate, changedate,postingdate
              FROM   supplier ORDER BY id ASC"""
 
   def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Supplier] =
     sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account,  oaccount, tax_code
-             , vatCode, company, modelid, enterdate, changedate, postingdate
+             , vatCode, currency, company, modelid, enterdate, changedate, postingdate
              FROM   supplier
              WHERE id  IN ( ${varchar.list(nr)} ) AND  modelid = $int4 AND company = $varchar
              ORDER BY id ASC""".query(mfDecoder)
 
   val BY_IBAN: Query[String *: Int *: String *: EmptyTuple, Supplier] =
     sql"""SELECT su.id, su.name, su.description, su.street, su.zip, su.city, su.state, su.country, su.phone
-            , su.email, su.account, su.oaccount, su.tax_code, su.vatcode, su.company
+            , su.email, su.account, su.oaccount, su.tax_code, su.vatcode, su.currency, su.company
              , su.modelid, su.enterdate, su.changedate, su.postingdate
                  FROM   supplier su, bankaccount bankAcc
                  WHERE su.id = bankAcc.owner AND bankAcc.id = $varchar AND
@@ -146,32 +146,32 @@ private[repository] object SupplierRepositorySQL:
   
   val BY_ID: Query[String *: Int *: String *: EmptyTuple, Supplier] =
     sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-          , vatCode, company, modelid, enterdate, changedate, postingdate
+          , vatCode, currency, company, modelid, enterdate, changedate, postingdate
              FROM   supplier
              WHERE id = $varchar AND modelid = $int4 AND company = $varchar
              ORDER BY id ASC""".query(mfDecoder)
 
   val ALL: Query[Int *: String *: EmptyTuple, Supplier] =
     sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-          , vatCode, company, modelid, enterdate, changedate, postingdate
+          , vatCode, currency, company, modelid, enterdate, changedate, postingdate
              FROM   supplier
              WHERE  modelid = $int4 AND company = $varchar
              ORDER BY id ASC""".query(mfDecoder)
 
   val insert: Command[Supplier] = 
     sql"""INSERT INTO supplier (id, name, description, street, zip, city, state, country, phone, email, account
-                            , oaccount, tax_code, vatCode, company, modelid, enterdate, changedate, postingdate)
+                            , oaccount, tax_code, vatCode, currency, company, modelid, enterdate, changedate, postingdate)
                                 VALUES $mfEncoder """.stripMargin.command
 
   def insertAll(n: Int): Command[List[Supplier.TYPE2]] = 
     sql"""INSERT INTO supplier (id, name, description, street, zip, city, state, country, phone, email, account
-          , oaccount, tax_code, vatCode, company, modelid, enterdate, changedate, postingdate)
+          , oaccount, tax_code, vatCode, currency, company, modelid, enterdate, changedate, postingdate)
           VALUES ${mfCodec.values.list(n)}""".stripMargin.command
 
   val UPDATE: Command[Supplier.TYPE3] =
     sql"""UPDATE supplier SET name= $varchar, description= $varchar, street= $varchar, zip= $varchar, city= $varchar
           , state= $varchar, country= $varchar, phone= $varchar, email= $varchar, account= $varchar, oaccount= $varchar
-          , tax_code = $varchar , vatcode= $varchar
+          , tax_code = $varchar , vatcode= $varchar, currency=$varchar
           WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
 
   def DELETE: Command[(String, Int, String)] =

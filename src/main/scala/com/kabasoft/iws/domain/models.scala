@@ -1367,6 +1367,7 @@ sealed trait BusinessPartner:
   def oaccount: String
   def taxCode: String
   def vatCode: String
+  def currency: String
   def company: String
   def modelid: Int
   def enterdate: Instant
@@ -1391,6 +1392,7 @@ final case class Supplier(
                            oaccount: String,
                            taxCode:String,
                            vatCode: String,
+                           currency: String,
                            company: String,
                            modelid: Int = Supplier.MODELID,
                            enterdate: Instant = Instant.now(),
@@ -1401,10 +1403,11 @@ final case class Supplier(
 object Supplier                      {
   val MODELID = 1
   type TYPE2 = (String, String, String, String, String, String, String, String, String, String, String, String
-    , String, String, String, Int, LocalDateTime, LocalDateTime, LocalDateTime)
+    , String, String, String, String, Int, LocalDateTime, LocalDateTime, LocalDateTime)
   type TYPE3 = (String, String, String, String, String, String, String, String, String, String, String, String
-    , String, String, Int, String)
+    , String, String, String, Int, String)
   type TYPE = (
+    String,
     String,
     String,
     String,
@@ -1446,6 +1449,7 @@ object Supplier                      {
       c._17,
       c._18,
       c._19,
+      c._20,
       List.empty[BankAccount]
     )
 
@@ -1454,7 +1458,7 @@ object Supplier                      {
       st.name,
       st.description,
       st.street, st.zip, st.city, st.state, st.country, st.phone, st.email, st.account, st.oaccount
-      , st.taxCode, st.vatCode, st.company, st.modelid,
+      , st.taxCode, st.vatCode, st.currency, st.company, st.modelid,
       st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
       st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
@@ -1462,7 +1466,7 @@ object Supplier                      {
 
   def encodeIt2(st: Supplier): TYPE3 =
     (st.name, st.description, st.street, st.zip, st.city, st.state, st.country, st.phone, st.email, st.account, st.oaccount
-      , st.taxCode, st.vatCode, st.id, st.modelid, st.company)  
+      , st.taxCode, st.vatCode, st.currency, st.id, st.modelid, st.company)  
 }
 final case class Customer(
                            id: String,
@@ -1479,6 +1483,7 @@ final case class Customer(
                            oaccount: String,
                            taxCode: String,
                            vatCode: String,
+                           currency: String,
                            company: String,
                            modelid: Int = Customer.MODELID,
                            enterdate: Instant = Instant.now(),
@@ -1489,10 +1494,11 @@ final case class Customer(
 object Customer                      {
   val MODELID = 3
   type TYPE2 = (String, String, String, String, String, String, String, String, String, String, String, String
-    , String, String, String, Int, LocalDateTime, LocalDateTime, LocalDateTime)
+    , String, String, String, String, Int, LocalDateTime, LocalDateTime, LocalDateTime)
   type TYPE3 = (String, String, String, String, String, String, String, String, String, String, String
-    , String, String, String, Int, String)
+    , String, String, String, String,Int, String)
   type TYPE = (
+    String,
     String,
     String,
     String,
@@ -1535,52 +1541,53 @@ object Customer                      {
       c._17,
       c._18,
       c._19,
+      c._20,
       List.empty[BankAccount]
     )
 
   def encodeIt(st: Customer): TYPE2 =
    (st.id, st.name, st.description, st.street, st.zip, st.city, st.state, st.country, st.phone, st.email,
-     st.account, st.oaccount, st.taxCode, st.vatCode, st.company, st.modelid,
+     st.account, st.oaccount, st.taxCode, st.vatCode, st.currency, st.company, st.modelid,
      st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
      st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
      st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
    )  
   def encodeIt2(st: Customer): TYPE3 =
     ( st.name, st.description, st.street, st.zip, st.city, st.state, st.country, st.phone, st.email, st.account, st.oaccount
-     , st.taxCode, st.vatCode, st.id, st.modelid, st.company)
+     , st.taxCode, st.vatCode, st.currency, st.id, st.modelid, st.company)
 }
 
 final case class Employee(id: String, name: String, description: String, street: String, zip: String, city: String
                           , state: String, country: String, phone: String, email: String, account: String, oaccount: String
-                          , taxCode: String, vatCode: String, company: String, salary:BigDecimal, modelid: Int = Employee.MODELID
+                          , taxCode: String, vatCode: String, currency: String, company: String, salary:BigDecimal, modelid: Int = Employee.MODELID
                           , enterdate: Instant = Instant.now(), changedate: Instant = Instant.now(), postingdate: Instant = Instant.now()
                           , bankaccounts: List[BankAccount] = List.empty[BankAccount]
                           , salaryItems: List[EmployeeSalaryItemDTO] = List.empty[EmployeeSalaryItemDTO]
                          ) extends BusinessPartner
 object Employee:
   val MODELID = 33
-  type TYPE2 = (String, String, String, String, String, String, String, String, String, String, String, String, String
+  type TYPE2 = (String, String, String, String, String, String, String, String, String, String, String, String, String, String
     , String,  String, scala.math.BigDecimal, Int, LocalDateTime, LocalDateTime, LocalDateTime)
-  type TYPE3 = (String, String, String, String, String, String, String, String, String, String, String
+  type TYPE3 = (String, String, String, String, String, String, String, String, String, String, String, String
     , String, String, scala.math.BigDecimal, String, Int, String)
-  type TYPE = (String, String, String, String, String, String, String, String, String, String, String, String, String,
+  type TYPE = (String, String, String, String, String, String, String, String, String, String, String, String, String, String,
       String, String, BigDecimal, Int, Instant, Instant, Instant)
 
-  def apply(c: TYPE): Employee =
-    Employee(c._1, c._2, c._3, c._4, c._5, c._6, c._7, c._8, c._9, c._10, c._11, c._12, c._13, c._14, c._15, c._16,
-      c._17, c._18, c._19, c._20, List.empty[BankAccount], List.empty[EmployeeSalaryItemDTO])
+//  def apply(c: TYPE): Employee =
+//    Employee(c._1, c._2, c._3, c._4, c._5, c._6, c._7, c._8, c._9, c._10, c._11, c._12, c._13, c._14, c._15, c._16,
+//      c._17, c._18, c._19, c._20, c._21, List.empty[BankAccount], List.empty[EmployeeSalaryItemDTO])
 
   def encodeIt(st: Employee):TYPE2 =
     (st.id, st.name, st.description, st.street, st.zip, st.city
       , st.state, st.country, st.phone, st.email, st.account
-      , st.oaccount, st.taxCode, st.vatCode, st.company, st.salary, st.modelid
+      , st.oaccount, st.taxCode, st.vatCode, st.currency, st.company, st.salary, st.modelid
       , st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
       , st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
       , st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime)
   
   def encodeIt2(st: Employee): TYPE3 =
       (st.name, st.description, st.street, st.zip, st.city, st.state, st.country, st.phone, st.email, st.account, st.oaccount
-        , st.taxCode, st.vatCode, st.salary, st.id, st.modelid, st.company)
+        , st.taxCode, st.vatCode, st.currency, st.salary, st.id, st.modelid, st.company)
 
 final case class TransactionDetails( id: Long, transid: Long, article: String, articleName:String, quantity: BigDecimal, unit: String, price: BigDecimal,
                                      currency: String, duedate: Instant = Instant.now(), vatCode:String, text: String, company: String)

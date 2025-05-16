@@ -116,7 +116,7 @@ private[repository] object EmployeeRepositorySQL:
 
     private val mfCodec =
       (varchar *: varchar *: varchar *: varchar *:varchar *: varchar *: varchar *: varchar *: varchar *:varchar *: varchar *:
-        varchar *: varchar *: varchar *: varchar *: numeric(12, 2) *: int4 *:timestamp *: timestamp *: timestamp)
+        varchar *: varchar *: varchar *: varchar *:varchar *: numeric(12, 2) *: int4 *:timestamp *: timestamp *: timestamp)
       
     private val salaryItemCodec = 
       (varchar *: varchar *: varchar *: numeric(12, 2) *: numeric(12, 2) *: varchar *: varchar)
@@ -126,7 +126,7 @@ private[repository] object EmployeeRepositorySQL:
   
     val mfDecoder: Decoder[Employee] = mfCodec.map:
       case (id, name, description, street, zip, city, state, country, phone, email, account, oaccount, taxCode
-           , vatcode, company, salary, modelid, enterdate, changedate, postingdate) =>
+           , vatcode, currency, company, salary, modelid, enterdate, changedate, postingdate) =>
         Employee(
           id,
           name,
@@ -142,6 +142,7 @@ private[repository] object EmployeeRepositorySQL:
           oaccount,
           taxCode,
           vatcode,
+          currency,
           company,
           salary.bigDecimal,
           modelid,
@@ -159,26 +160,26 @@ private[repository] object EmployeeRepositorySQL:
 
     val base =
       sql""" SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-             , vatcode, company, salary, modelid, enterdate, changedate, postingdate
+             , vatcode, currency, company, salary, modelid, enterdate, changedate, postingdate
              FROM   employee ORDER BY id ASC"""
 
     def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Employee] =
       sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-            , vatcode, company, salary, modelid, enterdate, changedate, postingdate
+            , vatcode, currency, company, salary, modelid, enterdate, changedate, postingdate
              FROM   employee
              WHERE id  IN ${varchar.list(nr)} AND  modelid = $int4 AND company = $varchar
              ORDER BY id ASC""".query(mfDecoder)
 
     val BY_ID: Query[String *: Int *: String *: EmptyTuple, Employee] =
       sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-            , vatcode, company, salary, modelid, enterdate, changedate, postingdate
+            , vatcode, currency, company, salary, modelid, enterdate, changedate, postingdate
              FROM   employee
              WHERE id = $varchar AND modelid = $int4 AND company = $varchar
              ORDER BY id ASC""".query(mfDecoder)
 
     val ALL: Query[Int *: String *: EmptyTuple, Employee] =
       sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-            , vatcode, company, salary, modelid, enterdate, changedate, postingdate
+            , vatcode, currency, company, salary, modelid, enterdate, changedate, postingdate
              FROM   employee
              WHERE  modelid = $int4 AND company = $varchar
              ORDER BY id ASC""".query(mfDecoder)
@@ -203,7 +204,7 @@ private[repository] object EmployeeRepositorySQL:
     val UPDATE: Command[Employee.TYPE3] =
        sql"""UPDATE employee SET name= $varchar, description= $varchar, street= $varchar, zip= $varchar, city= $varchar
                , state= $varchar, country= $varchar, phone= $varchar, email= $varchar, account= $varchar, oaccount= $varchar
-               , tax_code=$varchar, vatcode= $varchar, salary=$numeric
+               , tax_code=$varchar, vatcode= $varchar, currency= $varchar, salary=$numeric
                WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
  
     val UPDATE_SALARY_ITEM: Command[EmployeeSalaryItem.TYPE] =
