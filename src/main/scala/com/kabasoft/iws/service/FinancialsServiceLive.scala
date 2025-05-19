@@ -38,9 +38,10 @@ final class FinancialsServiceLive(pacRepo: PacRepository
       nr     <- ZIO.foreach(models)(trans => postTransaction(trans, company)).map(_.toList).map(_.sum)
     } yield nr
 
-  override def postAll(ids: List[Long], company: String): ZIO[Any, RepositoryError, Int] =
+  override def postAll(ids: List[Long], modelid:Int, company: String): ZIO[Any, RepositoryError, Int] =
     for {
-      queries <- ZIO.foreach(ids)(id => ftrRepo.getByTransId((id, company)))
+      //queries <- ZIO.foreach(ids)(id => ftrRepo.getByTransId((id, company)))
+      queries <- ftrRepo.getBy(ids, modelid, company)
       models = queries.filter(_.posted == false)
       _ <-ZIO.foreachDiscard(models.map(_.id)) (
         id =>ZIO.logDebug(s"Posting transaction with id ${id} of company ${company}"))

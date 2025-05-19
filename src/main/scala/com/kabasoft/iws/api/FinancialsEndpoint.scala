@@ -1,9 +1,12 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.AppError._
-import com.kabasoft.iws.domain.{AppError, FinancialsTransaction}
+import com.kabasoft.iws.domain.AppError.*
+import com.kabasoft.iws.domain.{AppError, FinancialsTransaction, common}
 import com.kabasoft.iws.repository.FinancialsTransactionRepository
+import com.kabasoft.iws.service.FinancialsService
+
+import java.time.Instant
 //import com.kabasoft.iws.service.TransactionService
 //import com.kabasoft.iws.api.Protocol._
 import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, ftransactionSchema, repositoryErrorSchema}
@@ -81,12 +84,17 @@ object FinancialsEndpoint:
       HttpCodec.error[AuthenticationError](Status.Unauthorized),
     ).out[List[FinancialsTransaction]] ?? Doc.p(postAllDoc)
 
-
+  def buildId(transactions: List[FinancialsTransaction]): List[FinancialsTransaction] =
+    transactions.zipWithIndex.map { case (ftr, i) =>
+      val idx = Instant.now().getNano + i.toLong
+        ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
+    }
+    
   val financialsCreateRoute =
     mCreate.implement: (m, _) =>
       ZIO.logInfo(s"Insert financials transaction  ${m}") 
         *> FinancialsTransactionRepository.create(m)
-        *> FinancialsTransactionRepository.getById(m.id, m.modelid, m.company)
+        *> FinancialsTransactionRepository.getById1(m.id1, m.modelid, m.company)
 
   val financialsAllRoute =
     mAll.implement: p =>
@@ -96,12 +104,12 @@ object FinancialsEndpoint:
   val financialsPostAllRoute =
     trPostAll.implement: p =>
       ZIO.logInfo(s"Post all financials transaction by id ${p._1.split(',').map(_.toLong).toList}") *>
-        //TransactionRepository.postAll((p._1, p._2)) *>
+        FinancialsService.postAll({p._1.split(',').map(_.toLong).toList}, p._2, p._3) *>
         FinancialsTransactionRepository.getBy(p._1.split(',').map(_.toLong).toList, p._2, p._3)
 
   val financialsByIdRoute =
     mById.implement: p =>
-      ZIO.logInfo(s"Modify financials transaction  ${p}") *>
+      ZIO.logInfo(s"Get financials transaction by ids  ${p._1} modelid ${p._2} company ${p._3} ") *>
         FinancialsTransactionRepository.getById(p._1, p._2, p._3)
 
   val financialsModifyRoute =

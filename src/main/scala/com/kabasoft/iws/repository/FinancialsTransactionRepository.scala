@@ -27,6 +27,7 @@ trait FinancialsTransactionRepository:
   def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]]
 
   def getById(Id: (Long, Int, String)): ZIO[Any, RepositoryError, FinancialsTransaction]
+  def getById1(Id: (Long, Int, String)): ZIO[Any, RepositoryError, FinancialsTransaction]
 
   def getBy(ids: List[Long], modelid: Int, company: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]]
 
@@ -79,6 +80,9 @@ object FinancialsTransactionRepository:
     ZIO.serviceWithZIO[FinancialsTransactionRepository](_.getBy(ids, modelid, companyId))
   def getById(p:(Long, Int, String)): ZIO[FinancialsTransactionRepository, RepositoryError, FinancialsTransaction] =
     ZIO.serviceWithZIO[FinancialsTransactionRepository](_.getById(p))
+
+  def getById1(p: (Long, Int, String)): ZIO[FinancialsTransactionRepository, RepositoryError, FinancialsTransaction] =
+    ZIO.serviceWithZIO[FinancialsTransactionRepository](_.getById1(p))   
     
   //def getByIds(ids: List[Long], modelid: Int, companyId: String): ZIO[FinancialsTransactionRepository, RepositoryError, List[FinancialsTransaction]] =
   //  ZIO.serviceWithZIO[FinancialsTransactionRepository](_.getByIds(ids, modelid, companyId))

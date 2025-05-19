@@ -22,7 +22,8 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
   
   def buildId(transactions: List[FinancialsTransaction]): List[FinancialsTransaction] =
     transactions.zipWithIndex.map { case (ftr, i) =>
-      val idx = Instant.now().getNano + i.toLong
+      val idx_ = Instant.now().getNano + i.toLong
+      val idx = if(ftr.id1 >0) ftr.id1 else idx_
       ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
     }
   
@@ -109,7 +110,12 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
     transaction <- queryWithTxUnique(postgres, p, BY_ID)
     details <- withLines(transaction)
 } yield details
-    
+
+  override def getById1(p: (Long, Int, String)): ZIO[Any, RepositoryError, FinancialsTransaction] = for {
+    transaction <- queryWithTxUnique(postgres, p, BY_ID1)
+    details <- withLines(transaction)
+  } yield details
+  
   override def getBy(ids: List[Long],  modelid: Int, company: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
     transactions <- queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
     details <- transactions.map(withLines).flip
@@ -181,13 +187,13 @@ object FinancialsTransactionRepositorySQL:
   def ALL_BY_ID(nr: Int): Query[(List[Long], Int, String), FinancialsTransaction] =
     sql"""SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
            FROM   master_compta
-           WHERE id  IN ${int8.list(nr)} AND modelid= $int4 AND company = $varchar
+           WHERE id  IN (${int8.list(nr)}) AND modelid= $int4 AND company = $varchar
            """.query(mfDecoder)
 
   def BY_IDS(nr: Int): Query[(List[Long], Int, String), FinancialsTransaction] =
     sql"""SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
            FROM   master_compta
-           WHERE id  IN ${int8.list(nr)} AND modelid = $int4 AND company = $varchar
+           WHERE id  (IN ${int8.list(nr)}) AND modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   def BY_MODEL_ID: Query[(Int, String), FinancialsTransaction] =

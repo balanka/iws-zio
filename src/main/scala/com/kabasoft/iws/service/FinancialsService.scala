@@ -6,7 +6,7 @@ import zio._
 
 trait FinancialsService:
   def post(id: Long, company: String): ZIO[Any, RepositoryError, Int]
-  def postAll(ids: List[Long], company: String): ZIO[Any, RepositoryError, Int]
+  def postAll(ids: List[Long], modelid:Int, company: String): ZIO[Any, RepositoryError, Int]
   def getBy(id: String, company: String): ZIO[FinancialsService, RepositoryError, PeriodicAccountBalance]
   def journal(accountId: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[Journal]]
   def getByIds(ids: List[String], company: String): ZIO[FinancialsService, RepositoryError, List[PeriodicAccountBalance]]
@@ -17,8 +17,8 @@ trait FinancialsService:
 object FinancialsService:
   def post(id: Long, company: String): ZIO[FinancialsService, RepositoryError, Int]         =
     ZIO.serviceWithZIO[FinancialsService](_.post(id, company))
-  def postAll(ids: List[Long], company: String): ZIO[FinancialsService, RepositoryError, Int]                                       =
-    ZIO.serviceWithZIO[FinancialsService](_.postAll(ids, company))
+  def postAll(ids: List[Long], modelid:Int, company: String): ZIO[FinancialsService, RepositoryError, Int]                                       =
+    ZIO.serviceWithZIO[FinancialsService](_.postAll(ids, modelid, company))
   def journal(accountId: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[FinancialsService, RepositoryError, List[Journal]] =
     ZIO.serviceWithZIO[FinancialsService](_.journal(accountId, fromPeriod, toPeriod, company))
 
