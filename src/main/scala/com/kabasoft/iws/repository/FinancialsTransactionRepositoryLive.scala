@@ -1,16 +1,16 @@
 package com.kabasoft.iws.repository
 
-import cats.*
+import cats._
 import cats.effect.Resource
-import cats.syntax.all.*
+import cats.syntax.all._
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, common}
-import skunk.*
-import skunk.codec.all.*
-import skunk.implicits.*
+import skunk._
+import skunk.codec.all._
+import skunk.implicits._
 import zio.prelude.FlipOps
-import zio.interop.catz.*
-import zio.{ZIO, *}
+import zio.interop.catz._
+import zio.{ZIO, _}
 
 import java.time.{Instant, LocalDateTime, ZoneId}
 
@@ -19,13 +19,16 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
                                                       , accRepo: AccountRepository) extends FinancialsTransactionRepository, MasterfileCRUD:
 
   import FinancialsTransactionRepositorySQL._
-  
-  def buildId(transactions: List[FinancialsTransaction]): List[FinancialsTransaction] =
-    transactions.zipWithIndex.map { case (ftr, i) =>
-      val idx_ = Instant.now().getNano + i.toLong
-      val idx = if(ftr.id1 >0) ftr.id1 else idx_
-      ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
+
+  def buildId(transaction: FinancialsTransaction): FinancialsTransaction = 
+    if (transaction.id1 > 0L) transaction else {
+      List(transaction).zipWithIndex.map { case (ftr, i) =>
+        val idx = Instant.now().getNano + i.toLong
+        ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
+      }.headOption.getOrElse(transaction)
     }
+
+
   
   def transact(s: Session[Task], models: List[FinancialsTransaction]): Task[Unit] =
     s.transaction.use: xa =>
@@ -66,7 +69,8 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
     (postgres
       .use:
         session =>
-          transact(session, buildId(models)))
+          transact(session, models.map(buildId).map(tr=>
+            tr.copy(lines = tr.lines.map(line=>line.copy(company = line.company.replace("-", "")))))))
         .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)
 
   override def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = modify(List(model))
@@ -193,7 +197,7 @@ object FinancialsTransactionRepositorySQL:
   def BY_IDS(nr: Int): Query[(List[Long], Int, String), FinancialsTransaction] =
     sql"""SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
            FROM   master_compta
-           WHERE id  (IN ${int8.list(nr)}) AND modelid = $int4 AND company = $varchar
+           WHERE id IN (${int8.list(nr)}) AND modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   def BY_MODEL_ID: Query[(Int, String), FinancialsTransaction] =
@@ -235,7 +239,7 @@ object FinancialsTransactionRepositorySQL:
   def DETAILS(n: Int): Query[List[Long] *: String *: EmptyTuple, FinancialsTransactionDetails] =
     sql"""SELECT id, transid, account, side, oaccount, amount,  duedate, text, currency,  company, account_name, oaccount_name
            FROM   details_compta
-           WHERE  transid  in ${int8.list(n)}  AND company = $varchar
+           WHERE  transid  IN (${int8.list(n)})  AND company = $varchar
            """.query(detailsDecoder)
 
   val DETAILS1: Query[Long *: String *: EmptyTuple, FinancialsTransactionDetails] =

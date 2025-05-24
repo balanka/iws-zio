@@ -18,15 +18,18 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
                                             , accRepo: AccountRepository
                                             , articleRepo: ArticleRepository) extends TransactionRepository, MasterfileCRUD:
 
-  import TransactionRepositorySQL.*
+  import TransactionRepositorySQL._
 
-  
-  def buildId(transactions: List[Transaction]): List[Transaction] =
-    transactions.zipWithIndex.map { case (ftr, i) =>
-      val idx = Instant.now().getNano + i.toLong
-      ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
+  def buildId(transaction: Transaction): Transaction = {
+    if(transaction.id1 >0L) transaction else
+    {
+      List(transaction).zipWithIndex.map { case (ftr, i) =>
+        val idx = Instant.now().getNano + i.toLong
+        ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
+      }.headOption.getOrElse(transaction)
     }
-  
+  }
+
   def transact(s: Session[Task], models: List[Transaction]): Task[Unit] =
     s.transaction.use: xa =>
       s.prepareR(insert).use: pciMaster =>
@@ -68,7 +71,8 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
     (postgres
       .use:
         session =>
-          transact(session, buildId(models)))
+          transact(session, models.map(buildId).map(tr=>
+            tr.copy(lines = tr.lines.map(line=>line.copy(company = line.company.replace("-", "")))))))
       .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)
 
   override def modify(model: Transaction): ZIO[Any, RepositoryError, Int] = modify(List(model))
@@ -95,6 +99,11 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
     transaction <- queryWithTxUnique(postgres, p, BY_ID)
     details <- withLines(transaction)
   } yield details
+  
+  override def getById1(p: (Long, Int, String)): ZIO[Any, RepositoryError, Transaction] = for {
+    transaction <- queryWithTxUnique(postgres, p, BY_ID1)
+    details <- withLines(transaction)
+  } yield details
     
   override def getByModelId( p: (Int, String)): ZIO[Any, RepositoryError, List[Transaction]] = for {
     transactions <- queryWithTx(postgres, p, BY_MODEL_ID)
@@ -113,6 +122,7 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
 
   private def getByTransId1(trans: Transaction): ZIO[Any, RepositoryError, Transaction] = for {
     lines_ <- getDetails(trans.id1, trans.company)
+    _ <-ZIO.logInfo(s"lines_.map(_.article) ${lines_.map(_.article)}")
     articles <- articleRepo.getBy(lines_.map(_.article), Article.MODELID, trans.company)
    // vats <- vatRepo.getBy(trans.lines.map(_.vatCode), Vat.MODEL_ID, trans.company)
   } yield trans.copy(lines = if (lines_.nonEmpty) {
@@ -181,6 +191,12 @@ private[repository] object TransactionRepositorySQL:
            """.query(mfDecoder)
 
   val BY_ID: Query[Long *: Int *: String *: EmptyTuple, Transaction] =
+    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text
+           FROM   transaction
+           WHERE id = $int8 AND modelid = $int4 AND company = $varchar
+           """.query(mfDecoder)
+           
+  val BY_ID1: Query[Long *: Int *: String *: EmptyTuple, Transaction] =
     sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text
            FROM   transaction
            WHERE id1 = $int8 AND modelid = $int4 AND company = $varchar

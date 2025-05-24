@@ -84,17 +84,18 @@ object FinancialsEndpoint:
       HttpCodec.error[AuthenticationError](Status.Unauthorized),
     ).out[List[FinancialsTransaction]] ?? Doc.p(postAllDoc)
 
-  def buildId(transactions: List[FinancialsTransaction]): List[FinancialsTransaction] =
-    transactions.zipWithIndex.map { case (ftr, i) =>
+  def buildId(transaction: FinancialsTransaction): FinancialsTransaction =
+    List(transaction).zipWithIndex.map { case (ftr, i) =>
       val idx = Instant.now().getNano + i.toLong
-        ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
-    }
-    
-  val financialsCreateRoute =
-    mCreate.implement: (m, _) =>
-      ZIO.logInfo(s"Insert financials transaction  ${m}") 
-        *> FinancialsTransactionRepository.create(m)
-        *> FinancialsTransactionRepository.getById1(m.id1, m.modelid, m.company)
+      ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
+    }.headOption.getOrElse(transaction)
+  
+  val financialsCreateRoute = mCreate.implement { case (p)=> {
+      val transaction = buildId(p._1)
+      ZIO.logInfo(s"Insert financials transaction  ${transaction}") *>
+      FinancialsTransactionRepository.create(transaction) *>
+      FinancialsTransactionRepository.getById1(transaction.id1, transaction.modelid, transaction.company)
+  }}
 
   val financialsAllRoute =
     mAll.implement: p =>

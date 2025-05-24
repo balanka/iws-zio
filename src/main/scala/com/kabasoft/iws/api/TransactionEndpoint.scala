@@ -1,13 +1,14 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.AppError._
-import com.kabasoft.iws.domain.{AppError, Transaction}
+import com.kabasoft.iws.domain.AppError.*
+import com.kabasoft.iws.domain.{AppError, Transaction, common}
 import com.kabasoft.iws.repository.TransactionRepository
-import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, transactionSchema, repositoryErrorSchema}
-import zio._
-import zio.http.RoutePattern
+import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, repositoryErrorSchema, transactionSchema}
+
+import java.time.Instant
 //import zio.schema.annotation.description
+import zio._
 import zio.schema.Schema
 import zio.http._
 import zio.http.codec.PathCodec.{path, int, string, long}
@@ -78,16 +79,24 @@ object TransactionEndpoint:
       HttpCodec.error[AuthenticationError](Status.Unauthorized),
     ).out[List[Transaction]] ?? Doc.p(postAllDoc)
 
-
+  def buildId(transaction: Transaction): Transaction =
+    List(transaction).zipWithIndex.map { case (ftr, i) =>
+      val idx = Instant.now().getNano + i.toLong
+      ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
+    }.headOption.getOrElse(transaction)
+  
   val createTransactionRoute =
-    mCreate.implement: (m, _) =>
-      ZIO.logInfo(s"Insert transaction  ${m}")
-      *> TransactionRepository.create(m)
-      *> TransactionRepository.getById(m.id, m.modelid, m.company)
+    mCreate.implement { case (m, _) => { //postCreate(m)
+      val transaction = buildId(m)
+      ZIO.logInfo(s"Insert transaction  ${transaction}") *>
+        TransactionRepository.create(transaction) *>
+        TransactionRepository.getById1(transaction.id1, transaction.modelid, transaction.company)
+    }
+}
 
   val trAllRoute =
     mAll.implement: p =>
-      ZIO.logInfo(s"Insert transaction  ${p}") *>
+      ZIO.logInfo(s"Get all transaction  ${p}") *>
         TransactionRepository.all((p._1, p._2))
 
   val trPostAllRoute =
