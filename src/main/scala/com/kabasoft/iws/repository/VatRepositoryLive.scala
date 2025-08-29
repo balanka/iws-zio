@@ -47,14 +47,14 @@ private[repository] object VatRepositorySQL:
     val mfEncoder: Encoder[Vat] = mfCodec.values.contramap(Vat.encodeIt)
 
     def base =
-    sql""" SELECT id, name, description, percent, input_vat_account, outputVatAccount, enterdate, changedate,postingdate, company, modelid
+    sql""" SELECT id, name, description, percent, input_vat_account, output_vat_account, enterdate, changedate,postingdate, company, modelid
          FROM   vat ORDER BY id ASC """
 
     def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Vat] =
     sql"""
-         SELECT id, name, description, percent, input_vat_account, outputVatAccount, enterdate, changedate,postingdate, company, modelid
+         SELECT id, name, description, percent, input_vat_account, output_vat_account, enterdate, changedate,postingdate, company, modelid
          FROM   vat
-         WHERE id  IN ${varchar.list(nr)} AND  modelid = $int4 AND company = $varchar
+         WHERE id  IN (${varchar.list(nr)}) AND  modelid = $int4 AND company = $varchar
          ORDER BY id ASC """.query(mfDecoder)
 
     val BY_ID: Query[String *: Int *: String *: EmptyTuple, Vat] =
@@ -64,7 +64,7 @@ private[repository] object VatRepositorySQL:
          ORDER BY id ASC """.query(mfDecoder)
 
     val ALL: Query[Int *: String *: EmptyTuple, Vat] =
-    sql"""SELECT id, name, description, percent, input_vat_account, output_vat_account, enterdate, changedate,postingdate, company, modelid
+    sql"""SELECT id, name, description, percent, input_vat_account, output_vat_account, enterdate, changedate, postingdate, company, modelid
          FROM   vat
          WHERE  modelid = $int4 AND company = $varchar
          ORDER BY id ASC """.query(mfDecoder)
@@ -72,22 +72,7 @@ private[repository] object VatRepositorySQL:
     val insert: Command[Vat] = sql"""INSERT INTO vat VALUES $mfEncoder""".command
 
     def insertAll(n: Int): Command[List[TYPE]] = sql"INSERT INTO vat VALUES ${mfCodec.values.list(n)}".command
-
-    val upsert: Command[Vat] =
-      sql"""INSERT INTO vat
-           VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET
-           id                   = EXCLUDED.id,
-           name                 = EXCLUDED.name,
-           description          = EXCLUDED.description,
-           percent             = EXCLUDED.percent,
-           inputVatAccount     = EXCLUDED.input_vat_account,
-           outputVatAccount    = EXCLUDED.output_vat_account,
-           enterdate            = EXCLUDED.enterdate,
-           changedate            = EXCLUDED.changedate,
-           postingdate            = EXCLUDED.postingdate,
-           company              = EXCLUDED.company,
-           modelid              = EXCLUDED.modelid,
-        """.command
+  
 
     val UPDATE: Command[(String, String, BigDecimal, String, String, String, Int, String)] =
          sql"""UPDATE vat

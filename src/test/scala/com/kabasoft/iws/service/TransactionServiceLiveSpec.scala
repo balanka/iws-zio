@@ -22,7 +22,7 @@ object TransactionServiceLiveSpec extends ZIOSpecDefault {
   val testServiceLayer = ZLayer.make[AccountService& TransactionService& TransactionRepository & PostOrder
     & PostSalesOrder& ArticleRepository& AccountRepository& PacRepository& StockRepository & CustomerRepository
     &  SupplierRepository&  VatRepository& PostGoodreceiving& PostBillOfDelivery &  PostCustomerInvoice
-    & TransactionLogRepository &  PostSupplierInvoice& PostFinancialsTransactionRepository](
+    & TransactionLogRepository &  PostSupplierInvoice& PostFinancialsTransactionRepository &FinancialsService](
     appResourcesL.project(_.postgres),
     appConfig,
     AccountRepositoryLive.live,
@@ -48,6 +48,8 @@ object TransactionServiceLiveSpec extends ZIOSpecDefault {
     PostBillOfDeliveryLive.live,
     PostCustomerInvoiceLive.live,
     PostSupplierInvoiceLive.live,
+    FinancialsTransactionRepositoryLive.live,
+    FinancialsServiceLive.live,
     //PostgresContainer.createContainer
   )
   val list  = List(ftr1, ftr2, ftr3, ftr4, ftr5, ftr6)

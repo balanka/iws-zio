@@ -35,8 +35,8 @@ object TransactionBuilder {
   val qttyUnit = "stk"
   val vatCode = "v5"
 
-  val line1=  TransactionDetails(-1L, 0L,  artId0, artName0 , quantity0, qttyUnit, pprice0, currency, vtime, vatCode, text1, company )
-  val line2=  TransactionDetails(-1L, 0L,  artId1, artName1 , quantity1, qttyUnit, pprice1, currency,  vtime, vatCode, text1, company )
+  val line1=  TransactionDetails(-1L, 0L,  artId0, artName0 , quantity0, qttyUnit, pprice0, currency, vtime, vatCode, quantity0.multiply(pprice0).multiply(BigDecimal("0.19")), text1, company )
+  val line2=  TransactionDetails(-1L, 0L,  artId1, artName1 , quantity1, qttyUnit, pprice1, currency,  vtime, vatCode, quantity1.multiply(pprice1).multiply(BigDecimal("0.19")), text1, company )
 
   val ftr1 = Transaction(0,-1, -1,  store, accountId, vtime, vtime, vtime, period, posted = false, modelid, company, text1
           ,  List(line1, line2))

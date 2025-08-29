@@ -50,9 +50,17 @@ object IwsApp extends ZIOAppDefault {
 
   implicit val clock: Clock = Clock.systemUTC
   val env: util.Map[String, String] = System.getenv()
-  println("env>>>" + env)
-  val hostName: String =  if(env.get("IWS_API_HOST") == null|| env.get("IWS_API_HOST").isEmpty) "0.0.0.0" else env.get("IWS_API_HOST")
-  val port: Int =  if(env.get("IWS_API_PORT") == null||env.get("IWS_API_PORT").trim.isEmpty) 8080 else env.get("IWS_API_PORT").toInt
+  val hostName_env: String = env.get("IWS_API_HOST")
+  val port_env: String = env.get("IWS_API_PORT")
+  val hostName_prop: String = System.getProperty("IWS_API_HOST")
+  val port_prop: String = System.getProperty("IWS_API_PORT")
+
+  val hostName: String = if (hostName_env == null || hostName_env.isEmpty ) hostName_prop else  hostName_env
+  val port: Int = if (port_env == null || port_env.isEmpty) port_prop.toInt else port_env.toInt 
+
+  
+//  val hostName: String =  if(env.get("IWS_API_HOST") == null|| env.get("IWS_API_HOST").isEmpty) "0.0.0.0" else env.get("IWS_API_HOST")
+//  val port: Int =  if(env.get("IWS_API_PORT") == null||env.get("IWS_API_PORT").trim.isEmpty) 8080 else env.get("IWS_API_PORT").toInt
   println("hostName>>> " + hostName + " hostport >>>" + port)
   private val serverLayer: ZLayer[Any, Throwable, Server] = {
     implicit val trace: Trace = Trace.empty
@@ -93,6 +101,7 @@ object IwsApp extends ZIOAppDefault {
           appResourcesL,
           appConfig,
           ArticleRepositoryLive.live,
+          PacServiceLive.live,
           AssetRepositoryLive.live,
           AssetsServiceLive.live,
           AccountServiceLive.live,

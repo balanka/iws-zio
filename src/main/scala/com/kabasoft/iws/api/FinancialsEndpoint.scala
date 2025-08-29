@@ -58,13 +58,13 @@ object FinancialsEndpoint:
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ).out[FinancialsTransaction] ?? Doc.p(mModifyAPIDoc)
 
-  private val trCanceln = Endpoint(RoutePattern.PUT / "cancelLTr").header(HeaderCodec.authorization)
+  private val trCanceln = Endpoint(RoutePattern.PUT / "cancelFTr").header(HeaderCodec.authorization)
     .in[FinancialsTransaction]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ).out[FinancialsTransaction] ?? Doc.p(mModifyAPIDoc)
 
-  private val trDuplicate = Endpoint(RoutePattern.PUT / "duplicateLTr").header(HeaderCodec.authorization)
+  private val trDuplicate = Endpoint(RoutePattern.PUT / "duplicateFTr").header(HeaderCodec.authorization)
     .in[FinancialsTransaction]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)

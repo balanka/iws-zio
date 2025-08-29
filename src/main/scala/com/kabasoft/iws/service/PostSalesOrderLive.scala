@@ -11,8 +11,7 @@ final class PostSalesOrderLive(repository4PostingTransaction: PostTransactionRep
   override def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int] =
     if (transactions.isEmpty || transactions.flatMap(_.lines).isEmpty) throw IllegalStateException(" Error: Empty transaction may not be posted!!!")
     for 
-      nr <- repository4PostingTransaction.post(transactions, Nil, ZIO.succeed(List.empty[PeriodicAccountBalance]),
-        Nil, Nil, Nil, Nil, Nil)
+      nr <- repository4PostingTransaction.post(transactions, Nil, Nil, Nil, Nil, Nil)
     yield nr
 
 object PostSalesOrderLive:

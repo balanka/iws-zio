@@ -4,11 +4,21 @@ import cats.*
 import cats.syntax.all.*
 import cats.effect.Resource
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import skunk._
-import zio._
-import zio.interop.catz._
+import com.kabasoft.iws.domain.{common, FinancialsTransaction}
+import skunk.*
+import zio.*
+import zio.interop.catz.*
+import java.time.Instant
 
 trait MasterfileCRUD:
+  
+  def buildId(transaction: FinancialsTransaction): FinancialsTransaction =
+    if (transaction.id1 > 0L) transaction else {
+      List(transaction).zipWithIndex.map { case (ftr, i) =>
+        val idx = Instant.now().getNano + i.toLong
+        ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
+      }.headOption.getOrElse(transaction)
+    }
   def tryExec[A](xa: Transaction[Task], pc: PreparedCommand[Task, A], models: List[A]): Task[Unit] =
 
     for
@@ -58,7 +68,7 @@ trait MasterfileCRUD:
                              , pcuCustomer: PreparedCommand[Task, C]
                              , pcuBankAcc: PreparedCommand[Task, D]
                              , pcdBankAcc: PreparedCommand[Task, E]
-                             , customers: List[A]
+                             , newCustomers: List[A]
                              , newBankaccounts: List[B]
                              , oldCustomers: List[C]
                              , oldBankaccounts: List[D]
@@ -66,7 +76,7 @@ trait MasterfileCRUD:
 
     for
       sp <- xa.savepoint
-      _ <- exec(pciCustomer, customers).debug("ZZZZZZZZ0>>>") *>
+      _ <- exec(pciCustomer, newCustomers).debug("ZZZZZZZZ0>>>") *>
         exec(pciBankAcc, newBankaccounts).debug("ZZZZZZZZ1>>>") *>
         exec(pcuCustomer, oldCustomers).debug("ZZZZZZZZ2>>>") *>
         exec(pcuBankAcc, oldBankaccounts).debug("ZZZZZZZZ3>>>") *>
@@ -102,49 +112,97 @@ trait MasterfileCRUD:
             ZIO.logInfo(s"Unique violation: ${ex.getMessage}, rolling back...") *>
               xa.rollback(sp))
     yield ()
+    
+  def tryExec4[A, B, C, D, E, F, G](xa: Transaction[Task]
+                                 , pciPac: PreparedCommand[Task, A]
+                                 , pcuPac: PreparedCommand[Task, B]
+                                 , pciFtr: PreparedCommand[Task, C]
+                                 , pciLFtr: PreparedCommand[Task, D]
+                                 , pcuFtr: PreparedCommand[Task, E]
+                                 , pcuLFtr: PreparedCommand[Task, F]
+                                 , pciJour: PreparedCommand[Task, G]
+                                 , pac2Insert: List[A]
+                                 , pac2update: List[B]
+                                 , models2Insert: List[C]
+                                 , lines2Insert: List[D]
+                                 , models2Update: List[E] 
+                                 , lines2update: List[F]
+                                 , journals: List[G]): Task[Unit] =
+    for
+        sp <- xa.savepoint
+        _ <- exec(pciPac, pac2Insert) *>
+          exec(pciJour, journals) *>
+          exec(pcuPac, pac2update) *>
+          exec(pciFtr, models2Insert) *>
+          exec(pciLFtr, lines2Insert) *>
+          exec(pcuLFtr, lines2update) *>
+          exec(pcuFtr, models2Update)
+            .handleErrorWith(ex =>
+              ZIO.logInfo(s"Unique violation: ${ex.getMessage}, rolling back...") *>
+                xa.rollback(sp))
+    yield ()
 
-  def tryExec2[A, B, C, D](xa: Transaction[Task], pciPac: PreparedCommand[Task, A]
-                           , pciJour: PreparedCommand[Task, B]
-                           , pcuPac: PreparedCommand[Task, C]
-                           , pcuFtr: PreparedCommand[Task, D]
-                           , pac2Insert: List[A], journals: List[B]
-                           , pac2update: List[C], models: List[D]): Task[Unit] =
+  def tryExec2[A, B, C, D, E, F, G, H, I, J](xa: Transaction[Task]
+                                    , pciFtr: PreparedCommand[Task, A]
+                                    , pciFtrDetails: PreparedCommand[Task, B]
+                                    , pcuFtr: PreparedCommand[Task, C]
+                                    , pciPac: PreparedCommand[Task, D]
+                                    , pcuPac: PreparedCommand[Task, E]
+                                    , pciStock: PreparedCommand[Task, F]
+                                    , pcuStock: PreparedCommand[Task, G]
+                                    , pciTransLog: PreparedCommand[Task, H]
+                                    , pciJournal: PreparedCommand[Task, I]
+                                    , pcuArt: PreparedCommand[Task, J]
+                                    , newFtr: List[A]
+                                    , newFTrDetails: List[B]
+                                    , models: List[C]
+                                    , newPacs:List[D], oldPacs:List[E]
+                                    , newStock: List[F]
+                                    , stock2update: List[G]
+                                    , transLogEntries: List[H]
+                                    , newJournals:List[I]
+                                    , articles: List[J]
+                                    ): Task[Unit] =
 
     for
       sp <- xa.savepoint
-      _ <- exec(pciPac, pac2Insert) *>
-        exec(pciJour, journals) *>
-        exec(pcuPac, pac2update) *>
-        exec(pcuFtr, models)
+      _ <- exec(pciFtr, newFtr) *>
+        exec(pciFtrDetails, newFTrDetails) *>
+        exec(pcuFtr, models) *>
+        exec(pciPac, newPacs) *>
+        exec(pcuPac, oldPacs) *>
+        exec(pciStock, newStock) *>
+        exec(pcuStock, stock2update) *>
+        exec(pciTransLog, transLogEntries) *>
+        exec(pciJournal, newJournals) *>
+        exec(pcuArt, articles)
           .handleErrorWith(ex =>
             ZIO.logInfo(s"Unique violation: ${ex.getMessage}, rolling back...") *>
               xa.rollback(sp))
     yield ()
-
-  def tryExec3[A, B, C, D, E, F, G, H](xa: Transaction[Task], pciPac: PreparedCommand[Task, A]
-                          , pciStock: PreparedCommand[Task, B]
-                          , pciJour: PreparedCommand[Task, C]
+    
+  def tryExec3[A, B, C, D, E, F, G](xa: Transaction[Task]
+                           , pciFtr: PreparedCommand[Task, A]
+                           , pciFtrDetails: PreparedCommand[Task, B]
+                          , pciStock: PreparedCommand[Task, C]
                           , pciTransLog: PreparedCommand[Task, D]
-                          , pcuPac: PreparedCommand[Task, E]
-                          , pcuStock: PreparedCommand[Task, F]
-                          , pcuArt: PreparedCommand[Task, G]
-                          , pcuFtr: PreparedCommand[Task, H]
-                          , newPac: List[A]
-                          , newStock: List[B]
-                          , journals: List[C]
+                          , pcuStock: PreparedCommand[Task, E]
+                          , pcuArt: PreparedCommand[Task, F]
+                          , pcuFtr: PreparedCommand[Task, G]
+                          , newFtr: List[A]
+                          , newFTrDetails: List[B]
+                          , newStock: List[C]
                           , transLogEntries: List[D]
-                          , pac2update: List[E]
-                          , stock2update: List[F]
-                          , articles: List[G]
-                          , models:List[H]): Task[Unit] =
+                          , stock2update: List[E]
+                          , articles: List[F]
+                          , models:List[G]): Task[Unit] =
 
     for
       sp <- xa.savepoint
-      _ <- exec(pciPac, newPac) *>
+      _ <-exec(pciFtr, newFtr) *>
+        exec(pciFtrDetails, newFTrDetails) *>
         exec(pciStock, newStock) *>
-        exec(pciJour, journals) *>
         exec(pciTransLog, transLogEntries) *>
-        exec(pcuPac, pac2update) *>
         exec(pcuStock, stock2update) *>
         exec(pcuArt, articles) *>
         exec(pcuFtr, models)
@@ -185,7 +243,7 @@ trait MasterfileCRUD:
       .use: session =>
         session.transaction.use: xa =>
           session
-            .prepare(comd)
+            .prepare(comd).debug(s"ZZZZZZZZZ ${p}")
             .flatMap: cmd =>
               xa.savepoint
               cmd.execute(p).debug("vcbvcbvcbvcbvcbvcvb").recoverWith:

@@ -4,7 +4,7 @@ import cats._
 import cats.effect.Resource
 import cats.syntax.all._
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, common}
+import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails}
 import skunk._
 import skunk.codec.all._
 import skunk.implicits._
@@ -19,25 +19,14 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
                                                       , accRepo: AccountRepository) extends FinancialsTransactionRepository, MasterfileCRUD:
 
   import FinancialsTransactionRepositorySQL._
-
-  def buildId(transaction: FinancialsTransaction): FinancialsTransaction = 
-    if (transaction.id1 > 0L) transaction else {
-      List(transaction).zipWithIndex.map { case (ftr, i) =>
-        val idx = Instant.now().getNano + i.toLong
-        ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
-      }.headOption.getOrElse(transaction)
-    }
-
-
+  
   
   def transact(s: Session[Task], models: List[FinancialsTransaction]): Task[Unit] =
     s.transaction.use: xa =>
       s.prepareR(insert).use: pciMaster =>
         s.prepareR(insertDetails).use: pciDetails =>
           tryExec(xa, pciMaster, pciDetails, models, models.flatMap(_.lines).map(FinancialsTransactionDetails.encodeIt4))
-          
   
-  // session, List.empty, newLine2Insert, models, oldLines2Update,  oldLine2Delete)
   def transact(s: Session[Task], models: List[FinancialsTransaction], oldmodels: List[FinancialsTransaction]): Task[Unit] =
     s.transaction.use: xa =>
       s.prepareR(insert).use: pciMaster =>
@@ -150,7 +139,6 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
         session =>
           session.execute(DELETE_ALL)*> session.execute(DELETE_ALL_DETAILS)
       .mapBoth(e => RepositoryError(e.getMessage), _ => 1))
-
 
 
 object FinancialsTransactionRepositoryLive:

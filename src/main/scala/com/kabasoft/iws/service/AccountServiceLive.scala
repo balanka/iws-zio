@@ -24,6 +24,8 @@ final class AccountServiceLive(accRepo: AccountRepository, pacRepo: PacRepositor
       List(account1) ++ account
     }).mapBoth(e => RepositoryError(e.message), a => a)
 
+
+
   def closePeriod(toPeriod: Int, inStmtAccId: String, company: String): ZIO[Any, RepositoryError, Int] = {
     val currentYear   = toPeriod.toString.slice(0, 4).toInt
     val fromPeriod = currentYear.toString.concat("01").toInt

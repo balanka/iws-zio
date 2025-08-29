@@ -5,6 +5,7 @@ import com.kabasoft.iws.domain.AppError.*
 import com.kabasoft.iws.domain.{AppError, Transaction, common}
 import com.kabasoft.iws.repository.TransactionRepository
 import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, repositoryErrorSchema, transactionSchema}
+import com.kabasoft.iws.service.TransactionService
 
 import java.time.Instant
 //import zio.schema.annotation.description
@@ -19,7 +20,8 @@ object TransactionEndpoint:
   val modelidDoc = "The modelId for identifying the typ of transaction "
   val idDoc = "The unique Id for identifying the transaction"
   val idsDoc = "The list of transaction Id to post"
-  val mCreateAPIFoc = "Create a new store"
+  val mCreateAPIFoc = "Create a new transaction"
+  val mCopyAPIFoc = "Create a new transaction ( i.e. bill  of delivery) from an existing one by copying it (i.e. a customer order)"
   val mAllAPIDoc = "Get a transaction by modelId and company"
   val postAllDoc = "Post all transaction with tge specified ids"
   val companyDoc = "The company whom the transaction belongs to (i.e. 111111)"
@@ -34,6 +36,14 @@ object TransactionEndpoint:
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ) ?? Doc.p(mCreateAPIFoc)
+  
+  private val mCopy = Endpoint(RoutePattern.POST / "ltr/copy")
+    .in[Transaction]
+    .header(HeaderCodec.authorization)
+    .out[Transaction]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ) ?? Doc.p(mCopyAPIFoc)
 
   private val mAll = Endpoint(RoutePattern.GET / "ltr" / int("modelid") ?? Doc.p(modelidDoc) / string("company") ??
     Doc.p(companyDoc)).header(HeaderCodec.authorization)
@@ -84,15 +94,23 @@ object TransactionEndpoint:
       val idx = Instant.now().getNano + i.toLong
       ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
     }.headOption.getOrElse(transaction)
-  
+
   val createTransactionRoute =
-    mCreate.implement { case (m, _) => { //postCreate(m)
+    mCreate.implement { case (m, _) => {
       val transaction = buildId(m)
       ZIO.logInfo(s"Insert transaction  ${transaction}") *>
         TransactionRepository.create(transaction) *>
         TransactionRepository.getById1(transaction.id1, transaction.modelid, transaction.company)
+     }
     }
-}
+//  val copyTransactionRoute =
+//    mCopy.implement { case (m, _) => { 
+//      val transaction = buildId(m)
+//      ZIO.logInfo(s"Insert transaction  ${transaction}") *>
+//        TransactionRepository.create(transaction) *>
+//        TransactionRepository.getById1(transaction.id1, transaction.modelid, transaction.company)
+//    }
+
 
   val trAllRoute =
     mAll.implement: p =>
@@ -100,10 +118,11 @@ object TransactionEndpoint:
         TransactionRepository.all((p._1, p._2))
 
   val trPostAllRoute =
-    trPostAll.implement: p =>
-      ZIO.logInfo(s"Post all transaction by id ${p._1.split(',').map(_.toLong).toList}") *>
-        //TransactionRepository.postAll((p._1, p._2)) *>
-        TransactionRepository.getByIds(p._1.split(',').map(_.toLong).toList, p._2, p._3)
+    trPostAll.implement: p => 
+      ZIO.logInfo (s"Post all transaction by id ${p._1.split (',').map (_.toLong).toList}") *>
+      TransactionService.postAll (p._1.split (',').map (_.toLong).toList.map (id => (id, p._2) ), p._3) *>
+      TransactionRepository.getByIds (p._1.split (',').map (_.toLong).toList, p._2, p._3)
+    
 
   val trByIdRoute =
     mById.implement: p =>
@@ -134,4 +153,4 @@ object TransactionEndpoint:
 
   val transactionRoutes = Routes(createTransactionRoute, trAllRoute, trPostAllRoute, trByIdRoute, modifyTransactionRoute
     , trDuplicateRoute, trCancelnRoute, deleteTransactionRoute) @@ Middleware.debug
-
+      

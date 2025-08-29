@@ -35,6 +35,9 @@ final case class UserRepositoryLive(postgres: Resource[Task, Session[Task]], rep
     user_rights <- repo.allRights(UserRight.MODEL_ID, p._1)
     all_user_roles <- repo.allUserRoles(UserRole.MODEL_ID, p._1)
     users_ = p._2
+    _ <- ZIO.logInfo(s" roles ${roles}")
+    _ <- ZIO.logInfo(s" user_rights ${user_rights}")
+    _ <- ZIO.logInfo(s" all_user_roles ${all_user_roles}")
   }yield {
     val  rolesx: List[Role] = roles.map( r=>r.copy(rights = r.rights.:::(user_rights.filter(rt => rt.roleid == r.id))))
     val user_role = rolesx.filter(r=> all_user_roles.map(_.roleid).contains(r.id))

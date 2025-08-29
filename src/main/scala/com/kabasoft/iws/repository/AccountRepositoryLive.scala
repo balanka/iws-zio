@@ -23,6 +23,8 @@ final case class AccountRepositoryLive(postgres: Resource[Task, Session[Task]]) 
   override def modify(models: List[Account]): ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, Account.encodeIt2)
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Account]] = queryWithTx(postgres, p, ALL)
   override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, Account] = queryWithTxUnique(postgres, p, BY_ID)
+  override def getByParentId(p: (String, Int, String)): ZIO[Any, RepositoryError, List[Account]] =
+    queryWithTx(postgres, p, BY_PARENT_ID)
   override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Account]] =
     queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
   override def delete(p: (String, Int, String)): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
@@ -60,6 +62,12 @@ private[repository] object AccountRepositorySQL:
     sql""" SELECT id, name, description, enterdate, changedate, postingdate, company, modelid, account, is_debit, balancesheet, currency, idebit, icredit, debit, credit
            FROM   account
            WHERE id = $varchar AND modelid = $int4 AND company = $varchar
+           ORDER BY id ASC""".query(mfDecoder)
+           
+  val BY_PARENT_ID: Query[String *: Int *: String *: EmptyTuple, Account] =
+    sql""" SELECT id, name, description, enterdate, changedate, postingdate, company, modelid, account, is_debit, balancesheet, currency, idebit, icredit, debit, credit
+           FROM   account
+           WHERE account = $varchar AND modelid = $int4 AND company = $varchar
            ORDER BY id ASC""".query(mfDecoder)
 
   val ALL: Query[Int *: String *: EmptyTuple, Account] =

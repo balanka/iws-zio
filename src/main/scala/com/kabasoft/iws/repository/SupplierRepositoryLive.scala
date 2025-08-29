@@ -20,7 +20,7 @@ final case class SupplierRepositoryLive(postgres: Resource[Task, Session[Task]]
     s.transaction.use: xa =>
       s.prepareR(insert).use: pciCustomer =>
         s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
-          tryExec(xa, pciCustomer, pciBankAcc, newCustomers, newCustomers.flatMap(_.bankaccounts))
+          tryExec(xa, pciCustomer, pciBankAcc, newCustomers, newCustomers.flatMap(_.bankaccounts).filterNot(_.id.isEmpty))
 
   def transactM(s: Session[Task], models: List[Supplier], bankAccounts: List[BankAccount]): Task[Unit] =
     s.transaction.use: xa =>
@@ -70,7 +70,7 @@ final case class SupplierRepositoryLive(postgres: Resource[Task, Session[Task]]
         && bankAccount.company.contains("-"))
       .map(bankAccount =>bankAccount.copy(company = bankAccount.company.replace("-","")))
     val newLine2Insert = models.flatMap(_.bankaccounts).filter(bankAccount =>bankAccount.modelid === -1
-        && bankAccount.company.contains("-"))
+        && bankAccount.company.contains("-") && bankAccount.id.nonEmpty)
       .map(bankAccount => bankAccount.copy(modelid = BankAccount.MODEL_ID,
         company = bankAccount.company.replace("-", "")))
     val oldLine2Delete = models.flatMap(_.bankaccounts).filter(_.modelid === -2)
@@ -90,7 +90,7 @@ final case class SupplierRepositoryLive(postgres: Resource[Task, Session[Task]]
   override def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Supplier]] = 
     for 
       suppliers     <- list(Id).map(_.toList)
-      bankAccounts_ <- bankAccRepo.bankAccout4All(BankAccount.MODEL_ID)
+      bankAccounts_ <- bankAccRepo.all(BankAccount.MODEL_ID, Id._2)
     yield suppliers.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
 
   def list(p: (Int, String)): ZIO[Any, RepositoryError, List[Supplier]] = queryWithTx(postgres, p, ALL)
@@ -172,10 +172,10 @@ private[repository] object SupplierRepositorySQL:
     sql"""UPDATE supplier SET name= $varchar, description= $varchar, street= $varchar, zip= $varchar, city= $varchar
           , state= $varchar, country= $varchar, phone= $varchar, email= $varchar, account= $varchar, oaccount= $varchar
           , tax_code = $varchar , vatcode= $varchar, currency=$varchar
-          WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
+          WHERE id=$varchar and modelid=$int4 and company= $varchar""".stripMargin.command
 
   def DELETE: Command[(String, Int, String)] =
-    sql"DELETE FROM supplier WHERE id = $varchar AND modelid = $int4 AND company = $varchar".command
+    sql"DELETE FROM supplier WHERE id = $varchar AND modelid = $int4 AND company = $varchar".stripMargin.command
     
   def DELETE_ALL (nr:Int) : Command[(List[String], Int, String)] =
-    sql"DELETE FROM supplier WHERE id  IN ( ${varchar.list(nr)} )  AND modelid = $int4 AND company = $varchar".command
+    sql"DELETE FROM supplier WHERE id  IN ( ${varchar.list(nr)} )  AND modelid = $int4 AND company = $varchar".stripMargin.command

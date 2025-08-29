@@ -25,7 +25,7 @@ object ArticleEndpoint:
   private val mCreate = Endpoint(RoutePattern.POST / "art")
     .in[Article]
     .header(HeaderCodec.authorization)
-    .out[Int]
+    .out[Article]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ) ?? Doc.p(mCreateAPIFoc)
@@ -58,7 +58,9 @@ object ArticleEndpoint:
   val createArtRoute =
     mCreate.implement: (m, _) =>
       ZIO.logInfo(s"Insert article  ${m}") *>
-        ArticleRepository.create(m)
+        ArticleRepository.create(m) *>
+        ArticleRepository.getById(m.id, m.modelid, m.company)
+
 
   val allArtRoute =
     mAll.implement: p =>

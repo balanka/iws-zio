@@ -32,6 +32,7 @@ object AssetRepositoryLive:
 private[repository] object AssetRepositorySQL:
     private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
       localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
+
     private[repository] val mfCodec =
     (varchar *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: varchar *: int4 *: varchar *: varchar *: int4 *: numeric(12,2) *: numeric(12,2) *: int4 *: numeric(12,2) *: int4 *: varchar )
   
@@ -69,24 +70,21 @@ private[repository] object AssetRepositorySQL:
              WHERE  modelid = $int4 AND company = $varchar
              ORDER BY id ASC""".query(mfDecoder)
 
-    val insert: Command[Asset] = sql"""INSERT INTO asset VALUES $mfEncoder """.command
+    val insert: Command[Asset] = sql"""INSERT INTO asset
+                 (id, name, description, changedate, enterdate, postingdate, company, modelid, account, oaccount, dep_method
+                  , amount, rate, life_span, scrap_value, frequency, currency) VALUES $mfEncoder """.stripMargin.command
 
-    def insertAll(n: Int): Command[List[Asset.TYPE]] = sql"INSERT INTO asset VALUES ${mfCodec.values.list(n)}".command
+    def insertAll(n: Int): Command[List[Asset.TYPE]] = sql"""INSERT INTO asset
+      (id, name, description, changedate, enterdate, postingdate, company, modelid, account, oaccount, dep_method
+      , amount, rate, life_span, scrap_value, frequency, currency)
+      VALUES ${mfCodec.values.list(n)}""".stripMargin.command
     
     val UPDATE: Command[Asset.TYPE2] =
       sql"""UPDATE asset
             SET name = $varchar, description = $varchar, account = $varchar, oaccount = $varchar, dep_method=$int4
             , amount= $numeric, currency =$varchar, rate=$numeric, life_span=$int4, scrap_value=$numeric, frequency=$int4
             WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
-    val upsert: Command[Asset] =
-      sql"""
-            INSERT INTO asset
-             VALUES $mfEncoder ON CONFLICT(id, company) DO UPDATE SET
-             id                   = EXCLUDED.id,
-             name                 = EXCLUDED.name,
-             description          = EXCLUDED.description,
-              account            = EXCLUDED.account
-            """.command
+
 
     def DELETE: Command[(String, Int, String)] =
       sql"DELETE FROM asset WHERE id = $varchar AND modelid = $int4 AND company = $varchar".command

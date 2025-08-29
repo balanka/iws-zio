@@ -9,8 +9,10 @@ trait JournalRepository:
   def create(models: List[Journal]): ZIO[Any, RepositoryError, Int]
   def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Journal]]
   def getById(Id: (Long, String)): ZIO[Any, RepositoryError, Journal]
-  def getByPeriod(period:Int,  company: String): ZIO[Any, RepositoryError, List[Journal]]
+  def getByPeriod(period: Int, company: String): ZIO[Any, RepositoryError, List[Journal]]
+  def getFromPeriod2Period(fromPeriod:Int,  toPeriod:Int, company: String): ZIO[Any, RepositoryError, List[Journal]]
   def find4Period(accountId: String, fromPeriod: Int, toPeriod: Int, companyId: String): ZIO[Any, RepositoryError, List[Journal]]
+  def find4Period(accountIds: List[String], fromPeriod: Int, toPeriod: Int, companyId: String): ZIO[Any, RepositoryError, List[Journal]]
   def deleteAllTest(): ZIO[Any, RepositoryError, Int]
 
 object JournalRepository:
@@ -25,12 +27,18 @@ object JournalRepository:
     
   def getById(Id: (Long,  String)): ZIO[JournalRepository, RepositoryError, Journal] =
     ZIO.serviceWithZIO[JournalRepository](_.getById(Id))
-
+    
   def getByPeriod(period: Int,  company: String): ZIO[JournalRepository, RepositoryError, List[Journal]] =
     ZIO.serviceWithZIO[JournalRepository](_.getByPeriod(period, company))
+    
+  def getFromPeriod2Period(fromPeriod:Int,  toPeriod:Int,  company: String): ZIO[JournalRepository, RepositoryError, List[Journal]] =
+    ZIO.serviceWithZIO[JournalRepository](_.getFromPeriod2Period(fromPeriod, toPeriod, company))
 
-  def find4Period(accountId: String, fromPeriod: Int, toPeriod: Int,  company: String): ZIO[JournalRepository, RepositoryError, List[Journal]] =
-    ZIO.serviceWithZIO[JournalRepository] (_.find4Period(accountId, fromPeriod, toPeriod, company))
+  def find4Period(accountId: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[JournalRepository, RepositoryError, List[Journal]] =
+    ZIO.serviceWithZIO[JournalRepository](_.find4Period(accountId, fromPeriod, toPeriod, company))
+    
+  def find4Period(accountIds: List[String], fromPeriod: Int, toPeriod: Int,  company: String): ZIO[JournalRepository, RepositoryError, List[Journal]] =
+    ZIO.serviceWithZIO[JournalRepository] (_.find4Period(accountIds, fromPeriod, toPeriod, company))
   
   def deleteAllTest(): ZIO[JournalRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[JournalRepository] (_.deleteAllTest())

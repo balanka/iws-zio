@@ -30,12 +30,12 @@ object FModuleRepositoryLive:
     ZLayer.fromFunction(new FModuleRepositoryLive(_))
 
 private[repository] object FModuleRepositorySQL:
-  type TYPE = (Int, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Boolean, String, Int, String)
+  type TYPE = (Int, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Boolean, String, String, Int, String)
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 
   private val mfCodec =
-    (int4 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: varchar *: bool  *: varchar *: int4 *: varchar)
+    (int4 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: varchar  *:bool  *: varchar *: varchar *:int4 *: varchar)
   private[repository] def encodeIt(st: Fmodule): TYPE =
     (st.id,
       st.name,
@@ -46,11 +46,12 @@ private[repository] object FModuleRepositorySQL:
       st.account,
       st.isDebit,
       st.parent,
+      st.copyFrom,
       st.modelid,
       st.company
     )
   val mfDecoder: Decoder[Fmodule] = mfCodec.map :
-    case (id, name, description, enterdate, changedate, postingdate, account, isDebit,  parent, modelid, company) =>
+    case (id, name, description, enterdate, changedate, postingdate, account, isDebit,  parent, copyFRom, modelid, company) =>
       Fmodule(
         id,
         name,
@@ -61,12 +62,12 @@ private[repository] object FModuleRepositorySQL:
         account,
         isDebit,
         parent,
+        copyFRom,
         modelid,
         company)
 
   val mfEncoder: Encoder[Fmodule] = mfCodec.values.contramap((st: Fmodule) =>
-    (
-      st.id,
+    (st.id,
       st.name,
       st.description,
       st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
@@ -75,30 +76,29 @@ private[repository] object FModuleRepositorySQL:
       st.account,
       st.isDebit, 
       st.parent,
+      st.copyFrom,
       st.modelid,
-      st.company,
-      
-    )
+      st.company)
   )
 
   def base =
-    sql""" SELECT id, name, description, enterdate, changedate,postingdate, account, is_debit, parent, modelid, company
+    sql""" SELECT id, name, description, enterdate, changedate,postingdate, account, is_debit, parent, copy_from, modelid, company
            FROM   fmodule ORDER BY id ASC"""
 
   def ALL_BY_ID(nr: Int): Query[(List[Int], Int, String), Fmodule] =
-    sql"""SELECT id, name, description, enterdate, changedate,postingdate, account, is_debit, parent, modelid, company
+    sql"""SELECT id, name, description, enterdate, changedate,postingdate, account, is_debit, parent,  copy_from, modelid, company
            FROM   fmodule
            WHERE id  IN ${int4.list(nr)} AND  modelid = $int4 AND company = $varchar
            ORDER BY id ASC""".query(mfDecoder)
 
   val BY_ID: Query[Int *: Int *: String *: EmptyTuple, Fmodule] =
-    sql"""SELECT id, name, description, enterdate, changedate,postingdate, account, is_debit, parent, modelid, company
+    sql"""SELECT id, name, description, enterdate, changedate,postingdate, account, is_debit, parent, copy_from, modelid, company
            FROM   fmodule
            WHERE id = $int4 AND modelid = $int4 AND company = $varchar
            ORDER BY id ASC""".query(mfDecoder)
 
   val ALL: Query[Int *: String *: EmptyTuple, Fmodule] =
-    sql"""SELECT id, name, description, enterdate, changedate, postingdate, account, is_debit, parent, modelid, company
+    sql"""SELECT id, name, description, enterdate, changedate, postingdate, account, is_debit, parent, copy_from, modelid, company
            FROM   fmodule
            WHERE  modelid = $int4 AND company = $varchar
            ORDER BY id ASC""".query(mfDecoder)
@@ -109,7 +109,7 @@ private[repository] object FModuleRepositorySQL:
 
   val UPDATE: Command[Fmodule.TYPE2] =
     sql"""UPDATE fmodule
-          SET name = $varchar, description = $varchar, account = $varchar, is_debit=$bool, parent=$varchar
+          SET name = $varchar, description = $varchar, account = $varchar, is_debit=$bool, parent=$varchar, copy_from=$varchar
           WHERE id=$int4 and modelid=$int4 and company= $varchar""".command
   
   def DELETE: Command[(Int, Int, String)] =

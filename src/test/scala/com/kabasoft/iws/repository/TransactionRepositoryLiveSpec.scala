@@ -16,6 +16,8 @@ object TransactionRepositoryLiveSpec extends ZIOSpecDefault {
     appResourcesL.project(_.postgres),
     appConfig,
     AccountRepositoryLive.live,
+    StockRepositoryLive.live,
+    ArticleRepositoryLive.live,
     TransactionRepositoryLive.live,
     //PostgresContainer.createContainer
   )

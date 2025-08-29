@@ -53,7 +53,7 @@ final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
   override def modify(model: Company): ZIO[Any, RepositoryError, Int] = modify(List(model))
 
   override def modify(modelsx: List[Company]): ZIO[Any, RepositoryError, Int] =
-    val bankaccountsx = modelsx.flatMap(_.bankaccounts).filter(m => !m.id.isEmpty && m.modelid < 0 )
+    val bankaccountsx = modelsx.flatMap(_.bankaccounts).filter(m => m.id.nonEmpty && m.modelid < 0 )
                                .map(m => m.copy(modelid = BankAccount.MODEL_ID))
     val models = modelsx.map(_.copy(bankaccounts = bankaccountsx))
     (postgres
@@ -67,7 +67,7 @@ final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
   override def all(modelid: Int): ZIO[Any, RepositoryError, List[Company]] = for {
     companies <- list(modelid).map(_.toList)
     bankAccounts_ <- bankAccRepo.bankAccout4All(BankAccount.MODEL_ID)
-  } yield companies.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
+  } yield companies.map(c => c.copy(bankaccounts = bankAccounts_.filter( bac => bac.owner == c.id & bac.company == c.id)))
   
   override def getById(p: (String, Int)): ZIO[Any, RepositoryError, Company] =  queryWithTxUnique(postgres, p, BY_ID)
   override def getBy(ids: List[String], modelid: Int):ZIO[Any, RepositoryError, List[Company]] =

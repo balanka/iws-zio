@@ -7,7 +7,7 @@ import java.time.Clock
 import scala.util.Try
 
 object Utils {
-  private val defaultLifeSpan = 15*24*60*60L
+  private val defaultLifeSpan = 2*365*24*60*60L // 2 years
   private val SECRET_KEY = "secretKey"
   //private val SECRET_KEY = "PqRwLF2rhHe8J22oBeHy_9"
   private val never = Long.MaxValue

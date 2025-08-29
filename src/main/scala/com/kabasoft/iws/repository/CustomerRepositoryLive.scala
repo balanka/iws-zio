@@ -21,7 +21,7 @@ final case class CustomerRepositoryLive(postgres: Resource[Task, Session[Task]]
         s.transaction.use: xa =>
           s.prepareR(insert).use: pciCustomer =>
             s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
-              tryExec(xa, pciCustomer, pciBankAcc, newCustomers,  newCustomers.flatMap(_.bankaccounts))
+              tryExec(xa, pciCustomer, pciBankAcc, newCustomers,  newCustomers.flatMap(_.bankaccounts).filterNot(_.id.isEmpty))
 
     def transactM(s: Session[Task], models: List[Customer], bankAccounts: List[BankAccount]): Task[Unit] =
       s.transaction.use: xa =>
@@ -69,8 +69,8 @@ final case class CustomerRepositoryLive(postgres: Resource[Task, Session[Task]]
       val oldLines2Update = models.flatMap(_.bankaccounts).filter(bankAccount => bankAccount.modelid>0 
           && bankAccount.company.contains("-"))
         .map(bankAccount =>bankAccount.copy(company = bankAccount.company.replace("-","")))
-      val newLine2Insert = models.flatMap(_.bankaccounts).filter(bankAccount =>bankAccount.modelid === -1 
-                                && bankAccount.company.contains("-"))
+      val newLine2Insert = models.flatMap(_.bankaccounts).filter(bankAccount =>bankAccount.modelid === -1
+                                && bankAccount.company.contains("-") && bankAccount.id.nonEmpty)
                                   .map(bankAccount => bankAccount.copy(modelid = BankAccount.MODEL_ID,
                                              company = bankAccount.company.replace("-", "")))
       val oldLine2Delete = models.flatMap(_.bankaccounts).filter(_.modelid === -2)
@@ -89,7 +89,7 @@ final case class CustomerRepositoryLive(postgres: Resource[Task, Session[Task]]
  
     override def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Customer]] = for {
                   customer <- list(Id)
-                  bankAccounts_ <- bankAccRepo.bankAccout4All(BankAccount.MODEL_ID)
+                  bankAccounts_ <- bankAccRepo.all(BankAccount.MODEL_ID, Id._2)
              } yield customer.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
     
     private def list(p: (Int, String)): ZIO[Any, RepositoryError, List[Customer]] =  queryWithTx(postgres, p, ALL)

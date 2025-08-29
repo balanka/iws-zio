@@ -9,11 +9,25 @@ import zio.test.TestAspect.*
 import zio.test.*
 
 object CompanyRepositoryLiveSpec extends ZIOSpecDefault {
-
+//  id: String, name: String, street: String, zip: String, city: String, state: String, country: String, email: String,
+//  partner: String, phone: String, bankAcc: String, iban: String, taxCode: String, vatCode: String, currency: String,
+//  locale: String,
+//  account: String,
+//  oaccount: String,
+//  balanceSheetAcc: String,
+//  incomeStmtAcc: String,
+//  purchasingClearingAcc:String,
+//  salesClearingAcc:String,
+//  cashAcc:String,
+//  modelid: Int,
+// bankaccounts: List[BankAccount] = List.empty[BankAccount],
+//  enterdate: Instant = Instant.now(),
+//  changedate: Instant = Instant.now(),
+//  postingdate: Instant = Instant.now(),
 val company1 = Company("-1001", "ABC GmbH", "Word stree1 0", "55555", "FF", "Hessen", "DE", "Deutschalnd",  "info@company.com", "Partner", "+49-4722211"
-    , "1800", "Iban", "TAX/Code/XXXX", "v5", "EUR", "9900", "9800", "33333", "44444", 10)
+    , "1800", "Iban", "TAX/Code/XXXX", "v5", "EUR", "de_DE",  "9900", "9800", "33333", "44444", "9999", "9998", 10)
 val company = Company("-1000", "ABC GmbH", "Word stree1 0", "55555", "FF", "Hessen", "DE", "Deutschalnd", "info@company.com", "Partner", "+49-4722211"
-  , "1800",   "Iban","TAX/Code/XXXX", "v5", "EUR" , "9900", "9800", "33333", "44444", 10)
+  , "1800",   "Iban","TAX/Code/XXXX", "v5", "EUR", "de_DE", "9900", "9800", "33333", "44444", "9999", "9998",10)
   val companies = List(company1)
 
   val testLayer = ZLayer.make[CompanyRepository](

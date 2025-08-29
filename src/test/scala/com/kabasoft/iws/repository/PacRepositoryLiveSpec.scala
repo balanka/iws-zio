@@ -40,6 +40,7 @@ object PacRepositoryLiveSpec extends ZIOSpecDefault {
         val now = Instant.now
         val dummy= PeriodicAccountBalance.dummy
         val toPeriod = com.kabasoft.iws.domain.common.getPeriod(now)
+        val fromPeriod = (toPeriod.toString.substring(0, 3)+"00").toInt
         val oneId = pacs.map(_.id).headOption.getOrElse("-1")
         val amount = new java.math.BigDecimal("100.00").setScale(2, RoundingMode.HALF_UP)
         for {
@@ -47,7 +48,7 @@ object PacRepositoryLiveSpec extends ZIOSpecDefault {
           all <- PacRepository.all(PeriodicAccountBalance.MODELID, companyId)
           one <- PacRepository.getById(oneId, PeriodicAccountBalance.MODELID, companyId)
           balance4Period <- PacRepository.findBalance4Period( com.kabasoft.iws.domain.common.getPeriod(Instant.now), companyId)
-          balance4AccountPeriod <- PacRepository.find4AccountPeriod(faccountId, toPeriod, companyId)
+          balance4AccountPeriod <- PacRepository.find4AccountPeriod(faccountId, fromPeriod, toPeriod, companyId)
         } yield  assertTrue(row.size==3) &&
           assertTrue(all.size==3) && assertTrue(one.id==oneId) &&
           assertTrue(balance4Period.size ==3) && assertTrue(balance4AccountPeriod.size==1
@@ -57,8 +58,9 @@ object PacRepositoryLiveSpec extends ZIOSpecDefault {
         val now = Instant.now
         val dummy= PeriodicAccountBalance.dummy
         val toPeriod = com.kabasoft.iws.domain.common.getPeriod(now)
+        val fromPeriod = (toPeriod.toString.substring(0, 3)+"00").toInt
         for {
-          pac2Update <- PacRepository.find4AccountPeriod(incaccountId1, toPeriod, companyId).map(_.headOption.getOrElse(dummy))
+          pac2Update <- PacRepository.find4AccountPeriod(incaccountId1, fromPeriod, toPeriod, companyId).map(_.headOption.getOrElse(dummy))
           udatedPac = pac2Update.copy(debit = pac2Update.credit)
           updated <- PacRepository.update(List(udatedPac))
         } yield assertTrue(pac2Update.account.equals(incaccountId1))  && assertTrue(updated == 1)

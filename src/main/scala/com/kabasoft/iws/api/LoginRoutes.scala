@@ -9,7 +9,7 @@ import zio.http.*
 import zio.json.{DecoderOps, EncoderOps}
 
 object LoginRoutes:
-  private val defaultLifeSpan = 15*24*60*60L
+  private val defaultLifeSpan = 3*365*24*60*60L // 3 years
   def loginRoutes: Routes[UserRepository, Response] =
     Routes(
       Method.POST / "users" / "login" ->
@@ -36,7 +36,8 @@ object LoginRoutes:
     val check = (usernameR == username) & (pwdR == pwd)
     println(s"check >>>>>> $check")
     println(s"pwd >>>>>> $pwd")
-    val webUrl = scala.util.Properties.envOrElse("IWS_WEB_URL", "http://localhost:3000")
+    //val webUrl = scala.util.Properties.envOrElse("IWS_WEB_URL", "http://localhost:3000")
+    val webUrl = scala.util.Properties.envOrElse("IWS_WEB_URL", "http://127.0.0.1:3000")
     //if (env.keySet().contains("IWS_WEB_URL")) env.get("IWS_WEB_URL") else "http://localhost:3000"
     println(s"webUrl >>>>>> $webUrl")
     if (check) {
@@ -47,6 +48,8 @@ object LoginRoutes:
        Response.json(user.toJson).addHeader(Custom("authorization", token))
         .addHeader(Custom("Access-Control-Allow-Origin", "*"))
         .addHeader(Custom("Origin", webUrl))
+         .addHeader(Custom("Origin", "http://localost:80"))
+         .addHeader(Custom("Origin", "http://127.0.0.1:80"))
     } else {
       Response.unauthorized("Invalid username or password.")
     }

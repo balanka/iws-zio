@@ -10,7 +10,7 @@ import zio.prelude.FlipOps
 import zio.interop.catz._
 import zio.{ZIO, _}
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Article, Transaction, TransactionDetails, common}
+import com.kabasoft.iws.domain.{Transaction, TransactionDetails, common}
 
 import java.time.{Instant, LocalDateTime, ZoneId}
 
@@ -75,6 +75,12 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
             tr.copy(lines = tr.lines.map(line=>line.copy(company = line.company.replace("-", "")))))))
       .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)
 
+//  override def copy(p: (Long, Int, String, Int)): ZIO[Any, RepositoryError, Int] = for {
+//    transaction <- getById((p._1, p._2, p._3)).map( tr=>
+//      tr.copy(modelid =p._4, lines = tr.lines.map(l=>l.copy(id = 0L, transid = 0L))))
+//    nr<-create(transaction)
+//  } yield nr 
+
   override def modify(model: Transaction): ZIO[Any, RepositoryError, Int] = modify(List(model))
 
   override def modify(models: List[Transaction]): ZIO[Any, RepositoryError, Int] = {
@@ -115,21 +121,13 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
     details <- transactions.map(withLines).flip
   } yield details
     
-    
-
+  
   def list(p: (Int, String)): ZIO[Any, RepositoryError, List[Transaction]] = queryWithTx(postgres, p, ALL)
   private def getDetails(p: (Long, String)): ZIO[Any, RepositoryError, List[TransactionDetails]] = queryWithTx(postgres, p, DETAILS1)
 
   private def getByTransId1(trans: Transaction): ZIO[Any, RepositoryError, Transaction] = for {
     lines_ <- getDetails(trans.id1, trans.company)
-    _ <-ZIO.logInfo(s"lines_.map(_.article) ${lines_.map(_.article)}")
-    articles <- articleRepo.getBy(lines_.map(_.article), Article.MODELID, trans.company)
-   // vats <- vatRepo.getBy(trans.lines.map(_.vatCode), Vat.MODEL_ID, trans.company)
-  } yield trans.copy(lines = if (lines_.nonEmpty) {
-    lines_.map(line =>line.copy(articleName=articles.find(art=>art.id ===line.article).fold(line.articleName)(article =>article.name),
-                                unit=articles.find(art=>art.id ===line.article).fold(line.unit)(article =>article.quantityUnit)))
-                           // vatName=vats.find(vat=>vat.id ===line.vatCode).fold(line.vatName)(vat =>vat.name) ))
-  } else List.empty[TransactionDetails])
+  } yield trans.copy(lines = lines_) 
 
   private def withLines(trans: Transaction): ZIO[Any, RepositoryError, Transaction] =
     getByTransId1(trans)
@@ -162,11 +160,10 @@ private[repository] object TransactionRepositorySQL:
   private val transactionCodec1 =
     int8 *: int8 *: varchar *: varchar *: timestamptz *: timestamptz *: timestamptz *: int4 *: bool *: int4 *: varchar *: varchar
   private val transactionDetailsCodec =
-    int8 *: int8 *: varchar *: varchar *:  numeric(12,2) *: varchar *: numeric(12,2) *: varchar *: timestamp *: varchar *: varchar *: varchar
-    //transid, article, article_name, quantity, unit, price, currency, duedate, vat_code
-    //          , text, company
+    int8 *: int8 *: varchar *: varchar *:  numeric(12,2) *: varchar *: numeric(12,2) *: varchar *: timestamp *: varchar *: numeric(12, 2) *: varchar *: varchar
+
   private val transactionDetailsCodec2 =
-    int8 *: varchar *: varchar *: numeric(12, 2) *: varchar *: numeric(12, 2) *: varchar *: timestamp *: varchar *: varchar *: varchar  
+    int8 *: varchar *: varchar *: numeric(12, 2) *: varchar *: numeric(12, 2) *: varchar *: timestamp *: varchar *: numeric(12, 2) *: varchar *: varchar
 
   val mfDecoder: Decoder[Transaction] = transactionCodec.map:
     case (id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text) =>
@@ -174,11 +171,11 @@ private[repository] object TransactionRepositorySQL:
         , period, posted, modelid, company, text)
 
   val mfEncoder: Encoder[Transaction] = transactionCodec1.values.contramap(Transaction.encodeIt)
-  val DetailsEncoder: Encoder[TransactionDetails] = transactionDetailsCodec.values.contramap(TransactionDetails.encodeIt)
+  //val DetailsEncoder: Encoder[TransactionDetails] = transactionDetailsCodec.values.contramap(TransactionDetails.encodeIt)
 
   val detailsDecoder: Decoder[TransactionDetails] = transactionDetailsCodec.map:
-      case (id, transid, article, articleName, quantity, unit, price, currency, duedate, vatCode, text, company) =>
-        TransactionDetails(id, transid, article, articleName, quantity.bigDecimal, unit, price.bigDecimal, currency, toInstant(duedate), vatCode, text, company)
+      case (id, transid, article, articleName, quantity, unit, price, currency, duedate, vatCode, vat, text, company) =>
+        TransactionDetails(id, transid, article, articleName, quantity.bigDecimal, unit, price.bigDecimal, currency, toInstant(duedate), vatCode, vat.bigDecimal, text, company)
 
   def base =
     sql""" SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text
@@ -221,11 +218,18 @@ private[repository] object TransactionRepositorySQL:
            """.query(mfDecoder)
 
   val DETAILS1: Query[Long *: String *: EmptyTuple, TransactionDetails] =
-    sql"""SELECT id, transid, article, article_name, quantity, unit, price, currency, duedate, vat_code, text, company
+    sql"""SELECT id, transid, article, article_name, quantity, unit, price, currency, duedate, vat_code, vat, text, company
            FROM   transaction_details
            WHERE  transid = $int8  AND company = $varchar
            """.query(detailsDecoder)
-  
+           
+//  val copy_insert: Command[Int *: Long *:  String *: EmptyTuple] =
+//    sql"""INSERT INTO transaction (oid, id1, store, account, enterdate, transdate, postingdate, period, posted, modelid
+//         , company, text) 
+//          SELECT (id, 0, store, account, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, period, false, $int2
+//         , company, text  FROM transaction 
+//         WHERE id = $int4  AND company = $varchar """.command
+         
   val insert: Command[Transaction] =
     sql"""INSERT INTO transaction (oid, id1, store, account, enterdate, transdate, postingdate, period, posted, modelid
          , company, text) VALUES $mfEncoder""".command
@@ -236,11 +240,11 @@ private[repository] object TransactionRepositorySQL:
 
   val insertDetails: Command[TransactionDetails.D_TYPE1] =
     sql"""INSERT INTO transaction_details (transid, article, article_name, quantity, unit, price, currency, duedate, vat_code
-          , text, company) VALUES ($transactionDetailsCodec2 )""".command
+          , vat, text, company) VALUES ($transactionDetailsCodec2 )""".command
     
 //  def insertAllDetails(n:Int): Command[List[TransactionDetails.D_TYPE1]] =
 //    sql"""INSERT INTO transaction_details (transid, article, article_name, quantity, unit, price, currency
-//          , duedate, vat_code, text, company) VALUES ${transactionDetailsCodec.values.list(n)}""".stripMargin.command
+//          , duedate, vat_code, vat, text, company) VALUES ${transactionDetailsCodec.values.list(n)}""".stripMargin.command
 
   val updatePosted: Command[Long *: Int *:  String *: EmptyTuple] =
     sql"""UPDATE transaction UPDATE SET posted = true
@@ -255,7 +259,7 @@ private[repository] object TransactionRepositorySQL:
   val UPDATE_DETAILS: Command[TransactionDetails.TYPE2] =
     sql"""UPDATE transaction_details
           SET transid=$int8, article = $varchar, quantity = $numeric, unit = $varchar, price = $numeric, currency = $varchar
-          , duedate = $timestamp, text=$varchar, article_name = $varchar, vat_code = $varchar
+          , duedate = $timestamp, text=$varchar, article_name = $varchar, vat_code = $varchar, vat = $numeric
           WHERE id=$int8 and company= $varchar""".command
 
   def DELETE: Command[(Long, Int, String)] =

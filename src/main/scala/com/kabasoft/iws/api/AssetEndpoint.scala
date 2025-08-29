@@ -51,7 +51,7 @@ object AssetEndpoint:
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ).out[Asset] ?? Doc.p(mModifyAPIDoc)
   
-  val assetGenerateDepr   = Endpoint(RoutePattern.GET /"dtr" / int("modelid")?? Doc.p(modelidDoc)
+  private val assetGenerateDepr   = Endpoint(RoutePattern.GET /"dtr" / int("modelid")?? Doc.p(modelidDoc)
        /string("company")?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
@@ -71,12 +71,12 @@ object AssetEndpoint:
 
   val mAllRoute =
     mAll.implement: p =>
-      ZIO.logInfo(s"Insert asset  ${p}") *>
+      ZIO.logInfo(s"Get all asset  ${p}") *>
         AssetRepository.all((p._1, p._2))
 
   val mByIdRoute =
     mById.implement: p =>
-      ZIO.logInfo(s"Modify asset  ${p}") *>
+      ZIO.logInfo(s"Get asset by id  ${p}") *>
         AssetRepository.getById(p._1, p._2, p._3)
 
   val mModifyRoute =

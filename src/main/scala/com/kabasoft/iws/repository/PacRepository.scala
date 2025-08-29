@@ -20,11 +20,12 @@ trait PacRepository:
   def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, PeriodicAccountBalance]
 
   def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]]
+  def getByParent(ids: List[String], from:Int, to:Int, modelid: Int, company: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]]
 
   def findBalance4Period(period: Int, company: String):ZIO[Any, RepositoryError, List[PeriodicAccountBalance]]
   def findBalance4Period(fromPeriod: Int, toPeriod: Int, company: String):ZIO[Any, RepositoryError, List[PeriodicAccountBalance]]
   //def find4Period(fromPeriod: Int, toPeriod: Int, company: String): Task[List[PeriodicAccountBalance]]
-  def find4AccountPeriod(accountId: String,  toPeriod: Int, companyId: String):ZIO[Any, RepositoryError, List[PeriodicAccountBalance]]
+  def find4AccountPeriod(accountId: String, fromPeriod: Int, toPeriod: Int, companyId: String):ZIO[Any, RepositoryError, List[PeriodicAccountBalance]]
   
   def deleteAll(): ZIO[Any, RepositoryError, Int]
 
@@ -52,6 +53,9 @@ object PacRepository:
 
   def getBy(ids: List[String], modelid: Int, company: String): ZIO[PacRepository, RepositoryError, List[PeriodicAccountBalance]] =
     ZIO.serviceWithZIO[PacRepository](_.getBy(ids, modelid, company))
+    
+  def getByParent(ids: List[String], from:Int, to:Int, modelid: Int, company: String): ZIO[PacRepository, RepositoryError, List[PeriodicAccountBalance]] =
+    ZIO.serviceWithZIO[PacRepository](_.getByParent(ids, from, to, modelid, company))
 
   def findBalance4Period(period: Int, company: String): ZIO[PacRepository, RepositoryError, List[PeriodicAccountBalance]] =
     ZIO.serviceWithZIO[PacRepository](_.findBalance4Period(period, company))
@@ -59,8 +63,8 @@ object PacRepository:
   def findBalance4Period(fromPeriod: Int, toPeriod: Int, company: String): ZIO[PacRepository, RepositoryError, List[PeriodicAccountBalance]] =
     ZIO.serviceWithZIO[PacRepository](_.findBalance4Period(fromPeriod, toPeriod, company))
   
-  def find4AccountPeriod(accountId: String,  toPeriod: Int, companyId: String): ZIO[PacRepository, RepositoryError, List[PeriodicAccountBalance]] =
-    ZIO.serviceWithZIO[PacRepository](_.find4AccountPeriod(accountId, toPeriod, companyId))
+  def find4AccountPeriod(accountId: String,  fromPeriod: Int, toPeriod: Int, companyId: String): ZIO[PacRepository, RepositoryError, List[PeriodicAccountBalance]] =
+    ZIO.serviceWithZIO[PacRepository](_.find4AccountPeriod(accountId, fromPeriod, toPeriod, companyId))
 
   def deleteAll(): ZIO[PacRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[PacRepository](_.deleteAll())

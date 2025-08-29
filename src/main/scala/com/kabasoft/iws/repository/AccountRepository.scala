@@ -10,6 +10,7 @@ trait AccountRepository:
   def modify(models: List[Account]):ZIO[Any, RepositoryError, Int]
   def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Account]]
   def getById(Id: (String, Int, String)):ZIO[Any, RepositoryError, Account]
+  def getByParentId(Id: (String, Int, String)): ZIO[Any, RepositoryError, List[Account]]
   def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Account]]
   def delete(p: (String, Int, String)): ZIO[Any, RepositoryError, Int]
   def deleteAll(p: List[(String, Int, String)]): ZIO[Any, RepositoryError, Int]
@@ -30,9 +31,12 @@ object AccountRepository:
 
   def all(Id: (Int, String)): ZIO[AccountRepository, RepositoryError, List[Account]] =
     ZIO.serviceWithZIO[AccountRepository](_.all(Id))
-
+    
   def getById(Id: (String, Int, String)): ZIO[AccountRepository, RepositoryError, Account]=
     ZIO.serviceWithZIO[AccountRepository](_.getById(Id))
+    
+  def getByParentId(Id: (String, Int, String)): ZIO[AccountRepository, RepositoryError, List[Account]]=
+    ZIO.serviceWithZIO[AccountRepository](_.getByParentId(Id))
 
   def getBy(ids: List[String], modelid: Int, company: String): ZIO[AccountRepository, RepositoryError, List[Account]]=
     ZIO.serviceWithZIO[AccountRepository](_.getBy(ids, modelid, company))

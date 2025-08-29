@@ -15,9 +15,9 @@ final case class StockRepositoryLive(postgres: Resource[Task, Session[Task]]) ex
 
   import StockRepositorySQL._
 
-  override def create(c: Stock): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, c, insert, 1)
+  override def create(c: Stock): ZIO[Any, RepositoryError, Int] = create(List(c)) //executeWithTx(postgres, c, insert, 1)
 
-  override def create(list: List[Stock]):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(Stock.encodeIt), insertAll(list.size), list.size)
+  override def create(list: List[Stock]):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, list.map(Stock.encodeIt4), insertAll(list.size), list.size)
  
   override def modify(model: Stock):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, Stock.encodeIt3, UPDATE, 1)
 
@@ -50,12 +50,14 @@ object StockRepositoryLive:
 private[repository] object StockRepositorySQL:
   
   private val mfCodec = (varchar *: varchar *: varchar *: numeric(12,2) *: numeric *:varchar *: varchar *: int4)
+  private val mfCodec_ = (varchar *: varchar *: varchar *: numeric(12,2)  *:varchar *: varchar *: int4)
   
   val mfDecoder: Decoder[Stock] = mfCodec.map:
     case (_, store, article, quantity, price, charge, company, _) =>
       Stock.make(store, article, quantity.bigDecimal, charge, company)
 
-  val mfEncoder: Encoder[Stock] = mfCodec.values.contramap(Stock.encodeIt)
+  val mfEncoder: Encoder[Stock] = mfCodec_.values.contramap(Stock.encodeIt4)
+  //val mfEncoder: Encoder[Stock] = mfCodec.values.contramap(Stock.encodeIt)
 
   def base =
     sql""" SELECT id, store, article, quantity, 0.0 as price, charge, company, modelid
@@ -97,10 +99,10 @@ private[repository] object StockRepositorySQL:
            WHERE  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
-  val insert: Command[Stock] = sql"""INSERT INTO stock VALUES $mfEncoder """.command
-
-  def insertAll(n:Int): Command[List[(String, String, String, BigDecimal, BigDecimal, String, String, Int)]] =
-    sql"INSERT INTO stock VALUES ${mfCodec.values.list(n)}".command
+  val insert: Command[Stock] = sql"""INSERT INTO stock (id, store, article, quantity, charge, company, modelid) VALUES $mfEncoder""".command
+// id      | store | article | quantity | charge | company | modelid
+  def insertAll(n:Int): Command[List[(String, String, String, BigDecimal, String, String, Int)]] =
+    sql"INSERT INTO stock (id, store, article, quantity, charge, company, modelid) VALUES ${mfCodec_.values.list(n)}".command
 
   val UPDATE: Command[Stock.TYPE3] =
     sql"""UPDATE stock SET quantity = $numeric, charge = $varchar

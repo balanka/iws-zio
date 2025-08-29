@@ -8,7 +8,7 @@ import skunk.codec.all._
 import skunk.implicits._
 import zio.interop.catz._
 import zio.{Task, ZIO, ZLayer}
-import com.kabasoft.iws.domain.{Account, BankAccount, Employee, EmployeeSalaryItem, EmployeeSalaryItemDTO, SalaryItem}
+import com.kabasoft.iws.domain.{Account, BankAccount, Employee, EmployeeSalaryItem, EmployeeSalaryItemDTO}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 
 import java.time.{Instant, LocalDateTime, ZoneId}
@@ -68,12 +68,12 @@ final case class EmployeeRepositoryLive(postgres: Resource[Task, Session[Task]]
     override def modify(model: Employee): ZIO[Any, RepositoryError, Int] = modify(List(model))
 
     override def modify(modelsx: List[Employee]): ZIO[Any, RepositoryError, Int] =
-      val newBankaccounts = modelsx.flatMap(_.bankaccounts).filter(m => !m.id.isEmpty && m.modelid == - 1)
+      val newBankaccounts = modelsx.flatMap(_.bankaccounts).filter(m => m.id.nonEmpty && m.modelid == - 1)
         .map(m => m.copy(modelid = BankAccount.MODEL_ID))
-      val oldBankaccounts = modelsx.flatMap(_.bankaccounts).filter(m => !m.id.isEmpty && m.modelid == -2)
+      val oldBankaccounts = modelsx.flatMap(_.bankaccounts).filter(m => m.id.nonEmpty && m.modelid == -2)
                                  .map(m => m.copy(modelid = BankAccount.MODEL_ID))
-      val newSalaryItems = modelsx.flatMap(_.salaryItems.filter(m => !m.id.isEmpty && m.owner.equals("-1")))
-      val oldSalaryItems = modelsx.flatMap(_.salaryItems.filter(m => !m.id.isEmpty && m.owner.equals("-2")))
+      val newSalaryItems = modelsx.flatMap(_.salaryItems.filter(m => m.id.nonEmpty && m.owner.equals("-1")))
+      val oldSalaryItems = modelsx.flatMap(_.salaryItems.filter(m => m.id.nonEmpty && m.owner.equals("-2")))
       val models: List[Employee] = modelsx.map(e=>e.copy(bankaccounts = newBankaccounts++oldBankaccounts
                                    , salaryItems = (newSalaryItems++oldSalaryItems).map(_.copy(owner = e.id))))
       (postgres
@@ -90,7 +90,7 @@ final case class EmployeeRepositoryLive(postgres: Resource[Task, Session[Task]]
     
     override def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Employee]] = for {
       employee <- list(Id)
-      bankAccounts_ <- bankAccRepo.bankAccout4All(BankAccount.MODEL_ID)
+      bankAccounts_ <- bankAccRepo.all(BankAccount.MODEL_ID, Id._2)
       accounts <- accRepo.all((BankAccount.MODEL_ID, Id._2))
       salaryItems_ <- listSalaryItem(Id._2)
     } yield employee.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id),
@@ -125,7 +125,7 @@ private[repository] object EmployeeRepositorySQL:
           (st.id, st.owner, st.account, st.amount, st.percentage, st.text, st.company)
   
     val mfDecoder: Decoder[Employee] = mfCodec.map:
-      case (id, name, description, street, zip, city, state, country, phone, email, account, oaccount, taxCode
+      case (id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
            , vatcode, currency, company, salary, modelid, enterdate, changedate, postingdate) =>
         Employee(
           id,
@@ -140,7 +140,7 @@ private[repository] object EmployeeRepositorySQL:
           email,
           account,
           oaccount,
-          taxCode,
+          tax_code,
           vatcode,
           currency,
           company,
@@ -191,26 +191,31 @@ private[repository] object EmployeeRepositorySQL:
              WHERE  company = $varchar
           ORDER BY id ASC""".query(salaryItemDecoder)
 
-    val insert: Command[Employee] = sql"INSERT INTO employee VALUES $mfEncoder".command
-    def insertAll(n: Int): Command[List[Employee.TYPE2]] = sql"INSERT INTO employee VALUES ${mfCodec.values.list(n)}".command
-//id: String, owner: String, account: String, accountName: String, amount: BigDecimal, percentage: BigDecimal, text:String, company: String
+    val insert: Command[Employee] = sql"""INSERT INTO employee (id, name, description, street
+          , zip, city, state, country, phone, email, account, oaccount, tax_code, vatcode, currency, company, salary
+         , modelid, enterdate, changedate, postingdate) VALUES $mfEncoder""".stripMargin.command
+
+    def insertAll(n: Int): Command[List[Employee.TYPE2]] = sql"""INSERT INTO employee (id, name, description, street
+          , zip, city, state, country, phone, email, account, oaccount, tax_code, vatcode, currency, company, salary
+          , modelid, enterdate, changedate, postingdate)  VALUES ${mfCodec.values.list(n)}""".stripMargin.command
+
     val insertSalaryItem: Command[EmployeeSalaryItem] = 
       sql"""INSERT INTO employee_salary_item (id, owner, account, amount, text, company, percentage ) 
             VALUES $salaryItemEncoder""".command
       
     def insertAllSalaryItem(n: Int): Command[List[S_TYPE]] = 
-      sql"INSERT INTO employee_salary_item VALUES ${salaryItemCodec.values.list(n)}".command
+      sql"INSERT INTO employee_salary_item VALUES ${salaryItemCodec.values.list(n)}".stripMargin.command
 
     val UPDATE: Command[Employee.TYPE3] =
        sql"""UPDATE employee SET name= $varchar, description= $varchar, street= $varchar, zip= $varchar, city= $varchar
                , state= $varchar, country= $varchar, phone= $varchar, email= $varchar, account= $varchar, oaccount= $varchar
                , tax_code=$varchar, vatcode= $varchar, currency= $varchar, salary=$numeric
-               WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
+               WHERE id=$varchar and modelid=$int4 and company= $varchar""".stripMargin.command
  
     val UPDATE_SALARY_ITEM: Command[EmployeeSalaryItem.TYPE] =
       sql"""UPDATE employee_salary_item SET owner= $varchar, account= $varchar, amount= $numeric, percentage= $numeric 
             , text= $varchar
-               WHERE id=$varchar  and company= $varchar""".command
+               WHERE id=$varchar  and company= $varchar""".stripMargin.command
   
     def DELETE: Command[(String, Int, String)] =
-      sql"DELETE FROM employee WHERE id = $varchar AND modelid = $int4 AND company = $varchar".command
+      sql"DELETE FROM employee WHERE id = $varchar AND modelid = $int4 AND company = $varchar".stripMargin.command

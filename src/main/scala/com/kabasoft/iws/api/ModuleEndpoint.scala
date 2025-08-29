@@ -62,7 +62,7 @@ object ModuleEndpoint:
 
   val mAllRoute =
     mAll.implement: p =>
-      ZIO.logInfo(s"Insert module  ${p}") *>
+      ZIO.logInfo(s"get aLl module  ${p}") *>
         ModuleRepository.all((p._1, p._2))
 
   val mByIdRoute =

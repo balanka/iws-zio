@@ -25,10 +25,13 @@ final case class StoreRepositoryLive(postgres: Resource[Task, Session[Task]], st
   override def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Store]] =
     for {
     stores <- list(Id)
+    _ <- ZIO.logInfo(s" all_stores ${stores}")
     stocks_ <- stockRepo.all(Stock.MODELID, Id._2)
-    articles <- articleRepo.getBy(stocks_.map(_.article), Article.MODELID, Id._2)
+    _ <- ZIO.logInfo(s" stocks ${stocks_}")
+    articleIds = if stocks_.isEmpty then List("") else stocks_.map(_.article)
+    articles <- articleRepo.getBy(articleIds, Article.MODELID, Id._2)
   } yield stores.map(c => c.copy(stocks = stocks_.filter(_.store == c.id)
-    .map(stock =>stock.copy(price = articles.find(_.id == stock.article).getOrElse(Article.dummy).avgPrice))))
+                .map(stock =>stock.copy(price = articles.find(_.id == stock.article).getOrElse(Article.dummy).avgPrice))))
 
   override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, Store] = queryWithTxUnique(postgres, p, BY_ID)
   override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Store]] =
@@ -95,16 +98,19 @@ private[repository] object StoreRepositorySQL:
            WHERE  modelid = $int4 AND company = $varchar
            ORDER BY id ASC""".query(mfDecoder)
 
-  val insert: Command[Store] = sql"""INSERT INTO store VALUES $mfEncoder """.command
+  val insert: Command[Store] =
+    sql"""INSERT INTO store (id, name, description, costcenter,  account, oaccount, enterdate, changedate
+         , postingdate, company, modelid) VALUES $mfEncoder """.stripMargin.command
 
   def insertAll(n:Int): Command[List[(String, String, String, String, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int)]] =
-    sql"INSERT INTO store VALUES ${mfCodec.values.list(n)}".command
+    sql"""INSERT INTO store (id, name, description, costcenter,  account, oaccount, enterdate, changedate, postingdate, company, modelid) 
+          VALUES ${mfCodec.values.list(n)}""".stripMargin.command
 
   val UPDATE: Command[Store.TYPE2] =
     sql"""UPDATE store
           SET name = $varchar, description = $varchar, costcenter = $varchar,  account =$varchar, oaccount = $varchar
-          WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
+          WHERE id=$varchar and modelid=$int4 and company= $varchar""".stripMargin.command
   
 
   def DELETE: Command[(String, Int, String)] =
-    sql"DELETE FROM store WHERE id = $varchar AND modelid = $int4 AND company = $varchar".command
+    sql"DELETE FROM store WHERE id = $varchar AND modelid = $int4 AND company = $varchar".stripMargin.command

@@ -5,12 +5,15 @@ import com.kabasoft.iws.domain.{FinancialsTransaction, Journal, PeriodicAccountB
 import zio._
 
 trait PostFinancialsTransactionRepository:
-    def post(models: List[FinancialsTransaction], pac2Insert: List[PeriodicAccountBalance], pac2update: UIO[List[PeriodicAccountBalance]],
+    def post(models2Insert: List[FinancialsTransaction], models2Update: List[FinancialsTransaction]
+             , pac2Insert: List[PeriodicAccountBalance], pac2update: UIO[List[PeriodicAccountBalance]],
          journals: List[Journal]): ZIO[Any, RepositoryError, Int]
 
 object PostFinancialsTransactionRepository:
-  def post(models: List[FinancialsTransaction], pac2Insert:List[PeriodicAccountBalance], pac2update:UIO[List[PeriodicAccountBalance]],
+  def post(models2Insert: List[FinancialsTransaction], models2Update: List[FinancialsTransaction]
+           , pac2Insert:List[PeriodicAccountBalance], pac2update:UIO[List[PeriodicAccountBalance]],
            journals:List[Journal]): ZIO[PostFinancialsTransactionRepository, RepositoryError, Int] =
-    ZIO.serviceWithZIO[PostFinancialsTransactionRepository](_.post(models, pac2Insert, pac2update, journals))
+    ZIO.serviceWithZIO[PostFinancialsTransactionRepository](_.post(models2Insert, models2Update
+                       , pac2Insert, pac2update, journals))
 
 
