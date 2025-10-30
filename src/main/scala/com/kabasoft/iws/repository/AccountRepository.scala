@@ -8,6 +8,7 @@ trait AccountRepository:
   def create(models: List[Account]):ZIO[Any, RepositoryError, Int]
   def modify(model: Account):ZIO[Any, RepositoryError, Int]
   def modify(models: List[Account]):ZIO[Any, RepositoryError, Int]
+  def list(Id: (Int, String)): ZIO[Any, RepositoryError, List[Account]]
   def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Account]]
   def getById(Id: (String, Int, String)):ZIO[Any, RepositoryError, Account]
   def getByParentId(Id: (String, Int, String)): ZIO[Any, RepositoryError, List[Account]]
@@ -28,7 +29,9 @@ object AccountRepository:
 
   def modify(models: List[Account]): ZIO[AccountRepository, RepositoryError, Int]=
     ZIO.serviceWithZIO[AccountRepository](_.modify(models))
-
+  def list(Id: (Int, String)): ZIO[AccountRepository, RepositoryError, List[Account]] =
+    ZIO.serviceWithZIO[AccountRepository](_.list(Id))
+    
   def all(Id: (Int, String)): ZIO[AccountRepository, RepositoryError, List[Account]] =
     ZIO.serviceWithZIO[AccountRepository](_.all(Id))
     

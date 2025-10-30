@@ -69,7 +69,10 @@ final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
     bankAccounts_ <- bankAccRepo.bankAccout4All(BankAccount.MODEL_ID)
   } yield companies.map(c => c.copy(bankaccounts = bankAccounts_.filter( bac => bac.owner == c.id & bac.company == c.id)))
   
-  override def getById(p: (String, Int)): ZIO[Any, RepositoryError, Company] =  queryWithTxUnique(postgres, p, BY_ID)
+  override def getById(p: (String, Int)): ZIO[Any, RepositoryError, Company] =  for{
+    comp <- queryWithTxUnique(postgres, p, BY_ID)
+    bankAccounts_ <- bankAccRepo.getByOwner(comp.id, BankAccount.MODEL_ID, comp.id)
+  }yield comp.copy(bankaccounts =bankAccounts_)
   override def getBy(ids: List[String], modelid: Int):ZIO[Any, RepositoryError, List[Company]] =
     queryWithTx(postgres, (ids, modelid), ALL_BY_ID(ids.length))
 
@@ -148,13 +151,13 @@ private[repository] object CompanyRepositorySQL:
              currency, locale, account, oaccount, balance_sheet_acc, income_stmt_acc, purchasing_clearing_acc
              , sales_clearing_acc, cash_acc, modelid)
          VALUES ${mfCodec.values.list(n)}""".command
-     
+  
   val UPDATE:Command[Company.TYPE2]=
     sql"""UPDATE company set name =$varchar, street =$varchar, zip =$varchar, city =$varchar, state =$varchar
           , country =$varchar, email =$varchar, partner =$varchar, phone =$varchar, bank_acc =$varchar, iban =$varchar
-          , tax_code =$varchar, vat_code =$varchar, currency =$varchar, locale =$varchar, account=$varchar 
-          , oaccount=$varchar,  balance_sheet_acc =$varchar
+          , tax_code =$varchar, vat_code =$varchar, currency =$varchar, locale =$varchar, balance_sheet_acc =$varchar 
           , income_stmt_acc =$varchar, purchasing_clearing_acc =$varchar, sales_clearing_acc =$varchar,  cash_acc=$varchar
+          , account=$varchar, oaccount=$varchar 
           WHERE id=$varchar and modelid=$int4""".command
   
   def DELETE: Command[(String, Int)] = sql"DELETE FROM Company WHERE id = $varchar AND modelid = $int4".command

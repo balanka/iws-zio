@@ -1,31 +1,35 @@
 package com.kabasoft.iws.service
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain._
-import com.kabasoft.iws.domain.common.{given, _}
-import com.kabasoft.iws.repository.{ AccountRepository, PacRepository }
+import com.kabasoft.iws.domain.common.{_, given}
+import com.kabasoft.iws.repository.{AccountRepository, PacRepository}
 import zio._
 
 final class AccountServiceLive(accRepo: AccountRepository, pacRepo: PacRepository) extends AccountService:
+  
   def getBalance(accId: String, toPeriod: Int, companyId: String): ZIO[Any, RepositoryError, List[Account]] =
     (for {
       _<- ZIO.logInfo(s" >>>>>>>> toPeriod: $toPeriod for companyId $companyId" )
       accounts <- accRepo.all((Account.MODELID, companyId))
       period00 = toPeriod.toString.slice(0, 4).concat("00").toInt
-      pacBalances <- pacRepo.findBalance4Period(toPeriod, companyId)
-      pacs <- pacRepo.findBalance4Period( period00, companyId)
-    } yield {
-      val accountsWithBalances = pacBalances.flatMap(pac =>
+      pacBalances <- pacRepo.findBalance4Period(period00, toPeriod, companyId)
+      allPacs = pacBalances.groupBy(_.account).map { case (_, v) => reduce(v, PeriodicAccountBalance.dummy) }
+      .toList
+       accountsWithBalances = allPacs.flatMap(pac =>
         accounts.find(acc => pac.account == acc.id).map (_.copy(idebit = pac.idebit, debit = pac.debit, icredit = pac.icredit, credit = pac.credit)))
-      val accountsWithoutBalances = accounts.filterNot(acc => accountsWithBalances.map(_.id).contains(acc.id))
-      val all                     = accountsWithBalances ::: accountsWithoutBalances
-      val account1                = Account.consolidate(accId, all, pacs)
-      val account                 = Account.unwrapData(account1)
-      ZIO.logInfo(s"Balance 4 account is ${account}")
-      List(account1) ++ account
+        idsOfAccountWithBalance = accountsWithBalances.map(_.id)
+      //_<- ZIO.logInfo(s"accountsWithBalances ${accountsWithBalances}")
+      accountsWithoutBalances = accounts.filterNot(acc => idsOfAccountWithBalance.contains(acc.id))
+       all                     = accountsWithBalances ::: accountsWithoutBalances
+      acc = all.find(_.id==accId).getOrElse(Account.dummy)
+      account1                = Account.consolidate(acc, all, allPacs)
+      account                 = Account.unwrapData(account1)
+     // _<- ZIO.logInfo(s"Balance 4 account is ${account1}")
+    } yield {
+      account
     }).mapBoth(e => RepositoryError(e.message), a => a)
-
-
-
+    
+  
   def closePeriod(toPeriod: Int, inStmtAccId: String, company: String): ZIO[Any, RepositoryError, Int] = {
     val currentYear   = toPeriod.toString.slice(0, 4).toInt
     val fromPeriod = currentYear.toString.concat("01").toInt

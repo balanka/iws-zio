@@ -6,9 +6,10 @@ import com.kabasoft.iws.domain.common.zeroAmount
 import com.kabasoft.iws.domain.{Account, BankStatement, BusinessPartner, Company, Customer, FinancialsTransaction, FinancialsTransactionDetails, Supplier, Vat, common}
 import com.kabasoft.iws.repository.{AccountRepository, BankStatementRepository, CompanyRepository, CustomerRepository, FinancialsTransactionRepository, SupplierRepository, VatRepository}
 import zio.prelude.FlipOps
-import zio.stream._
-import zio._
+import zio.stream.*
+import zio.*
 
+import java.math
 import java.math.{BigDecimal, RoundingMode}
 import java.nio.file.{Files, Paths}
 import java.time.Instant
@@ -52,13 +53,12 @@ final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository
     result 
   }
 
-  private def getX(optVat: Option[Vat], bs: BankStatement): Option[(String, BigDecimal)] =
+  private def getX(optVat: Option[Vat], bs: BankStatement): Option[(String, BigDecimal, BigDecimal)] =
   optVat.map(vat => {
     val vatAccount = if (bs.amount.compareTo(zeroAmount) >= 0) vat.outputVatAccount else vat.inputVatAccount
-    val vatValue = bs.amount.multiply(vat.percent)
-    val netValue = bs.amount.subtract(vatValue)
-    val netAmount = netValue.setScale(2, RoundingMode.HALF_UP)
-    (vatAccount, netAmount)
+    val netAmount = bs.amount.abs().divide(BigDecimal(1).add(vat.percent)).setScale(2, RoundingMode.HALF_UP)
+    val vatAmount = netAmount.multiply(vat.percent).setScale(2, RoundingMode.HALF_UP)
+    (vatAccount, netAmount, vatAmount)
   }) //.mapError(e=>RepositoryError(e.getMessage))
   
   private def buildReceivablesPayables(bs: BankStatement
@@ -70,8 +70,8 @@ final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository
   }
   def buildLines(bs: BankStatement, partner: BusinessPartner, optVat: Option[Vat], accounts: List[Account]): List[FinancialsTransactionDetails] = {
     val emptyLines = List.empty[FinancialsTransactionDetails]
-    val lines = getX(optVat, bs).map((vatAccount, netAmount) => {
-      val vatAmount = bs.amount.abs().subtract(netAmount.abs()).setScale(2, RoundingMode.HALF_UP)
+    val lines = getX(optVat, bs).map((vatAccount, netAmount, vatAmount) => {
+      //val vatAmount = bs.amount.abs().subtract(netAmount.abs()).setScale(2, RoundingMode.HALF_UP)
       val oaccountName = accounts.find(_.id == partner.oaccount).fold(s"OAccount with id ${partner.oaccount} not found!!!")(_.name)
       val accountName = accounts.find(_.id == partner.account).fold(s"Account with id ${partner.account} not found!!!")(_.name)
       val vatAccountName = accounts.find(_.id == vatAccount).fold(s"Account with id ${partner.account} not found!!!")(_.name)

@@ -11,7 +11,6 @@ import skunk.implicits._
 import zio.prelude.FlipOps
 import zio.interop.catz._
 import zio.{ZIO, _}
-
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 
@@ -69,7 +68,6 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
       .map(line => line.copy(company = line.company.replace("-", "")))
     val newLine2Insert = models.flatMap(_.lines).filter(line => line.id === -1L && line.company.contains("-"))
       .map(line => line.copy(company = line.company.replace("-", "")))
-
     val oldLine2Delete = models.flatMap(_.lines).filter(line => line.transid === -2L)
     //  ZIO.logInfo(s"models ${models}") *>
     //    ZIO.logInfo(s"oldLines2Update ${oldLines2Update}") *>
@@ -171,7 +169,7 @@ object FinancialsTransactionRepositorySQL:
         FinancialsTransactionDetails(id, transid, account, side, oaccount, amount.bigDecimal, toInstant(duedate), text
         , currency,  company, accountName, oaccountName)
 
-  def base =
+  def base: Fragment[Void]  =
     sql""" SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
            FROM   master_compta """
 
@@ -202,15 +200,13 @@ object FinancialsTransactionRepositorySQL:
            """.query(mfDecoder)
 
   val BY_ID1: Query[Long *: Int *: String *: EmptyTuple, FinancialsTransaction] =
-    sql"""
-           SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
+    sql"""SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
            FROM   master_compta
            WHERE id1 = $int8 AND modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val ALL: Query[Int *: String *: EmptyTuple, FinancialsTransaction] =
-    sql"""
-           SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
+    sql"""SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
            FROM   master_compta
            WHERE  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
@@ -259,7 +255,7 @@ object FinancialsTransactionRepositorySQL:
 
   val insertDetails: Command[FinancialsTransactionDetails.D_TYPE4] =
     sql"""INSERT INTO details_compta (transid, account, side, oaccount, amount, duedate, text, currency, company
-          , account_name, oaccount_name) VALUES  ($financialsDetailsTransactionCodec4)""".command
+          , account_name, oaccount_name) VALUES  ($financialsDetailsTransactionCodec4)""".command  //  RETURNING id
     
   def insertAllDetails(n:Int): Command[List[FinancialsTransactionDetails.D_TYPE4]] =
     sql"""INSERT INTO details_compta (transid, account, side, oaccount, amount, duedate, text, currency, company
@@ -267,7 +263,8 @@ object FinancialsTransactionRepositorySQL:
 
   val UPDATE: Command[FinancialsTransaction.TYPE2] =
     sql"""UPDATE master_compta
-          SET oid = $int8, costcenter = $varchar, account = $varchar, text=$varchar, type_journal = $int4, file_content = $int4
+          SET oid = $int8, costcenter = $varchar, account = $varchar, text=$varchar, transdate =$timestamp
+          , period=$int4, type_journal = $int4, file_content = $int4
           WHERE id=$int8 and modelid=$int4 and company= $varchar""".command
 
   val UPDATE_DETAILS: Command[FinancialsTransactionDetails.TYPE2] =

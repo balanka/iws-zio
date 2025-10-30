@@ -36,7 +36,7 @@ final class FinancialsServiceLive( accRepo: AccountRepository
     for {
       queries <- ftrRepo.getBy(ids, modelid, company)
       _ <- ZIO.logDebug(s"Posting transaction  ${queries}")
-      models = queries.filter(_.posted == false)
+      models = queries.filter(tr=> !tr.posted && tr.lines.nonEmpty)
       _ <- ZIO.logDebug(s"Posting models  ${models}")
       _ <-ZIO.foreachDiscard(models.map(_.id)) (id =>ZIO.logDebug(s"Posting transaction with id ${id} of company ${company}"))
       nr <- ZIO.foreach(models)(postTransaction).map(_.sum)
@@ -65,7 +65,7 @@ final class FinancialsServiceLive( accRepo: AccountRepository
   }
   
   private def postTransaction(transaction: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = {
-    val model = transaction.copy(period = common.getPeriod(transaction.transdate))
+    val model = transaction.copy(period = common.getPeriod(transaction.transdate), posted = true)
     val pacids = buildPacIds(model)
     val company = transaction.company
     for {

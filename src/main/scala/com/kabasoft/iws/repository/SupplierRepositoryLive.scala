@@ -20,7 +20,7 @@ final case class SupplierRepositoryLive(postgres: Resource[Task, Session[Task]]
     s.transaction.use: xa =>
       s.prepareR(insert).use: pciCustomer =>
         s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
-          tryExec(xa, pciCustomer, pciBankAcc, newCustomers, newCustomers.flatMap(_.bankaccounts).filterNot(_.id.isEmpty))
+          tryExec(xa, pciCustomer, pciBankAcc, newCustomers, newCustomers.flatMap(_.bankaccounts).filter(_.id.nonEmpty))
 
   def transactM(s: Session[Task], models: List[Supplier], bankAccounts: List[BankAccount]): Task[Unit] =
     s.transaction.use: xa =>

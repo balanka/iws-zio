@@ -22,6 +22,7 @@ final case class BankAccountRepositoryLive(postgres: Resource[Task, Session[Task
   override def modify(models: List[BankAccount]):ZIO[Any, RepositoryError, Int]= executeBatchWithTxK(postgres, models, UPDATE_BANK_ACCOUNT, BankAccount.encodeIt2)
   override def bankAccout4All(p: Int): ZIO[Any, RepositoryError, List[BankAccount]] = queryWithTx(postgres, p, BANK_ACCOUNT_4_ALL)
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[BankAccount]] = queryWithTx(postgres, p, ALL)
+  override def getByOwner(owner:String, modelid:Int, company:String): ZIO[Any, RepositoryError, List[BankAccount]] = queryWithTx(postgres, (owner, modelid, company), BANK_ACCOUNT_BY_OWNER)
   override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, BankAccount] = queryWithTxUnique(postgres, p, BY_ID)
   override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[BankAccount]] =
     queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
@@ -59,11 +60,17 @@ object BankAccountRepositorySQL:
            FROM   bankaccount
            WHERE id = $varchar AND modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
-    
+           
   val BANK_ACCOUNT_4_ALL: Query[Int, BankAccount] =
     sql"""SELECT id, bic, owner, company, modelid
            FROM   bankaccount
            WHERE  modelid = $int4
+           """.query(mfDecoder)
+             
+  val BANK_ACCOUNT_BY_OWNER: Query[String *:Int *:String *: EmptyTuple, BankAccount] =
+    sql"""SELECT id, bic, owner, company, modelid
+           FROM   bankaccount
+           WHERE  owner = $varchar AND modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
     
   val ALL: Query[Int *: String *: EmptyTuple, BankAccount] =

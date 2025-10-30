@@ -36,7 +36,7 @@ object JournalEndpoint:
       HttpCodec.error[AuthenticationError](Status.Unauthorized),
     ).out[List[Journal]] ?? Doc.p(mByPeriodDoc)
   
-// /journal/5500/311000/202500/202507 
+  // http://127.0.0.1:8091/journal/1000/1810/202300/202312
   private val mByAccount4Period = Endpoint(RoutePattern.GET / "journal" / string("company")?? Doc.p(companyDoc) 
     /string("accountId")?? Doc.p(accountIdDoc) / int("from")?? Doc.p(fromDoc) / int("to")?? Doc.p(toDoc)
     ).header(HeaderCodec.authorization)

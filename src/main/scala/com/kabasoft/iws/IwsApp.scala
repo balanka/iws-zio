@@ -45,6 +45,7 @@ import java.time.Clock
 import java.util
 import scala.annotation.nowarn
 import scala.language.postfixOps
+import java.net.InetAddress
 
 object IwsApp extends ZIOAppDefault {
 
@@ -52,15 +53,11 @@ object IwsApp extends ZIOAppDefault {
   val env: util.Map[String, String] = System.getenv()
   val hostName_env: String = env.get("IWS_API_HOST")
   val port_env: String = env.get("IWS_API_PORT")
-  val hostName_prop: String = System.getProperty("IWS_API_HOST")
+  val hostName_prop: String = System.getProperty("IWS_API_HOST")  
   val port_prop: String = System.getProperty("IWS_API_PORT")
-
   val hostName: String = if (hostName_env == null || hostName_env.isEmpty ) hostName_prop else  hostName_env
   val port: Int = if (port_env == null || port_env.isEmpty) port_prop.toInt else port_env.toInt 
 
-  
-//  val hostName: String =  if(env.get("IWS_API_HOST") == null|| env.get("IWS_API_HOST").isEmpty) "0.0.0.0" else env.get("IWS_API_HOST")
-//  val port: Int =  if(env.get("IWS_API_PORT") == null||env.get("IWS_API_PORT").trim.isEmpty) 8080 else env.get("IWS_API_PORT").toInt
   println("hostName>>> " + hostName + " hostport >>>" + port)
   private val serverLayer: ZLayer[Any, Throwable, Server] = {
     implicit val trace: Trace = Trace.empty

@@ -20,7 +20,6 @@ trait MasterfileCRUD:
       }.headOption.getOrElse(transaction)
     }
   def tryExec[A](xa: Transaction[Task], pc: PreparedCommand[Task, A], models: List[A]): Task[Unit] =
-
     for
       sp <- xa.savepoint
       _ <- exec(pc, models)
@@ -32,7 +31,6 @@ trait MasterfileCRUD:
   def tryExec [A, B](xa: Transaction[Task], pciCustomer: PreparedCommand[Task, A]
                       , pciBankAcc: PreparedCommand[Task, B]
                       , customers: List[A], bankaccounts:List[B]): Task[Unit] =
-
     for
       sp <- xa.savepoint
       _ <- exec(pciCustomer, customers) *>
@@ -50,7 +48,6 @@ trait MasterfileCRUD:
               , pcuBankAcc: PreparedCommand[Task, D]
               , customers: List[A], newBankaccounts: List[B] 
               , oldCustomers: List[C], oldBankaccounts: List[D]): Task[Unit] =
-
     for
       sp <- xa.savepoint
       _ <- exec(pciCustomer, customers) *>
@@ -76,11 +73,11 @@ trait MasterfileCRUD:
 
     for
       sp <- xa.savepoint
-      _ <- exec(pciCustomer, newCustomers).debug("ZZZZZZZZ0>>>") *>
-        exec(pciBankAcc, newBankaccounts).debug("ZZZZZZZZ1>>>") *>
-        exec(pcuCustomer, oldCustomers).debug("ZZZZZZZZ2>>>") *>
-        exec(pcuBankAcc, oldBankaccounts).debug("ZZZZZZZZ3>>>") *>
-        exec(pcdBankAcc, bankacc2Delete).debug("ZZZZZZZZ4>>>")
+      _ <- exec(pciCustomer, newCustomers) *>//.debug("ZZZZZZZZ0>>>") *>
+        exec(pciBankAcc, newBankaccounts) *>//.debug("ZZZZZZZZ1>>>") *>
+        exec(pcuCustomer, oldCustomers) *>//.debug("ZZZZZZZZ2>>>") *>
+        exec(pcuBankAcc, oldBankaccounts) *>//.debug("ZZZZZZZZ3>>>") *>
+        exec(pcdBankAcc, bankacc2Delete)//.debug("ZZZZZZZZ4>>>")
           .handleErrorWith(ex =>
             ZIO.logInfo(s"Unique violation: ${ex.getMessage}, rolling back...") *>
               xa.rollback(sp))
@@ -163,7 +160,6 @@ trait MasterfileCRUD:
                                     , newJournals:List[I]
                                     , articles: List[J]
                                     ): Task[Unit] =
-
     for
       sp <- xa.savepoint
       _ <- exec(pciFtr, newFtr) *>
@@ -196,7 +192,6 @@ trait MasterfileCRUD:
                           , stock2update: List[E]
                           , articles: List[F]
                           , models:List[G]): Task[Unit] =
-
     for
       sp <- xa.savepoint
       _ <-exec(pciFtr, newFtr) *>

@@ -45,7 +45,7 @@ final case class PostFinancialsTransactionRepositoryLive(postgres: Resource[Task
                     nr <-   (postgres
                               .use:
                                   session =>
-                                  transact(session, models2Insert.map(buildId), List.empty[FinancialsTransaction]
+                                  transact(session, models2Insert.map(buildId), models2Update
                                     , pac2Insert, pac2updatex, journals))
                               .mapBoth(e => RepositoryError(e.getMessage), _ => models2Insert.flatMap(_.lines).size
                                 + models2Insert.size +pac2Insert.size+pac2updatex.size+journals.size)

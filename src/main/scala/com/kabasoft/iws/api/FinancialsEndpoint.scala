@@ -108,6 +108,7 @@ object FinancialsEndpoint:
         FinancialsService.postAll({p._1.split(',').map(_.toLong).toList}, p._2, p._3) *>
         FinancialsTransactionRepository.getBy(p._1.split(',').map(_.toLong).toList, p._2, p._3)
 
+
   val financialsByIdRoute =
     mById.implement: p =>
       ZIO.logInfo(s"Get financials transaction by ids  ${p._1} modelid ${p._2} company ${p._3} ") *>

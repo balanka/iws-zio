@@ -1,11 +1,12 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.api.Protocol.{loginRequestCodec, userCodec}
-import com.kabasoft.iws.domain.*
-import com.kabasoft.iws.repository.*
-import zio.*
+import com.kabasoft.iws.domain._
+import com.kabasoft.iws.repository._
+import zio._
 import zio.http.Header.Custom
-import zio.http.*
+import zio.http._
+
 import zio.json.{DecoderOps, EncoderOps}
 
 object LoginRoutes:
@@ -34,10 +35,12 @@ object LoginRoutes:
     val usernameR = loginRequest.userName
     val username = user.userName
     val check = (usernameR == username) & (pwdR == pwd)
-    println(s"check >>>>>> $check")
+    val x= scala.util.Properties.envOrElse("IWS_WEB_URL", s"X")
+    println(s"webUrl >>>>>> $x")
     println(s"pwd >>>>>> $pwd")
     //val webUrl = scala.util.Properties.envOrElse("IWS_WEB_URL", "http://localhost:3000")
-    val webUrl = scala.util.Properties.envOrElse("IWS_WEB_URL", "http://127.0.0.1:3000")
+   // val webUrl = scala.util.Properties.envOrElse("IWS_WEB_URL", "http://127.0.0.1:3000")
+    val webUrl = scala.util.Properties.envOrElse("IWS_WEB_URL", s"http://localhost:5173")
     //if (env.keySet().contains("IWS_WEB_URL")) env.get("IWS_WEB_URL") else "http://localhost:3000"
     println(s"webUrl >>>>>> $webUrl")
     if (check) {
@@ -46,10 +49,8 @@ object LoginRoutes:
       println(s"token >>>>>> $token")
       //Response.json(pwd).addHeader(Custom("authorization", token))
        Response.json(user.toJson).addHeader(Custom("authorization", token))
-        .addHeader(Custom("Access-Control-Allow-Origin", "*"))
+        //.addHeader(Custom("Access-Control-Allow-Origin", "*"))
         .addHeader(Custom("Origin", webUrl))
-         .addHeader(Custom("Origin", "http://localost:80"))
-         .addHeader(Custom("Origin", "http://127.0.0.1:80"))
     } else {
       Response.unauthorized("Invalid username or password.")
     }

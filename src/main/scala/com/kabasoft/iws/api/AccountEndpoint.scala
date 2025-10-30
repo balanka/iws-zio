@@ -45,7 +45,7 @@ object AccountEndpoint:
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized),
     ).out[Account] ?? Doc.p(mByIdAPIDoc)
-  
+  ///balance/1000/accountid/toPeriod
   val balanceAPI = Endpoint(RoutePattern.GET / "balance" / string("company")?? Doc.p(companyDoc)/string("accId")
     ?? Doc.p(idDoc) / int("to")?? Doc.p(periodDoc)
     ).header(HeaderCodec.authorization)

@@ -1,16 +1,17 @@
-val zioVersion                 = "2.1.20"
-val zioHttpVersion             = "3.3.3"
+val zioVersion                 = "2.1.22"
+val zioHttpVersion             = "3.5.1"
 val zioJsonVersion             = "0.7.44"
 val zioConfigVersion           = "4.0.4"
 val logbackVersion             = "1.2.7"
-val testcontainersVersion      = "1.20.3"
-val testcontainersScalaVersion = "0.41.4"
-val postgresql                 = "42.7.4"
+val testcontainersVersion      = "1.21.3"
+//val testcontainersScalaVersion = "0.41.4"
+val testcontainersScalaVersion = "0.43.0"
+val postgresql                 = "42.7.7"
 val JwtCoreVersion             = "9.1.1"
 val zioSchemaVersion           = "1.6.6"
 val skunkVersion              = "0.6.4"
 //val skunkVersion              = "1.0.0-M7"
-val zioPreludeVersion         = "1.0.0-RC39"
+val zioPreludeVersion         = "1.0.0-RC41"
 val zioInteropCatsVersion = "23.1.0.3"
 val catsVersion           = "2.13.0"
 val catsEffectVersion     = "3.5.7"
@@ -36,14 +37,14 @@ lazy val root = (project in file("."))
       List(
         name         := "iws-skunk",
         organization := "KABA Soft GmbH",
-        version      := "1.8.6",
-         scalaVersion := "3.7.1"
+        version      := "1.9.2",
+         scalaVersion := "3.7.3"
       )
     ),
     name           := "iws-zio",
     libraryDependencies ++= Seq(
-      "dev.zio"           %% "zio"                             % zioVersion,
-      "dev.zio"           %% "zio-streams"                      % zioVersion,
+      "dev.zio"           %% "zio"                           % zioVersion,
+      "dev.zio"           %% "zio-streams"                    % zioVersion,
       "dev.zio"           %% "zio-http"                       % zioHttpVersion,
       "dev.zio"           %% "zio-schema"                      % zioSchemaVersion,
       "dev.zio"           %% "zio-config"                      % zioConfigVersion,

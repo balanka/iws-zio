@@ -31,27 +31,33 @@ object common:
       m2.add(m1)
   given accMonoid: Identity[Account] = new Identity[Account]:
     def identity: Account                       = Account.dummy
-    def combine(m1: => Account, m2: => Account): Account =
-      m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
+    def combine(m1: => Account, m2: => Account): Account = {
+
+      if(m1.id.equals(Account.dummy.id)) {
+        m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit).bdebiting(m1.bdebit).bcrediting(m1.bcredit).copy(id=m2.account)
+      } else m1.idebiting(m2.idebit).icrediting(m2.icredit).debiting(m2.debit).crediting(m2.credit).bdebiting(m2.bdebit).bcrediting(m2.bcredit).copy(id=m1.account)
+    }
 
   given accountClassMonoid: Identity[AccountClass] = new Identity[AccountClass]:
     def identity: AccountClass                       = AccountClass.dummy
     def combine(m1: => AccountClass, m2: => AccountClass): AccountClass =
-      m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
+      if(m1.id.equals(AccountClass.dummy.id)) {
+       m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit).bdebiting(m1.bdebit).bcrediting(m1.bcredit)
+      } else m1.idebiting(m2.idebit).icrediting(m2.icredit).debiting(m2.debit).crediting(m2.credit).bdebiting(m2.bdebit).bcrediting(m2.bcredit)
 
-  given  accBalanceMonoid: Identity[Balance] = new Identity[Balance]:
+  given  balanceMonoid: Identity[Balance] = new Identity[Balance]:
     def identity: Balance = dummyBalance
     def combine(m1: => Balance, m2: => Balance): Balance =
       m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit)
 
   given pacMonoid: Identity[PeriodicAccountBalance] = new Identity[PeriodicAccountBalance]:
     def identity: PeriodicAccountBalance                                      = PeriodicAccountBalance.dummy
-    def combine(m1: => PeriodicAccountBalance, m2: => PeriodicAccountBalance): PeriodicAccountBalance =m2
-//      if(m1.id.equals(PeriodicAccountBalance.dummy.id)){
-//        m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit).bdebiting(m1.bdebit).bcrediting(m1.bcredit)
-//      } else {
-//        m1.idebiting(m2.idebit).icrediting(m2.icredit).debiting(m2.debit).crediting(m2.credit).bdebiting(m2.bdebit).bcrediting(m2.bcredit)
-//      }
+    def combine(m1: => PeriodicAccountBalance, m2: => PeriodicAccountBalance): PeriodicAccountBalance =
+      if(m1.id.equals(PeriodicAccountBalance.dummy.id)){
+        m2.idebiting(m1.idebit).icrediting(m1.icredit).debiting(m1.debit).crediting(m1.credit).bdebiting(m1.bdebit).bcrediting(m1.bcredit)
+      } else {
+        m1.idebiting(m2.idebit).icrediting(m2.icredit).debiting(m2.debit).crediting(m2.credit).bdebiting(m2.bdebit).bcrediting(m2.bcredit)
+      }
 
   given stockMonoid: Identity[Stock] = new Identity[Stock]:
     def identity: Stock  = Stock.dummy
@@ -409,12 +415,12 @@ object Company:
   def dummy:Company = Company("-1",  "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", MODEL_ID, Nil)
 
   def encodeIt(st: Company): TYPE2 =
-    (st.id, st.name, st.street, st.zip, st.city, st.state, st.country, st.email, st.partner, st.phone, st.bankAcc,
+    (st.id, st.name,  st.street, st.zip, st.city, st.state, st.country, st.email, st.partner, st.phone, st.bankAcc,
       st.iban, st.taxCode, st.vatCode, st.currency, st.locale, st.balanceSheetAcc, st.incomeStmtAcc, st.purchasingClearingAcc,
       st.salesClearingAcc, st.cashAcc, st.account, st.oaccount, st.modelid)
 
   def encodeIt2(st: Company): TYPE2 =
-    (st.name, st.street, st.zip, st.city, st.state, st.country, st.email, st.partner, st.phone, st.bankAcc, st.iban
+    (st.name,  st.street, st.zip, st.city, st.state, st.country, st.email, st.partner, st.phone, st.bankAcc, st.iban
       , st.taxCode, st.vatCode, st.currency, st.locale, st.balanceSheetAcc, st.incomeStmtAcc, st.purchasingClearingAcc
       , st.salesClearingAcc, st.cashAcc, st.account, st.oaccount, st.id, st.modelid)
 
@@ -442,6 +448,8 @@ trait AccountT extends IWS:
   def crediting(amount: BigDecimal):AccountT
   def idebiting(amount: BigDecimal):AccountT
   def icrediting(amount: BigDecimal):AccountT
+  def bdebiting (amount: BigDecimal): AccountT
+  def bcrediting(amount: BigDecimal): AccountT
   def fdebit:BigDecimal
   def fcredit:BigDecimal
   def dbalance:BigDecimal
@@ -466,13 +474,57 @@ final case class Account (
                            icredit: BigDecimal = zeroAmount,
                            debit: BigDecimal = zeroAmount,
                            credit: BigDecimal = zeroAmount,
+                           bdebit: BigDecimal = zeroAmount,
+                           bcredit: BigDecimal = zeroAmount,
                            subAccounts: Set[Account] = Nil.toSet
-                         ) extends IWS {
+                         ) extends IWS { self:Account =>
 
   import com.kabasoft.iws.domain.common.{reduce, given}
 
+  def reportBalance(acc: Account):Unit = 
+    subAccounts.toList match
+      case Nil => acc.idebiting(idebit).icrediting(icredit).debiting(debit).crediting(credit)
+      case x1 :: xs => (x1 :: xs).foreach( _.reportBalance(self))
+        //reportBalance(x1)
+        //xs.map(reportBalance)
+        //val z = reduce(acc.subAccounts, Account.dummy).copy(id = acc.id, name = acc.name, description = acc.description, account = acc.account)
+        //val z = reduce(acc.subAccounts,  Account.dummy).copy(name= acc.name, description = acc.description )
+        //        if (acc.id == "9901") {
+        //          assert(acc.id == "9901")
+        //        }
+      //z
+
+  
+  def reportBalanceA(acc:Account): Account = {
+    val x = acc.subAccounts.toList match
+      case Nil => acc
+      case x1:: xs => {
+         reportBalance(x1)
+        xs.map(reportBalance)
+        val z = reduce(acc.subAccounts,  Account.dummy).copy(id = acc.id, name= acc.name, description = acc.description, account = acc.account )
+        //val z = reduce(acc.subAccounts,  Account.dummy).copy(name= acc.name, description = acc.description )
+//        if (acc.id == "9901") {
+//          assert(acc.id == "9901")
+//        }
+        z
+      }
+    x
+  }
+  def withPac(pac: Option[PeriodicAccountBalance]): Account = {
+    val x = pac.map(p=>idebiting(p.idebit).icrediting(p.icredit).debiting(p.debit)
+      .crediting(p.credit)).getOrElse(self)//.bdebiting(pac.bdebit).bcrediting(pac.bcredit)
+    x
+     }
+  
+  def withPac(pac: PeriodicAccountBalance): Account = idebiting(pac.idebit).icrediting(pac.icredit).debiting(pac.debit)
+    .crediting(pac.credit)//.bdebiting(pac.bdebit).bcrediting(pac.bcredit)
+  
+  def withAccount(acc: Account):Account = idebiting(acc.idebit).icrediting(acc.icredit).debiting(acc.debit)
+    .crediting(acc.credit)//.bdebiting(acc.bdebit).bcrediting(acc.bcredit)
+  
   def report(child: List[Account]): Account =
     reduce(child.filter(acc=>acc.account == id).map(acc => acc.report(child)), Account.dummy)
+    
   def debiting(amount: BigDecimal): Account = copy(debit = debit.add(amount))
 
   def crediting(amount: BigDecimal): Account = copy(credit = credit.add(amount))
@@ -480,6 +532,9 @@ final case class Account (
   def idebiting(amount: BigDecimal): Account = copy(idebit = idebit.add(amount))
 
   def icrediting(amount: BigDecimal): Account = copy(icredit = icredit.add(amount))
+
+  def bdebiting(amount: BigDecimal): Account = copy(bdebit = bdebit.add(amount))
+  def bcrediting(amount: BigDecimal): Account = copy(bcredit = bcredit.add(amount))
 
   def fdebit: BigDecimal = debit.add(idebit)
 
@@ -502,20 +557,27 @@ final case class Account (
   def filterAddSubAccounts(accSet: Set[Account]): Account =
     copy(subAccounts = accSet.filter(_.account == id).map(_.filterAddSubAccounts(accSet)))
 
-  def updateBalance(acc: Account): Account =
+  def updateBalance(acc: Account): Account = {
     idebiting(acc.idebit)
       .icrediting(acc.icredit)
       .debiting(acc.debit)
       .crediting(acc.credit)
+      .bdebiting(acc.bcredit)
+      .bcrediting(acc.bcredit)
       .remove(acc).add(acc)
+  }
+
+  //@tailrec
 
   @tailrec
-  def updateBalanceParent(all: List[Account]): List[Account] =
-    all.find(acc => acc.id == account) match
+  def updateBalanceParent( account:Account, all: List[Account]): List[Account] =
+    all.find(acc => acc.id == account.account) match
       case Some(parent) =>
-        val y: Account = parent.updateBalance(this)
+        val y: Account = parent.updateBalance(account)
+        // replace the old parent with the updated one into the (all) list
         val z: List[Account] = all.filterNot(acc => acc.id == parent.id) :+ y
-        y.updateBalanceParent(z)
+        //val newBalances: List[Account] = balances.filterNot(acc => acc.id == parent.id) :+ y
+        y.updateBalanceParent(y, z)
       case None => all
 
 
@@ -532,7 +594,7 @@ object Account {
 
   val MODELID = 9
   type TYPE = (String, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int, String, Boolean, Boolean
-    , String, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal)
+    , String, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal)
   //acc.name, acc.description, acc.account, acc.isDebit, acc.balancesheet, acc.currency,  acc.id, acc.modelid, acc.company
   type TYPE2 = (String, String, String, Boolean, Boolean, String, String, Int, String)
   private type Account_Type = (
@@ -551,9 +613,11 @@ object Account {
       BigDecimal,
       BigDecimal,
       BigDecimal,
+      BigDecimal,
+      BigDecimal,
       BigDecimal
     )
-  private type Account_Tyoe3 =(String, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int, String, Boolean, Boolean, String, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal)
+  private type Account_Tyoe3 =(String, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int, String, Boolean, Boolean, String, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal , scala.math.BigDecimal, scala.math.BigDecimal)
 
   def apply(acc: Account_Type): Account =
     new Account(
@@ -573,11 +637,13 @@ object Account {
       acc._14,
       acc._15,
       acc._16,
+      acc._17,
+      acc._18,
       Nil.toSet
     )
 
-  val dummy: Account = Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", Account.MODELID, ""
-    , false, false, "EUR", zeroAmount, zeroAmount, zeroAmount, zeroAmount, Nil.toSet)
+  val dummy: Account = Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", Account.MODELID, "X+"
+    , false, false, "EUR", zeroAmount, zeroAmount, zeroAmount, zeroAmount, zeroAmount, zeroAmount, Nil.toSet)
 
   def encodeIt(acc: Account): Account_Tyoe3 =
     (
@@ -596,7 +662,10 @@ object Account {
       scala.math.BigDecimal(acc.idebit),
       scala.math.BigDecimal(acc.icredit),
       scala.math.BigDecimal(acc.debit),
-      scala.math.BigDecimal(acc.credit)
+      scala.math.BigDecimal(acc.credit),
+      scala.math.BigDecimal(acc.bdebit),
+      scala.math.BigDecimal(acc.bcredit)
+      
     )
   def encodeIt2(acc: Account):TYPE2 =
     (acc.name, acc.description, acc.account, acc.isDebit, acc.balancesheet, acc.currency,  acc.id, acc.modelid, acc.company)
@@ -608,6 +677,18 @@ object Account {
       .filterNot(_.id == Account.dummy.id)
       .toList
 
+  def getParentIds(ids:List[String], all: List[Account], result:List[String]): List[String] = {
+    //val parentIds = all.filter(x=>ids.contains(x.id)).map(_.account).distinct
+    if(ids.isEmpty)  {
+      result
+    } else {
+      val parentIds = ids.flatMap(x => all.filter(_.id == x)).map(_.account).distinct
+      getParentIds(parentIds, all, result ++ parentIds) //.flatMap(id => all.filter(_.id == id))
+    }
+
+  }
+
+
   private def removeSubAccounts(account: Account): Account =
     account.subAccounts.toList match
       case Nil      => account
@@ -616,24 +697,13 @@ object Account {
         if (account.subAccounts.nonEmpty)
           account.copy(subAccounts = sub.map(removeSubAccounts))
         else account
-
-  private def addSubAccounts(account: Account, accMap: Map[String, List[Account]]): Account =
-    accMap.get(account.id) match
-      case Some(accList) => addSubAcc(account, accMap, accList)
-      case None          =>
-        if (account.subAccounts.nonEmpty) {
-          addSubAcc(account, accMap, account.subAccounts.toList)
-        } else account
-
-  private def addSubAcc(account: Account, accMap: Map[String, List[Account]], accList: List[Account]) =
-    account.copy(subAccounts = account.subAccounts ++ accList.map(x => addSubAccounts(x, accMap)))
-
+  
   private def getInitialDebitCredit(accId: String, pacs: List[PeriodicAccountBalance], side: Boolean): BigDecimal =
     pacs.find(x => x.account == accId) match
       case Some(acc) => if (side) acc.idebit else acc.icredit
       case None      => zeroAmount
 
-  private def getAllSubBalances(account: Account, pacs: List[PeriodicAccountBalance]): Account                    =
+  private def getAllSubBalances(account: Account, pacs: List[PeriodicAccountBalance]): Account                    = 
     account.subAccounts.toList match
       case Nil      =>
         account.copy(idebit = getInitialDebitCredit(account.id, pacs, true), icredit = getInitialDebitCredit(account.id, pacs, false))
@@ -645,14 +715,17 @@ object Account {
           .icrediting(subALl.icredit)
           .debiting(subALl.debit)
           .crediting(subALl.credit)
+          //.crediting(subALl.bdebit)
+          //.crediting(subALl.bcredit)
           .copy(subAccounts = sub)
-
+  
   private def unwrapData_(res: Set[Account]): Set[Account] =
     res.flatMap: acc =>
       acc.subAccounts.toList match
-        case Nil => if (acc.balance.compareTo(zeroAmount) == 0 && acc.subAccounts.isEmpty) Set.empty[Account] else Set(acc)
+        case Nil => if (acc.balance.compareTo(zeroAmount) == 0) Set.empty[Account] else Set(acc)
         case (head: Account) :: tail => Set(acc, head) ++ unwrapData_(tail.toSet)
-  def unwrapData(account: Account): List[Account] = unwrapData_(account.subAccounts).toList
+        
+  def unwrapData(account: Account): List[Account] = List(account)++unwrapData_(account.subAccounts).toList
 
   def withChildren(accId: String, accList: List[Account]): Account =
     accList.find(x => x.id == accId) match
@@ -661,12 +734,28 @@ object Account {
 
   def consolidate(accId: String, accList: List[Account], pacs: List[PeriodicAccountBalance]): Account =
     val accMap = accList.groupBy(_.account)
-    accList.find(x => x.id == accId) match
+    accList.find(_.id == accId) match
       case Some(acc) => updateSubAccountBalance(pacs, accMap, acc)
-      case None      => Account.dummy
+      case None => Account.dummy
+      
+  def consolidate(acc: Account, accList: List[Account], pacs: List[PeriodicAccountBalance]): Account =
+    val accMap = accList.groupBy(_.account)
+    updateSubAccountBalance(pacs, accMap, acc)
+//    accList.find(_.id == acc.id) match
+//      case Some(acc) => updateSubAccountBalance(pacs, accMap, acc)
+//      case None      => Account.dummy
+  private def addSubAccounts(account: Account, accMap: Map[String, List[Account]]): Account =
+   accMap.get(account.id) match
+    case Some(accList) => addSubAcc(account, accMap, accList)
+    case None => if (account.subAccounts.isEmpty) account else {
+        addSubAcc(account, accMap, account.subAccounts.toList)
+      }  
+
+  private def addSubAcc(account: Account, accMap: Map[String, List[Account]], accList: List[Account]) = {
+    account.copy(subAccounts = accList.map(x => addSubAccounts(x, accMap)).toSet)
+  }
 
   private def updateSubAccountBalance(pacs: List[PeriodicAccountBalance], accMap: Map[String, List[Account]], acc: Account) =
-
     val x: Account = addSubAccounts(acc, accMap) // List(acc)
     val y          = getAllSubBalances(x, pacs)
     removeSubAccounts(y.copy(id = acc.id))
@@ -756,6 +845,8 @@ final case  class AccountClass ( id: String,
                                  icredit: BigDecimal = zeroAmount,
                                  debit: BigDecimal = zeroAmount,
                                  credit: BigDecimal = zeroAmount,
+                                 bdebit: BigDecimal = zeroAmount,
+                                 bcredit: BigDecimal = zeroAmount,                              
                                ) extends  AccountT{
 
   import com.kabasoft.iws.domain.common.{reduce, given}
@@ -766,6 +857,8 @@ final case  class AccountClass ( id: String,
   def crediting(amount: BigDecimal): AccountClass = copy(credit = credit.add(amount))
   def idebiting(amount: BigDecimal): AccountClass = copy(idebit = idebit.add(amount))
   def icrediting(amount: BigDecimal): AccountClass = copy(icredit = icredit.add(amount))
+  def bdebiting(amount: BigDecimal): AccountClass = copy(bdebit = bdebit.add(amount))
+  def bcrediting(amount: BigDecimal): AccountClass = copy(bcredit = bcredit.add(amount))
   def fdebit: BigDecimal = debit.add(idebit)
   def fcredit: BigDecimal = credit.add(icredit)
   def dbalance: BigDecimal = fdebit.subtract(fcredit)
@@ -1777,7 +1870,7 @@ object FinancialsTransaction:
     (Long, Long, Long, String, String, Instant, Instant, Instant, Int, Boolean, Int, String, String, Int, Int)
   type TYPE=(Long, Long, Long, String, String, LocalDateTime, LocalDateTime, LocalDateTime, Int, Boolean, Int, String, String, Int, Int)
   type TYPE4=(Long, Long, String, String, LocalDateTime, LocalDateTime, LocalDateTime, Int, Boolean, Int, String, String, Int, Int)
-  type TYPE2= (Long, String, String, String, Int, Int, Long, Int, String)
+  type TYPE2= (Long, String, String, String, LocalDateTime, Int, Int, Int, Long, Int, String)
 
   def apply(tr: FinancialsTransaction_Type): FinancialsTransaction =
     new FinancialsTransaction(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11, tr._12, tr._13, tr._14)
@@ -1798,7 +1891,7 @@ object FinancialsTransaction:
 
   def encodeIt3(st: FinancialsTransaction): (Long, Int, String) = (st.id, st.modelid, st.company)
   def encodeIt2(st: FinancialsTransaction): TYPE2 =
-    (st.oid, st.costcenter, st.account, st.text, st.typeJournal, st.file_content, st.id, st.modelid, st.company)
+    (st.oid, st.costcenter, st.account, st.text, st.transdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime, st.period, st.typeJournal, st.file_content, st.id, st.modelid, st.company)
 
 
   val dummy: FinancialsTransaction = FinancialsTransaction(-1, 0,0, "dummy", "dummy", Instant.now(), Instant.now()
