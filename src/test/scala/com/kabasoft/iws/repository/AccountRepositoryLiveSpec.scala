@@ -16,12 +16,12 @@ object AccountRepositoryLiveSpec extends ZIOSpecDefault {
 
   val accounts = List(
     Account("4713", "MyAccount2", "MyAccount2", Instant.now(), Instant.now(), Instant.now()
-      , companyId, 9, "", false, false, "EUR", zeroAmount, zeroAmount, zeroAmount, zeroAmount, Nil.toSet),
+      , companyId, 9, "", false, false, "EUR", zeroAmount, zeroAmount, zeroAmount, zeroAmount, zeroAmount, zeroAmount, Nil.toSet),
     Account("4714", "MyAccount4","MyAccount4", Instant.now(), Instant.now(), Instant.now()
-      , companyId, 9, "", false, false, "EUR", zeroAmount, zeroAmount, zeroAmount, zeroAmount, Nil.toSet)
+      , companyId, 9, "", false, false, "EUR", zeroAmount, zeroAmount, zeroAmount, zeroAmount, zeroAmount, zeroAmount, Nil.toSet)
    )
   val newAccount = Account("000001", "Dummy", "Dummy", Instant.now(), Instant.now(), Instant.now(), companyId, Account.MODELID,
-    "5", true, true, "EUR", zeroAmount, zeroAmount, zeroAmount, zeroAmount, Nil.toSet)
+    "5", true, true, "EUR", zeroAmount, zeroAmount, zeroAmount, zeroAmount, zeroAmount, zeroAmount, Nil.toSet)
 
   val accIds:List[(String, Int, String)] = accounts.map(acc => (acc.id, acc.modelid, acc.company))
 

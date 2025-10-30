@@ -52,42 +52,42 @@ object AccountBuilder {
   val t = Instant.now()
   val zero = BigDecimal.valueOf(0, 2 )
   val vtime = Instant.parse("2018-01-01T10:00:00.00Z")
-  val INST_ACC =  Account(paccountId0, "Bilanz","Bilanz",t , t, t, "1000", Account.MODELID, "", true, true, ccy, zero, zero, zero, zero, Nil.toSet)
-  val INST_ACC1 =  Account(paccountId1, "Bilanz Aktiva","Bilanz Aktiva",t , t, t, companyId, Account.MODELID, paccountId0, true, true, ccy, zero, zero, zero, zero, Nil.toSet)
-  val INST_ACC2 =  Account(paccountId2, "Bilanz Passiva","Bilanz Passiva",t , t, t, companyId, Account.MODELID, paccountId0, false, true, ccy, zero, zero, zero, zero, Nil.toSet)
-  val REV_ACC8 =  Account(raccountId8, "Jahresueberschuss","Jahresueberschuss", t, t, t, companyId, Account.MODELID, paccountId0, false, true, "EUR", zero,zero,zero,zero, Nil.toSet)
-  val REV_ACC =  Account(raccountId, "G.u.V","G.u.V", t, t, t, companyId, Account.MODELID, paccountId0, false, true, "EUR", zero,zero,zero,zero, Nil.toSet)
-  val REV_ACC1 =  Account(raccountId1, "G.u.V Aktiva","G.u.V Aktiva", t, t, t, companyId, Account.MODELID, raccountId, false, true, "EUR", zero,zero,zero,zero, Nil.toSet)
-  val REV_ACC2 =  Account(raccountId2, "G.u.V Passiva","G.u.V Passiva", t, t, t, companyId, Account.MODELID, raccountId, false, true, "EUR", zero,zero,zero,zero, Nil.toSet)
-  val faccount =  Account(faccountId, fname,fname, t, t, t, companyId, Account.MODELID, paccountId1, true, true, ccy, zero,zero,zero,zero, Nil.toSet)
+  val INST_ACC =  Account(paccountId0, "Bilanz","Bilanz",t , t, t, "1000", Account.MODELID, "", true, true, ccy, zero, zero, zero, zero, zero, zero, Nil.toSet)
+  val INST_ACC1 =  Account(paccountId1, "Bilanz Aktiva","Bilanz Aktiva",t , t, t, companyId, Account.MODELID, paccountId0, true, true, ccy, zero, zero, zero, zero, zero, zero, Nil.toSet)
+  val INST_ACC2 =  Account(paccountId2, "Bilanz Passiva","Bilanz Passiva",t , t, t, companyId, Account.MODELID, paccountId0, false, true, ccy, zero, zero, zero, zero,zero, zero, Nil.toSet)
+  val REV_ACC8 =  Account(raccountId8, "Jahresueberschuss","Jahresueberschuss", t, t, t, companyId, Account.MODELID, paccountId0, false, true, "EUR", zero,zero,zero,zero, zero, zero, Nil.toSet)
+  val REV_ACC =  Account(raccountId, "G.u.V","G.u.V", t, t, t, companyId, Account.MODELID, paccountId0, false, true, "EUR", zero,zero,zero,zero, zero, zero, Nil.toSet)
+  val REV_ACC1 =  Account(raccountId1, "G.u.V Aktiva","G.u.V Aktiva", t, t, t, companyId, Account.MODELID, raccountId, false, true, "EUR", zero,zero,zero,zero, zero, zero, Nil.toSet)
+  val REV_ACC2 =  Account(raccountId2, "G.u.V Passiva","G.u.V Passiva", t, t, t, companyId, Account.MODELID, raccountId, false, true, "EUR", zero,zero,zero,zero, zero, zero, Nil.toSet)
+  val faccount =  Account(faccountId, fname,fname, t, t, t, companyId, Account.MODELID, paccountId1, true, true, ccy, zero,zero,zero,zero, zero, zero, Nil.toSet)
   val baccount =  Account(bankaccountId, "Bank","Bank", t, t, t, companyId,
-     Account.MODELID, paccountId1, true, true, ccy, zero,zero,zero,zero, Nil.toSet)
+     Account.MODELID, paccountId1, true, true, ccy, zero,zero,zero,zero, zero, zero, Nil.toSet)
   val baccount1 =  Account(accountId, name,"Giro SPK Bielefeld", t, t, t, companyId,
-    Account.MODELID, bankaccountId, true, true, ccy, zero,zero,zero,zero, Nil.toSet)
+    Account.MODELID, bankaccountId, true, true, ccy, zero,zero,zero,zero, zero, zero, Nil.toSet)
   val receivaccount =
-    Account(accountRecvId, "Forderung", "Forderung", t, t, t, companyId, Account.MODELID, paccountId1, true, true, ccy, zero, zero, zero, zero, Nil.toSet)
+    Account(accountRecvId, "Forderung", "Forderung", t, t, t, companyId, Account.MODELID, paccountId1, true, true, ccy, zero, zero, zero, zero, zero, zero, Nil.toSet)
 
   val liabilityAccount =
-    Account(accountLiabId, "Verbindlichkeiten", "Verbindlichkeiten", t, t, t, companyId, Account.MODELID, paccountId2, true, true, ccy, zero, zero, zero, zero, Nil.toSet)
+    Account(accountLiabId, "Verbindlichkeiten", "Verbindlichkeiten", t, t, t, companyId, Account.MODELID, paccountId2, true, true, ccy, zero, zero, zero, zero, zero, zero, Nil.toSet)
 
   val liabilityAccount1 =
-    Account(accountLiabId1, "Verbindlichkeiten aus Steuer und Abgaben ", "Verbindlichkeiten aus Steuer und Abgaben", t, t, t, companyId, Account.MODELID, accountLiabId, true, true, ccy, zero, zero, zero, zero, Nil.toSet)
+    Account(accountLiabId1, "Verbindlichkeiten aus Steuer und Abgaben ", "Verbindlichkeiten aus Steuer und Abgaben", t, t, t, companyId, Account.MODELID, accountLiabId, true, true, ccy, zero, zero, zero, zero, zero, zero, Nil.toSet)
 
   val vataccount =  Account(vataccountId, "Umsatzsteuer 19 %","Umsatzsteuer 19 %",t,t,t, companyId,
-     Account.MODELID, accountLiabId1, false, true, "EUR", zero, zero, zero, zero, Nil.toSet)
+     Account.MODELID, accountLiabId1, false, true, "EUR", zero, zero, zero, zero, zero, zero, Nil.toSet)
   val raccount =  Account(incaccountId, "Umsatzerloese","Umsatzerloese",t,t,t, companyId,
-    Account.MODELID, raccountId2, false, true, "EUR", zero, zero, zero, zero, Nil.toSet)
+    Account.MODELID, raccountId2, false, true, "EUR", zero, zero, zero, zero, zero, zero, Nil.toSet)
   val raccount1 =  Account(incaccountId1, "Umsatzerloese 19%","Umsatzerloese 19%",t,t,t, companyId,
-    Account.MODELID, incaccountId, false, true, "EUR", zero, zero, zero, zero, Nil.toSet)
+    Account.MODELID, incaccountId, false, true, "EUR", zero, zero, zero, zero, zero, zero, Nil.toSet)
 
-  val stockParentAcc = Account(stockaccountParentId, stockaccountParentName, stockaccountParentName, vtime, vtime, vtime, companyId, Account.MODELID, paccountId1, true, true, "EUR", zero, zero, zero, zero, Nil.toSet)
-  val expenseParentAcc = Account(expenseaccountParentId, expenseaccountParentName, expenseaccountParentName, vtime, vtime, vtime, companyId, Account.MODELID, raccountId1, true, true, "EUR", zero, zero, zero, zero, Nil.toSet)
+  val stockParentAcc = Account(stockaccountParentId, stockaccountParentName, stockaccountParentName, vtime, vtime, vtime, companyId, Account.MODELID, paccountId1, true, true, "EUR", zero, zero, zero, zero, zero, zero, Nil.toSet)
+  val expenseParentAcc = Account(expenseaccountParentId, expenseaccountParentName, expenseaccountParentName, vtime, vtime, vtime, companyId, Account.MODELID, raccountId1, true, true, "EUR", zero, zero, zero, zero, zero, zero, Nil.toSet)
 
-  val stockAcc = Account(stockaccountId, stockaccountName, stockaccountName, vtime, vtime, vtime, companyId, Account.MODELID, stockaccountParentId, true, true, "EUR", zero, zero, zero, zero, Nil.toSet)
-  val expenseAcc = Account(expenseaccountId, expenseaccountName, expenseaccountName, vtime, vtime, vtime, companyId, Account.MODELID, expenseaccountParentId, true, true, "EUR", zero, zero, zero, zero, Nil.toSet)
+  val stockAcc = Account(stockaccountId, stockaccountName, stockaccountName, vtime, vtime, vtime, companyId, Account.MODELID, stockaccountParentId, true, true, "EUR", zero, zero, zero, zero, zero, zero, Nil.toSet)
+  val expenseAcc = Account(expenseaccountId, expenseaccountName, expenseaccountName, vtime, vtime, vtime, companyId, Account.MODELID, expenseaccountParentId, true, true, "EUR", zero, zero, zero, zero, zero, zero, Nil.toSet)
 
-  val acc = Account("00000", "Dummy", "Dummy", vtime, vtime, vtime, companyId, Account.MODELID, "5", true, true, "EUR", zero, zero, zero, zero, Nil.toSet)
-  val accx = Account("000001", "Dummy", "Dummy", vtime, vtime, vtime, companyId, Account.MODELID, "5", true, true, "EUR", zero, zero, zero, zero, Nil.toSet)
+  val acc = Account("00000", "Dummy", "Dummy", vtime, vtime, vtime, companyId, Account.MODELID, "5", true, true, "EUR", zero, zero, zero, zero, zero, zero, Nil.toSet)
+  val accx = Account("000001", "Dummy", "Dummy", vtime, vtime, vtime, companyId, Account.MODELID, "5", true, true, "EUR", zero, zero, zero, zero, zero, zero, Nil.toSet)
   
   val list = List(INST_ACC, INST_ACC1, INST_ACC2, REV_ACC8, REV_ACC, REV_ACC1, REV_ACC2, faccount, baccount, baccount1, raccount
     , raccount1, vataccount, liabilityAccount, liabilityAccount1, stockParentAcc, expenseParentAcc, stockAcc, expenseAcc)
