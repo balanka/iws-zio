@@ -56,7 +56,7 @@ final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository
   private def getX(optVat: Option[Vat], bs: BankStatement): Option[(String, BigDecimal, BigDecimal)] =
   optVat.map(vat => {
     val vatAccount = if (bs.amount.compareTo(zeroAmount) >= 0) vat.outputVatAccount else vat.inputVatAccount
-    val netAmount = bs.amount.abs().divide(BigDecimal(1).add(vat.percent)).setScale(2, RoundingMode.HALF_UP)
+    val netAmount = bs.amount.abs().divide(BigDecimal(1).add(vat.percent), 2, RoundingMode.HALF_UP)
     val vatAmount = netAmount.multiply(vat.percent).setScale(2, RoundingMode.HALF_UP)
     (vatAccount, netAmount, vatAmount)
   }) //.mapError(e=>RepositoryError(e.getMessage))

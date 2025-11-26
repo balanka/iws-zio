@@ -1,18 +1,18 @@
 val zioVersion                 = "2.1.22"
 val zioHttpVersion             = "3.5.1"
-val zioJsonVersion             = "0.7.44"
-val zioConfigVersion           = "4.0.4"
+val zioJsonVersion             = "0.7.45"
+val zioConfigVersion           = "4.0.5"
 val logbackVersion             = "1.2.7"
 val testcontainersVersion      = "1.21.3"
 //val testcontainersScalaVersion = "0.41.4"
 val testcontainersScalaVersion = "0.43.0"
 val postgresql                 = "42.7.7"
 val JwtCoreVersion             = "9.1.1"
-val zioSchemaVersion           = "1.6.6"
+val zioSchemaVersion           = "1.7.5"
 val skunkVersion              = "0.6.4"
 //val skunkVersion              = "1.0.0-M7"
-val zioPreludeVersion         = "1.0.0-RC41"
-val zioInteropCatsVersion = "23.1.0.3"
+val zioPreludeVersion         = "1.0.0-RC42"
+val zioInteropCatsVersion = "23.1.0.10"
 val catsVersion           = "2.13.0"
 val catsEffectVersion     = "3.5.7"
 
@@ -21,7 +21,7 @@ ThisBuild / resolvers +=
   "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 ThisBuild / scalacOptions ++= Seq("-Wunused:all","-Xmax-inlines",  "128")
 maintainer := "batexy@gmail.com"
-dockerBaseImage := "openjdk:26-slim"
+dockerBaseImage := "openjdk:26-ea-slim"
 
 assemblyMergeStrategy in assembly := {
   case PathList("META-INF", xs @ _*) => MergeStrategy.discard
@@ -37,8 +37,8 @@ lazy val root = (project in file("."))
       List(
         name         := "iws-skunk",
         organization := "KABA Soft GmbH",
-        version      := "1.9.2",
-         scalaVersion := "3.7.3"
+        version      := "1.9.8",
+         scalaVersion := "3.7.4"
       )
     ),
     name           := "iws-zio",

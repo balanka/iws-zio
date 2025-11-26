@@ -30,12 +30,12 @@ object FModuleRepositoryLive:
     ZLayer.fromFunction(new FModuleRepositoryLive(_))
 
 private[repository] object FModuleRepositorySQL:
-  type TYPE = (Int, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Boolean, String, String, Int, String)
+  type TYPE = (Int, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Boolean, String, Int, Int, String)
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 
   private val mfCodec =
-    (int4 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: varchar  *:bool  *: varchar *: varchar *:int4 *: varchar)
+    (int4 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: varchar  *:bool  *: varchar *: int4 *:int4 *: varchar)
   private[repository] def encodeIt(st: Fmodule): TYPE =
     (st.id,
       st.name,
@@ -51,7 +51,7 @@ private[repository] object FModuleRepositorySQL:
       st.company
     )
   val mfDecoder: Decoder[Fmodule] = mfCodec.map :
-    case (id, name, description, enterdate, changedate, postingdate, account, isDebit,  parent, copyFRom, modelid, company) =>
+    case (id, name, description, enterdate, changedate, postingdate, account, isDebit,  parent, copyFrom, modelid, company) =>
       Fmodule(
         id,
         name,
@@ -62,7 +62,7 @@ private[repository] object FModuleRepositorySQL:
         account,
         isDebit,
         parent,
-        copyFRom,
+        copyFrom,
         modelid,
         company)
 
@@ -103,13 +103,15 @@ private[repository] object FModuleRepositorySQL:
            WHERE  modelid = $int4 AND company = $varchar
            ORDER BY id ASC""".query(mfDecoder)
 
-  val insert: Command[Fmodule] = sql"""INSERT INTO fmodule VALUES $mfEncoder """.command
+  val insert: Command[Fmodule] =
+    sql"""INSERT INTO fmodule (id, name, description, enterdate,changedate, postingdate,  account, is_debit, parent
+         , copy_from, modelid, company ) VALUES $mfEncoder """.command
 
   def insertAll(n:Int): Command[List[TYPE]]= sql"INSERT INTO fmodule VALUES ${mfCodec.values.list(n)}".command
 
   val UPDATE: Command[Fmodule.TYPE2] =
     sql"""UPDATE fmodule
-          SET name = $varchar, description = $varchar, account = $varchar, is_debit=$bool, parent=$varchar, copy_from=$varchar
+          SET name = $varchar, description = $varchar, account = $varchar, is_debit=$bool, parent=$varchar, copy_from=$int4
           WHERE id=$int4 and modelid=$int4 and company= $varchar""".command
   
   def DELETE: Command[(Int, Int, String)] =

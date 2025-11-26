@@ -485,16 +485,7 @@ final case class Account (
     subAccounts.toList match
       case Nil => acc.idebiting(idebit).icrediting(icredit).debiting(debit).crediting(credit)
       case x1 :: xs => (x1 :: xs).foreach( _.reportBalance(self))
-        //reportBalance(x1)
-        //xs.map(reportBalance)
-        //val z = reduce(acc.subAccounts, Account.dummy).copy(id = acc.id, name = acc.name, description = acc.description, account = acc.account)
-        //val z = reduce(acc.subAccounts,  Account.dummy).copy(name= acc.name, description = acc.description )
-        //        if (acc.id == "9901") {
-        //          assert(acc.id == "9901")
-        //        }
-      //z
 
-  
   def reportBalanceA(acc:Account): Account = {
     val x = acc.subAccounts.toList match
       case Nil => acc
@@ -2030,12 +2021,12 @@ final case class  Fmodule (id:Int, name:String, description:String,
                            account:String,
                            isDebit:Boolean,
                            parent:String,
-                           copyFrom:String,
+                           copyFrom:Int,
                            modelid:Int = Fmodule.MODEL_ID,
                            company:String )
 object Fmodule:
   val MODEL_ID = 151
-  type TYPE2 = (String, String, String, Boolean, String, String, Int, Int, String)
+  type TYPE2 = (String, String, String, Boolean, String, Int, Int, Int, String)
   def encodeIt2(st: Fmodule): TYPE2 =
     (st.name, st.description, st.account, st.isDebit, st.parent, st.copyFrom, st.id, st.modelid, st.company)
 
