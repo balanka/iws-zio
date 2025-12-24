@@ -10,7 +10,7 @@ import zio.http._
 import zio.json.{DecoderOps, EncoderOps}
 
 object LoginRoutes:
-  private val defaultLifeSpan = 3*365*24*60*60L // 3 years
+  private val defaultLifeSpan =  3*365*24*60*60L // 3 years
   def loginRoutes: Routes[UserRepository, Response] =
     Routes(
       Method.POST / "users" / "login" ->
