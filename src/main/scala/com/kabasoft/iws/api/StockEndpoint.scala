@@ -1,31 +1,47 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.Stock
+import com.kabasoft.iws.domain.AppError.*
+import com.kabasoft.iws.domain.{AppError, Stock}
 import com.kabasoft.iws.repository.StockRepository
-import com.kabasoft.iws.repository.Schema.{stockSchema, repositoryErrorSchema}
-import zio.ZIO
-import zio.http.Status
-import zio.http.codec.HttpCodec._
-import zio.http.endpoint.EndpointMiddleware.None
-import zio.http.endpoint.{Endpoint, Routes}
+import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, stockSchema, repositoryErrorSchema}
+import zio.schema.Schema
+import zio.*
+import zio.http.*
+import zio.http.codec.PathCodec.{path, int, string}
+import zio.http.codec.*
+import zio.http.endpoint.Endpoint
 
-object StockEndpoint {
+object StockEndpoint:
+  val modelidDoc = "The modelId for identifying the typ of stock "
+  val storeIdDoc = "The store id for  selecting the stock"
+  val articleIdDoc = "The article id for  selecting the stock"
+  val mAllAPIDoc = "Get a stock by company"
+  val stockByStoreAndArticleDoc = "Get a stock by store article and company"
+  val companyDoc = "The company whom the stock belongs to (i.e. 111111)"
+  
+  private val mAll = Endpoint(RoutePattern.GET / "stock" / int("modelid") ?? Doc.p(modelidDoc) / string("company") ??
+    Doc.p(companyDoc)
+  ).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized),
+    ).out[List[Stock]] ?? Doc.p(mAllAPIDoc)
 
-  private val allStockAPI       = Endpoint.get("stock"/ int("modelid")/string("company")).out[List[Stock]]
-    .outError[RepositoryError](Status.InternalServerError)
-   //val stockByStoreOrArticleAPI       = Endpoint.get("stock"/string("company")/ string("id"))
-   //  .out[List[Stock]].outError[RepositoryError](Status.InternalServerError)
-  val stockByStoreAndArticleAPI       = Endpoint.get("stock"/string("store")/ string("article")/ string("company"))
-    .out[Stock].outError[RepositoryError](Status.InternalServerError)
+  private val stockByStoreAndArticle = Endpoint(RoutePattern.GET / "stock" / string("store") ?? Doc.p(storeIdDoc) / string("article") ?? Doc.p(articleIdDoc)
+    / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    .header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized),
+    ).out[List[Stock]] ?? Doc.p(stockByStoreAndArticleDoc)
 
 
-  private val allStockEndpoint  = allStockAPI.implement(company => StockRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
-//  val stockByStoreAndArticleEndpoint = stockByStoreOrArticleAPI.implement(p=>
-//    ZIO.logDebug(s"Get stock by  store or article :  ${p._1} company: ${p._2}") *> StockRepository.getBy(p).mapError(e => RepositoryError(e.getMessage)))
+  val stockAllRoute =
+    mAll.implement: p =>
+      ZIO.logInfo(s"get all  stock  ${p}") *>
+        StockRepository.all((p._1, p._2))
 
-  val stockByStoreOrArticleEndpoint = stockByStoreAndArticleAPI.implement(p=>
-    ZIO.logDebug(s"Get stock by  store or article :  ${p._1} company: ${p._2}") *> StockRepository.getBy((p._1, p._1), p._3).mapBoth(e => RepositoryError(e.getMessage), a=>a.getOrElse(Stock.dummy)))
-  val appStock: Routes[StockRepository, RepositoryError, None] = allStockEndpoint ++ stockByStoreOrArticleEndpoint //++stockByStoreAndArticleEndpoint
-
-}
+  val stockByStoreAndArticleRoute =
+    stockByStoreAndArticle.implement: p =>
+      ZIO.logInfo(s"get all  stock for store ${p._1}  and article ${p._2} and company ${p._3}") *>
+        StockRepository.getByStoreArticle(p._1, p._2, Stock.MODELID, p._3)
+  
+  val stockRoutes = Routes(stockByStoreAndArticleRoute, stockAllRoute) @@ Middleware.debug

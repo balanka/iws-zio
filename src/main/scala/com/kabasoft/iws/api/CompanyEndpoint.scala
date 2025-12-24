@@ -1,33 +1,82 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.repository.Schema.{companySchema, repositoryErrorSchema}
-import com.kabasoft.iws.domain.Company
-import com.kabasoft.iws.repository._
-import zio.ZIO
-import zio.http.codec.HttpCodec._
-import zio.http.codec.HttpCodec.string
+import com.kabasoft.iws.domain.AppError.*
+import com.kabasoft.iws.domain.{AppError, Company}
+import com.kabasoft.iws.repository.CompanyRepository
+import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, companySchema, repositoryErrorSchema}
+import zio.schema.Schema
+import zio.*
+import zio.http.*
+import zio.http.codec.PathCodec.{path, int, string}
+import zio.http.codec.*
 import zio.http.endpoint.Endpoint
-import zio.http.Status
-import zio.schema.DeriveSchema.gen
+object CompanyEndpoint:
+  val modelidDoc = "The modelId for identifying the typ of company "
+  val idDoc = "The unique Id for identifying the store"
+  val mCreateAPIFoc="Create a new company"
+  val mAllAPIDoc = "Get a company by modelId "
+  val mByIdAPIDoc = "Get company by Id and modelId"
+  val mModifyAPIDoc = "Modify a company"
+  val mDeleteAPIDoc = "Delete a company"
 
-object CompanyEndpoint {
+  private val mCreate = Endpoint(RoutePattern.POST / "comp")
+    .in[Company]
+    .header(HeaderCodec.authorization)
+    .out[Company]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    )?? Doc.p(mCreateAPIFoc)
 
-  private val companyCreateAPI      = Endpoint.post("comp").in[Company].out[Int].outError[RepositoryError](Status.InternalServerError)
-  private val companyAllAPI         = Endpoint.get("comp").out[List[Company]].outError[RepositoryError](Status.InternalServerError)
-  private val companyByIdAPI        = Endpoint.get("comp" / string("id")).out[Company].outError[RepositoryError](Status.InternalServerError)
-  val compModifyAPI     = Endpoint.put("comp").in[Company].out[Company].outError[RepositoryError](Status.InternalServerError)
-  private val companyDeleteAPI      = Endpoint.get("comp" / string("id")).out[Int].outError[RepositoryError](Status.InternalServerError)
+  private val mAll = Endpoint(RoutePattern.GET / "comp" / int("modelid") ?? Doc.p(modelidDoc) 
+  ).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized),
+    ).out[List[Company]] ?? Doc.p(mAllAPIDoc)
 
-  private val companyCreateEndpoint    = companyCreateAPI.implement(comp => CompanyRepository.create2(List(comp)).mapError(e => RepositoryError(e.getMessage)))
-  private val companyAllEndpoint    = companyAllAPI.implement(_ => CompanyRepository.all(Company.MODEL_ID).mapError(e => RepositoryError(e.getMessage)))
-  private val companyByIdEndpoint   = companyByIdAPI.implement(id => CompanyRepository.getBy(id).mapError(e => RepositoryError(e.getMessage)))
-  val moduleModifyEndpoint = compModifyAPI.implement(p => ZIO.logInfo(s"Modify company  ${p}") *>
-    CompanyRepository.modify(p).mapError(e => RepositoryError(e.getMessage)) *>
-    CompanyRepository.getBy(p.id).mapError(e => RepositoryError(e.getMessage)))
-  private val companyDeleteEndpoint = companyDeleteAPI.implement(id => CompanyRepository.delete(id).mapError(e => RepositoryError(e.getMessage)))
+  private val mById = Endpoint(RoutePattern.GET / "comp" / string("id") ?? Doc.p(idDoc) / int("modelid") ?? Doc.p(modelidDoc)
+    ).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized),
+    ).out[Company] ?? Doc.p(mByIdAPIDoc)
 
-  private val routesCompany = companyAllEndpoint ++ companyByIdEndpoint ++ companyCreateEndpoint++companyDeleteEndpoint++moduleModifyEndpoint
+  private val mModify = Endpoint(RoutePattern.PUT / "comp").header(HeaderCodec.authorization)
+    .in[Company]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[Company] ?? Doc.p(mModifyAPIDoc)
+  private val mDelete = Endpoint(RoutePattern.DELETE / "comp" / string("id") ?? Doc.p(modelidDoc) /int("modelid")?? Doc.p(modelidDoc)
+    ).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[Int] ?? Doc.p(mDeleteAPIDoc)
 
-  val appComp= routesCompany//.toApp @@ bearerAuth(jwtDecode(_).isDefined)  //++ createEndpoint
-}
+  val createCompanyRoute =
+    mCreate.implement: (m,_) =>
+      ZIO.logInfo(s"Insert company  ${m}") 
+        *> CompanyRepository.create(m)
+        *> CompanyRepository.getById(m.id, m.modelid)
+
+  val companyAllRoute =
+    mAll.implement : (modelid, _)=>
+      ZIO.logInfo(s"get all company  ${modelid}") *>
+        CompanyRepository.all(modelid)
+
+  val companyByIdRoute =
+    mById.implement: (id, modelid, _)=>
+      ZIO.logInfo (s"Get company  id: ${id} modelid: ${modelid} ") *>
+        CompanyRepository.getById((id, modelid))
+
+  val modifyCompanyRoute =
+    mModify.implement: (_, m) =>
+      ZIO.logInfo (s"Modify company  ${m}") *>
+        CompanyRepository.modify (m) *>
+        CompanyRepository.getById ((m.id, m.modelid) )
+
+  val deleteStoreRoute =
+    mDelete.implement: (id, modelid, _)  =>
+      CompanyRepository.delete((id, modelid))
+
+
+  val companyRoutes = Routes(createCompanyRoute, companyAllRoute, companyByIdRoute, modifyCompanyRoute, deleteStoreRoute) @@ Middleware.debug
+
+

@@ -1,61 +1,141 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{FinancialsTransaction, Transaction}
-import com.kabasoft.iws.repository.Schema._
-import com.kabasoft.iws.repository._
+import com.kabasoft.iws.domain.AppError.*
+import com.kabasoft.iws.domain.{AppError, FinancialsTransaction, common}
+import com.kabasoft.iws.repository.FinancialsTransactionRepository
 import com.kabasoft.iws.service.FinancialsService
-import zio.ZIO
-import zio.http.codec.HttpCodec.{int, _}
+
+import java.time.Instant
+//import com.kabasoft.iws.service.TransactionService
+//import com.kabasoft.iws.api.Protocol._
+import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, ftransactionSchema, repositoryErrorSchema}
+import zio._
+import zio.http.RoutePattern
+import zio.schema.Schema
+import zio.http._
+import zio.http.codec.PathCodec.{int, long, path, string}
+import zio.http.codec._
 import zio.http.endpoint.Endpoint
-import zio.http.Status
 
-object FinancialsEndpoint {
+object FinancialsEndpoint:
+  val modelidDoc = "The modelId for identifying the typ of financials transaction (Customer / Ventor invoice, setllement, payment, etc... )"
+  val idDoc = "The unique Id for identifying the financials transaction"
+  val idsDoc = "The list of financials transaction's Id to post"
+  val mCreateAPIFoc = "Create a new financials transaction (Customer / Ventor invoice, setllement, payment, etc... )"
+  val mAllAPIDoc = "Get a financials transaction by modelId and company"
+  val postAllDoc = "Post all financials transaction with the specified ids and type"
+  val companyDoc = "The company whom the financials transaction belongs to (i.e. 111111)"
+  val mByIdAPIDoc = "Get financials transaction by its Id and modelId"
+  val mModifyAPIDoc = "Modify a financials transaction"
+  val mDeleteAPIDoc = "Delete a financials transaction"
+  val postAPIDoc = "Post a financials transaction"
+  val postAllAPIDoc = "Post a set of financials transaction with specified ids"
+  
+  private val mCreate = Endpoint(RoutePattern.POST / "ftr")
+    .in[FinancialsTransaction]
+    .header(HeaderCodec.authorization)
+    .out[FinancialsTransaction]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ) ?? Doc.p(mCreateAPIFoc)
 
-  val ftrCreateAPI     = Endpoint.post(literal("ftr")).in[FinancialsTransaction].out[FinancialsTransaction].outError[RepositoryError](Status.InternalServerError)
-  private val ftrAllAPI        = Endpoint.get("ftr" / string("company")).out[List[FinancialsTransaction]].outError[RepositoryError](Status.InternalServerError)
-  private val ftrByModelIdAPI  = Endpoint.get("ftr"/ literal("model")/ string("company")/int("modelid")).out[List[FinancialsTransaction]].outError[RepositoryError](Status.InternalServerError)
-  val ftrByTransIdAPI  = Endpoint.get("ftr" / string("company")/ int("transid")).out[FinancialsTransaction].outError[RepositoryError](Status.InternalServerError)
-  private val deleteAPI = Endpoint.delete("ftr" / string("company")/ int("transid")).out[Int].outError[RepositoryError](Status.InternalServerError)
-  val ftrModifyAPI     = Endpoint.put(literal("ftr")).in[FinancialsTransaction].out[FinancialsTransaction].outError[RepositoryError](Status.InternalServerError)
-  val ftrCancelnAPI     = Endpoint.put("cancelnFtr").in[FinancialsTransaction].out[FinancialsTransaction].outError[RepositoryError](Status.InternalServerError)
-  val ftrDuplicateAPI     = Endpoint.put("duplicateFtr").in[FinancialsTransaction].out[FinancialsTransaction].outError[RepositoryError](Status.InternalServerError)
-  //private val ftrPostAPI     = Endpoint.get("ftr"/literal("post")/ int("transid")/string("company")).out[FinancialsTransaction].outError[RepositoryError](Status.InternalServerError)
-  private val ftrPostAllAPI     = Endpoint.get("ftr"/literal("post")/ string("transids")/string("company")).out[List[FinancialsTransaction]].outError[RepositoryError](Status.InternalServerError)
-  private val ftrPost4PeriodAPI     = Endpoint.get("ftr/post"/ string("company")/ int("from") / int("to")).out[Int].outError[RepositoryError](Status.InternalServerError)
+  private val mAll = Endpoint(RoutePattern.GET / "ftr" / int("modelid") ?? Doc.p(modelidDoc) / string("company") ??
+    Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[List[FinancialsTransaction]] ?? Doc.p(mAllAPIDoc)
+
+  private val mById = Endpoint(RoutePattern.GET / "ftr" / long("id") ?? Doc.p(idDoc) / int("modelid") ?? Doc.p(modelidDoc)
+    / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[FinancialsTransaction] ?? Doc.p(mByIdAPIDoc)
+
+  private val mModify = Endpoint(RoutePattern.PUT / "ftr").header(HeaderCodec.authorization)
+    .in[FinancialsTransaction]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[FinancialsTransaction] ?? Doc.p(mModifyAPIDoc)
+
+  private val trCanceln = Endpoint(RoutePattern.PUT / "cancelFTr").header(HeaderCodec.authorization)
+    .in[FinancialsTransaction]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[FinancialsTransaction] ?? Doc.p(mModifyAPIDoc)
+
+  private val trDuplicate = Endpoint(RoutePattern.PUT / "duplicateFTr").header(HeaderCodec.authorization)
+    .in[FinancialsTransaction]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[FinancialsTransaction] ?? Doc.p(mModifyAPIDoc)
 
 
-  private val ftrAllEndpoint        = ftrAllAPI.implement(company => FinancialsTransactionCache.all(company).mapError(e => RepositoryError(e.getMessage)))
-  val ftrCreateEndpoint = ftrCreateAPI.implement(ftr => ZIO.logInfo(s"Create financials Transaction  ${ftr}") *>
-      FinancialsTransactionRepository.create(ftr).mapError(e => RepositoryError(e.getMessage)))
+  private val mDelete = Endpoint(RoutePattern.DELETE / "ftr" / long("id") ?? Doc.p(modelidDoc) / int("modelid") ?? Doc.p(modelidDoc)
+    / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[Int] ?? Doc.p(mDeleteAPIDoc)
 
-  val ftrByTransIdEndpoint = ftrByTransIdAPI.implement( p =>  ZIO.logInfo(s"Get financials Transaction by id ${p}") *>
-    FinancialsTransactionRepository.getByTransId((p._2.toLong, p._1)).mapError(e => RepositoryError(e.getMessage)))
+  private val trPostAll = Endpoint(RoutePattern.GET / "ftr" / "post" / string("transids") ?? Doc.p(idsDoc) / int("modelid") ?? Doc.p(modelidDoc) / string("company") ??
+    Doc.p(companyDoc)
+  ).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized),
+    ).out[List[FinancialsTransaction]] ?? Doc.p(postAllDoc)
 
-//  private val ftrPostEndpoint = ftrPostAPI.implement(p =>  ZIO.logInfo(s"Post Transaction by id ${p}") *>
-//    FinancialsService.post(p._1.toLong, p._2).mapError(e => RepositoryError(e.getMessage))*>
-//    TransactionRepository.getByTransId((p._1.toLong, p._2)).mapError(e => RepositoryError(e.getMessage)))
+  def buildId(transaction: FinancialsTransaction): FinancialsTransaction =
+    List(transaction).zipWithIndex.map { case (ftr, i) =>
+      val idx = Instant.now().getNano + i.toLong
+      ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
+    }.headOption.getOrElse(transaction)
+  
+  val financialsCreateRoute = mCreate.implement { case (p)=> {
+      val transaction = buildId(p._1)
+      ZIO.logInfo(s"Insert financials transaction  ${transaction}") *>
+      FinancialsTransactionRepository.create(transaction) *>
+      FinancialsTransactionRepository.getById1(transaction.id1, transaction.modelid, transaction.company)
+  }}
 
-  private val ftrPostAllEndpoint = ftrPostAllAPI.implement(p => //ZIO.logInfo(s"Post all transaction by id ${p}") *>
-    ZIO.logInfo(s"Post all financials transaction by id ${p._1.split(',').map(_.toLong).toList}") *>
-    FinancialsService.postAll(p._1.split(',').map(_.toLong).toList, p._2).mapError(e => RepositoryError(e.getMessage)) *>
-    FinancialsTransactionRepository.getByIds(p._1.split(' ').map(_.toLong).toList, p._2).mapError(e => RepositoryError(e.getMessage)))
+  val financialsAllRoute =
+    mAll.implement: p =>
+      ZIO.logInfo(s"Get financials transaction  ${p}") *>
+        FinancialsTransactionRepository.all((p._1, p._2))
 
-  private val ftrCancelnEndpoint = ftrCancelnAPI.implement(ftr => ZIO.logInfo(s" Canceln financials transaction ${ftr}") *>
-    FinancialsTransactionRepository.create(ftr.canceln).mapError(e => RepositoryError(e.getMessage)))
-  private val ftrDuplicateEndpoint = ftrDuplicateAPI.implement(ftr => ZIO.logInfo(s" Duplicate financials transaction ${ftr}") *>
-    FinancialsTransactionRepository.create(ftr.duplicate).mapError(e => RepositoryError(e.getMessage)))
+  val financialsPostAllRoute =
+    trPostAll.implement: p =>
+      ZIO.logInfo(s"Post all financials transaction by id ${p._1.split(',').map(_.toLong).toList}") *>
+        FinancialsService.postAll({p._1.split(',').map(_.toLong).toList}, p._2, p._3) *>
+        FinancialsTransactionRepository.getBy(p._1.split(',').map(_.toLong).toList, p._2, p._3)
 
-  private val ftrByModelIdEndpoint = ftrByModelIdAPI.implement(p => FinancialsTransactionCache.getByModelId((p._2,p._1)).mapError(e => RepositoryError(e.getMessage)))
 
-  private val ftrPost4PeriodEndpoint = ftrPost4PeriodAPI.implement(p => FinancialsService.postTransaction4Period(p._2, p._3, p._1).mapError(e => RepositoryError(e.getMessage)))
+  val financialsByIdRoute =
+    mById.implement: p =>
+      ZIO.logInfo(s"Get financials transaction by ids  ${p._1} modelid ${p._2} company ${p._3} ") *>
+        FinancialsTransactionRepository.getById(p._1, p._2, p._3)
 
-  val ftrModifyEndpoint = ftrModifyAPI.implement(ftr => ZIO.logInfo(s"Modify financials Transaction  ${ftr}") *>
-    FinancialsTransactionRepository.update(ftr).mapError(e => RepositoryError(e.getMessage)))
+  val financialsModifyRoute =
+    mModify.implement: (_, m) =>
+      ZIO.logInfo(s"Modify financials transaction  ${m}") *>
+        FinancialsTransactionRepository.modify(m) *>
+        FinancialsTransactionRepository.getById((m.id, m.modelid, m.company))
 
-  private val ftrDeleteEndpoint = deleteAPI.implement(p => FinancialsTransactionRepository.delete(p._2.toLong, p._1).mapError(e => RepositoryError(e.getMessage)))
+  val financialsCancelnRoute =
+    trCanceln.implement: (_, ftr) =>
+      ZIO.logInfo(s"Canceln  financials transaction ${ftr}") *>
+        FinancialsTransactionRepository.create(ftr.cancel) *>
+        FinancialsTransactionRepository.getById((ftr.id, ftr.modelid, ftr.company))
 
-  val appFtr = ftrModifyEndpoint++ftrAllEndpoint  ++ftrByModelIdEndpoint ++ ftrCreateEndpoint ++ftrDeleteEndpoint++
-               ftrPost4PeriodEndpoint++ ftrByTransIdEndpoint++ftrPostAllEndpoint++ftrCancelnEndpoint++ftrDuplicateEndpoint
+  val financialsDuplicateRoute =
+    trDuplicate.implement: (_, ftr) =>
+      ZIO.logInfo(s"Duplicate  transaction ${ftr}") *>
+        FinancialsTransactionRepository.create(ftr.duplicate) *>
+        FinancialsTransactionRepository.getById((ftr.id, ftr.modelid, ftr.company))
 
-}
+  val financialsDeleteRoute =
+    mDelete.implement: (id, modelid, company, _) =>
+      FinancialsTransactionRepository.delete(id, modelid, company)
+
+  val financialsRoutes = Routes(financialsCreateRoute, financialsAllRoute, financialsPostAllRoute, financialsByIdRoute
+    , financialsModifyRoute, financialsDuplicateRoute, financialsCancelnRoute, financialsDeleteRoute) @@ Middleware.debug
+

@@ -1,49 +1,125 @@
 package com.kabasoft.iws.api
-import com.kabasoft.iws.domain.AppError.RepositoryError
-//import com.kabasoft.iws.repository.Schema.{bankStatementsSchema, repositoryErrorSchema, transactionDetailsSchema}
+import com.kabasoft.iws.domain.AppError.*
+import com.kabasoft.iws.domain.{AppError, BankStatement}
+import com.kabasoft.iws.repository.Schema.{bankStatementsSchema, repositoryErrorSchema}
 import com.kabasoft.iws.repository.Schema._
-import com.kabasoft.iws.domain.BankStatement
 import com.kabasoft.iws.repository._
 import com.kabasoft.iws.service.BankStatementService
-import zio.ZIO
-import zio.http.codec.HttpCodec._
-import zio.http.codec.HttpCodec.string
+import zio.schema.Schema
+import zio.*
+import zio.http.*
+import zio.http.codec.PathCodec.{path, int, string, long}
+import zio.http.codec.*
 import zio.http.endpoint.Endpoint
-import zio.http.Status
 
 
-object BankStmtEndpoint {
 
-  private val createAPI         = Endpoint.post("bs").in[BankStatement].out[Int].outError[RepositoryError](Status.InternalServerError)
-  private val allAPI         = Endpoint.get("bs"/ string("company")).out[List[BankStatement]].outError[RepositoryError](Status.InternalServerError)
-  private val byIdAPI        = Endpoint.get("bs" / string("id")/ string("company")).out[BankStatement].outError[RepositoryError](Status.InternalServerError)
-  val bsModifyAPI     = Endpoint.put("bs").in[BankStatement].out[BankStatement].outError[RepositoryError](Status.InternalServerError)
-  private val bsPostAPI     = Endpoint.get("bs"/literal("post")/string("company")/ string("transid") ).out[List[BankStatement]].outError[RepositoryError](Status.InternalServerError)
-  private val deleteAPI      = Endpoint.get("bs" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
-  private val bsImportAPI    = Endpoint.get("bs" / string("path")/  string("header")/ string("char")/ string("extension")/string("company") ).out[Int].outError[RepositoryError](Status.InternalServerError)
+object BankStmtEndpoint:
+  val DOUBLE_QUOTE = "\""
+  val modelidDoc = "The modelId for identifying the typ of bank statement (i.e. cost center)"
+  val idDoc = "The unique Id for identifying the  bank statement "
+  val mCreateAPIFoc = "Create a new bank statement "
+  val mAllAPIDoc = "Get a bank statement  by modelId and company"
+  val companyDoc = "The company whom the bank statement  belongs to (i.e. 111111)"
+  val pathDoc = "The company whom the bank statement  belongs to (i.e. 111111)"
+  val headerDoc = "The company whom the bank statement  belongs to (i.e. 111111)"
+  val charDoc = s"Special char used a field separator (i.e. $DOUBLE_QUOTE)"
+  val extensionDoc = "The company whom the bank statement  belongs to (i.e. 111111)"
+  val mByIdAPIDoc = "Get bank statement  by Id and modelId"
+  val mModifyAPIDoc = "Modify a bank statement "
+  val mDeleteAPIDoc = "Delete a  bank statement "
+  val mPostAPIDoc = "Post a  bank statement "
+  
+  private val mCreate = Endpoint(RoutePattern.POST / "bs")
+    .in[BankStatement]
+    .header(HeaderCodec.authorization)
+    .out[Int]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ) ?? Doc.p(mCreateAPIFoc)
 
-   val createBanktmtEndpoint    = createAPI.implement(bs => BankStatementRepository.create2(List(bs)).mapError(e => RepositoryError(e.getMessage)))
-  private val allEndpoint    = allAPI.implement(company => BankStatementRepository.all(company).mapError(e => RepositoryError(e.getMessage)))
-  private val byIdEndpoint   = byIdAPI.implement(p => BankStatementRepository.getBy(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
-  val bsModifyEndpoint = bsModifyAPI.implement(p => ZIO.logInfo(s"Modify BankStatement  ${p}") *>
-    BankStatementRepository.update(p).mapError(e => RepositoryError(e.getMessage)))
-    //BankStatementRepository.getBy(p.id.toString, p.company).mapError(e => RepositoryError(e.getMessage)))
+  private val mAll = Endpoint(RoutePattern.GET / "bs" / int("modelid") ?? Doc.p(modelidDoc) / string("company") ??
+    Doc.p(companyDoc)
+  ).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized),
+    ).out[List[BankStatement]] ?? Doc.p(mAllAPIDoc)
 
-  private val bsDeleteEndpoint = deleteAPI.implement(p => BankStatementRepository.delete(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
-  private val bsImportEndpoint = bsImportAPI.implement(p => ZIO.logInfo(s"Import BankStatement p._2 ${p._2} p._3 ${p._3} p._4 ${p._4} p._5 ${p._5} p._1 ${p._1.replace(".", "/")}") *>
-    BankStatementService.importBankStmt(p._1.replace(".", "/"), p._2, "\"", p._4, p._5 ).mapError(e => RepositoryError(e.getMessage)))
+  private val mById = Endpoint(RoutePattern.GET / "bs" / long("id") ?? Doc.p(idDoc) / int("modelid") ?? Doc.p(modelidDoc)
+    / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    .header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized),
+    ).out[BankStatement] ?? Doc.p(mByIdAPIDoc)
 
-  private val bsPostAllEndpoint = bsPostAPI.implement(p => {
-    val ids = if (p._2.contains(",")){
-      p._2.split(",").map(_.toLong).toList
-    } else {
-      List(p._2.toLong)
-    }
-    ZIO.logInfo(s"Post Bank statements  by id ${ids} for company ${p._1}") *>
-    BankStatementService.post(ids, p._1).mapError(e => RepositoryError(e.getMessage))})
+  private val mModify = Endpoint(RoutePattern.PUT / "bs").header(HeaderCodec.authorization)
+    .in[BankStatement]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[BankStatement] ?? Doc.p(mModifyAPIDoc)
+  
+  private val bsPost     = Endpoint(RoutePattern.GET / "bs/post"/string("company")?? Doc.p(companyDoc) / string("id")?? Doc.p(idDoc))
+  .header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+    HttpCodec.error[AuthenticationError](Status.Unauthorized)
+  ).out[List[BankStatement]] ?? Doc.p(mPostAPIDoc)
 
-   val routesBankStmt = allEndpoint ++ byIdEndpoint ++ createBanktmtEndpoint ++bsDeleteEndpoint++bsModifyEndpoint++bsPostAllEndpoint ++ bsImportEndpoint
+  private val bsImportAPI    = Endpoint(RoutePattern.GET / "bs" / string("path")?? Doc.p(pathDoc)
+    /  string("header")?? Doc.p(headerDoc)/ string("char")?? Doc.p(charDoc)
+    / string("extension")?? Doc.p(extensionDoc)/string("company")?? Doc.p(companyDoc) )
+    .header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[List[BankStatement]] ?? Doc.p(mPostAPIDoc)
 
-  val appBankStmt = routesBankStmt//.toApp //@@ bearerAuth(jwtDecode(_).isDefined)
+  private val mDelete = Endpoint(RoutePattern.DELETE / "bs" / string("id") ?? Doc.p(modelidDoc) / int("modelid") ?? Doc.p(modelidDoc)
+    / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[Int] ?? Doc.p(mDeleteAPIDoc)
 
-}
+  val createRoute =
+    mCreate.implement: (m, _) =>
+      ZIO.logInfo(s"Insert bank statement  ${m}") *>
+        BankStatementRepository.create(m)
+
+  val mAllRoute =
+    mAll.implement: p =>
+      ZIO.logInfo(s"Insert bank statement  ${p}") *>
+        BankStatementRepository.all((p._1, p._2))
+
+  val mByIdRoute =
+    mById.implement: p =>
+      ZIO.logInfo(s"Modify bank statement  ${p}") *>
+        BankStatementRepository.getById(p._1, p._2, p._3)
+
+  val mModifyRoute =
+    mModify.implement: (_, m) =>
+      ZIO.logInfo(s"Modify bank statement  ${m}") *>
+        BankStatementRepository.modify(m) *>
+        BankStatementRepository.getById((m.id, m.modelid, m.company))
+
+  val importBSRoute =
+    bsImportAPI.implement: (path, header, char, extension, company, _) =>
+      ZIO.logInfo(s"Import bank statement header:${header} char:${char} extension: ${extension} company ${company} path: ${path.replace(".", "/")}") *>
+        BankStatementService.importBankStmt(path.replace(".", "/"), header, char, extension, company ) *>
+        BankStatementRepository.all(BankStatement.MODELID, company)
+
+  val bsPostBSRoute  =
+    bsPost.implement: (company, id, _) =>
+      ZIO.logInfo (s"Post Bank statements  by id ${id} for company ${company}") *>
+      BankStatementService.post (buildIds (id), company)
+
+  private def buildIds(id: String):List[Long] = {
+    val ids = if (id.contains(",")) {
+      id.split(",").map(_.toLong).toList
+    } else List(id.toLong)
+    ids
+  }
+
+  val mDeleteRoute =
+    mDelete.implement: (id, modelid, company, _) =>
+      MasterfileRepository.delete((id, modelid, company))
+  
+  val bankStmtRoutes = Routes(createRoute, mAllRoute, mByIdRoute, mModifyRoute, importBSRoute, bsPostBSRoute, mDeleteRoute) @@ Middleware.debug
+

@@ -3,55 +3,56 @@ package com.kabasoft.iws.repository
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.Customer
 import zio._
-import zio.stream._
 
-trait CustomerRepository {
-  def create(item: Customer): ZIO[Any, RepositoryError, Customer]
-  def create2(item: Customer): ZIO[Any, RepositoryError, Unit]
+trait CustomerRepository:
 
-  def create(models: List[Customer]): ZIO[Any, RepositoryError, List[Customer]]
-  def create2(models: List[Customer]): ZIO[Any, RepositoryError, Int]
-  def delete(item: String, company: String): ZIO[Any, RepositoryError, Int]
-  def delete(items: List[String], company: String): ZIO[Any, RepositoryError, List[Int]] =
-    ZIO.collectAll(items.map(delete(_, company)))
-  def list(Id:(Int, String)): ZStream[Any, RepositoryError, Customer]
-  def all(Id:(Int, String)): ZIO[Any, RepositoryError, List[Customer]]
-  def getBy(id: (String,  String)): ZIO[Any, RepositoryError, Customer]
-  def getByIban(Iban: String, companyId: String): ZIO[Any, RepositoryError, Customer]
-  def getByModelId(modelid:(Int, String)): ZIO[Any, RepositoryError, List[Customer]]
-  def getByModelIdStream(modelid:Int, companyId:String): ZStream[Any, RepositoryError, Customer]
-  def modify(model: Customer): ZIO[Any, RepositoryError, Int]
+  def create(item: Customer):ZIO[Any, RepositoryError, Int]
 
-}
-object CustomerRepository {
-  def create(item: Customer): ZIO[CustomerRepository, RepositoryError, Customer] =
-    ZIO.service[CustomerRepository] flatMap (_.create(item))
-  def create2(item: Customer): ZIO[CustomerRepository, RepositoryError, Unit]                               =
-    ZIO.service[CustomerRepository] flatMap (_.create2(item))
+  def create(models: List[Customer]):ZIO[Any, RepositoryError, Int]
 
-  def create(items: List[Customer]): ZIO[CustomerRepository, RepositoryError, List[Customer]] =
-    ZIO.service[CustomerRepository] flatMap (_.create(items))
-  def create2(items: List[Customer]): ZIO[CustomerRepository, RepositoryError, Int]                         =
-    ZIO.service[CustomerRepository] flatMap (_.create2(items))
-  def delete(item: String, company: String): ZIO[CustomerRepository, RepositoryError, Int]              =
-    ZIO.service[CustomerRepository] flatMap (_.delete(item, company))
-  def delete(items: List[String], company: String): ZIO[CustomerRepository, RepositoryError, List[Int]] =
-    ZIO.collectAll(items.map(delete(_, company)))
+  def modify(model: Customer):ZIO[Any, RepositoryError, Int]
 
-  def list(Id:(Int, String)): ZStream[CustomerRepository, RepositoryError, Customer]                      =
-    ZStream.service[CustomerRepository] flatMap (_.list(Id))
-  def all(Id:(Int, String)): ZIO[CustomerRepository, RepositoryError, List[Customer]]                      =
-    ZIO.service[CustomerRepository] flatMap (_.all(Id))
-  def getBy(id:(String, String)): ZIO[CustomerRepository, RepositoryError, Customer]              =
-    ZIO.service[CustomerRepository] flatMap (_.getBy(id))
-  def getByIban(Iban: String, companyId: String): ZIO[CustomerRepository, RepositoryError, Customer]      =
-    ZIO.service[CustomerRepository] flatMap (_.getByIban(Iban, companyId))
-  def getByModelId(modelid:(Int, String)): ZIO[CustomerRepository, RepositoryError, List[Customer]] =
-    ZIO.service[CustomerRepository] flatMap (_.getByModelId(modelid))
+  def modify(models: List[Customer]):ZIO[Any, RepositoryError, Int]
 
-  def getByModelIdStream(modelid: Int, company: String): ZStream[CustomerRepository, RepositoryError, Customer] =
-    ZStream.service[CustomerRepository] flatMap (_.getByModelIdStream(modelid, company))
-  def modify(model: Customer): ZIO[CustomerRepository, RepositoryError, Int]                              =
-    ZIO.service[CustomerRepository] flatMap (_.modify(model))
+  def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Customer]]
 
-}
+  def getById(Id: (String, Int, String)):ZIO[Any, RepositoryError, Customer]
+
+  def getByIban(Id: (String, Int, String)):ZIO[Any, RepositoryError, Customer]
+
+  def getBy(ids: List[String], modelid: Int, company: String):ZIO[Any, RepositoryError, List[Customer]]
+
+  def delete(p: (String, Int, String)):ZIO[Any, RepositoryError, Int]
+  def deleteAll(p: List[(String, Int, String)]): ZIO[Any, RepositoryError, Int] 
+  
+object CustomerRepository:
+
+  def create(item: Customer): ZIO[CustomerRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[CustomerRepository](_.create(item))
+
+  def create(models: List[Customer]): ZIO[CustomerRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[CustomerRepository](_.create(models))
+
+  def modify(model: Customer): ZIO[CustomerRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[CustomerRepository](_.modify(model))
+
+  def modify(models: List[Customer]): ZIO[CustomerRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[CustomerRepository](_.modify(models))
+
+  def all(Id: (Int, String)): ZIO[CustomerRepository, RepositoryError, List[Customer]] =
+    ZIO.serviceWithZIO[CustomerRepository](_.all(Id))
+
+  def getById(Id: (String, Int, String)): ZIO[CustomerRepository, RepositoryError, Customer] =
+    ZIO.serviceWithZIO[CustomerRepository](_.getById(Id))
+    
+  def getByIban(Id: (String, Int, String)): ZIO[CustomerRepository, RepositoryError, Customer] =
+    ZIO.serviceWithZIO[CustomerRepository](_.getByIban(Id))
+
+  def getBy(ids: List[String], modelid: Int, company: String): ZIO[CustomerRepository, RepositoryError, List[Customer]] =
+    ZIO.serviceWithZIO[CustomerRepository](_.getBy(ids, modelid, company))
+
+  def delete(p: (String, Int, String)): ZIO[CustomerRepository, RepositoryError, Int] =
+    ZIO.serviceWithZIO[CustomerRepository](_.delete(p))
+
+  def deleteAll(p: List[(String, Int, String)]): ZIO[CustomerRepository, RepositoryError, Int] =
+     ZIO.serviceWithZIO[CustomerRepository](_.deleteAll(p))

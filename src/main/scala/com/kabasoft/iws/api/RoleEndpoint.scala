@@ -1,34 +1,82 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.Role
-import com.kabasoft.iws.repository.Schema.{roleSchema, repositoryErrorSchema}
-import com.kabasoft.iws.repository._
-import zio.ZIO
-import zio.http.Status
-import zio.http.codec.HttpCodec._
+import com.kabasoft.iws.domain.AppError.*
+import com.kabasoft.iws.domain.{AppError, Role}
+import com.kabasoft.iws.repository.RoleRepository
+import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, repositoryErrorSchema, roleSchema}
+import zio.*
+import zio.http.*
+import zio.http.codec.*
+import zio.http.codec.PathCodec.{int, path, string}
 import zio.http.endpoint.Endpoint
+import zio.schema.Schema
 
-object RoleEndpoint {
+object RoleEndpoint:
+  val modelidDoc = "The modelId for identifying the typ of role "
+  val idDoc = "The unique Id for identifying the role"
+  val mCreateAPIFoc = "Create a new role"
+  val mAllAPIDoc = "Get a role by modelId and company"
+  val companyDoc = "The company whom the role belongs to (i.e. 111111)"
+  val mByIdAPIDoc = "Get role by Id and modelId"
+  val mModifyAPIDoc = "Modify a role"
+  val mDeleteAPIDoc = "Delete a role"
 
-  val roleCreateAPI     = Endpoint.post("role").in[Role].out[Role].outError[RepositoryError](Status.InternalServerError)
-  val roleAllAPI        = Endpoint.get("role"/ int("modelid") / string("company")).out[List[Role]].outError[RepositoryError](Status.InternalServerError)
-  val roleByIdAPI       = Endpoint.get("role" / string("id")/ string("company")).out[Role].outError[RepositoryError](Status.InternalServerError)
-  val roleModifyAPI     = Endpoint.put(literal("role")).in[Role].out[Role].outError[RepositoryError](Status.InternalServerError)
-  private val deleteAPI = Endpoint.delete("role" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
+  private val mCreate = Endpoint(RoutePattern.POST / "role")
+    .in[Role]
+    .header(HeaderCodec.authorization)
+    .out[Role]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ) ?? Doc.p(mCreateAPIFoc)
 
-  private val roleAllEndpoint        = roleAllAPI.implement(p => RoleCache.all(p).mapError(e => RepositoryError(e.getMessage)))
-  val roleCreateEndpoint = roleCreateAPI.implement(role =>
-    ZIO.logDebug(s"Insert user role  ${role}") *>
-    RoleRepository.create(role).mapError(e => RepositoryError(e.getMessage)))
-  val roleByIdEndpoint = roleByIdAPI.implement( p => RoleCache.getBy((p._1.toInt, p._2)).mapError(e => RepositoryError(e.getMessage)))
-  val roleModifyEndpoint = roleModifyAPI.implement(p => ZIO.logInfo(s"Modify user role  ${p}") *>
-    RoleRepository.modify(p).mapError(e => RepositoryError(e.getMessage)) *>
-    RoleRepository.getBy((p.id, p.company)).mapError(e => RepositoryError(e.getMessage)))
-  val roleDeleteEndpoint = deleteAPI.implement(p => RoleRepository.delete(p._1.toInt, p._2).mapError(e => RepositoryError(e.getMessage)))
+  private val mAll = Endpoint(RoutePattern.GET / "role" / int("modelid") ?? Doc.p(modelidDoc) / string("company") ??
+    Doc.p(companyDoc)
+  ).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized),
+    ).out[List[Role]] ?? Doc.p(mAllAPIDoc)
 
-  val routes = roleAllEndpoint ++ roleByIdEndpoint  ++ roleCreateEndpoint ++roleDeleteEndpoint++ roleModifyEndpoint
+  private val mById = Endpoint(RoutePattern.GET / "role" / int("id") ?? Doc.p(idDoc) / int("modelid") ?? Doc.p(modelidDoc)
+    / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    .header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized),
+    ).out[Role] ?? Doc.p(mByIdAPIDoc)
 
-  val appRole = routes//.toApp //@@ bearerAuth(jwtDecode(_).isDefined)
+  private val mModify = Endpoint(RoutePattern.PUT / "role").header(HeaderCodec.authorization)
+    .in[Role]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[Role] ?? Doc.p(mModifyAPIDoc)
+  private val mDelete = Endpoint(RoutePattern.DELETE / "role" / int("id") ?? Doc.p(modelidDoc) / int("modelid") ?? Doc.p(modelidDoc)
+    / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[Int] ?? Doc.p(mDeleteAPIDoc)
 
-}
+  val creatRoleRoute =
+    mCreate.implement: (m, _) =>
+      ZIO.logInfo(s"Insert role  ${m}") 
+        *> RoleRepository.create(m)
+        *> RoleRepository.getById(m.id, m.modelid, m.company)
+
+  val roleAllRoute =
+    mAll.implement: p =>
+      ZIO.logInfo(s"Insert role  ${p}") *>
+        RoleRepository.all((p._1, p._2))
+
+  val roleByIdRoute =
+    mById.implement: p =>
+      ZIO.logInfo(s"Modify role  ${p}") *>
+        RoleRepository.getById(p._1, p._2, p._3)
+
+  val modifyRoleRoute =
+    mModify.implement: (_, m) =>
+      ZIO.logInfo(s"Modify role  ${m}") *>
+        RoleRepository.modify(m) *>
+        RoleRepository.getById((m.id, m.modelid, m.company))
+
+  val deleteRoleRoute =
+    mDelete.implement: (id, modelid, company, _) =>
+      RoleRepository.delete((id, modelid, company))
+  val roleRoutes = Routes(creatRoleRoute, roleAllRoute, roleByIdRoute, modifyRoleRoute, deleteRoleRoute) @@ Middleware.debug

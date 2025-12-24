@@ -1,0 +1,155 @@
+package com.kabasoft.iws.service
+
+import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.domain.TransactionModelId.{PAYABLES, PAYMENT, RECEIVABLES, SETTLEMENT}
+import com.kabasoft.iws.domain.common.zeroAmount
+import com.kabasoft.iws.domain.{Account, BankStatement, BusinessPartner, Company, Customer, FinancialsTransaction, FinancialsTransactionDetails, Supplier, Vat, common}
+import com.kabasoft.iws.repository.{AccountRepository, BankStatementRepository, CompanyRepository, CustomerRepository, FinancialsTransactionRepository, SupplierRepository, VatRepository}
+import zio.prelude.FlipOps
+import zio.stream.*
+import zio.*
+
+import java.math
+import java.math.{BigDecimal, RoundingMode}
+import java.nio.file.{Files, Paths}
+import java.time.Instant
+final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository
+                                     , customerRepo: CustomerRepository
+                                     , supplierRepo: SupplierRepository
+                                     , companyRepo: CompanyRepository
+                                     , accountRepo: AccountRepository
+                                     , vatRepo: VatRepository
+                                    ) extends BankStatementService:
+
+  override def post(id: Long, companyId: String): ZIO[Any, RepositoryError, BankStatement] =
+    postBankStmtCreateTransaction(List(id), companyId) *> bankStmtRepo.getById((id, BankStatement.MODELID, companyId))
+
+  private def postBankStmtCreateTransaction(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, Int] =
+    for {
+      accounts <- ZIO.logInfo(s"get account by modelid  ${companyId}  ") *> accountRepo.all((Account.MODELID, companyId))
+      company <- ZIO.logInfo(s"get company by id  ${companyId}  ") *> companyRepo.getById((companyId, Company.MODEL_ID))
+      bankStmt <- ZIO.logInfo(s"get bankStmt by ids  ${ids}  ") *>
+        bankStmtRepo.getBy(ids, BankStatement.MODELID, companyId).map(_.toList)
+      vat <- vatRepo.all((Vat.MODEL_ID, company.id))
+      transactions <- ZIO.logInfo(s"Got bankStmt  ${bankStmt}  ") *> buildTransactions(bankStmt, vat, company, accounts).debug("<<<<<<created transactions")
+      posted <- ZIO.logInfo(s"Created transactions  ${transactions}  ") *> bankStmtRepo.post(bankStmt.map(_.copy(posted=true)), transactions.flatten)
+      _ <- ZIO.logInfo(s"Transaction posted ${posted}  ")
+    } yield posted
+
+  override def post(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, List[BankStatement]] =
+    postBankStmtCreateTransaction(ids, companyId) *> bankStmtRepo.getBy(ids, BankStatement.MODELID, companyId).map(_.toList)
+
+  private def buildTransactions(bs: List[BankStatement], vats: List[Vat], company: Company, accounts: List[Account]): 
+                      ZIO[Any, RepositoryError, List[List[FinancialsTransaction]]] = {
+    val result = bs.map(stmt =>
+      (if (stmt.amount.compareTo(zeroAmount) >= 0) {
+        customerRepo.getByIban(stmt.accountno, Customer.MODELID, stmt.company)
+      } else {
+        supplierRepo.getByIban(stmt.accountno, Supplier.MODELID, stmt.company)
+      }).map(s => {
+        List(buildPaymentSettlement(stmt, s, company, accounts), buildReceivablesPayables(stmt, s, vats.find(_.id == s.vatCode), accounts))
+      })
+    ).flip//.mapError(e => RepositoryError(e.message))
+    result 
+  }
+
+  private def getX(optVat: Option[Vat], bs: BankStatement): Option[(String, BigDecimal, BigDecimal)] =
+  optVat.map(vat => {
+    val vatAccount = if (bs.amount.compareTo(zeroAmount) >= 0) vat.outputVatAccount else vat.inputVatAccount
+    val netAmount = bs.amount.abs().divide(BigDecimal(1).add(vat.percent), 2, RoundingMode.HALF_UP)
+    val vatAmount = netAmount.multiply(vat.percent).setScale(2, RoundingMode.HALF_UP)
+    (vatAccount, netAmount, vatAmount)
+  }) //.mapError(e=>RepositoryError(e.getMessage))
+  
+  private def buildReceivablesPayables(bs: BankStatement
+                                     , partner: BusinessPartner
+                                     , optVat: Option[Vat]
+                                     , accounts: List[Account]): FinancialsTransaction = {
+    val modelid = if (bs.amount.compareTo(zeroAmount) >= 0) RECEIVABLES.id else PAYABLES.id
+    buildTransaction(bs, partner, modelid, buildLines(bs, partner, optVat, accounts))
+  }
+  def buildLines(bs: BankStatement, partner: BusinessPartner, optVat: Option[Vat], accounts: List[Account]): List[FinancialsTransactionDetails] = {
+    val emptyLines = List.empty[FinancialsTransactionDetails]
+    val lines = getX(optVat, bs).map((vatAccount, netAmount, vatAmount) => {
+      //val vatAmount = bs.amount.abs().subtract(netAmount.abs()).setScale(2, RoundingMode.HALF_UP)
+      val oaccountName = accounts.find(_.id == partner.oaccount).fold(s"OAccount with id ${partner.oaccount} not found!!!")(_.name)
+      val accountName = accounts.find(_.id == partner.account).fold(s"Account with id ${partner.account} not found!!!")(_.name)
+      val vatAccountName = accounts.find(_.id == vatAccount).fold(s"Account with id ${partner.account} not found!!!")(_.name)
+      val netLine = buildDetails(bs, partner.oaccount, oaccountName, partner.account, accountName, netAmount)
+      if (vatAmount.abs().compareTo(zeroAmount) > 0) {
+        val vatLine = buildDetails(bs, vatAccount, vatAccountName, partner.account, accountName, vatAmount)
+        List(netLine, vatLine)
+      } else List(netLine)
+    }).getOrElse(emptyLines)
+    lines
+  }
+
+  def buildDetails(bs: BankStatement
+                   , account: String
+                   , accountName: String
+                   , oaccount: String
+                   , oaccountName: String
+                   , amount: BigDecimal): FinancialsTransactionDetails = 
+    if (bs.amount.compareTo(zeroAmount) < 0)
+    FinancialsTransactionDetails(-1L, -1L, account, side = true, oaccount, amount.abs(), bs.valuedate, bs.purpose
+      , bs.currency, bs.company, accountName, oaccountName)
+    else FinancialsTransactionDetails(-1L, -1L, oaccount, side = true, account, amount.abs(), bs.valuedate, bs.purpose
+      , bs.currency, bs.company, oaccountName, accountName)
+ // buildTransaction(bs, partner, modelid, buildLines())
+//}
+  private def buildPaymentSettlement(bs: BankStatement, partner: BusinessPartner, company: Company, accounts: List[Account]): FinancialsTransaction = {
+  val bankAccountName = accounts.find(_.id == company.bankAcc).fold(s"Bank account with id ${company.bankAcc} not found!!!")(_.name)
+  val accountName = accounts.find(_.id == partner.account).fold(s"Account with id ${partner.account} not found!!!")(_.name)
+  val modelid = if (bs.amount.compareTo(zeroAmount) >= 0) SETTLEMENT.id else PAYMENT.id
+  val line = if (modelid == PAYMENT.id) {
+    FinancialsTransactionDetails(-1L, -1L, partner.account, side = true, company.bankAcc, bs.amount.abs(), bs.valuedate
+      , bs.purpose, bs.currency, company.id, accountName, bankAccountName)
+  } else {
+    FinancialsTransactionDetails(-1L, -1L, company.bankAcc, side = true, partner.account, bs.amount.abs(), bs.valuedate
+      , bs.purpose, bs.currency, company.id, bankAccountName, accountName)
+  }
+  buildTransaction(bs, partner, modelid, List(line))
+}
+
+  private def buildTransaction(bs: BankStatement, partner: BusinessPartner, modelid: Int, lines: List[FinancialsTransactionDetails]) =
+    FinancialsTransaction(-1L, bs.id, -1L, "100", partner.account, bs.valuedate, Instant.now(), Instant.now(),
+      common.getPeriod(bs.valuedate), posted = false, modelid, bs.company, bs.purpose, 0, 0, lines)
+
+  override def importBankStmt(
+                             path: String,
+                             header: String,
+                             char: String,
+                             extension: String,
+                             company: String,
+                             buildFn: (String, String) => BankStatement = BankStatement.from
+                           ): ZIO[Any, RepositoryError, Int] = {
+  for {
+    bs <- ZIO.logInfo(s"path ${path} char>>>> $char") *>
+      ZStream
+        .fromJavaStream(Files.walk(Paths.get(path)))
+        .filter(p => !Files.isDirectory(p) && p.toString.endsWith(extension))
+        .flatMap { files =>
+          ZStream
+            .fromPath(files)
+            .via(ZPipeline.iso_8859_1Decode >>> ZPipeline.splitLines)
+            .tap(e => ZIO.logInfo(s"Element ${e}"))
+            .filterNot(p => p.replaceAll("\"", "").startsWith(header))
+            .tap(e => ZIO.logInfo(s"Element2>> ${e}"))
+            //.map(p => buildFn(p.replaceAll(char, ""), company))
+            .map(p => buildFn(p.replaceAll("\"", ""), company)) 
+        }
+        .mapError(e => RepositoryError(e.getMessage))
+        .runCollect
+        .map(_.toList).debug("parsed Bankstatement >>>>>>")
+    nr <- bankStmtRepo.create(bs).debug("persisting").mapBoth(e => RepositoryError(e.message), i => i)
+  } yield nr
+}
+
+
+object BankStatementServiceLive:
+  val live: ZLayer[BankStatementRepository & FinancialsTransactionRepository & CustomerRepository & SupplierRepository &
+    CompanyRepository & VatRepository & AccountRepository,
+    RepositoryError,
+    BankStatementService
+  ] = ZLayer.fromFunction(new BankStatementServiceLive(_, _, _, _, _, _))
+

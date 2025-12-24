@@ -1,13 +1,14 @@
-package com.kabasoft.iws.config
+/*package com.kabasoft.iws.config
 
-import zio._
-import zio.config._
-import zio.config.ConfigDescriptor._
-import zio.config.typesafe.TypesafeConfigSource
 import com.typesafe.config.ConfigFactory
-import zio.config.magnolia._
-import zio.sql.ConnectionPoolConfig
-
+import zio.*
+import zio.Config
+import zio.config.*
+//import zio.config.ConfigDescriptor.*
+//import ConfigDescriptor.*
+import zio.config.magnolia.*
+import zio.config.typesafe.*
+import zio.config.magnolia.deriveConfig
 import java.util.Properties
 
 final case class ServerConfig(host:String, port: Int)
@@ -30,6 +31,29 @@ object ServerConfig {
       .orDie
   )
 }
+final case class AppConfig(
+                            postgreSQL: AppConfig.PostgreSQLConfig,
+                            httpServer: AppConfig.HttpServerConfig,
+                            tradingConfig: AppConfig.TradingConfig
+                          )
+
+object AppConfig:
+   final case class PostgreSQLConfig(
+                                   host: String,
+                                   port: Int,
+                                   user: String,
+                                   password: String, // @todo : need to change to Secret
+                                   database: String,
+                                   max: Int
+                                 )
+
+   final case class HttpServerConfig(host: String, port: Int)
+
+   final case class TradingConfig(
+                                maxAccountNoLength: Int,
+                                minAccountNoLength: Int,
+                                zeroBalanceAllowed: Boolean
+                              )
 
 final case class DbConfig(
   host: String,
@@ -43,8 +67,25 @@ final case class DbConfig(
 )
 
 object DbConfig {
+  /**
+   * Configuration information for the connection pool.
+   *
+   * @param url           The JDBC connection string.
+   * @param properties    JDBC connection properties (username / password could go here).
+   * @param poolSize      The size of the pool.
+   * @param queueCapacity The capacity of the queue for connections. When this size is reached, back pressure will block attempts to add more.
+   * @param retryPolicy   The retry policy to use when acquiring connections.
+   */
+  final case class ConnectionPoolConfig(
+                                         url: String,
+                                         properties: java.util.Properties,
+                                         poolSize: Int = 10,
+                                         queueCapacity: Int = 1000,
+                                         autoCommit: Boolean = true,
+                                         retryPolicy: Schedule[Any, Exception, Any] = Schedule.recurs(20) && Schedule.exponential(10.millis)
+                                       )
 
-  val dbConfigDescriptor = nested("db-config")(descriptor[DbConfig])
+  private val dbConfigDescriptor = nested("db-config")(descriptor[DbConfig])
 
   val layer: ZLayer[Any, Throwable, DbConfig]  = ZLayer(
     ZIO
@@ -71,4 +112,11 @@ object DbConfig {
     props.setProperty("password", password)
     props
   }
+
+  final val Root = "tradex"
+  private final val Descriptor = deriveConfig[AppConfig]
+
+  val appConfig = ZLayer(TypesafeConfigProvider.fromResourcePath().nested(Root).load(Descriptor))
 }
+
+ */

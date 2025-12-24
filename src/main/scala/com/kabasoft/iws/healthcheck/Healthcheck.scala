@@ -1,10 +1,13 @@
 package com.kabasoft.iws.healthcheck
 
 import zio._
-import zio.http.codec.HttpCodec._
-import zio.http.endpoint.Endpoint
+import zio.http._ 
 
-object Healthcheck {
-  val expose = Endpoint.get("health").out[String].implement (_ => ZIO.succeed(s"Welcome  health!!!"))
+object Healthcheck
 
-}
+val expose: Routes[Any, Response] = Routes(
+  Method.GET / "health"  ->
+    handler { (_: Request) =>
+      Response.text("Welcome  health!!!")
+    },
+)

@@ -1,32 +1,86 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.ImportFile
-import com.kabasoft.iws.repository.Schema.{importFileSchema, repositoryErrorSchema}
-import com.kabasoft.iws.repository._
-import zio.ZIO
-import zio.http.Status
-import zio.http.codec.HttpCodec._
+import com.kabasoft.iws.domain.AppError.*
+import com.kabasoft.iws.domain.{AppError, ImportFile}
+import com.kabasoft.iws.repository.ImportFileRepository
+import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, importFileSchema, repositoryErrorSchema}
+import zio.*
+import zio.http.*
+import zio.http.codec.*
+import zio.http.codec.PathCodec.{int, path, string}
 import zio.http.endpoint.Endpoint
+import zio.schema.Schema
 
-object ImportFileEndpoint {
+object ImportFileEndpoint:
+  val modelidDoc = "The modelId for identifying the typ of store "
+  val idDoc = "The unique Id for identifying the store"
+  val mCreateAPIFoc="Create a new store"
+  val mAllAPIDoc = "Get a store by modelId and company"
+  val companyDoc = "The company whom the store belongs to (i.e. 111111)"
+  val mByIdAPIDoc = "Get store by Id and modelId"
+  val mModifyAPIDoc = "Modify a store"
+  val mDeleteAPIDoc = "Delete a store"
 
-  val importFileCreateAPI     = Endpoint.post("impfile").in[ImportFile].out[ImportFile].outError[RepositoryError](Status.InternalServerError)
-  val importFileAllAPI        = Endpoint.get("impfile" / string("company")).out[List[ImportFile]].outError[RepositoryError](Status.InternalServerError)
-  val importFileByIdAPI       = Endpoint.get("impfile" / string("id")/ string("company")).out[ImportFile].outError[RepositoryError](Status.InternalServerError)
-  val importFileModifyAPI     = Endpoint.put(literal("impfile")).in[ImportFile].out[ImportFile].outError[RepositoryError](Status.InternalServerError)
-  private val deleteAPI = Endpoint.delete("impfile" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
+  private val mCreate = Endpoint(RoutePattern.POST / "store")
+    .in[ImportFile]
+    .header(HeaderCodec.authorization)
+    .out[ImportFile]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    )?? Doc.p(mCreateAPIFoc)
 
-  private val importFileAllEndpoint        = importFileAllAPI.implement(company => ImportFileCache.all(company).mapError(e => RepositoryError(e.getMessage)))
-  val importFileCreateEndpoint = importFileCreateAPI.implement(bank =>
-    ZIO.logDebug(s"Insert importFile  ${bank}") *>
-      ImportFileRepository.create(bank).mapError(e => RepositoryError(e.getMessage)))
-  val importFileByIdEndpoint = importFileByIdAPI.implement( p => ImportFileCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
-  val bankModifyEndpoint = importFileModifyAPI.implement(p => ZIO.logInfo(s"Modify importFile  ${p}") *>
-    ImportFileRepository.modify(p).mapError(e => RepositoryError(e.getMessage)) *>
-    ImportFileRepository.getBy((p.id, p.company)).mapError(e => RepositoryError(e.getMessage)))
-  val importFileDeleteEndpoint = deleteAPI.implement(p => ImportFileRepository.delete(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
+  private val mAll = Endpoint(RoutePattern.GET / "impfile" / int("modelid") ?? Doc.p(modelidDoc) / string("company") ??
+    Doc.p(companyDoc)
+  ).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized),
+    ).out[List[ImportFile]] ?? Doc.p(mAllAPIDoc)
 
-  val appImportFile = importFileAllEndpoint ++ importFileByIdEndpoint  ++ importFileCreateEndpoint ++importFileDeleteEndpoint++ bankModifyEndpoint
+  private val mById = Endpoint(RoutePattern.GET / "impfile" / string("id") ?? Doc.p(idDoc) / int("modelid") ?? Doc.p(modelidDoc)
+    / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    .header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized),
+    ).out[ImportFile] ?? Doc.p(mByIdAPIDoc)
 
-}
+  private val mModify = Endpoint(RoutePattern.PUT / "impfile").header(HeaderCodec.authorization)
+    .in[ImportFile]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[ImportFile] ?? Doc.p(mModifyAPIDoc)
+  private val mDelete = Endpoint(RoutePattern.DELETE / "impfile" / string("id") ?? Doc.p(modelidDoc) /int("modelid")?? Doc.p(modelidDoc)
+    / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[Int] ?? Doc.p(mDeleteAPIDoc)
+
+  val createImportFileRoute =
+    mCreate.implement: (m,_) =>
+      ZIO.logInfo(s"Insert store  ${m}") 
+        *> ImportFileRepository.create(m)
+        *> ImportFileRepository.getById(m.id, m.modelid, m.company)
+
+  val importFileAllRoute =
+    mAll.implement : p =>
+      ZIO.logInfo(s"Insert store  ${p}") *>
+        ImportFileRepository.all((p._1, p._2))
+
+  val importFileByIdRoute =
+    mById.implement: p =>
+      ZIO.logInfo (s"Modify store  ${p}") *>
+        ImportFileRepository.getById(p._1, p._2, p._3)
+
+  val modifyImportFileRoute =
+    mModify.implement: (_, m) =>
+      ZIO.logInfo (s"Modify store  ${m}") *>
+        ImportFileRepository.modify (m) *>
+        ImportFileRepository.getById ((m.id, m.modelid, m.company) )
+
+  val deleteImportFileRoute =
+    mDelete.implement: (id, modelid, company, _)  =>
+      ImportFileRepository.delete((id, modelid, company))
+  
+  val importFileRoutes = Routes(createImportFileRoute, importFileAllRoute, importFileByIdRoute, modifyImportFileRoute, deleteImportFileRoute) @@ Middleware.debug
+
+
+

@@ -1,36 +1,87 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.Article
-import com.kabasoft.iws.repository.Schema.{articleSchema, repositoryErrorSchema}
-import com.kabasoft.iws.repository._
-import zio.ZIO
-import zio.http.Status
-import zio.http.codec.HttpCodec._
-import zio.http.endpoint.EndpointMiddleware.None
-import zio.http.endpoint.{Endpoint, Routes}
+import com.kabasoft.iws.domain.AppError.{AuthenticationError, RepositoryError}
+import com.kabasoft.iws.domain.{AppError, Article}
+import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, articleSchema, repositoryErrorSchema}
+import com.kabasoft.iws.repository.ArticleRepository
+import zio.schema.Schema
+import zio.*
+import zio.http.*
+import zio.http.codec.PathCodec.{path, int, string}
+import zio.http.codec.*
+import zio.http.endpoint.Endpoint
 
-object ArticleEndpoint {
 
-  val articleCreateAPI     = Endpoint.post("art").in[Article].out[Article].outError[RepositoryError](Status.InternalServerError)
-  val articleAllAPI        = Endpoint.get("art" / int("modelid")/ string("company")).out[List[Article]].outError[RepositoryError](Status.InternalServerError)
-  val articleByIdAPI       = Endpoint.get("art" / string("id")/ string("company")).out[Article].outError[RepositoryError](Status.InternalServerError)
-  val articleModifyAPI     = Endpoint.put(literal("art")).in[Article].out[Article].outError[RepositoryError](Status.InternalServerError)
-  private val deleteAPI = Endpoint.delete("art" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
+object ArticleEndpoint:
+  val modelidDoc = "The modelId for identifying the typ of article (i.e. cost center)"
+  val idDoc = "The unique Id for identifying the  article"
+  val mCreateAPIFoc = "Create a new article"
+  val mAllAPIDoc = "Get a article by modelId and company"
+  val companyDoc = "The company whom the article belongs to (i.e. 111111)"
+  val mByIdAPIDoc = "Get article by Id and modelId"
+  val mModifyAPIDoc = "Modify an article"
+  val mDeleteAPIDoc = "Delete an  article"
 
-  private val articleAllEndpoint        = articleAllAPI.implement(p =>
-    ZIO.logDebug(s"fetch all article  ${p}") *>
-     ArticleCache.all(p).mapError(e => RepositoryError(e.getMessage))//.debug("all articles")
-    )
-  val articleCreateEndpoint = articleCreateAPI.implement(article =>
-    ZIO.logDebug(s"Insert article  ${article}") *>
-      ArticleRepository.create(article).mapError(e => RepositoryError(e.getMessage)))
-  val articleByIdEndpoint = articleByIdAPI.implement( p => ArticleCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
-  val articleModifyEndpoint = articleModifyAPI.implement(p => ZIO.logInfo(s"Modify article  ${p}") *>
-    ArticleRepository.modify(p).mapError(e => RepositoryError(e.getMessage)) *>
-    ArticleRepository.getBy((p.id, p.company)).mapError(e => RepositoryError(e.getMessage)))
-  val articleDeleteEndpoint = deleteAPI.implement(p => ArticleRepository.delete(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
+  private val mCreate = Endpoint(RoutePattern.POST / "art")
+    .in[Article]
+    .header(HeaderCodec.authorization)
+    .out[Article]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ) ?? Doc.p(mCreateAPIFoc)
 
-  val appArticle: Routes[ArticleRepository with ArticleCache, RepositoryError, None] =
-     articleAllEndpoint ++ articleByIdEndpoint  ++ articleCreateEndpoint ++articleDeleteEndpoint++ articleModifyEndpoint
-}
+  private val mAll = Endpoint(RoutePattern.GET / "art" / int("modelid") ?? Doc.p(modelidDoc) / string("company") ??
+    Doc.p(companyDoc)
+  ).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[List[Article]] ?? Doc.p(mAllAPIDoc)
+
+  private val mById = Endpoint(RoutePattern.GET / "art" / string("id") ?? Doc.p(idDoc) / int("modelid") ?? Doc.p(modelidDoc)
+    / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    .header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized),
+    ).out[Article] ?? Doc.p(mByIdAPIDoc)
+
+  private val mModify = Endpoint(RoutePattern.PUT / "art").header(HeaderCodec.authorization)
+    .in[Article]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[Article] ?? Doc.p(mModifyAPIDoc)
+  private val mDelete = Endpoint(RoutePattern.DELETE / "art" / string("id") ?? Doc.p(modelidDoc) / int("modelid") ?? Doc.p(modelidDoc)
+    / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[Int] ?? Doc.p(mDeleteAPIDoc)
+
+  val createArtRoute =
+    mCreate.implement: (m, _) =>
+      ZIO.logInfo(s"Insert article  ${m}") *>
+        ArticleRepository.create(m) *>
+        ArticleRepository.getById(m.id, m.modelid, m.company)
+
+
+  val allArtRoute =
+    mAll.implement: p =>
+      ZIO.logInfo(s"get all article  ${p}") *>
+        ArticleRepository.all((p._1, p._2)).debug("Article>>>>")
+
+  val artByIdRoute =
+    mById.implement: p =>
+      ZIO.logInfo(s"Modify article  ${p}") *>
+        ArticleRepository.getById(p._1, p._2, p._3)
+
+  val modifyArtRoute =
+    mModify.implement: (_, m) =>
+      ZIO.logInfo(s"Modify article  ${m}") *>
+        ArticleRepository.modify(m) *>
+        ArticleRepository.getById((m.id, m.modelid, m.company))
+
+  val DeleteArtRoute =
+    mDelete.implement: (id, modelid, company, _) =>
+      ArticleRepository.delete((id, modelid, company))
+
+
+  val articleRoutes = Routes(createArtRoute, allArtRoute, artByIdRoute, modifyArtRoute, DeleteArtRoute) @@ Middleware.debug
+ 

@@ -1,34 +1,83 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.SalaryItem
-import com.kabasoft.iws.repository.Schema.{salaryItemSchema, repositoryErrorSchema}
-import com.kabasoft.iws.repository._
-import zio.ZIO
-import zio.http.Status
-import zio.http.codec.HttpCodec._
+import com.kabasoft.iws.domain.AppError.{AuthenticationError, RepositoryError}
+import com.kabasoft.iws.domain.{AppError, SalaryItem}
+import com.kabasoft.iws.repository.SalaryItemRepository
+import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, repositoryErrorSchema, salaryItemSchema}
+import zio.*
+import zio.http.*
+import zio.http.codec.*
+import zio.http.codec.PathCodec.{int, path, string}
 import zio.http.endpoint.Endpoint
+import zio.schema.Schema
 
-object SalaryItemEndpoint {
+object SalaryItemEndpoint:
+  val modelidDoc = "The modelId for identifying the typ of salary item "
+  val idDoc = "The unique Id for identifying the salary item"
+  val mCreateAPIFoc = "Create a new salary item"
+  val mAllAPIDoc = "Get a salary item by modelId and company"
+  val companyDoc = "The company whom the salary item belongs to (i.e. 111111)"
+  val mByIdAPIDoc = "Get salary item by Id and modelId"
+  val mModifyAPIDoc = "Modify a salary item"
+  val mDeleteAPIDoc = "Delete a salary item"
 
-  val salaryItemCreateAPI     = Endpoint.post("s_item").in[SalaryItem].out[SalaryItem].outError[RepositoryError](Status.InternalServerError)
-  val salaryItemAllAPI        = Endpoint.get("s_item" /int("modelid")/ string("company")).out[List[SalaryItem]].outError[RepositoryError](Status.InternalServerError)
-  val salaryItemByIdAPI       = Endpoint.get("s_item" / string("id")/ string("company")).out[SalaryItem].outError[RepositoryError](Status.InternalServerError)
-  val SalaryItemModifyAPI     = Endpoint.put(literal("s_item")).in[SalaryItem].out[SalaryItem].outError[RepositoryError](Status.InternalServerError)
-  private val deleteAPI = Endpoint.delete("s_item" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
+  private val mCreate = Endpoint(RoutePattern.POST / "s_item")
+    .in[SalaryItem]
+    .header(HeaderCodec.authorization)
+    .out[SalaryItem]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ) ?? Doc.p(mCreateAPIFoc)
 
-  private val salaryItemAllEndpoint        = salaryItemAllAPI.implement(p => SalaryItemCache.all(p).mapError(e => RepositoryError(e.getMessage)))
-  val salaryItemCreateEndpoint = salaryItemCreateAPI.implement(SalaryItem =>
-    ZIO.logInfo(s"Create SalaryItem  ${SalaryItem}") *>
-      SalaryItemRepository.create(SalaryItem).mapError(e => RepositoryError(e.getMessage)))
-  val salaryItemByIdEndpoint = salaryItemByIdAPI.implement( p => SalaryItemCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
-  val salaryItemModifyEndpoint = SalaryItemModifyAPI.implement(p => ZIO.logInfo(s"Modify SalaryItem  ${p}") *>
-    SalaryItemRepository.modify(p).mapError(e => RepositoryError(e.getMessage)) *>
-    SalaryItemRepository.getBy((p.id, p.company)).mapError(e => RepositoryError(e.getMessage)))
-  val salaryItemDeleteEndpoint = deleteAPI.implement(p => SalaryItemRepository.delete(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
+  private val mAll = Endpoint(RoutePattern.GET / "s_item" / int("modelid") ?? Doc.p(modelidDoc) / string("company") ??
+    Doc.p(companyDoc)
+  ).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized),
+    ).out[List[SalaryItem]] ?? Doc.p(mAllAPIDoc)
 
-  val routes = salaryItemAllEndpoint ++ salaryItemByIdEndpoint  ++ salaryItemCreateEndpoint ++salaryItemDeleteEndpoint++ salaryItemModifyEndpoint
+  private val mById = Endpoint(RoutePattern.GET / "s_item" / string("id") ?? Doc.p(idDoc) / int("modelid") ?? Doc.p(modelidDoc)
+    / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    .header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized),
+    ).out[SalaryItem] ?? Doc.p(mByIdAPIDoc)
 
-  val appSalaryItem = routes
+  private val mModify = Endpoint(RoutePattern.PUT / "s_item").header(HeaderCodec.authorization)
+    .in[SalaryItem]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[SalaryItem] ?? Doc.p(mModifyAPIDoc)
+  private val mDelete = Endpoint(RoutePattern.DELETE / "s_item" / string("id") ?? Doc.p(modelidDoc) / int("modelid") ?? Doc.p(modelidDoc)
+    / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[Int] ?? Doc.p(mDeleteAPIDoc)
 
-}
+  val createStoreRoute =
+    mCreate.implement: (m, _) =>
+      ZIO.logInfo(s"Insert salary item  ${m}") 
+        *> SalaryItemRepository.create(m)
+        *> SalaryItemRepository.getById(m.id, m.modelid, m.company)
+      
+
+  val storeAllRoute =
+    mAll.implement: p =>
+      ZIO.logInfo(s"Insert salary item  ${p}") *>
+        SalaryItemRepository.all((p._1, p._2))
+
+  val storeByIdRoute =
+    mById.implement: p =>
+      ZIO.logInfo(s"Modify salary item  ${p}") *>
+        SalaryItemRepository.getById(p._1, p._2, p._3)
+
+  val modifyStoreRoute =
+    mModify.implement: (_, m) =>
+      ZIO.logInfo(s"Modify salary item  ${m}") *>
+        SalaryItemRepository.modify(m) *>
+        SalaryItemRepository.getById((m.id, m.modelid, m.company))
+
+  val deleteStoreRoute =
+    mDelete.implement: (id, modelid, company, _) =>
+      SalaryItemRepository.delete((id, modelid, company))
+  val salaryItemRoutes = Routes(createStoreRoute, storeAllRoute, storeByIdRoute, modifyStoreRoute, deleteStoreRoute) @@ Middleware.debug

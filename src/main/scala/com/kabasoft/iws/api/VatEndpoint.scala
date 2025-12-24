@@ -1,32 +1,82 @@
 package com.kabasoft.iws.api
-import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.repository.Schema.{vatSchema, repositoryErrorSchema}
-import com.kabasoft.iws.domain.Vat
-import com.kabasoft.iws.repository._
-import zio.ZIO
-import zio.http.codec.HttpCodec._
-import zio.http.codec.HttpCodec.string
+import com.kabasoft.iws.domain.AppError.{AuthenticationError, RepositoryError}
+import com.kabasoft.iws.domain.{AppError, Vat}
+import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, repositoryErrorSchema, vatSchema}
+import com.kabasoft.iws.repository.VatRepository
+import zio.*
+import zio.http.*
+import zio.http.codec.*
+import zio.http.codec.PathCodec.{int, path, string}
 import zio.http.endpoint.Endpoint
-import zio.http.Status
+import zio.schema.Schema
 
-object VatEndpoint {
+object VatEndpoint:
+  val modelidDoc = "The modelId for identifying the typ of value added tax"
+  val idDoc = "The unique Id for identifying the  value added tax"
+  val mCreateAPIFoc="Create a new value added tax"
+  val mAllAPIDoc = "Get a value added tax by modelId and company"
+  val companyDoc = "The company whom the value added tax belongs to (i.e. 111111)"
+  val mByIdAPIDoc = "Get value added tax by Id and modelId"
+  val mModifyAPIDoc = "Modify a value added tax"
+  val mDeleteAPIDoc = "Delete a  value added tax"
 
-  val vatCreateAPI                                                       = Endpoint.post("vat").in[Vat].out[Vat].outError[RepositoryError](Status.InternalServerError)
-  val vatAllAPI                                                          = Endpoint.get("vat"/ int("modelid")/string("company")).out[List[Vat]].outError[RepositoryError](Status.InternalServerError)
-  val vatByIdAPI                                                         = Endpoint.get("vat" / string("id")/ string("company")).out[Vat].outError[RepositoryError](Status.InternalServerError)
-  val vatModifyAPI     = Endpoint.put("vat").in[Vat].out[Vat].outError[RepositoryError](Status.InternalServerError)
-  private val deleteAPI                                                  = Endpoint.delete("vat" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
+  private val vatCreate = Endpoint(RoutePattern.POST / "vat")
+    .in[Vat]
+    .header(HeaderCodec.authorization)
+    .out[Vat]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    )?? Doc.p(mCreateAPIFoc)
 
-  val vatCreateEndpoint      = vatCreateAPI.implement(vat => VatRepository.create(vat).mapError(e => RepositoryError(e.getMessage)))
-  val vatAllEndpoint         = vatAllAPI.implement(p => VatCache.all(p).mapError(e => RepositoryError(e.getMessage)))
-  val vatByIdEndpoint        = vatByIdAPI.implement(p => VatCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
-  val vatModifyEndpoint = vatModifyAPI.implement(p => ZIO.logInfo(s"Modify vat  ${p}") *>
-    VatRepository.modify(p).mapError(e => RepositoryError(e.getMessage)) *>
-    VatRepository.getBy((p.id, p.company)).mapError(e => RepositoryError(e.getMessage)))
-  val vatDeleteEndpoint = deleteAPI.implement(p => VatRepository.delete(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
+  private val vatAll = Endpoint(RoutePattern.GET / "vat" / int("modelid") ?? Doc.p(modelidDoc) / string("company") ??
+    Doc.p(companyDoc)
+  ).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized),
+    ).out[List[Vat]] ?? Doc.p(mAllAPIDoc)
 
-  val routesVat = vatAllEndpoint ++ vatByIdEndpoint ++ vatCreateEndpoint ++vatDeleteEndpoint++vatModifyEndpoint
+  private val vatById = Endpoint(RoutePattern.GET / "vat" / string("id") ?? Doc.p(idDoc) / int("modelid") ?? Doc.p(modelidDoc)
+    / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    .header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized),
+    ).out[Vat] ?? Doc.p(mByIdAPIDoc)
 
-  val appVat = routesVat//.toApp@@ bearerAuth(jwtDecode(_).isDefined) ++ vatCreateEndpoint
+  private val vatModify = Endpoint(RoutePattern.PUT / "vat").header(HeaderCodec.authorization)
+    .in[Vat]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[Vat] ?? Doc.p(mModifyAPIDoc)
+  private val vatDelete = Endpoint(RoutePattern.DELETE / "vat" / string("id") ?? Doc.p(modelidDoc) /int("modelid")?? Doc.p(modelidDoc)
+    / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[Int] ?? Doc.p(mDeleteAPIDoc)
 
-}
+  val createRoute =
+    vatCreate.implement: (m,_) =>
+      ZIO.logInfo(s"Insert vat  ${m}") 
+        *> VatRepository.create(m)
+        *> VatRepository.getById(m.id, m.modelid, m.company)
+
+  val mAllRoute =
+    vatAll.implement : p =>
+      ZIO.logInfo(s"Get all vat  ${p}") *>
+        VatRepository.all((p._1, p._2))
+
+  val mByIdRoute =
+    vatById.implement: p =>
+      ZIO.logInfo (s" Find vat by id ${p}") *>
+        VatRepository.getById(p._1, p._2, p._3)
+
+  val mModifyRoute =
+    vatModify.implement: (_, m) =>
+      ZIO.logInfo (s"Modify vat  ${m}") *>
+        VatRepository.modify (m) *>
+        VatRepository.getById ((m.id, m.modelid, m.company) )
+
+  val mDeleteRoute =
+    vatDelete.implement: (id, modelid, company, _)  =>
+      VatRepository.delete((id, modelid, company))
+
+  val vatRoutes = Routes(createRoute, mAllRoute, mByIdRoute, mModifyRoute, mDeleteRoute) @@ Middleware.debug

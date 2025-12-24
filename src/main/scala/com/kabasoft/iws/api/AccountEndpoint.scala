@@ -1,49 +1,109 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.repository.Schema.{accountSchema, repositoryErrorSchema}
-import com.kabasoft.iws.domain.Account
-import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.domain.AppError.{AuthenticationError, RepositoryError}
+import com.kabasoft.iws.domain.{Account, AppError}
+import com.kabasoft.iws.repository.AccountRepository
+import com.kabasoft.iws.repository.Schema.{accountSchema, authenticationErrorSchema, repositoryErrorSchema}
 import com.kabasoft.iws.service.AccountService
-import com.kabasoft.iws.repository.{AccountCache, AccountRepository}
-import zio.ZIO
-import zio.http.codec.HttpCodec._
-import zio.http.codec.HttpCodec.string
+import zio.*
+import zio.http.*
+import zio.http.codec.*
+import zio.schema.*
 import zio.http.endpoint.Endpoint
-import zio.http.Status
 
 
-object AccountEndpoint {
+object AccountEndpoint:
+  val modelidDoc = "The modelId for identifying the typ of account "
+  val idDoc = "The unique Id for identifying the account"
+  val periodDoc = "The accounting period for which to get the balance"
+  val mCreateAPIFoc = "Create a new account"
+  val mAllAPIDoc = "Get an account by modelId and company"
+  val companyDoc = "The company whom the account belongs to (i.e. 111111)"
+  val mByIdAPIDoc = "Get an account by Id and modelId"
+  val mModifyAPIDoc = "Modify an  account"
+  val mcloseAccPeriod = "Close an  accounting period"
+  val balance4AccPeriod = "Get balance for accounting period"
+  val mDeleteAPIDoc = "Delete an  account"
 
-  val accCreateAPI = Endpoint.post("acc").in[Account].out[Account].outError[RepositoryError](Status.InternalServerError)
-  val accAllAPI = Endpoint.get("acc"/ int("modelid")/ string("company")).out[List[Account]].outError[RepositoryError](Status.InternalServerError)
-  val balanceAPI = Endpoint.get("balance" / string("company")/string("accId") / int("to")).out[List[Account]]
-    .outError[RepositoryError](Status.InternalServerError)
-  val accByIdAPI = Endpoint.get("acc" / string("id")/ string("company")).out[Account].outError[RepositoryError](Status.InternalServerError)
+  private val mCreate = Endpoint(RoutePattern.POST / "acc")
+    .in[Account]
+    .header(HeaderCodec.authorization)
+    .out[Account]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ) ?? Doc.p(mCreateAPIFoc)
 
-  val accModifyAPI     = Endpoint.put("acc").in[Account].out[Account].outError[RepositoryError](Status.InternalServerError)
-  val deleteAPI = Endpoint.delete("acc" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
-  val closePeriodAPI = Endpoint.get("close" / string("accId") / int("to")/ string("company")).out[Int]
-    .outError[RepositoryError](Status.InternalServerError)
+  private val mAll = Endpoint(RoutePattern.GET / "acc" / int("modelid") ?? Doc.p(modelidDoc) / string("company") ??
+    Doc.p(companyDoc)
+  ).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized),
+    ).out[List[Account]] ?? Doc.p(mAllAPIDoc)
 
+  private val mById = Endpoint(RoutePattern.GET / "acc" / string("id") ?? Doc.p(idDoc) / int("modelid") ?? Doc.p(modelidDoc)
+    / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized),
+    ).out[Account] ?? Doc.p(mByIdAPIDoc)
+  ///balance/1000/accountid/toPeriod
+  val balanceAPI = Endpoint(RoutePattern.GET / "balance" / string("company")?? Doc.p(companyDoc)/string("accId")
+    ?? Doc.p(idDoc) / int("to")?? Doc.p(periodDoc)
+    ).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+                        HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[List[Account]]?? Doc.p(balance4AccPeriod)
+  private val mModify = Endpoint(RoutePattern.PUT / "acc").header(HeaderCodec.authorization)
+    .in[Account]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[Account] ?? Doc.p(mModifyAPIDoc)
+  private val mDelete = Endpoint(RoutePattern.DELETE / "acc" / string("id") ?? Doc.p(modelidDoc) / int("modelid") ?? Doc.p(modelidDoc)
+    / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[Int] ?? Doc.p(mDeleteAPIDoc)
 
-  private val accAllEndpoint = accAllAPI.implement(Id => AccountCache.all(Id).mapError(e => RepositoryError(e.getMessage)))
-  val accCreateEndpoint = accCreateAPI.implement(account =>
-    ZIO.logInfo(s"Insert Account  ${account}") *>
-    AccountRepository.create(account).mapError(e => RepositoryError(e.getMessage)))
-  val balanceEndpoint = balanceAPI.implement { case (company:String, accId: String, to: Int) =>
-    ZIO.logInfo(s"get balance  period at ${to}  ${accId}") *>
-    AccountService.getBalance(accId,  to, company).mapError(e => RepositoryError(e.getMessage))}
-  val accByIdEndpoint = accByIdAPI.implement (p => AccountCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
-  val closePeriodEndpoint = closePeriodAPI.implement { case (accId: String,  to: Int, company:String) =>
-    ZIO.logInfo(s"closing period at  ${to}  ${accId}") *>
-    AccountService.closePeriod(to, accId, company).mapError(e => RepositoryError(e.getMessage))}
-  val accModifyEndpoint = accModifyAPI.implement(p => ZIO.logInfo(s"Modify account  ${p}") *>
-    AccountRepository.modify(p).mapError(e => RepositoryError(e.getMessage))*>
-    AccountRepository.getBy((p.id, p.company)).mapError(e => RepositoryError(e.getMessage)))
-  val accDeleteEndpoint = deleteAPI.implement { case (id,company) => AccountRepository.delete(id, company).mapError(e => RepositoryError(e.getMessage))}
+  val closePeriod = Endpoint(RoutePattern.GET / "close" / string("accId")?? Doc.p(idDoc) / int("to")?? Doc.p(periodDoc)
+       / string("company")?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+       .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+       HttpCodec.error[AuthenticationError](Status.Unauthorized)
+       ).out[Int]?? Doc.p(mcloseAccPeriod)
 
-  val appAcc =
-    accAllEndpoint ++ accByIdEndpoint ++ balanceEndpoint ++ closePeriodEndpoint ++ accCreateEndpoint ++
-      accDeleteEndpoint++accModifyEndpoint
+  val accountCreateRoute =
+    mCreate.implement: (m, _) =>
+      ZIO.logInfo(s"Insert an account  ${m}")
+        *>  AccountRepository.create(m)
+        *>  AccountRepository.getById(m.id, m.modelid, m.company)
 
-}
+  val accountAllRoute =
+    mAll.implement: p =>
+      ZIO.logInfo(s"Get all accounts  ${p}") *>
+        AccountRepository.all((p._1, p._2))
+
+  val accountByIdRoute =
+    mById.implement: p =>
+      ZIO.logInfo(s"Modify an account  ${p}") *>
+        AccountRepository.getById(p._1, p._2, p._3)
+
+  val accountBalanceRoute = 
+    balanceAPI.implement:  (company:String, accId: String, to: Int, _) =>
+      ZIO.logInfo(s"Get the balance  sheet period at ${to} for account: ${accId}") *>
+      AccountService.getBalance(accId,  to, company)    
+
+  val accountModifyRoute =
+    mModify.implement: (_, m) =>
+      ZIO.logInfo(s"Modify an account  ${m}") *>
+        AccountRepository.modify(m) *>
+        AccountRepository.getById((m.id, m.modelid, m.company))
+      
+  val accountClosePeriodRoute = closePeriod.implement:  (accId: String,  to: Int, company:String, _) =>
+        ZIO.logInfo(s"closing period at  ${to}  ${accId}") *>
+          AccountService.closePeriod(to, accId, company)
+  
+  val accountDeleteRoute =
+    mDelete.implement: (id, modelid, company, _) =>
+      AccountRepository.delete((id, modelid, company))
+
+  val AccountRoutes = Routes(accountCreateRoute, accountAllRoute, accountByIdRoute, accountBalanceRoute
+    , accountModifyRoute, accountClosePeriodRoute, accountDeleteRoute) @@ Middleware.debug
+

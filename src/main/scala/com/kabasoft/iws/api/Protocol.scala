@@ -2,46 +2,44 @@ package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Account, Article, Asset, Bank, BankAccount, BankStatement, Bom, Company, Costcenter,
+import com.kabasoft.iws.domain.{Account, Article, Asset, BankAccount, BankStatement, Bom, Company,
   Customer, Employee, EmployeeSalaryItemDTO, FinancialsTransaction, FinancialsTransactionDetails, Fmodule, ImportFile,
   Journal, LoginRequest, Masterfile, PayrollTaxRange, PeriodicAccountBalance, Permission, Role, SalaryItem,
-  Supplier, TransactionDetails, User, UserRight, User_, Vat}
+  Supplier, Transaction, TransactionDetails, User, UserRight, Vat, Stock, Store}
 import zio.json._
 
-object Protocol {
-
-  implicit val bankCodec: JsonCodec[Bank] = DeriveJsonCodec.gen[Bank]
-  implicit val bankAccountCodec: JsonCodec[BankAccount] = DeriveJsonCodec.gen[BankAccount]
-  implicit val masterfileCodec: JsonCodec[Masterfile] = DeriveJsonCodec.gen[Masterfile]
-  implicit val assetCodec: JsonCodec[Asset] = DeriveJsonCodec.gen[Asset]
-  implicit val customerCodec: JsonCodec[Customer] = DeriveJsonCodec.gen[Customer]
-  implicit  val salaryItemCodec: JsonCodec[SalaryItem] = DeriveJsonCodec.gen[SalaryItem]
-  implicit  val employeeSalaryItemDTOCodec: JsonCodec[EmployeeSalaryItemDTO] = DeriveJsonCodec.gen[EmployeeSalaryItemDTO]
-  implicit lazy val employeeCodec: JsonCodec[Employee] = DeriveJsonCodec.gen[Employee]
-  implicit val moduleCodec: JsonCodec[domain.Module] = DeriveJsonCodec.gen[domain.Module]
-  implicit val supplierCodec: JsonCodec[Supplier] = DeriveJsonCodec.gen[Supplier]
-  implicit val suppliersDecoder: JsonDecoder[List[Supplier]] = DeriveJsonDecoder.gen[List[Supplier]]
-  implicit val roleCodec: JsonCodec[Role] = DeriveJsonCodec.gen[Role]
-  implicit lazy val accountCodec: JsonCodec[Account] = DeriveJsonCodec.gen[Account]
-  implicit lazy val PayrollTaxRangeCodec: JsonCodec[PayrollTaxRange] = DeriveJsonCodec.gen[PayrollTaxRange]
-  implicit lazy val user_Codec: JsonCodec[User_] = DeriveJsonCodec.gen[User_]
-  implicit lazy val userCodec: JsonCodec[User] = DeriveJsonCodec.gen[User]
-  implicit lazy val userRightCodec: JsonCodec[UserRight] = DeriveJsonCodec.gen[UserRight]
-  implicit lazy val importFileCodec: JsonCodec[ImportFile] = DeriveJsonCodec.gen[ImportFile]
-  implicit val fmoduleCodec: JsonCodec[Fmodule] = DeriveJsonCodec.gen[Fmodule]
-  implicit val loginRequestCodec: JsonCodec[LoginRequest] = DeriveJsonCodec.gen[LoginRequest]
-  implicit val vatCodec: JsonCodec[Vat] = DeriveJsonCodec.gen[Vat]
-  implicit val bankStatementCodec: JsonCodec[BankStatement] = DeriveJsonCodec.gen[BankStatement]
-  implicit val pacCodec: JsonCodec[PeriodicAccountBalance] = DeriveJsonCodec.gen[PeriodicAccountBalance]
-  implicit val permissionCodec: JsonCodec[Permission] = DeriveJsonCodec.gen[Permission]
-  implicit val companyCodec: JsonCodec[Company] = DeriveJsonCodec.gen[Company]
-  implicit val costcenterCodec: JsonCodec[Costcenter] = DeriveJsonCodec.gen[Costcenter]
-
-  implicit val financialsDetailsCodec: JsonCodec[FinancialsTransactionDetails] = DeriveJsonCodec.gen[FinancialsTransactionDetails]
-  implicit val financialsCodec: JsonCodec[FinancialsTransaction] = DeriveJsonCodec.gen[FinancialsTransaction]
-  implicit val journalCodec: JsonCodec[Journal] = DeriveJsonCodec.gen[Journal]
-  implicit val repoErrorCodec: JsonCodec[RepositoryError] = DeriveJsonCodec.gen[RepositoryError]
-  implicit lazy val articleCodec: JsonCodec[Article] = DeriveJsonCodec.gen[Article]
-  implicit lazy val bomCodec: JsonCodec[Bom] = DeriveJsonCodec.gen[Bom]
-
-}
+object Protocol:
+  given bankAccountCodec: JsonCodec[BankAccount] = DeriveJsonCodec.gen[BankAccount]
+  given masterfileCodec: JsonCodec[Masterfile] = DeriveJsonCodec.gen[Masterfile]
+  given assetCodec: JsonCodec[Asset] = DeriveJsonCodec.gen[Asset]
+  given customerCodec: JsonCodec[Customer] = DeriveJsonCodec.gen[Customer]
+  given salaryItemCodec: JsonCodec[SalaryItem] = DeriveJsonCodec.gen[SalaryItem]
+  given employeeSalaryItemDTOCodec: JsonCodec[EmployeeSalaryItemDTO] = DeriveJsonCodec.gen[EmployeeSalaryItemDTO]
+  given employeeCodec: JsonCodec[Employee] = DeriveJsonCodec.gen[Employee]
+  given moduleCodec: JsonCodec[domain.Module] = DeriveJsonCodec.gen[domain.Module]
+  given supplierCodec: JsonCodec[Supplier] = DeriveJsonCodec.gen[Supplier]
+  given suppliersDecoder: JsonDecoder[List[Supplier]] = DeriveJsonDecoder.gen[List[Supplier]]
+  given roleCodec: JsonCodec[Role] = DeriveJsonCodec.gen[Role]
+  given accountCodec: JsonCodec[Account] = DeriveJsonCodec.gen[Account]
+  given PayrollTaxRangeCodec: JsonCodec[PayrollTaxRange] = DeriveJsonCodec.gen[PayrollTaxRange]
+  //given user_Codec: JsonCodec[User_] = DeriveJsonCodec.gen[User_]
+  given userCodec: JsonCodec[User] = DeriveJsonCodec.gen[User]
+  given userRightCodec: JsonCodec[UserRight] = DeriveJsonCodec.gen[UserRight]
+  given importFileCodec: JsonCodec[ImportFile] = DeriveJsonCodec.gen[ImportFile]
+  given fmoduleCodec: JsonCodec[Fmodule] = DeriveJsonCodec.gen[Fmodule]
+  given loginRequestCodec: JsonCodec[LoginRequest] = DeriveJsonCodec.gen[LoginRequest]
+  given vatCodec: JsonCodec[Vat] = DeriveJsonCodec.gen[Vat]
+  given bankStatementCodec: JsonCodec[BankStatement] = DeriveJsonCodec.gen[BankStatement]
+  given pacCodec: JsonCodec[PeriodicAccountBalance] = DeriveJsonCodec.gen[PeriodicAccountBalance]
+  given permissionCodec: JsonCodec[Permission] = DeriveJsonCodec.gen[Permission]
+  given companyCodec: JsonCodec[Company] = DeriveJsonCodec.gen[Company]
+  given transactionDetailsCodec: JsonCodec[TransactionDetails] = DeriveJsonCodec.gen[TransactionDetails]
+  given transactionCodec: JsonCodec[Transaction] = DeriveJsonCodec.gen[Transaction]
+  given stockCodec: JsonCodec[Stock] = DeriveJsonCodec.gen[Stock]
+  given storeCodec: JsonCodec[Store] = DeriveJsonCodec.gen[Store]
+  given financialsDetailsCodec: JsonCodec[FinancialsTransactionDetails] = DeriveJsonCodec.gen[FinancialsTransactionDetails]
+  given financialsCodec: JsonCodec[FinancialsTransaction] = DeriveJsonCodec.gen[FinancialsTransaction]
+  given journalCodec: JsonCodec[Journal] = DeriveJsonCodec.gen[Journal]
+  given repoErrorCodec: JsonCodec[RepositoryError] = DeriveJsonCodec.gen[RepositoryError]
+  given articleCodec: JsonCodec[Article] = DeriveJsonCodec.gen[Article]
+  given bomCodec: JsonCodec[Bom] = DeriveJsonCodec.gen[Bom]

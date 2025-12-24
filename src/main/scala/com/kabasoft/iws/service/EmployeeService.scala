@@ -4,10 +4,9 @@ import com.kabasoft.iws.domain.AppError.RepositoryError
 import zio._
 
 trait EmployeeService {
-  def generate(company: String): ZIO[Any, RepositoryError, Int]
+  def generate(period:Int, company: String): ZIO[Any, RepositoryError, Int]
 }
 
-object EmployeeService {
-  def generate(company: String): ZIO[EmployeeService, RepositoryError, Int]         =
-    ZIO.service[EmployeeService] flatMap (_.generate(company))
-}
+object EmployeeService:
+  def generate(period:Int, company: String): ZIO[EmployeeService, RepositoryError, Int]         =
+    ZIO.service[EmployeeService] flatMap (_.generate(period, company))

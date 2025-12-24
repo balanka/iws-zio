@@ -188,6 +188,8 @@ create table   if not exists store
     postingdate  timestamp   default CURRENT_TIMESTAMP not null,
     changedate timestamp   default CURRENT_TIMESTAMP not null,
     enterdate    timestamp   default CURRENT_TIMESTAMP not null,
+    stock_account varchar(50),
+    expese_account varchar(50),
     company       varchar(50)                    not null,
     modelid       integer                        not null
 );
@@ -305,6 +307,7 @@ create table if not exists transaction_log
 (
     id           bigint  default nextval('transaction_log_id_seq'::regclass) not null primary key,
     transid      bigint                            not null,
+    id1          bigint                            ,
     oid          bigint                            ,
     store   varchar(50)                       not null,
     account      varchar(50)                       not null,

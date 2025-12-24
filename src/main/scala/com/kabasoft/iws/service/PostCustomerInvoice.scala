@@ -4,11 +4,9 @@ import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain._
 import zio._
 
-trait  PostCustomerInvoice extends PostLogisticalTransaction {
-
+trait  PostCustomerInvoice extends PostLogisticalTransaction:
   def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int]
-}
-object PostCustomerInvoice {
+
+object PostCustomerInvoice:
   def postAll(transactions: List[Transaction], company:Company): ZIO[PostCustomerInvoice, RepositoryError, Int] =
-    ZIO.service[PostCustomerInvoice] flatMap (_.postAll(transactions, company))
-}
+    ZIO.serviceWithZIO[PostCustomerInvoice](_.postAll(transactions, company))

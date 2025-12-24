@@ -1,10 +1,46 @@
 package com.kabasoft.iws.repository
 
-import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain._
-import zio.schema.DeriveSchema
+import com.kabasoft.iws.domain.AppError.{AuthenticationError, RepositoryError}
+import com.kabasoft.iws.domain.*
+import zio.schema.{DeriveSchema, Schema}
 
 object Schema {
+  implicit val accountSchema: Schema[Account]                   = DeriveSchema.gen[Account]
+  implicit val masterfileSchema: Schema[Masterfile]             = DeriveSchema.gen[Masterfile]
+  implicit val moduleSchema: Schema[Module]                     = DeriveSchema.gen[Module]
+  implicit val customerSchema: Schema[Customer]                 = DeriveSchema.gen[Customer]
+  implicit val supplierschema: Schema[Supplier]                 = DeriveSchema.gen[Supplier]
+  implicit val employeeSchema: Schema[Employee]                 = DeriveSchema.gen[Employee]
+  implicit val fmoduleSchema : Schema[Fmodule]                  = DeriveSchema.gen[Fmodule]
+  implicit val assetSchema:    Schema[Asset]                    = DeriveSchema.gen[Asset]
+  implicit val companySchema:       Schema[Company]             = DeriveSchema.gen[Company]
+  implicit val bankAccountSchema: Schema[BankAccount]           = DeriveSchema.gen[BankAccount]
+  implicit val bankStatementsSchema:Schema[BankStatement]       = DeriveSchema.gen[BankStatement]
+  implicit val journalSchema:       Schema[Journal]             = DeriveSchema.gen[Journal]
+  implicit val permissionSchema:       Schema[Permission]          = DeriveSchema.gen[Permission]
+  implicit val roleSchema:       Schema[Role]                      = DeriveSchema.gen[Role]
+  implicit val userRoleSchema:       Schema[UserRole]              = DeriveSchema.gen[UserRole]
+  implicit val userRightSchema:       Schema[UserRight]            = DeriveSchema.gen[UserRight]
+  implicit val pacSchema:       Schema[PeriodicAccountBalance]    = DeriveSchema.gen[PeriodicAccountBalance]
+  implicit val transactionSchema:    Schema[Transaction]          = DeriveSchema.gen[Transaction]
+  implicit val ftransactionSchema: Schema[FinancialsTransaction]  = DeriveSchema.gen[FinancialsTransaction]
+  implicit val transactionDetailsSchema: Schema[TransactionDetails]  = DeriveSchema.gen[TransactionDetails]
+  implicit val ftransactionDetailsSchema: Schema[FinancialsTransactionDetails]   = DeriveSchema.gen[FinancialsTransactionDetails]
+  implicit val articleSchema:    Schema[Article]                                  = DeriveSchema.gen[Article]
+  implicit val bomSchema:    Schema[Bom]                                          = DeriveSchema.gen[Bom]
+  implicit val salaryItemSchema:    Schema[SalaryItem]                            = DeriveSchema.gen[SalaryItem]
+  implicit val employeeSalaryItemSchema:    Schema[EmployeeSalaryItem]            = DeriveSchema.gen[EmployeeSalaryItem]
+  implicit val storeSchema:    Schema[Store]                                      = DeriveSchema.gen[Store]
+  implicit val stockSchema:    Schema[Stock]                                      = DeriveSchema.gen[Stock]
+  implicit val userSchema:    Schema[User]                                        = DeriveSchema.gen[User]
+  implicit val vatSchema:    Schema[Vat]                                          = DeriveSchema.gen[Vat]
+  implicit val payrollTaxRangeSchema:    Schema[PayrollTaxRange]                  = DeriveSchema.gen[PayrollTaxRange]
+  implicit val loginRequestSchema:    Schema[LoginRequest]                        = DeriveSchema.gen[LoginRequest]
+  implicit val transactionLogSchema:    Schema[TransactionLog]                    = DeriveSchema.gen[TransactionLog]
+  implicit val importFileSchema:    Schema[ImportFile]                            = DeriveSchema.gen[ImportFile]
+  implicit val repositoryErrorSchema: Schema[RepositoryError]                     = DeriveSchema.gen[RepositoryError]
+  implicit val authenticationErrorSchema: Schema[AuthenticationError]             = DeriveSchema.gen[AuthenticationError]
+  /*
   implicit val accountSchema             = DeriveSchema.gen[Account]
   implicit lazy val account_schema       = DeriveSchema.gen[Account_]
   implicit val assetSchema               = DeriveSchema.gen[Asset]
@@ -60,6 +96,8 @@ object Schema {
   implicit val loginRequestSchema        = DeriveSchema.gen[LoginRequest]
   implicit val transactionLogSchema        = DeriveSchema.gen[TransactionLog]
   implicit val transactionLog_Schema        = DeriveSchema.gen[TransactionLog_]
+
+   */
 
 
 }

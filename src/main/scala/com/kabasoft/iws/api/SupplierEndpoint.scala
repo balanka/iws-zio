@@ -1,33 +1,84 @@
 package com.kabasoft.iws.api
-
-import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.repository.Schema.{supplierschema, repositoryErrorSchema}
-import com.kabasoft.iws.domain.Supplier
-import com.kabasoft.iws.repository._
-import zio.ZIO
-import zio.http.codec.HttpCodec.{string, _}
+import com.kabasoft.iws.domain.AppError.*
+import com.kabasoft.iws.domain.{AppError, Supplier}
+import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, repositoryErrorSchema, supplierschema}
+import com.kabasoft.iws.repository.SupplierRepository
+import zio.*
+import zio.http.*
+import zio.http.codec.*
+import zio.http.codec.PathCodec.{int, path, string}
 import zio.http.endpoint.Endpoint
-import zio.http.Status
+import zio.schema.Schema
 
 
-object SupplierEndpoint {
+object SupplierEndpoint:
+  val modelidDoc = "The modelId for identifying the typ of supplier "
+  val idDoc = "The unique Id for identifying the  supplier"
+  val mCreateAPIFoc="Create a new supplier"
+  val mAllAPIDoc = "Get a supplier by modelId and company"
+  val companyDoc = "The company whom the supplier belongs to (i.e. 111111)"
+  val mByIdAPIDoc = "Get supplier by Id and modelId"
+  val mModifyAPIDoc = "Modify a supplier"
+  val mDeleteAPIDoc = "Delete a  supplier"
 
-  val supCreateAPI      = Endpoint.post("sup").in[Supplier].out[Supplier].outError[RepositoryError](Status.InternalServerError)
-  val supAllAPI         = Endpoint.get("sup"/int("modelid")/ string("company")).out[List[Supplier]].outError[RepositoryError](Status.InternalServerError)
-  val supByIdAPI        = Endpoint.get("sup" / string("id")/ string("company")).out[Supplier].outError[RepositoryError](Status.InternalServerError)
-  val supModifyAPI     = Endpoint.put(literal("sup")).in[Supplier].out[Supplier].outError[RepositoryError](Status.InternalServerError)
-  private val deleteAPI = Endpoint.delete("sup" / string("id")/ string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
+  private val mCreate = Endpoint(RoutePattern.POST / "sup")
+    .in[Supplier]
+    .header(HeaderCodec.authorization)
+    .out[Supplier]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    )?? Doc.p(mCreateAPIFoc)
 
-  val supCreateEndpoint      = supCreateAPI.implement(sup => ZIO.logInfo(s"Create supplier  ${sup}") *>
-    SupplierRepository.create(sup).mapError(e => RepositoryError(e.getMessage)))
-  val supAllEndpoint         = supAllAPI.implement(p => SupplierCache.all(p).mapError(e => RepositoryError(e.getMessage)))
-  val supByIdEndpoint        = supByIdAPI.implement( p => SupplierCache.getBy(p).mapError(e => RepositoryError(e.getMessage)))
-  val supModifyEndpoint = supModifyAPI.implement(p => ZIO.logInfo(s"Modify supplier  ${p}") *>
-    SupplierRepository.update(p).mapError(e => RepositoryError(e.getMessage)))
-    //SupplierRepository.getBy((p.id, p.company)).mapError(e => RepositoryError(e.getMessage)))
-  val supDeleteEndpoint = deleteAPI.implement(p => SupplierRepository.delete(p._1, p._2).mapError(e => RepositoryError(e.getMessage)))
+  private val mAll = Endpoint(RoutePattern.GET / "sup" / int("modelid") ?? Doc.p(modelidDoc) / string("company") ??
+    Doc.p(companyDoc)
+  ).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized),
+    ).out[List[Supplier]] ?? Doc.p(mAllAPIDoc)
 
-   val routesSup = supAllEndpoint ++ supByIdEndpoint  ++supDeleteEndpoint++supModifyEndpoint++ supCreateEndpoint
+  private val mById = Endpoint(RoutePattern.GET / "sup" / string("id") ?? Doc.p(idDoc) / int("modelid") ?? Doc.p(modelidDoc)
+    / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    .header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized),
+    ).out[Supplier] ?? Doc.p(mByIdAPIDoc)
 
-  val appSup = routesSup//.toApp //@@ bearerAuth(jwtDecode(_).isDefined) ++ supCreateEndpoint
-}
+  private val mModify = Endpoint(RoutePattern.PUT / "sup").header(HeaderCodec.authorization)
+    .in[Supplier]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[Supplier] ?? Doc.p(mModifyAPIDoc)
+  
+  private val mDelete = Endpoint(RoutePattern.DELETE / "sup" / string("id") ?? Doc.p(modelidDoc) /int("modelid")?? Doc.p(modelidDoc)
+    / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[Int] ?? Doc.p(mDeleteAPIDoc)
+
+  val createSupplierRoute =
+    mCreate.implement: (m,_) =>
+      ZIO.logInfo(s"Insert supplier  ${m}") *>
+        SupplierRepository.create(m) *>
+        SupplierRepository.getById ((m.id, m.modelid, m.company) )
+
+  val supplierAllRoute =
+    mAll.implement : p =>
+      ZIO.logInfo(s"Find all supplier  ${p}") 
+        *> SupplierRepository.all((p._1, p._2))
+
+  val supplierByIdRoute =
+    mById.implement: p =>
+      ZIO.logInfo (s"Find by id supplier  ${p}") *>
+        SupplierRepository.getById(p._1, p._2, p._3)
+
+  val modifySupplierRoute =
+    mModify.implement: (_, m) =>
+      ZIO.logInfo (s"Modify supplier  ${m}") *>
+        SupplierRepository.modify (m) *>
+        SupplierRepository.getById ((m.id, m.modelid, m.company) )
+
+  val deleteSupplierRoute =
+    mDelete.implement: (id, modelid, company, _)  =>
+      SupplierRepository.delete((id, modelid, company))
+  
+  val supplierRoutes = Routes(createSupplierRoute, supplierAllRoute, supplierByIdRoute, modifySupplierRoute, deleteSupplierRoute) @@ Middleware.debug

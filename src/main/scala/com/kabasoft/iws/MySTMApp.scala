@@ -36,8 +36,8 @@ object MySTMApp extends ZIOAppDefault {
     credit2  <- TRef.makeCommit(BigDecimal.ZERO)
     icredit2 <- TRef.makeCommit(BigDecimal.ZERO)
 
-    from = TPeriodicAccountBalance("1", "Account1", 202201, idebit, icredit, debit, credit, "EUR", "1000", "Name Account1")
-    to   = TPeriodicAccountBalance("2", "Account2", 202201, idebit2, icredit2, debit2, credit2, "EUR", "1000", "Name Account2")
+    from = TPeriodicAccountBalance("1", "Account1", 202201, idebit, icredit, debit, credit, debit, credit, "EUR", "1000", "Name Account1")
+    to   = TPeriodicAccountBalance("2", "Account2", 202201, idebit2, icredit2, debit2, credit2, debit2, credit2, "EUR", "1000", "Name Account2")
 
     _ <- showBalance(from, to)
    // _ <- ZIO.logInfo(s"Before Transfering   \n credited Acct  ${from}  \n debited Acct ${to}")
