@@ -23,10 +23,10 @@ ThisBuild / scalacOptions ++= Seq("-Wunused:all","-Xmax-inlines",  "128")
 maintainer := "batexy@gmail.com"
 dockerBaseImage := "openjdk:26-ea-slim"
 
-assemblyMergeStrategy in assembly := {
-  case PathList("META-INF", xs @ _*) => MergeStrategy.discard
-  case x => MergeStrategy.first
-}
+//assemblyMergeStrategy in assembly := {
+//  case PathList("META-INF", xs @ _*) => MergeStrategy.discard
+//  case x => MergeStrategy.first
+//}
 
 lazy val root = (project in file("."))
   .settings(
@@ -37,7 +37,7 @@ lazy val root = (project in file("."))
       List(
         name         := "iws-skunk",
         organization := "KABA Soft GmbH",
-        version      := "2.0.2",
+        version      := "2.0.4",
          scalaVersion := "3.7.4"
       )
     ),

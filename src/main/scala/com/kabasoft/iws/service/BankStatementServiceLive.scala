@@ -8,8 +8,6 @@ import com.kabasoft.iws.repository.{AccountRepository, BankStatementRepository, 
 import zio.prelude.FlipOps
 import zio.stream.*
 import zio.*
-
-import java.math
 import java.math.{BigDecimal, RoundingMode}
 import java.nio.file.{Files, Paths}
 import java.time.Instant
@@ -124,7 +122,7 @@ final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository
                              buildFn: (String, String) => BankStatement = BankStatement.from
                            ): ZIO[Any, RepositoryError, Int] = {
   for {
-    bs <- ZIO.logInfo(s"path ${path} char>>>> $char") *>
+    bs <- ZIO.logInfo(s"path ${path} extension>>>> $extension isDirectory >>: ${Files.isDirectory(Paths.get(path.replace(".", "/")))}" ) *>
       ZStream
         .fromJavaStream(Files.walk(Paths.get(path)))
         .filter(p => !Files.isDirectory(p) && p.toString.endsWith(extension))
