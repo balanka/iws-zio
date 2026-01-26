@@ -78,9 +78,13 @@ object InventoryJournalEndpoint:
   )
   val find4StoreArticlePeriodRoute =
     find4StoreArticlePeriod.implement(p => for {
-      _ <- ZIO.logInfo(s"Get entries 4 store  ${p._2}, article id  ${p._3}, from ${p._4}, to ${p._5} and  company ${p._1}")
-      journalEntries4Account <- TransactionLogRepository.find4StoreArticlePeriod(p._2, p._3, p._4, p._5, p._1)
-    } yield journalEntries4Account
+      _                     <- ZIO.logInfo(s"Get entries 4 store  ${p._2}, article id  ${p._3}, from ${p._4}, to ${p._5} and  company ${p._1}")
+      journalEntries4Parent <-
+        if (p._2.contains('*') && p._3.contains('*')) TransactionLogRepository.find4Period(p._4, p._5, p._1)
+        else if (p._2.contains('*')) TransactionLogRepository.find4ArticlePeriod(p._3,  p._4, p._5, p._1)
+        else if (p._3.contains('*')) TransactionLogRepository.find4StorePeriod(p._2,  p._4, p._5, p._1)
+        else TransactionLogRepository.find4StoreArticlePeriod(p._2, p._3, p._4, p._5, p._1)
+    } yield journalEntries4Parent
     )
   
   val inventoryJournalRoutes = Routes(find4PeriodRoute, find4ArticlePeriodToRoute, find4StorePeriodRoute, find4StoreArticlePeriodRoute) @@ Middleware.debug
