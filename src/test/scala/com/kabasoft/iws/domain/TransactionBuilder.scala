@@ -24,6 +24,7 @@ object TransactionBuilder {
   val quantity1 = new BigDecimal("100.00").setScale(2, RoundingMode.HALF_UP)
   val pprice0 = new BigDecimal("10.00").setScale(2, RoundingMode.HALF_UP)
   val pprice1 = new BigDecimal("50.00").setScale(2, RoundingMode.HALF_UP)
+  val footText1 = "Thank you for trusting us"
   val text1 = "Delivery note for purchased good  or service"
   val text2 = "Billing note for purchased good  or service"
   val text3 = "Delivery note for sold good  or service"
@@ -38,7 +39,7 @@ object TransactionBuilder {
   val line1=  TransactionDetails(-1L, 0L,  artId0, artName0 , quantity0, qttyUnit, pprice0, currency, vtime, vatCode, quantity0.multiply(pprice0).multiply(BigDecimal("0.19")), text1, company )
   val line2=  TransactionDetails(-1L, 0L,  artId1, artName1 , quantity1, qttyUnit, pprice1, currency,  vtime, vatCode, quantity1.multiply(pprice1).multiply(BigDecimal("0.19")), text1, company )
 
-  val ftr1 = Transaction(0,-1, -1,  store, accountId, vtime, vtime, vtime, period, posted = false, modelid, company, text1
+  val ftr1 = Transaction(0,-1, -1,  store, accountId, vtime, vtime, vtime, period, posted = false, modelid, company, text1, footText1
           ,  List(line1, line2))
   val ftr2 = ftr1.copy(modelid = modelid2, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = text2)
   val ftr3 = ftr1.copy(modelid = modelid3, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = text3)

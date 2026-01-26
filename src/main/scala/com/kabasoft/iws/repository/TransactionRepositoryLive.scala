@@ -155,10 +155,10 @@ private[repository] object TransactionRepositorySQL:
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
   private val transactionCodec =
-    int8 *: int8 *: int8 *: varchar *: varchar *: timestamptz *: timestamptz *: timestamptz *: int4 *: bool *: int4 *: varchar *: varchar
+    int8 *: int8 *: int8 *: varchar *: varchar *: timestamptz *: timestamptz *: timestamptz *: int4 *: bool *: int4 *: varchar *: varchar*: varchar
 
   private val transactionCodec1 =
-    int8 *: int8 *: varchar *: varchar *: timestamptz *: timestamptz *: timestamptz *: int4 *: bool *: int4 *: varchar *: varchar
+    int8 *: int8 *: varchar *: varchar *: timestamptz *: timestamptz *: timestamptz *: int4 *: bool *: int4 *: varchar *: varchar*: varchar
   private val transactionDetailsCodec =
     int8 *: int8 *: varchar *: varchar *:  numeric(12,2) *: varchar *: numeric(12,2) *: varchar *: timestamp *: varchar *: numeric(12, 2) *: varchar *: varchar
 
@@ -166,9 +166,9 @@ private[repository] object TransactionRepositorySQL:
     int8 *: varchar *: varchar *: numeric(12, 2) *: varchar *: numeric(12, 2) *: varchar *: timestamp *: varchar *: numeric(12, 2) *: varchar *: varchar
 
   val mfDecoder: Decoder[Transaction] = transactionCodec.map:
-    case (id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text) =>
+    case (id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, footText) =>
       Transaction(id, oid, id1, store, account, transdate.toInstant, enterdate.toInstant, postingdate.toInstant
-        , period, posted, modelid, company, text)
+        , period, posted, modelid, company, text, footText )
 
   val mfEncoder: Encoder[Transaction] = transactionCodec1.values.contramap(Transaction.encodeIt)
   //val DetailsEncoder: Encoder[TransactionDetails] = transactionDetailsCodec.values.contramap(TransactionDetails.encodeIt)
@@ -178,41 +178,41 @@ private[repository] object TransactionRepositorySQL:
         TransactionDetails(id, transid, article, articleName, quantity.bigDecimal, unit, price.bigDecimal, currency, toInstant(duedate), vatCode, vat.bigDecimal, text, company)
 
   def base =
-    sql""" SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text
+    sql""" SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
            FROM   transaction """
 
   def ALL_BY_ID(nr: Int): Query[(List[Long], Int, String), Transaction] =
-    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text
+    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
            FROM   transaction
            WHERE id  IN (${int8.list(nr)}) AND  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val BY_ID: Query[Long *: Int *: String *: EmptyTuple, Transaction] =
-    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text
+    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
            FROM   transaction
            WHERE id = $int8 AND modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
            
   val BY_ID1: Query[Long *: Int *: String *: EmptyTuple, Transaction] =
-    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text
+    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
            FROM   transaction
            WHERE id1 = $int8 AND modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val BY_MODEL_ID: Query[Int *: String *: EmptyTuple, Transaction] =
-    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text
+    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
            FROM   transaction
            WHERE modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val BY_PERIOD: Query[Boolean *:Int *: Int *:  String *: EmptyTuple, Transaction] =
-    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text
+    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
            FROM   transaction
            WHERE posted =$bool AND modelid between $int4 AND $int4  AND company = $varchar
            """.query(mfDecoder)  
 
   val ALL: Query[Int *: String *: EmptyTuple, Transaction] =
-    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text
+    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
            FROM   transaction
            WHERE  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
@@ -232,15 +232,15 @@ private[repository] object TransactionRepositorySQL:
          
   val insert: Command[Transaction] =
     sql"""INSERT INTO transaction (oid, id1, store, account, enterdate, transdate, postingdate, period, posted, modelid
-         , company, text) VALUES $mfEncoder""".command
+         , company, text, foot_text) VALUES $mfEncoder""".command
 
   def insertAll(n:Int): Command[List[Transaction.TYPE]] = 
     sql"""INSERT INTO transaction (oid, id1, store, account, enterdate, transdate, postingdate, period, posted, modelid
-         , company, text ) VALUES ${transactionCodec1.values.list(n)}""".command
+         , company, text, foot_text) VALUES ${transactionCodec1.values.list(n)}""".command
 
   val insertDetails: Command[TransactionDetails.D_TYPE1] =
     sql"""INSERT INTO transaction_details (transid, article, article_name, quantity, unit, price, currency, duedate, vat_code
-          , vat, text, company) VALUES ($transactionDetailsCodec2 )""".command
+          , vat, text,  foot_text, company) VALUES ($transactionDetailsCodec2 )""".command
     
 //  def insertAllDetails(n:Int): Command[List[TransactionDetails.D_TYPE1]] =
 //    sql"""INSERT INTO transaction_details (transid, article, article_name, quantity, unit, price, currency
@@ -253,7 +253,7 @@ private[repository] object TransactionRepositorySQL:
 
   val UPDATE: Command[Transaction.TYPE2] =
     sql"""UPDATE transaction
-          SET oid = $int8, store = $varchar, account = $varchar, transdate = $timestamp, text=$varchar
+          SET oid = $int8, store = $varchar, account = $varchar, transdate = $timestamp, text=$varchar, foot_text=$varchar
           WHERE id=$int8 and modelid=$int4 and company= $varchar""".command
 
   val UPDATE_DETAILS: Command[TransactionDetails.TYPE2] =

@@ -1744,6 +1744,7 @@ final case class Transaction(id: Long,
                              modelid: Int,
                              company: String,
                              text: String = "",
+                             footText: String = "",
                              lines: List[TransactionDetails] = Nil
                             ) {
   def month: String = common.getMonthAsString(transdate)
@@ -1755,23 +1756,24 @@ final case class Transaction(id: Long,
   def duplicate: Transaction = copy(oid = id, id = 0, posted = false, lines=lines.map(line=>line.copy( id = 0, transid=0)) )
 }
 object Transaction:
-  type TYPE = (Long, Long, String, String, OffsetDateTime, OffsetDateTime, OffsetDateTime, Int, Boolean, Int, String, String)
-  type TYPE2= (Long, String, String, LocalDateTime, String, Long, Int, String)
+  type TYPE = (Long, Long, String, String, OffsetDateTime, OffsetDateTime, OffsetDateTime, Int, Boolean, Int, String, String, String)
+  type TYPE2= (Long, String, String, LocalDateTime, String, String, Long, Int, String)
   type TYPE3 = (Long, Int, String)
   private type Transaction_Type =
-    (Long, Long, Long, String, String, Instant, Instant, Instant, Int, Boolean, Int, String, String)
+    (Long, Long, Long, String, String, Instant, Instant, Instant, Int, Boolean, Int, String, String, String)
   def apply(tr: Transaction_Type): Transaction =
-    new Transaction(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11, tr._12, tr._13, Nil)
+    new Transaction(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11, tr._12, tr._13, tr._14, Nil)
   def encodeIt(st: Transaction): TYPE = (st.oid, st.id1, st.store, st.account
     , st.transdate.atZone(ZoneId.of("Europe/Paris")).toOffsetDateTime
     , st.enterdate.atZone(ZoneId.of("Europe/Paris")).toOffsetDateTime
     , st.postingdate.atZone(ZoneId.of("Europe/Paris")).toOffsetDateTime
-    , st.period, st.posted, st.modelid, st.company, st.text)
+    , st.period, st.posted, st.modelid, st.company, st.text, st.footText)
 
   def encodeIt2(st: Transaction): TYPE2 =
     (st.oid, st.store, st.account
       , st.transdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
-      , st.text, st.id, st.modelid, st.company)
+      , st.text, st.footText, st.id, st.modelid, st.company)
+      
   def encodeIt3(st: Transaction):TYPE3= (st.id, st.modelid, st.company)
 
 final case class TransactionLog(id:Long, id1:Long, transid:Long, oid:Long, store:String, account:String, article:String,
