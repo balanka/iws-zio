@@ -13,18 +13,12 @@ case class Helper (financials:FinancialsTransaction, newPacs:List[PeriodicAccoun
                    , oldPacs:UIO[List[PeriodicAccountBalance]], journals:List[Journal])
 final class PostBillOfDeliveryLive( accRepo: AccountRepository
                                    , artRepo: ArticleRepository
-                                   , vatRepo: VatRepository
                                    , customerRepo: CustomerRepository
                                    , stockRepo: StockRepository
                                    , repository4PostingTransaction:PostTransactionRepository
                                    , financialsService:FinancialsService
                                   ) extends PostBillOfDelivery:
 
-//  private def articleId2Account(articleId: String, articles: List[Article], accounts: List[Account], flag:Boolean): Account = {
-//    filterIWS(articles, articleId).flatMap(art => {
-//      if (flag) filterIWS(accounts, art.account) else  filterIWS(accounts, art.oaccount)
-//    }).headOption.getOrElse(Account.dummy)
-//  }
   override def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int]  = {
     if (transactions.isEmpty || transactions.flatMap(_.lines).isEmpty ) throw IllegalStateException(" Error: Empty transaction may not be posted!!!")
     for {
@@ -35,7 +29,6 @@ final class PostBillOfDeliveryLive( accRepo: AccountRepository
         _       <- ZIO.logInfo(s"Stock  from  bill of delivery  transaction  ${oldStocks}")
         _       <-  ZIO.when(oldStocks.isEmpty)(ZIO.fail( RepositoryError(s"No Stock found for ${stockIds}")))
       post     <- postTransaction(transactions, company, Nil, oldStocks)
-      //nr <- repository4PostingTransaction.post(post._1, post._2, post._3, post._4, post._5, post._6)
       nr <- repository4PostingTransaction.post(post._1, post._2, post._3, post._4, post._5, post._6, post._7, post._8, post._9)
     } yield nr
   }
@@ -50,8 +43,6 @@ final class PostBillOfDeliveryLive( accRepo: AccountRepository
     stocks <- updateStock(transactions, oldStocks)
     _<-ZIO.logInfo(s"Stocks   from  bill of delivery  transaction with  of company ${stocks}")
     customers <- customerRepo.all(Customer.MODELID, company.id)
-    vatIds = transactions.flatMap(_.lines.map(_.vatCode)).distinct
-    vats <-  vatRepo.getBy(vatIds, Vat.MODEL_ID, company.id)
     // build transaction's log entries
     transLogEntries <- buildTransactionLog(transactions, stocks, newStock, articles)
     // build financials transaction 
@@ -59,9 +50,9 @@ final class PostBillOfDeliveryLive( accRepo: AccountRepository
     (transaction:List[Transaction], financials:List[FinancialsTransaction]) = newFtr.unzip
     result <- postFinancials(financials, financialsService)
     models = result.map(_._1)
-    newPacs = result.map(_._2).flatten
+    newPacs = result.flatMap(_._2)
     oldPacs = result.map(_._3).flip.map(_.flatten)
-    journalEntries = result.map(_._4).flatten
+    journalEntries = result.flatMap(_._4)
     _<-ZIO.logInfo(s"result2   from  bill of delivery  transaction with  of company ${result}")
     _<-ZIO.logInfo(s"new Pacs   from  bill of delivery  transaction with  of company ${newPacs}")
     _<-ZIO.logInfo(s"Oldoacs   from  bill of delivery  transaction with  of company ${oldPacs}")
@@ -103,6 +94,6 @@ final class PostBillOfDeliveryLive( accRepo: AccountRepository
       .map(st=>TStock.apply(st, ts.quantity))).flip
 
 object PostBillOfDeliveryLive:
-  val live: ZLayer[TransactionRepository& TransactionLogRepository& AccountRepository& VatRepository&
-     ArticleRepository& CustomerRepository &StockRepository& PostTransactionRepository&FinancialsService, RepositoryError, PostBillOfDelivery] =
-    ZLayer.fromFunction(new PostBillOfDeliveryLive(_, _, _, _, _, _, _))
+  val live: ZLayer[TransactionRepository& TransactionLogRepository& AccountRepository& ArticleRepository&
+      CustomerRepository &StockRepository& PostTransactionRepository&FinancialsService, RepositoryError, PostBillOfDelivery] =
+    ZLayer.fromFunction(new PostBillOfDeliveryLive(_, _, _, _, _, _))

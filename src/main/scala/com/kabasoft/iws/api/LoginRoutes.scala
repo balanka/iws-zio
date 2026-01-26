@@ -17,7 +17,7 @@ object LoginRoutes:
         handler { (req: Request) =>
           for {
             loginRequest <- req.body.asString
-              .flatMap(request => ZIO.logInfo(s"RequestX >>>>>>n ${request}")*>
+              .flatMap(request => //ZIO.logInfo(s"RequestX >>>>>>n ${request}")*>
                 ZIO.fromEither(request.fromJson[LoginRequest])
               ).catchAll(e => ZIO.logInfo(s"Unparseable body: ${e.toString}")*>ZIO.succeed(LoginRequest.dummy))
             user <- UserRepository.getByUserName((loginRequest.userName, User.MODELID, loginRequest.company))
@@ -38,19 +38,18 @@ object LoginRoutes:
     val x= scala.util.Properties.envOrElse("IWS_WEB_URL", s"X")
     println(s"webUrl >>>>>> $x")
     println(s"pwd >>>>>> $pwd")
-    //val webUrl = scala.util.Properties.envOrElse("IWS_WEB_URL", "http://localhost:3000")
+    val webUrl = scala.util.Properties.envOrElse("IWS_WEB_URL", "http://localhost:3000")
    // val webUrl = scala.util.Properties.envOrElse("IWS_WEB_URL", "http://127.0.0.1:3000")
-    val webUrl = scala.util.Properties.envOrElse("IWS_WEB_URL", s"http://localhost:5173")
+    //val webUrl = scala.util.Properties.envOrElse("IWS_WEB_URL", s"http://localhost:5173")
     //if (env.keySet().contains("IWS_WEB_URL")) env.get("IWS_WEB_URL") else "http://localhost:3000"
     println(s"webUrl >>>>>> $webUrl")
     if (check) {
       //val json = s""""$loginRequest.password""""
       val token = user.hash//Utils.jwtEncode(json, defaultLifeSpan)
       println(s"token >>>>>> $token")
-      //Response.json(pwd).addHeader(Custom("authorization", token))
        Response.json(user.toJson).addHeader(Custom("authorization", token))
         //.addHeader(Custom("Access-Control-Allow-Origin", "*"))
-        .addHeader(Custom("Origin", webUrl))
+        .addHeader(Custom("Access-Control-Allow-Origin", webUrl))
     } else {
       Response.unauthorized("Invalid username or password.")
     }

@@ -3,7 +3,7 @@ import com.kabasoft.iws.healthcheck.expose
 import com.kabasoft.iws.api.LoginRoutes.loginRoutes
 import com.kabasoft.iws.config.AppConfig
 import com.kabasoft.iws.resources.AppResources
-import zio.interop.catz._
+import zio.interop.catz.*
 import cats.effect.std.Console
 import natchez.Trace.Implicits.noop
 import com.kabasoft.iws.config.appConfig
@@ -19,6 +19,7 @@ import com.kabasoft.iws.api.EmployeeEndpoint.employeeRoutes
 import com.kabasoft.iws.api.FModuleEndpoint.fmoduleRoutes
 import com.kabasoft.iws.api.FinancialsEndpoint.financialsRoutes
 import com.kabasoft.iws.api.ImportFileEndpoint.importFileRoutes
+import com.kabasoft.iws.api.InventoryJournalEndpoint.inventoryJournalRoutes
 import com.kabasoft.iws.api.MasterfileEndpoint.masterfileRoutes
 import com.kabasoft.iws.api.ModuleEndpoint.moduleRoutes
 import com.kabasoft.iws.api.PayrollEndpoint.payrollRoutes
@@ -33,19 +34,19 @@ import com.kabasoft.iws.api.TransactionEndpoint.transactionRoutes
 import com.kabasoft.iws.api.UserEndpoint.userRoutes
 import com.kabasoft.iws.api.Utils.bearerAuthWithContext
 import com.kabasoft.iws.api.VatEndpoint.vatRoutes
-import com.kabasoft.iws.repository._
-import com.kabasoft.iws.service._
-import zio._
+import com.kabasoft.iws.repository.*
+import com.kabasoft.iws.service.*
+import zio.*
 import zio.http.Header.{AccessControlAllowMethods, AccessControlAllowOrigin, Origin}
 import zio.http.Middleware.{CorsConfig, cors}
 import zio.http.Server.Config
 import zio.http.{Method, Server}
+
 import java.lang.System
 import java.time.Clock
 import java.util
 import scala.annotation.nowarn
 import scala.language.postfixOps
-import java.net.InetAddress
 
 object IwsApp extends ZIOAppDefault {
 
@@ -79,7 +80,8 @@ object IwsApp extends ZIOAppDefault {
   private val httpApp = (AccountRoutes++assetRoutes ++ supplierRoutes++ customerRoutes ++ moduleRoutes ++ companyRoutes 
    ++ bankStmtRoutes++transactionRoutes ++fmoduleRoutes++employeeRoutes++articleRoutes++salaryItemRoutes
    ++ importFileRoutes++payrollRoutes++pacRoutes++journalRoutes++payrollRoutes++masterfileRoutes++stockRoutes
-   ++ userRoutes++permissionRoutes++payrollTaxRoutes++ financialsRoutes++roleRoutes++vatRoutes++storeRoutes)
+   ++ userRoutes++permissionRoutes++payrollTaxRoutes++ financialsRoutes++roleRoutes++vatRoutes++storeRoutes
+   ++ inventoryJournalRoutes)
   
   @nowarn val run: ZIO[Any & ZIOAppArgs & Scope, Any, Any] =
     given Console[Task] = Console.make[Task]

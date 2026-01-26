@@ -9,7 +9,6 @@ import java.time.Instant
 import zio.prelude.FlipOps
 final class PostSupplierInvoiceLive(vatRepo: VatRepository
                                     , accRepo: AccountRepository
-                                    , artRepo: ArticleRepository
                                     , supplierRepo: SupplierRepository
                                     , repository4PostingTransaction:PostTransactionRepository
                                     , financialsService:FinancialsService)
@@ -74,9 +73,9 @@ final class PostSupplierInvoiceLive(vatRepo: VatRepository
     (transactionsx:List[Transaction], financials:List[FinancialsTransaction]) = newFtr.unzip
     result <- postFinancials(financials, financialsService)
     models = result.map(_._1)
-    newPacs = result.map(_._2).flatten
+    newPacs = result.flatMap(_._2)
     oldPacs = result.map(_._3).flip.map(_.flatten)
-    journalEntries = result.map(_._4).flatten
+    journalEntries = result.flatMap(_._4)
     _<-ZIO.logInfo(s"result   from  supplier invoice  transaction with  of company ${result}")
     _<-ZIO.logInfo(s"new Pacs   from  supplier invoice  transaction with  of company ${newPacs}")
     _<-ZIO.logInfo(s"Oldoacs   from  supplier invoice  transaction with  of company ${oldPacs}")
@@ -84,5 +83,5 @@ final class PostSupplierInvoiceLive(vatRepo: VatRepository
 
 object PostSupplierInvoiceLive:
   val live: ZLayer[VatRepository& TransactionRepository& TransactionLogRepository& AccountRepository& SupplierRepository
-    & ArticleRepository& PostTransactionRepository& FinancialsService, RepositoryError, PostSupplierInvoice] =
-    ZLayer.fromFunction(new PostSupplierInvoiceLive(_, _, _, _, _, _))
+    & PostTransactionRepository& FinancialsService, RepositoryError, PostSupplierInvoice] =
+    ZLayer.fromFunction(new PostSupplierInvoiceLive(_, _, _, _, _))

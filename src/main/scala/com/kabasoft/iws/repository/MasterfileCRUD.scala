@@ -238,7 +238,7 @@ trait MasterfileCRUD:
       .use: session =>
         session.transaction.use: xa =>
           session
-            .prepare(comd).debug(s"ZZZZZZZZZ ${p}")
+            .prepare(comd)//.debug(s"ZZZZZZZZZ ${p}")
             .flatMap: cmd =>
               xa.savepoint
               cmd.execute(p).debug("vcbvcbvcbvcbvcbvcvb").recoverWith:
@@ -255,7 +255,7 @@ trait MasterfileCRUD:
       .use: session =>
         session.transaction.use: xa =>
           session
-            .execute(cmd).debug("ffffffffffffffff")
+            .execute(cmd)//.debug("ffffffffffffffff")
             .recoverWith:
                 case SqlState.UniqueViolation(ex) =>
                   ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
@@ -298,7 +298,7 @@ trait MasterfileCRUD:
                           , p: List[A]
                           , encoder: A => B): Task[Int] =
     xa.savepoint
-      command.execute(p.map(encoder)).debug("Executing")
+      command.execute(p.map(encoder))//.debug("Executing")
       .recoverWith {
         case SqlState.UniqueViolation(ex) =>
           ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
@@ -317,7 +317,7 @@ trait MasterfileCRUD:
         .use: session =>
           session.transaction.use: xa =>
             session
-              .prepare(comd).debug("SSSSSSSSSSSS")
+              .prepare(comd)//.debug("SSSSSSSSSSSS")
               .flatMap: cmd =>
                 xa.savepoint
                 cmd.execute(encoder(p)).debug("vcbccvcvcvcvvc").recoverWith:
@@ -334,7 +334,7 @@ trait MasterfileCRUD:
     list.traverse_ { p =>
       for
         //transid <- sql"SELECT NEXTVAL('master_compta_id_seq')".query[Long].unique
-        _ <- pc.execute(p).debug("RRRRRRRR>>>")
+        _ <- pc.execute(p)//.debug("RRRRRRRR>>>")
       yield ()
     }
   
