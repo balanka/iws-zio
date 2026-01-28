@@ -13,17 +13,9 @@ object Utils {
   private val never = Long.MaxValue
   implicit val clock: Clock = Clock.systemUTC
 
-  def jwtEncode(username: String, liveSpan: Long, key: String = SECRET_KEY): String =
+  def jwtEncode(username: String, liveSpan: Long =never, key: String = SECRET_KEY): String =
     Jwt.encode(JwtClaim(subject = Some(username)).issuedNow.expiresIn(liveSpan), key, JwtAlgorithm.HS512)
-
-//  def jwtEncode(word: String, liveSpan: Long): String =
-//    println(s"encoding word  $word")
-//    val json  = s"""{$word}"""
-//    val liveSpan_ = if (liveSpan == -1L) never else liveSpan
-//    val claim = JwtClaim {json}.issuedNow.expiresIn(liveSpan_)
-//    Jwt.encode(claim, SECRET_KEY, JwtAlgorithm.HS512)
-
-
+  
   def jwtDecode(token: String): Option[JwtClaim] =
     val result = Jwt.decode(token, SECRET_KEY, Seq(JwtAlgorithm.HS512)).toOption
     println(s"jwtDecodedX  $result")

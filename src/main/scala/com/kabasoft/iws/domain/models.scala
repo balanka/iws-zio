@@ -424,7 +424,7 @@ object Company:
       , st.taxCode, st.vatCode, st.currency, st.locale, st.balanceSheetAcc, st.incomeStmtAcc, st.purchasingClearingAcc
       , st.salesClearingAcc, st.cashAcc, st.account, st.oaccount, st.id, st.modelid)
 
-@nowarn("msg=parameter .* never used")
+
 abstract class AppError(message: String)
 object AppError:
   final case class RepositoryError(message: String) extends AppError(message)
@@ -439,8 +439,6 @@ final case class Balance(id: String, idebit: BigDecimal, icredit: BigDecimal, de
   object Balance {
     def apply(pac: PeriodicAccountBalance): Balance = new Balance(pac.account, pac.idebit, pac.icredit, pac.debit, pac.credit)
   }
-
-
 
 trait AccountT extends IWS:
   //def parent:String
@@ -916,14 +914,6 @@ final case class EmployeeSalaryItem(id: String, owner: String, account: String, 
 object EmployeeSalaryItem:
   type  TYPE =(String, String, scala.math.BigDecimal, scala.math.BigDecimal, String, String, String)
   def encodeIt(st: EmployeeSalaryItem): TYPE = (st.owner,  st.account, st.amount, st.percentage, st.text, st.id, st.company)
-  //  def apply(bs: ESI_Type): EmployeeSalaryItem = EmployeeSalaryItem(
-  //    bs._1,
-  //    bs._2,
-  //    bs._3,
-  //    bs._4,
-  //    bs._5,
-  //    bs._6,
-  //    bs._7)
   def apply(item:EmployeeSalaryItemDTO):EmployeeSalaryItem =EmployeeSalaryItem(item.id, item.owner, item.account, item.amount, item.percentage, item.text, item.company)
 
 final case class EmployeeSalaryItemDTO(id: String, owner: String, account: String, accountName: String, amount: BigDecimal, percentage: BigDecimal, text:String, company: String)
@@ -1422,7 +1412,7 @@ object PeriodicAccountBalance:
           line.oaccountName,
           PeriodicAccountBalance.MODELID
         )
-      )//.groupBy(_.id) map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy)}
+      )
 
   def applyT(tpac: TPeriodicAccountBalance): ZIO[Any, Nothing, PeriodicAccountBalance] = for {
     idebit  <- tpac.idebit.get.commit
@@ -1438,6 +1428,37 @@ object PeriodicAccountBalance:
 
   def encodeIt2(st: PeriodicAccountBalance): TYPE2 = ( st.idebit, st.icredit, st.debit, st.credit, st.bdebit, st.bcredit, st.id, st.period, st.company)
 
+final case class Partner (id: String,
+                           name: String,
+                           description: String,
+                           street: String,
+                           zip: String,
+                           city: String,
+                           state: String,
+                           country: String,
+                           phone: String,
+                           email: String,
+                           company: String,
+                           modelid: Int = Supplier.MODELID,
+                           enterdate: Instant = Instant.now(),
+                           changedate: Instant = Instant.now(),
+                           postingdate: Instant = Instant.now()
+                         )
+object Partner:
+  val MODELID = 173
+  type TYPE = (String, String, String, String, String, String, String, String, String, String, String, Int, LocalDateTime, LocalDateTime, LocalDateTime)
+  type TYPE2 = (String, String, String, String, String, String, String, String, String, String, Int, String)
+
+  def encodeIt(st: Partner): TYPE =
+    (st.id, st.name, st.description, st.street, st.zip, st.city, st.state, st.country, st.phone, st.email, st.company
+      , st.modelid
+      , st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
+      st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
+      st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
+      )
+
+  def encodeIt2(st: Partner): TYPE2 = (st.name, st.description, st.street, st.zip, st.city, st.state, st.country
+        , st.phone, st.email, st.id, st.modelid, st.company)
 
 sealed trait BusinessPartner:
   def id: String
@@ -1461,8 +1482,6 @@ sealed trait BusinessPartner:
   def changedate: Instant
   def postingdate: Instant
   def bankaccounts: List[BankAccount]
-
-
 
 final case class Supplier(
                            id: String,

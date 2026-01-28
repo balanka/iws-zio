@@ -10,7 +10,7 @@ import zio.http._
 import zio.json.{DecoderOps, EncoderOps}
 
 object LoginRoutes:
-  private val defaultLifeSpan =  3*365*24*60*60L // 3 years
+  //private val defaultLifeSpan =  3*365*24*60*60L // 3 years
   def loginRoutes: Routes[UserRepository, Response] =
     Routes(
       Method.POST / "users" / "login" ->
@@ -28,7 +28,8 @@ object LoginRoutes:
   private def checkLogin(user: User, loginRequest:LoginRequest): Response =
     
     println(s"checkLogin >>>>>> ${loginRequest.password}")
-    println(s"pwd >>>>>> ${Utils.jwtEncode(loginRequest.password, defaultLifeSpan)}")
+    //println(s"pwd >>>>>> ${Utils.jwtEncode(loginRequest.password, defaultLifeSpan)}")
+    println(s"pwd >>>>>> ${Utils.jwtEncode(loginRequest.password)}")
     //println(s"user >>>>>> $user")
     val pwd = Utils.jwtDecode(user.hash).get.subject.getOrElse("Subject")
     val pwdR = loginRequest.password
@@ -38,11 +39,11 @@ object LoginRoutes:
     val x= scala.util.Properties.envOrElse("IWS_WEB_URL", s"X")
     println(s"webUrl >>>>>> $x")
     println(s"pwd >>>>>> $pwd")
-    val webUrl = scala.util.Properties.envOrElse("IWS_WEB_URL", "http://localhost:3000")
+    val webUrl = scala.util.Properties.envOrElse("IWS_WEB_URL", "http://localhost")
    // val webUrl = scala.util.Properties.envOrElse("IWS_WEB_URL", "http://127.0.0.1:3000")
     //val webUrl = scala.util.Properties.envOrElse("IWS_WEB_URL", s"http://localhost:5173")
     //if (env.keySet().contains("IWS_WEB_URL")) env.get("IWS_WEB_URL") else "http://localhost:3000"
-    println(s"webUrl >>>>>> $webUrl")
+    println(s" Effective webUrl >>>>>> $webUrl")
     if (check) {
       //val json = s""""$loginRequest.password""""
       val token = user.hash//Utils.jwtEncode(json, defaultLifeSpan)

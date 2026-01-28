@@ -24,6 +24,7 @@ import com.kabasoft.iws.api.MasterfileEndpoint.masterfileRoutes
 import com.kabasoft.iws.api.ModuleEndpoint.moduleRoutes
 import com.kabasoft.iws.api.PayrollEndpoint.payrollRoutes
 import com.kabasoft.iws.api.PermissionEndpoint.permissionRoutes
+import com.kabasoft.iws.api.PartnerEndpoint.partnerRoutes
 import com.kabasoft.iws.api.RoleEndpoint.roleRoutes
 import com.kabasoft.iws.api.SalaryItemEndpoint.salaryItemRoutes
 import com.kabasoft.iws.api.PayrollTaxRangeEndpoint.payrollTaxRoutes
@@ -81,7 +82,7 @@ object IwsApp extends ZIOAppDefault {
    ++ bankStmtRoutes++transactionRoutes ++fmoduleRoutes++employeeRoutes++articleRoutes++salaryItemRoutes
    ++ importFileRoutes++payrollRoutes++pacRoutes++journalRoutes++payrollRoutes++masterfileRoutes++stockRoutes
    ++ userRoutes++permissionRoutes++payrollTaxRoutes++ financialsRoutes++roleRoutes++vatRoutes++storeRoutes
-   ++ inventoryJournalRoutes)
+   ++ inventoryJournalRoutes++partnerRoutes)
   
   @nowarn val run: ZIO[Any & ZIOAppArgs & Scope, Any, Any] =
     given Console[Task] = Console.make[Task]
@@ -106,6 +107,7 @@ object IwsApp extends ZIOAppDefault {
           AccountServiceLive.live,
           AccountRepositoryLive.live,
           BankAccountRepositoryLive.live,
+          PartnerRepositoryLive.live,
           CompanyRepositoryLive.live,
           CustomerRepositoryLive.live,
           PayrollTaxRangeRepositoryLive.live,

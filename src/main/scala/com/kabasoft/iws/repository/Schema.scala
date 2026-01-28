@@ -13,6 +13,7 @@ object Schema {
   implicit val employeeSchema: Schema[Employee]                 = DeriveSchema.gen[Employee]
   implicit val fmoduleSchema : Schema[Fmodule]                  = DeriveSchema.gen[Fmodule]
   implicit val assetSchema:    Schema[Asset]                    = DeriveSchema.gen[Asset]
+  implicit val partnerSchema: Schema[Partner]             = DeriveSchema.gen[Partner]
   implicit val companySchema:       Schema[Company]             = DeriveSchema.gen[Company]
   implicit val bankAccountSchema: Schema[BankAccount]           = DeriveSchema.gen[BankAccount]
   implicit val bankStatementsSchema:Schema[BankStatement]       = DeriveSchema.gen[BankStatement]
