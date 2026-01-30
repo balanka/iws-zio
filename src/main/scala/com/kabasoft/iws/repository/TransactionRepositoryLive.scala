@@ -98,7 +98,7 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
         .use:
           session =>
             transact(session, List.empty, newLine2Insert, models, oldLines2Update, oldLine2Delete)
-        .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)
+        .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)//.debug("ALL>>>")
   }
 
   override def getById(p: (Long, Int, String)): ZIO[Any, RepositoryError, Transaction] = for {
@@ -240,7 +240,7 @@ private[repository] object TransactionRepositorySQL:
 
   val insertDetails: Command[TransactionDetails.D_TYPE1] =
     sql"""INSERT INTO transaction_details (transid, article, article_name, quantity, unit, price, currency, duedate, vat_code
-          , vat, text,  foot_text, company) VALUES ($transactionDetailsCodec2 )""".command
+          , vat, text, company) VALUES ($transactionDetailsCodec2 )""".command
     
 //  def insertAllDetails(n:Int): Command[List[TransactionDetails.D_TYPE1]] =
 //    sql"""INSERT INTO transaction_details (transid, article, article_name, quantity, unit, price, currency

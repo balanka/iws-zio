@@ -21,7 +21,7 @@ object PartnerEndpoint:
   val mModifyAPIDoc = "Modify a partner"
   val mDeleteAPIDoc = "Delete a  partner"
 
-  private val mCreate = Endpoint(RoutePattern.POST / "mf")
+  private val mCreate = Endpoint(RoutePattern.POST / "partner")
     .in[Partner]
     .header(HeaderCodec.authorization)
     .out[Partner]
@@ -29,27 +29,27 @@ object PartnerEndpoint:
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     )?? Doc.p(mCreateAPIFoc)
 
-  private val mAll = Endpoint(RoutePattern.GET / "mf" / int("modelid") ?? Doc.p(modelidDoc) / string("company") ??
+  private val mAll = Endpoint(RoutePattern.GET / "partner" / int("modelid") ?? Doc.p(modelidDoc) / string("company") ??
     Doc.p(companyDoc)
   )//.header(HeaderCodec.authorization)
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized),
     ).out[List[Partner]] ?? Doc.p(mAllAPIDoc)
 
-  private val mById = Endpoint(RoutePattern.GET / "mf" / string("id") ?? Doc.p(idDoc) / int("modelid") ?? Doc.p(modelidDoc)
+  private val mById = Endpoint(RoutePattern.GET / "partner" / string("id") ?? Doc.p(idDoc) / int("modelid") ?? Doc.p(modelidDoc)
     / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
     .header(HeaderCodec.authorization)
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized),
     ).out[Partner] ?? Doc.p(mByIdAPIDoc)
 
-  private val mModify = Endpoint(RoutePattern.PUT / "mf").header(HeaderCodec.authorization)
+  private val mModify = Endpoint(RoutePattern.PUT / "partner").header(HeaderCodec.authorization)
     .in[Partner]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ).out[Partner] ?? Doc.p(mModifyAPIDoc)
   
-  private val mDelete = Endpoint(RoutePattern.DELETE / "mf" / string("id") ?? Doc.p(modelidDoc) /int("modelid")?? Doc.p(modelidDoc)
+  private val mDelete = Endpoint(RoutePattern.DELETE / "partner" / string("id") ?? Doc.p(modelidDoc) /int("modelid")?? Doc.p(modelidDoc)
     / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
@@ -57,23 +57,23 @@ object PartnerEndpoint:
 
   val partnerCreateRoute =
     mCreate.implement: (m,_) =>
-      ZIO.logInfo(s"Insert masterfile  ${m}") 
+      ZIO.logInfo(s"Insert partner  ${m}")
         *> PartnerRepository.create(m)
         *> PartnerRepository.getById(m.id, m.modelid, m.company)
 
   val partnerAllRoute =
     mAll.implement : p =>
-      ZIO.logInfo(s"get all masterfile with modelId ${p._2}   ${p}") *>
+      ZIO.logInfo(s"get all partner with modelId ${p._2}   ${p}") *>
         PartnerRepository.all((p._1, p._2))
 
   val partnerByIdRoute =
     mById.implement: p =>
-      ZIO.logInfo (s"Modify masterfile  ${p}") *>
+      ZIO.logInfo (s"Modify partner  ${p}") *>
         PartnerRepository.getById(p._1, p._2, p._3)
 
   val partnerModifyRoute =
     mModify.implement: (_, m) =>
-      ZIO.logInfo (s"Modify masterfile  ${m}") *>
+      ZIO.logInfo (s"Modify partner  ${m}") *>
         PartnerRepository.modify (m) *>
         PartnerRepository.getById ((m.id, m.modelid, m.company) )
 
