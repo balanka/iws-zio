@@ -241,7 +241,7 @@ trait MasterfileCRUD:
             .prepare(comd)//.debug(s"ZZZZZZZZZ ${p}")
             .flatMap: cmd =>
               xa.savepoint
-              cmd.execute(p).debug("vcbvcbvcbvcbvcbvcvb").recoverWith:
+              cmd.execute(p).recoverWith://.debug("vcbvcbvcbvcbvcbvcvb").recoverWith:
                 case SqlState.UniqueViolation(ex) =>
                   ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
                     xa.rollback
