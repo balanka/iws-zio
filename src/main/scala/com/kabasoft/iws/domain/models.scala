@@ -2043,11 +2043,13 @@ final case class  Fmodule (id:Int, name:String, description:String,
                            isDebit:Boolean,
                            parent:String,
                            copyFrom:Int,
+                           accFilter:String="",
+                           oaccFilter:String="",
                            modelid:Int = Fmodule.MODEL_ID,
                            company:String )
 object Fmodule:
   val MODEL_ID = 151
-  type TYPE2 = (String, String, String, Boolean, String, Int, Int, Int, String)
+  type TYPE2 = (String, String, String, Boolean, String, Int, String, String, Int, Int, String)
   def encodeIt2(st: Fmodule): TYPE2 =
-    (st.name, st.description, st.account, st.isDebit, st.parent, st.copyFrom, st.id, st.modelid, st.company)
+    (st.name, st.description, st.account, st.isDebit, st.parent, st.copyFrom, st.accFilter, st.oaccFilter, st.id, st.modelid, st.company)
 

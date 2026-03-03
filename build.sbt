@@ -28,6 +28,7 @@ dockerBaseImage := "openjdk:26-ea-slim"
 //  case x => MergeStrategy.first
 //}
 dockerBuildCommand := {
+  //if (sys.props("os.arch") == "amd64") {
   if (sys.props("os.arch") != "amd64") {
     // use buildx with platform to build supported amd64 images on other CPU architectures
     // this may require that you have first run 'docker buildx create' to set docker buildx up
@@ -43,8 +44,8 @@ lazy val root = (project in file("."))
       List(
         name         := "iws-skunk",
         organization := "KABA Soft GmbH",
-        version      := "2.0.6",
-         scalaVersion := "3.8.0"
+        version      := "2.2.6",
+         scalaVersion := "3.8.1"
       )
     ),
     name           := "iws-zio",
