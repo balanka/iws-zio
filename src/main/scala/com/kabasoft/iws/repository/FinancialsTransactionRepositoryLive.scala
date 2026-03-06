@@ -111,12 +111,12 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
     transactions <- queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
     details <- transactions.map(withLines).flip
   } yield details
-    
-  
-  override def getByModelId(modelid: (Int, String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =for {
+
+  override def getByModelId(modelid: (Int, String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
     transactions <- queryWithTx(postgres, modelid, BY_MODEL_ID)
     details <- transactions.map(withLines).flip
   } yield details
+  
     
   override def getByTransId(p: (Long, String)): ZIO[Any, RepositoryError, FinancialsTransaction] =for {
     transaction <- queryWithTxUnique(postgres, p, BY_TRANS_ID)
@@ -191,6 +191,12 @@ object FinancialsTransactionRepositorySQL:
            FROM   master_compta
            WHERE modelid= $int4 AND company = $varchar
            """.query(mfDecoder)
+
+  def BY_MODEL_IDS(nr: Int): Query[(List[Int], String), FinancialsTransaction] =
+    sql"""SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
+           FROM   master_compta
+           WHERE modelid IN (${int4.list(nr)}) AND company = $varchar
+           """.query(mfDecoder)  
 
   val BY_ID: Query[Long *: Int *: String *: EmptyTuple, FinancialsTransaction] =
     sql"""

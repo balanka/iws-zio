@@ -54,7 +54,7 @@ private[repository] object FModuleRepositorySQL:
     )
   val mfDecoder: Decoder[Fmodule] = mfCodec.map :
     case (id, name, description, enterdate, changedate, postingdate, account, isDebit,  parent, copyFrom, accFilter
-     , oaccFilter,modelid, company) =>
+     , oaccFilter, modelid, company) =>
       Fmodule(
         id,
         name,
@@ -95,7 +95,7 @@ private[repository] object FModuleRepositorySQL:
 
   def ALL_BY_ID(nr: Int): Query[(List[Int], Int, String), Fmodule] =
     sql"""SELECT id, name, description, enterdate, changedate,postingdate, account, is_debit, parent,  copy_from, acc_filter,
-      oacc_filter, modelid, company
+      oacc_filter,  modelid, company
            FROM   fmodule
            WHERE id  IN ${int4.list(nr)} AND  modelid = $int4 AND company = $varchar
            ORDER BY id ASC""".query(mfDecoder)
@@ -116,8 +116,7 @@ private[repository] object FModuleRepositorySQL:
 
   val insert: Command[Fmodule] =
     sql"""INSERT INTO fmodule (id, name, description, enterdate,changedate, postingdate,  account, is_debit, parent
-         , copy_from, acc_filter,
-      oacc_filter, modelid, company ) VALUES $mfEncoder """.command
+         , copy_from, acc_filter, oacc_filter,  modelid, company ) VALUES $mfEncoder """.command
 
   def insertAll(n:Int): Command[List[TYPE]]= sql"INSERT INTO fmodule VALUES ${mfCodec.values.list(n)}".command
 

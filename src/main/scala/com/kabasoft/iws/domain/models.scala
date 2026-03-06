@@ -98,6 +98,7 @@ object TransactionModelId extends Enumeration :
   val PAYMENT: Value = Value(114)
   val RECEIVABLES: Value = Value(122)
   val SETTLEMENT: Value = Value(124)
+  val PAYMENT_SETTLEMENT: Value = Value(125)
   val GENERAL_LEDGER: Value = Value(134)
   val PAYROLL: Value = Value(136)
   val CASH: Value = Value(144)

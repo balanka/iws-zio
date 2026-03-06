@@ -28,8 +28,8 @@ dockerBaseImage := "openjdk:26-ea-slim"
 //  case x => MergeStrategy.first
 //}
 dockerBuildCommand := {
-  //if (sys.props("os.arch") == "amd64") {
-  if (sys.props("os.arch") != "amd64") {
+   if (sys.props("os.arch") == "amd64") {
+  //if (sys.props("os.arch") != "amd64") {
     // use buildx with platform to build supported amd64 images on other CPU architectures
     // this may require that you have first run 'docker buildx create' to set docker buildx up
     dockerExecCommand.value ++ Seq("buildx", "build", "--platform=linux/amd64", "--load") ++ dockerBuildOptions.value :+ "."

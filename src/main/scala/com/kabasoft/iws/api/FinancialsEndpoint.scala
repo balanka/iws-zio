@@ -21,7 +21,7 @@ import zio.http.endpoint.Endpoint
 object FinancialsEndpoint:
   val modelidDoc = "The modelId for identifying the typ of financials transaction (Customer / Ventor invoice, setllement, payment, etc... )"
   val idDoc = "The unique Id for identifying the financials transaction"
-  val idsDoc = "The list of financials transaction's Id to post"
+  val idsDoc = "The list of financials transaction's Id to post or to fetch from DB"
   val mCreateAPIFoc = "Create a new financials transaction (Customer / Ventor invoice, setllement, payment, etc... )"
   val mAllAPIDoc = "Get a financials transaction by modelId and company"
   val postAllDoc = "Post all financials transaction with the specified ids and type"
@@ -31,6 +31,7 @@ object FinancialsEndpoint:
   val mDeleteAPIDoc = "Delete a financials transaction"
   val postAPIDoc = "Post a financials transaction"
   val postAllAPIDoc = "Post a set of financials transaction with specified ids"
+  val mByIdsAPIDoc = "Fetch a set of financials transaction with specified ids"
   
   private val mCreate = Endpoint(RoutePattern.POST / "ftr")
     .in[FinancialsTransaction]
@@ -51,6 +52,7 @@ object FinancialsEndpoint:
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ).out[FinancialsTransaction] ?? Doc.p(mByIdAPIDoc)
+  
 
   private val mModify = Endpoint(RoutePattern.PUT / "ftr").header(HeaderCodec.authorization)
     .in[FinancialsTransaction]
@@ -99,21 +101,20 @@ object FinancialsEndpoint:
 
   val financialsAllRoute =
     mAll.implement: p =>
-      ZIO.logInfo(s"Get financials transaction  ${p}") *>
+      ZIO.logInfo(s"Get all financials transaction  for modelid: ${p._1}") *>
         FinancialsTransactionRepository.all((p._1, p._2))
 
   val financialsPostAllRoute =
     trPostAll.implement: p =>
-      ZIO.logInfo(s"Post all financials transaction by id ${p._1.split(',').map(_.toLong).toList}") *>
-        FinancialsService.postAll({p._1.split(',').map(_.toLong).toList}, p._2, p._3) *>
-        FinancialsTransactionRepository.getBy(p._1.split(',').map(_.toLong).toList, p._2, p._3)
-
+      ZIO.logInfo(s"Post all financials transaction by id ${p._1.split('*').map(_.toLong).toList}") *>
+        FinancialsService.postAll({p._1.split('*').map(_.toLong).toList}, p._2, p._3) *>
+        FinancialsTransactionRepository.getBy(p._1.split('*').map(_.toLong).toList, p._2, p._3)
 
   val financialsByIdRoute =
     mById.implement: p =>
-      ZIO.logInfo(s"Get financials transaction by ids  ${p._1} modelid ${p._2} company ${p._3} ") *>
+      ZIO.logInfo(s"Get financials transaction by id  ${p._1} modelid ${p._2} company ${p._3} ") *>
         FinancialsTransactionRepository.getById(p._1, p._2, p._3)
-
+  
   val financialsModifyRoute =
     mModify.implement: (_, m) =>
       ZIO.logInfo(s"Modify financials transaction  ${m}") *>
