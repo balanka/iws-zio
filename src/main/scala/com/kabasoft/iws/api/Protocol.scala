@@ -2,13 +2,16 @@ package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Account, Article, Asset, BankAccount, BankStatement, Bom, Company,
-  Customer, Employee, EmployeeSalaryItemDTO, FinancialsTransaction, FinancialsTransactionDetails, Fmodule, ImportFile,
-  Journal, LoginRequest, Masterfile, PayrollTaxRange, PeriodicAccountBalance, Permission, Role, SalaryItem,
-  Supplier, Transaction, TransactionDetails, User, UserRight, Vat, Stock, Store}
+import com.kabasoft.iws.domain.{Apartment, Account, Article, Asset, BankAccount, BankStatement, Bom, Company, Customer, Employee
+  , EmployeeSalaryItemDTO, FinancialsTransaction, FinancialsTransactionDetails, Fmodule, ImportFile, Journal, LoginRequest
+  , Masterfile, PayrollTaxRange, PeriodicAccountBalance, Permission, Role, Room, RealEstate, SalaryItem, Stock, Store
+  , Supplier, Transaction, TransactionDetails, User, UserRight, Vat}
 import zio.json._
 
 object Protocol:
+  given roomCodec: JsonCodec[Room] = DeriveJsonCodec.gen[Room]
+  given apartmentCodec: JsonCodec[Apartment] = DeriveJsonCodec.gen[Apartment]
+  given realEstateCodec: JsonCodec[RealEstate] = DeriveJsonCodec.gen[RealEstate]
   given bankAccountCodec: JsonCodec[BankAccount] = DeriveJsonCodec.gen[BankAccount]
   given masterfileCodec: JsonCodec[Masterfile] = DeriveJsonCodec.gen[Masterfile]
   given assetCodec: JsonCodec[Asset] = DeriveJsonCodec.gen[Asset]

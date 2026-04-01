@@ -17,44 +17,17 @@ final case class SupplierRepositoryLive(postgres: Resource[Task, Session[Task]]
   import SupplierRepositorySQL._
 
   def transact(s: Session[Task], newCustomers: List[Supplier]): Task[Unit] =
-    s.transaction.use: xa =>
-      s.prepareR(insert).use: pciCustomer =>
-        s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
-          tryExec(xa, pciCustomer, pciBankAcc, newCustomers, newCustomers.flatMap(_.bankaccounts).filter(_.id.nonEmpty))
+    transact(s, newCustomers, newCustomers.flatMap(_.bankaccounts).filterNot(_.id.isEmpty)
+      , insert, BankAccountRepositorySQL.insert)
 
-  def transactM(s: Session[Task], models: List[Supplier], bankAccounts: List[BankAccount]): Task[Unit] =
-    s.transaction.use: xa =>
-      s.prepareR(insert).use: pciCustomer =>
-        s.prepareR(SupplierRepositorySQL.UPDATE).use: pcuCustomer =>
-          s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
-            s.prepareR(BankAccountRepositorySQL.UPDATE_BANK_ACCOUNT).use: pcuBankAcc =>
-              tryExec(xa, pciCustomer, pciBankAcc, pcuCustomer, pcuBankAcc, List.empty
-                , bankAccounts, models.map(Supplier.encodeIt2)
-                , List.empty)
 
   def transact(s: Session[Task], newCustomers: List[Supplier], newbankAccount: List[BankAccount], oldCustomers: List[Supplier]
                , oldbankAcc2Update: List[BankAccount], bankAcc2Delete: List[BankAccount]): Task[Unit] =
-    s.transaction.use: xa =>
-      s.prepareR(insert).use: pciCustomer =>
-        s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
-          s.prepareR(SupplierRepositorySQL.UPDATE).use: pcuCustomer =>
-            s.prepareR(BankAccountRepositorySQL.UPDATE_BANK_ACCOUNT).use: pcuBankAcc =>
-              s.prepareR(BankAccountRepositorySQL.DELETE_BANK_ACCOUNT).use: pcdBankAcc =>
-                tryExec(xa, pciCustomer, pciBankAcc, pcuCustomer, pcuBankAcc, pcdBankAcc
-                  , newCustomers, newbankAccount
-                  , oldCustomers.map(Supplier.encodeIt2), oldbankAcc2Update.map(BankAccount.encodeIt2)
-                  , bankAcc2Delete.map(BankAccount.encodeIt3))
-
-  def transact(s: Session[Task], newCustomers: List[Supplier], oldCustomers: List[Supplier]): Task[Unit] =
-    s.transaction.use: xa =>
-      s.prepareR(insert).use: pciCustomer =>
-        s.prepareR(SupplierRepositorySQL.UPDATE).use: pcuCustomer =>
-          s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
-            s.prepareR(BankAccountRepositorySQL.UPDATE_BANK_ACCOUNT).use: pcuBankAcc =>
-              tryExec(xa, pciCustomer, pciBankAcc, pcuCustomer, pcuBankAcc, newCustomers
-                , newCustomers.flatMap(_.bankaccounts), oldCustomers.map(Supplier.encodeIt2)
-                , oldCustomers.flatMap(_.bankaccounts).map(BankAccount.encodeIt2))
-
+    transact(s, newCustomers, newbankAccount, oldCustomers.map(Supplier.encodeIt2)
+      , oldbankAcc2Update.map(BankAccount.encodeIt2), bankAcc2Delete.map(BankAccount.encodeIt3)
+      , insert, BankAccountRepositorySQL.insert, SupplierRepositorySQL.UPDATE, BankAccountRepositorySQL.UPDATE_BANK_ACCOUNT
+      , BankAccountRepositorySQL.DELETE_BANK_ACCOUNT)
+  
   override def create(c: Supplier): ZIO[Any, RepositoryError, Int] = create(List(c))
   override def create(models: List[Supplier]): ZIO[Any, RepositoryError, Int] =
     (postgres

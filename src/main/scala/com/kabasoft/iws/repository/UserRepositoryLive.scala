@@ -48,8 +48,8 @@ final case class UserRepositoryLive(postgres: Resource[Task, Session[Task]], rep
   }
 
   override def getById(p: (Int, Int, String)):ZIO[Any, RepositoryError, User] = for {
-    users_ <- queryWithTxUnique(postgres, p, BY_ID)
-    users <- setRoleAndRight(p._3, List(users_))
+    user <- queryWithTxUnique(postgres, p, BY_ID)
+    users <- setRoleAndRight(p._3, List(user))
   } yield users.headOption.getOrElse(User.dummy)
 
   override def getBy(ids: List[Int], modelid: Int, company: String):ZIO[Any, RepositoryError, List[User]] =
@@ -57,7 +57,9 @@ final case class UserRepositoryLive(postgres: Resource[Task, Session[Task]], rep
 
   override def getByUserName(p: (String, Int, String)):ZIO[Any, RepositoryError, User]= for {
       users_ <- queryWithTxUnique(postgres, p, BY_NAME)
+      _<- ZIO.logInfo(s"users_ =>> ${users_}")
       users <- setRoleAndRight(p._3, List(users_))
+      _<- ZIO.logInfo(s"users =>> ${users}")
   } yield users.headOption.getOrElse(User.dummy)
 
 

@@ -15,31 +15,36 @@ object LoginRoutes:
     Routes(
       Method.POST / "users" / "login" ->
         handler { (req: Request) =>
-          for {
-            loginRequest <- req.body.asString
-              .flatMap(request => //ZIO.logInfo(s"RequestX >>>>>>n ${request}")*>
-                ZIO.fromEither(request.fromJson[LoginRequest])
-              ).catchAll(e => ZIO.logInfo(s"Unparseable body: ${e.toString}")*>ZIO.succeed(LoginRequest.dummy))
-            user <- UserRepository.getByUserName((loginRequest.userName, User.MODELID, loginRequest.company))
-          } yield checkLogin(user, loginRequest)
+          call(req)
         },
     ) @@ Middleware.debug
+
+  private def call(req: Request) = {
+    for {
+      loginRequest <- req.body.asString
+        .flatMap(request => //ZIO.logInfo(s"RequestX >>>>>>n ${request}")*>
+          ZIO.fromEither(request.fromJson[LoginRequest])
+        ).catchAll(e => ZIO.logInfo(s"Unparseable body: ${e.toString}") *> ZIO.succeed(LoginRequest.dummy))
+      user <- UserRepository.getByUserName((loginRequest.userName, User.MODELID, loginRequest.company))
+    } yield checkLogin(user, loginRequest)
+  }
 
   private def checkLogin(user: User, loginRequest:LoginRequest): Response =
     
     println(s"checkLogin >>>>>> ${loginRequest.password}")
-    //println(s"pwd >>>>>> ${Utils.jwtEncode(loginRequest.password, defaultLifeSpan)}")
-    println(s"pwd >>>>>> ${Utils.jwtEncode(loginRequest.password)}")
-    //println(s"user >>>>>> $user")
+    val X= Utils.jwtEncode(loginRequest.password)
+    println(s"pwd >>>>>> ${X}")
+    println(s"user decoded >>>>>> $Utils.jwtDecode($X).get.subject.getOrElse(\"Subject\")")
     val pwd = Utils.jwtDecode(user.hash).get.subject.getOrElse("Subject")
     val pwdR = loginRequest.password
     val usernameR = loginRequest.userName
     val username = user.userName
     val check = (usernameR == username) & (pwdR == pwd)
-    val x= scala.util.Properties.envOrElse("IWS_WEB_URL", s"X")
-    println(s"webUrl >>>>>> $x")
     println(s"pwd >>>>>> $pwd")
-    val webUrl = scala.util.Properties.envOrElse("IWS_WEB_URL", "http://localhost")
+    val iwsWeb =scala.util.Properties.envOrElse("IWS_WEB_HOST", "http://127.0.0.1")
+    println(s" IWS_WEB_HOST >>>>>> ${iwsWeb}")
+
+    val webUrl = scala.util.Properties.envOrElse("IWS_WEB_HOST", "http://192.168.64.1")
    // val webUrl = scala.util.Properties.envOrElse("IWS_WEB_URL", "http://127.0.0.1:3000")
     //val webUrl = scala.util.Properties.envOrElse("IWS_WEB_URL", s"http://localhost:5173")
     //if (env.keySet().contains("IWS_WEB_URL")) env.get("IWS_WEB_URL") else "http://localhost:3000"

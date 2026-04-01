@@ -11,7 +11,34 @@ import zio.interop.catz.*
 import java.time.Instant
 
 trait MasterfileCRUD:
-  
+
+  def transact[A, B](s: Session[Task], listA: List[A], listB: List[B], insertA:Command[A], insertB:Command[B]): Task[Unit] =
+    s.transaction.use: xa =>
+      s.prepareR(insertA).use: pciCustomer =>
+        s.prepareR(insertB).use: pciBankAcc =>
+          tryExec(xa, pciCustomer, pciBankAcc, listA,listB)
+
+  def transactM [A, B, C, D] (s: Session[Task], insertListA: List[A],  insertListB: List[B],  insertCmdA:Command[A], insertCmdB:Command[B]
+                       , updateCmdA:Command[C],  updateCmdB:Command[D] ): Task[Unit] =
+    s.transaction.use: xa =>
+      s.prepareR(insertCmdA).use: pciCustomer =>
+        s.prepareR(updateCmdA).use: pcuCustomer =>
+          s.prepareR(insertCmdB).use: pciBankAcc =>
+            s.prepareR(updateCmdB).use: pcuBankAcc =>
+              tryExec(xa, pciCustomer, pciBankAcc, pcuCustomer, pcuBankAcc, insertListA, insertListB, List.empty, List.empty)
+
+  def transact[A, B, C, D, E] (s: Session[Task], insertListA: List[A], insertListB: List[B], updateListA: List[C]
+               , updateListB: List[D], deleteListB: List[E], insertCmdA:Command[A], insertCmdB:Command[B]
+               , updateCmdA:Command[C],  updateCmdB:Command[D], deleteCmdB:Command[E]): Task[Unit] =
+    s.transaction.use: xa =>
+      s.prepareR(insertCmdA).use: insertPrepCmdA =>
+        s.prepareR(insertCmdB).use: insertPrepCmdB =>
+          s.prepareR(updateCmdA).use: updatePrepCmdA =>
+            s.prepareR(updateCmdB).use: updatePrepCmdB =>
+              s.prepareR(deleteCmdB).use: deletePrepCmdB =>
+                tryExec(xa, insertPrepCmdA, insertPrepCmdB, updatePrepCmdA, updatePrepCmdB, deletePrepCmdB
+                  , insertListA, insertListB, updateListA, updateListB, deleteListB)
+                                 
   def buildId(transaction: FinancialsTransaction): FinancialsTransaction =
     if (transaction.id1 > 0L) transaction else {
       List(transaction).zipWithIndex.map { case (ftr, i) =>
@@ -46,11 +73,11 @@ trait MasterfileCRUD:
               , pciBankAcc: PreparedCommand[Task, B]
               , pcuCustomer: PreparedCommand[Task, C]
               , pcuBankAcc: PreparedCommand[Task, D]
-              , customers: List[A], newBankaccounts: List[B] 
+              , newCustomers: List[A], newBankaccounts: List[B] 
               , oldCustomers: List[C], oldBankaccounts: List[D]): Task[Unit] =
     for
       sp <- xa.savepoint
-      _ <- exec(pciCustomer, customers) *>
+      _ <- exec(pciCustomer, newCustomers) *>
         exec(pciBankAcc, newBankaccounts) *>
         exec(pcuCustomer, oldCustomers) *>
         exec(pcuBankAcc, oldBankaccounts)
@@ -226,7 +253,7 @@ trait MasterfileCRUD:
          session
           .prepare(q)
           .flatMap(ps => ps.unique(p))
-       .mapBoth(e => RepositoryError(e.getMessage), a => a)//.debug("Data/Error")
+       .mapBoth(e => RepositoryError(e.getMessage), a => a).debug("Data/Error")
 
   def queryWithTxUnique[ A](postgres: Resource[Task, Session[Task]],  q: Query[Void, A]): ZIO[Any, RepositoryError, A] =
     postgres.use: session =>

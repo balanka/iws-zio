@@ -53,25 +53,30 @@ object IwsApp extends ZIOAppDefault {
 
   implicit val clock: Clock = Clock.systemUTC
   val env: util.Map[String, String] = System.getenv()
-  val hostName_env: String = env.get("IWS_API_HOST")
-  val port_env: String = env.get("IWS_API_PORT")
-  val hostName_prop: String = System.getProperty("IWS_API_HOST")  
-  val port_prop: String = System.getProperty("IWS_API_PORT")
-  val hostName: String = if (hostName_env == null || hostName_env.isEmpty ) hostName_prop else  hostName_env
-  val port: Int = if (port_env == null || port_env.isEmpty) port_prop.toInt else port_env.toInt 
+  val api_hostName_env: String = env.get("IWS_API_HOST")
+  val web_hostName_env: String = env.get("IWS_WEB_HOST")
+  val api_port_env: String = env.get("IWS_API_PORT")
+  val api_hostName_prop: String = System.getProperty("IWS_API_HOST")
+  val web_hostName_prop: String = System.getProperty("IWS_WEB_HOST")
+  val api_port_prop: String = System.getProperty("IWS_API_PORT")
+  val api_hostName: String = if (api_hostName_env == null || api_hostName_env.isEmpty ) api_hostName_prop else  api_hostName_env
+  val web_hostName: String = if (web_hostName_env == null || web_hostName_env.isEmpty ) web_hostName_prop else  web_hostName_env
+  val api_port: Int = if (api_port_env == null || api_port_env.isEmpty) api_port_prop.toInt else api_port_env.toInt
 
-  println("hostName>>> " + hostName + " hostport >>>" + port)
+
+  println("api-hostName>>> " + api_hostName + " api_host Port >>>" + api_port)
+  println("web-hostName>>> " + web_hostName )
   private val serverLayer: ZLayer[Any, Throwable, Server] = {
     implicit val trace: Trace = Trace.empty
     ZLayer.succeed(
-      Config.default.binding(hostName, port)
+      Config.default.binding(api_hostName, api_port)
     ) >>> Server.live
   }
 
   val config: CorsConfig =
     CorsConfig(
       allowedOrigin = {
-        case origin @ Origin.Value(_, host, _) if (host == hostName ||
+        case origin @ Origin.Value(_, host, _) if (host == web_hostName ||
           host == "localhost" || host == "127.0.0.1" ) => Some(AccessControlAllowOrigin.Specific(origin))
         case _ => None
       },

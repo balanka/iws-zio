@@ -10,21 +10,22 @@ object Utils {
   private val defaultLifeSpan = 2*365*24*60*60L // 2 years
   private val SECRET_KEY = "secretKey"
   //private val SECRET_KEY = "PqRwLF2rhHe8J22oBeHy_9"
-  private val never = Long.MaxValue
+  private val never = Long.MaxValue-1000
   implicit val clock: Clock = Clock.systemUTC
 
   def jwtEncode(username: String, liveSpan: Long =never, key: String = SECRET_KEY): String =
-    Jwt.encode(JwtClaim(subject = Some(username)).issuedNow.expiresIn(liveSpan), key, JwtAlgorithm.HS512)
+     Jwt.encode(JwtClaim(subject = Some(username)).issuedNow.expiresIn(liveSpan), key, JwtAlgorithm.HS512)
   
-  def jwtDecode(token: String): Option[JwtClaim] =
-    val result = Jwt.decode(token, SECRET_KEY, Seq(JwtAlgorithm.HS512)).toOption
-    println(s"jwtDecodedX  $result")
-    result
+  def jwtDecode(token: String): Option[JwtClaim] = 
+        val result = Jwt.decode(token, SECRET_KEY, Seq(JwtAlgorithm.HS512)).toOption
+        println(s"jwtDecodedX  $result")
+        result
+      
 
   def jwtDecode(token: String, key: String): Try[JwtClaim] =
-    val result = Jwt.decode(token, key, Seq(JwtAlgorithm.HS512))
-    println(s"jwtDecodedY  $result")
-    result
+     val result = Jwt.decode(token, key, Seq(JwtAlgorithm.HS512))
+     println(s"jwtDecodedY  $result")
+     result
 
   val bearerAuthWithContext: HandlerAspect[Any, String] =
     HandlerAspect.interceptIncomingHandler(Handler.fromFunctionZIO[Request] { request =>

@@ -21,14 +21,14 @@ ThisBuild / resolvers +=
   "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 ThisBuild / scalacOptions ++= Seq("-Wunused:all","-Xmax-inlines",  "128")
 maintainer := "batexy@gmail.com"
-dockerBaseImage := "openjdk:26-ea-slim"
+dockerBaseImage := "openjdk:26-rc-slim"//"openjdk:26-ea-slim"
 
 //assemblyMergeStrategy in assembly := {
 //  case PathList("META-INF", xs @ _*) => MergeStrategy.discard
 //  case x => MergeStrategy.first
 //}
 dockerBuildCommand := {
-   if (sys.props("os.arch") == "amd64") {
+  if (sys.props("os.arch") == "amd64") {
   //if (sys.props("os.arch") != "amd64") {
     // use buildx with platform to build supported amd64 images on other CPU architectures
     // this may require that you have first run 'docker buildx create' to set docker buildx up
@@ -44,7 +44,7 @@ lazy val root = (project in file("."))
       List(
         name         := "iws-skunk",
         organization := "KABA Soft GmbH",
-        version      := "2.2.6",
+        version      := "2.3.6",
          scalaVersion := "3.8.1"
       )
     ),

@@ -15,32 +15,20 @@ import java.time.{Instant, LocalDateTime, ZoneId}
 final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
                                        , bankAccRepo:BankAccountRepository) extends CompanyRepository, MasterfileCRUD:
 
-  import CompanyRepositorySQL.*
+  import CompanyRepositorySQL._
 
   def transact(s: Session[Task], newCustomers: List[Company]): Task[Unit] =
-    s.transaction.use: xa =>
-      s.prepareR(insert).use: pciCustomer =>
-        s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
-          tryExec(xa, pciCustomer, pciBankAcc, newCustomers, newCustomers.flatMap(_.bankaccounts))
+    transact(s, newCustomers, newCustomers.flatMap(_.bankaccounts).filterNot(_.id.isEmpty)
+      , insert, BankAccountRepositorySQL.insert)
 
-  def transactM(s: Session[Task], models: List[Company], bankAccounts: List[BankAccount]): Task[Unit] =
-    s.transaction.use: xa =>
-      s.prepareR(insert).use: pciCustomer =>
-        s.prepareR(CompanyRepositorySQL.UPDATE).use: pcuCustomer =>
-          s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
-            s.prepareR(BankAccountRepositorySQL.UPDATE_BANK_ACCOUNT).use: pcuBankAcc =>
-              tryExec(xa, pciCustomer, pciBankAcc, pcuCustomer, pcuBankAcc, List.empty
-                , bankAccounts, models.map(Company.encodeIt2), List.empty)
-              
-  def transact(s: Session[Task], newCustomers: List[Company], oldCustomers: List[Company]): Task[Unit] =
-    s.transaction.use: xa =>
-      s.prepareR(insert).use: pciCustomer =>
-        s.prepareR(CompanyRepositorySQL.UPDATE).use: pcuCustomer =>
-          s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
-            s.prepareR(BankAccountRepositorySQL.UPDATE_BANK_ACCOUNT).use: pcuBankAcc =>
-              tryExec(xa, pciCustomer, pciBankAcc, pcuCustomer, pcuBankAcc, newCustomers
-                , newCustomers.flatMap(_.bankaccounts), oldCustomers.map(Company.encodeIt2)
-                , oldCustomers.flatMap(_.bankaccounts).map(BankAccount.encodeIt2))
+
+  def transact(s: Session[Task], newCustomers: List[Company], newbankAccount: List[BankAccount], oldCustomers: List[Company]
+               , oldbankAcc2Update: List[BankAccount], bankAcc2Delete: List[BankAccount]): Task[Unit] =
+    transact(s, newCustomers, newbankAccount, oldCustomers.map(Company.encodeIt2)
+      , oldbankAcc2Update.map(BankAccount.encodeIt2), bankAcc2Delete.map(BankAccount.encodeIt3)
+      , insert, BankAccountRepositorySQL.insert, CompanyRepositorySQL.UPDATE, BankAccountRepositorySQL.UPDATE_BANK_ACCOUNT
+      , BankAccountRepositorySQL.DELETE_BANK_ACCOUNT)
+
 
   override def create(c: Company): ZIO[Any, RepositoryError, Int] = create(List(c))
   override def create(models: List[Company]): ZIO[Any, RepositoryError, Int] =
@@ -52,15 +40,28 @@ final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
 
   override def modify(model: Company): ZIO[Any, RepositoryError, Int] = modify(List(model))
 
-  override def modify(modelsx: List[Company]): ZIO[Any, RepositoryError, Int] =
-    val bankaccountsx = modelsx.flatMap(_.bankaccounts).filter(m => m.id.nonEmpty && m.modelid < 0 )
-                               .map(m => m.copy(modelid = BankAccount.MODEL_ID))
-    val models = modelsx.map(_.copy(bankaccounts = bankaccountsx))
-    (postgres
-      .use:
-        session =>
-          transactM(session, models, bankaccountsx))
-    .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.bankaccounts).size + models.size)
+  override def modify(models: List[Company]): ZIO[Any, RepositoryError, Int] = {
+    val oldLines2Update = models.flatMap(_.bankaccounts).filter(bankAccount => bankAccount.modelid > 0
+        && bankAccount.company.contains("-"))
+      .map(bankAccount => bankAccount.copy(company = bankAccount.company.replace("-", "")))
+    val newLine2Insert = models.flatMap(_.bankaccounts).filter(bankAccount => bankAccount.modelid === -1
+        && bankAccount.company.contains("-") && bankAccount.id.nonEmpty)
+      .map(bankAccount => bankAccount.copy(modelid = BankAccount.MODEL_ID,
+        company = bankAccount.company.replace("-", "")))
+    val oldLine2Delete = models.flatMap(_.bankaccounts).filter(_.modelid === -2)
+      .map(bankAccount => bankAccount.copy(company = bankAccount.company.replace("-", "")))
+    ZIO.logInfo(s"models ${models}") *>
+      ZIO.logInfo(s"oldLines2Update ${oldLines2Update}") *>
+      ZIO.logInfo(s"newLine2Insert ${newLine2Insert}") *>
+      ZIO.logInfo(s"oldLine2Delete ${oldLine2Delete}") *>
+      postgres
+        .use:
+          session =>
+            transact(session, List.empty, newLine2Insert, models, oldLines2Update, oldLine2Delete)
+        .mapBoth(e => RepositoryError(e.getMessage), _ =>
+          models.size + newLine2Insert.size + oldLines2Update.size + oldLine2Delete.size)
+  }
+
 
   def list(p: Int): ZIO[Any, RepositoryError, List[Company]] =  queryWithTx(postgres, p, ALL)
   

@@ -567,11 +567,11 @@ create table if not exists asset
     currency     varchar(50) not null
 );
 insert into asset(id,  name, description, changedate, enterdate, postingdate, company, modelid, account, oaccount, scrap_value, life_span, dep_method, amount, rate, frequency, currency) values
-                                                                                                                                                                                      ('1804', 'BMW-220D', 'BMW-220D', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '1000', 19, '0520', '6222', 1.0, 5, 2, 33000.00, 0.30, 12, 'EUR'),
-                                                                                                                                                                                      ('IWS-01', 'IWS', 'Integriertes Finanzbuchhaltungssystem', '2019-04-11 00:00:00','2019-04-11 00:00:00', '2019-04-11 00:00:00', '1000', 19, '0135', '6222', 1.0, 5, 2, 10000.00, 1.0, 12, 'EUR'),
-                                                                                                                                                                                      ('MACB001', 'MacBook Pro 2017', 'MacBook Pro 2017', '2019-03-15 00:00:00', '2019-03-15 00:00:00','2019-03-15 00:00:00', '1000', 19, '0651', '4830', 1.0, 3, 2, 1000.00, 1.0, 12, 'EUR' ),
-                                                                                                                                                                                      ('MACB002', 'MackBookPro 2019', 'MackBookPro 2019', '2019-08-09 15:53:37', '2019-08-09 15:53:37', '2019-08-09 15:53:37', '1000', 19, '0652', '4830', 1.0, 3, 2, 1000.00, 1.0, 12, 'EUR'),
-                                                                                                                                                                                      ('MACB003', 'MackBookPro 2019-2', 'MackBookPro 2019-2', '2019-11-25 12:32:00', '2019-11-25 12:32:00', '2019-11-25 12:32:00', '1000', 19, '0653', '4830', 1.0, 3, 2, 1000.00, 1.0, 12, 'EUR');
+            ('1804', 'BMW-220D', 'BMW-220D', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '1000', 19, '0520', '6222', 1.0, 5, 2, 33000.00, 0.30, 12, 'EUR'),
+            ('IWS-01', 'IWS', 'Integriertes Finanzbuchhaltungssystem', '2019-04-11 00:00:00','2019-04-11 00:00:00', '2019-04-11 00:00:00', '1000', 19, '0135', '6222', 1.0, 5, 2, 10000.00, 1.0, 12, 'EUR'),
+            ('MACB001', 'MacBook Pro 2017', 'MacBook Pro 2017', '2019-03-15 00:00:00', '2019-03-15 00:00:00','2019-03-15 00:00:00', '1000', 19, '0651', '4830', 1.0, 3, 2, 1000.00, 1.0, 12, 'EUR' ),
+            ('MACB002', 'MackBookPro 2019', 'MackBookPro 2019', '2019-08-09 15:53:37', '2019-08-09 15:53:37', '2019-08-09 15:53:37', '1000', 19, '0652', '4830', 1.0, 3, 2, 1000.00, 1.0, 12, 'EUR'),
+            ('MACB003', 'MackBookPro 2019-2', 'MackBookPro 2019-2', '2019-11-25 12:32:00', '2019-11-25 12:32:00', '2019-11-25 12:32:00', '1000', 19, '0653', '4830', 1.0, 3, 2, 1000.00, 1.0, 12, 'EUR');
 
 drop table  if  exists article;
 create table if not exists article
@@ -1008,3 +1008,23 @@ VALUES (1,  '1200', true, '4400', 81.00, '2023-04-09T15:50:17.598252Z', 'terms',
 -- insert  into transaction (oid, id1, store, costcenter, text, company, modelid, period) values(-1, -1, '001', '200', 'Test', '1000', 105, 202403);
 -- insert  into transaction (oid, id1, store, costcenter, text, company, modelid, period) values(-1, -1, '001', '200', 'Test', '1000', 139, 202403);
 -- ALTER TABLE account ADD PRIMARY KEY (id, company);
+
+
+drop table  if  exists room;
+create table if not exists room
+(
+    id  varchar(50) not null primary key,
+    name         varchar(255) not null,
+    parent varchar(50) not null,
+    description  varchar(255),
+    changedate    timestamp default CURRENT_DATE not null,
+    enterdate    timestamp default CURRENT_DATE not null,
+    postingdate  timestamp default CURRENT_DATE not null,
+    kind  int not null ,
+    area   numeric(12, 2),
+    company    varchar(50) not null,
+    modelId      int not null   default 152
+    );
+insert into room(id,  name, description,parent, changedate, enterdate, postingdate, kind, area, company, modelid) values
+    ('4711', 'Reichtag', 'Reichtag','-1', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '1', 50.00, '1000', 152);
+

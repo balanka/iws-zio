@@ -27,7 +27,7 @@ object CompanyEndpoint:
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     )?? Doc.p(mCreateAPIFoc)
 
-  private val mAll = Endpoint(RoutePattern.GET / "comp" / int("modelid") ?? Doc.p(modelidDoc) 
+  private val mAll = Endpoint(RoutePattern.GET / "comp" / int("modelid") ?? Doc.p(modelidDoc)
   ).header(HeaderCodec.authorization)
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized),
