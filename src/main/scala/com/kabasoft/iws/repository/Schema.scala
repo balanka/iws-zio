@@ -7,6 +7,9 @@ import zio.schema.{DeriveSchema, Schema}
 object Schema {
   implicit val accountSchema: Schema[Account]                   = DeriveSchema.gen[Account]
   implicit val masterfileSchema: Schema[Masterfile]             = DeriveSchema.gen[Masterfile]
+  implicit val aparmrntSchema: Schema[Apartment]              = DeriveSchema.gen[Apartment]
+  implicit val roomSchema: Schema[Room]                   = DeriveSchema.gen[Room]
+  implicit val realEstateSchema: Schema[RealEstate]             = DeriveSchema.gen[RealEstate]
   implicit val moduleSchema: Schema[Module]                     = DeriveSchema.gen[Module]
   implicit val customerSchema: Schema[Customer]                 = DeriveSchema.gen[Customer]
   implicit val supplierschema: Schema[Supplier]                 = DeriveSchema.gen[Supplier]
