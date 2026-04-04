@@ -49,28 +49,8 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
                 , oldmodels.map(FinancialsTransaction.encodeIt2)
                 , oldmodels.flatMap(_.lines).map(FinancialsTransactionDetails.encodeIt2))
 
-//  def transact(s: Session[Task], models: List[FinancialsTransaction], newLines2Insert: List[FinancialsTransactionDetails]
-//               , oldmodels: List[FinancialsTransaction], oldLines2Update: List[FinancialsTransactionDetails]
-//               , oldLines2Delete: List[FinancialsTransactionDetails]): Task[Unit] =
-//    s.transaction.use: xa =>
-//      s.prepareR(insert).use: pciMaster =>
-//        s.prepareR(UPDATE).use: pcuMaster =>
-//          s.prepareR(insertDetails).use: pciDetails =>
-//            s.prepareR(UPDATE_DETAILS).use: pcuDetails =>
-//              s.prepareR(DELETE_DETAILS).use: pcdDetails =>
-//                tryExec(xa, pciMaster, pciDetails, pcuMaster, pcuDetails, pcdDetails
-//                  , models, newLines2Insert.map(FinancialsTransactionDetails.encodeIt4)
-//                  , oldmodels.map(FinancialsTransaction.encodeIt2), oldLines2Update.map(FinancialsTransactionDetails.encodeIt2)
-//                  , oldLines2Delete.map(FinancialsTransactionDetails.encodeIt3))
-
-  //      , fm: (A, Long) => A, fn: (A, Long) => List[B],  fd: (B, Long) => B, fnMasterUpdateEncoder:A=>C
-  //                 , fnDetailsUpdateEncoder:B=>D, fnDetailsDeleteEncoder:B=>E
-//  , fnSetMasterId: (A, Long) => A, fnSetParentId: (A, Long) => List[B],  fnSetDetailsId: (B, Long) => B
-  //  , fnMasterUpdateEncoder:A=>C
-  //                 , fnDetailsUpdateEncoder:B=>D, fnDetailsDeleteEncoder:B=>E
 
   def transact(s: Session[Task], models: List[FinancialsTransaction]): Task[Unit] =
-    //s.transaction.use: xa =>
       s.prepareR(insert).use: pciMaster =>
         s.prepareR(UPDATE).use: pcuMaster =>
           s.prepareR(insertDetails1).use: pciDetails =>
@@ -79,7 +59,6 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
                 execX(s, pciMaster, pciDetails, pcuMaster, pcuDetails, pcdDetails, newMasterFilter, oldMasterFilter
                   , newDetailsFilter, details2UpdateFilter, details2DeleteFilter
                   , master2master, master2Details, Details2Details, FinancialsTransaction.encodeIt2
-                  //, FinancialsTransactionDetails.encodeIt
                   , FinancialsTransactionDetails.encodeIt2, FinancialsTransactionDetails.encodeIt3
                   , models, "master_compta_id_seq_1000", "details_compta_id_seq_1000" )
 
@@ -96,19 +75,9 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
   override def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = modify(List(model))
 
   override def modify(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] ={
-//    val oldLines2Update = models.flatMap(_.lines).filter(line => line.id > 0 && line.company.contains("-"))
-//      .map(line => line.copy(company = line.company.replace("-", "")))
-//    val newLine2Insert = models.flatMap(_.lines).filter(line => line.id === -1L && line.company.contains("-"))
-//      .map(line => line.copy(company = line.company.replace("-", "")))
-//    val oldLine2Delete = models.flatMap(_.lines).filter(line => line.transid === -2L)
-    //  ZIO.logInfo(s"models ${models}") *>
-    //    ZIO.logInfo(s"oldLines2Update ${oldLines2Update}") *>
-    //    ZIO.logInfo(s"newLine2Insert ${newLine2Insert}")*>
-    //    ZIO.logInfo(s"oldLine2Delete ${oldLine2Delete}")*>
     postgres
       .use:
         session =>transact(session, models)
-          //transact(session, List.empty, newLine2Insert, models, oldLines2Update, oldLine2Delete)
       .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)
 }
   def list(p: (Int, String)):ZIO[Any, RepositoryError, List[FinancialsTransaction]] = queryWithTx(postgres, p, ALL)
