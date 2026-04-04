@@ -31,7 +31,7 @@ object ApartmentEndpoint:
 
   private val mAll = Endpoint(RoutePattern.GET / "apt" / int("modelid") ?? Doc.p(modelidDoc) / string("company") ??
     Doc.p(companyDoc)
-  )//.header(HeaderCodec.authorization)
+  ).header(HeaderCodec.authorization)
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized),
     ).out[List[Apartment]] ?? Doc.p(mAllAPIDoc)
@@ -81,5 +81,5 @@ object ApartmentEndpoint:
     mDelete.implement: (id, modelid, company, _)  =>
       ApartmentRepository.delete((id, modelid, company))
 
-  val masterfileRoutes = Routes(masterfileCreateRoute, masterfileAllRoute, masterfileByIdRoute, masterfileModifyRoute
+  val apartmentRoutes = Routes(masterfileCreateRoute, masterfileAllRoute, masterfileByIdRoute, masterfileModifyRoute
     , masterfileDeleteRoute) @@ Middleware.debug

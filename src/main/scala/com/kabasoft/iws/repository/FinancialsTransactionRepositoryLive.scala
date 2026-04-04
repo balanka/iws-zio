@@ -15,16 +15,19 @@ import java.time.{Instant, LocalDateTime, ZoneId}
 
 
 final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, Session[Task]]
-                                                      , accRepo: AccountRepository) extends FinancialsTransactionRepository, MasterfileCRUD:
+                   , accRepo: AccountRepository) extends FinancialsTransactionRepository, MasterfileCRUD:
 
   import FinancialsTransactionRepositorySQL._
-  
-  
+
+  private def master2master(m:FinancialsTransaction, idx:Long)= m.copy(id = idx, id1 = idx)
+  private def master2Details(m:FinancialsTransaction, idx:Long)= m.lines.map(_.copy(transid = idx))
+  private def Details2Details(m:FinancialsTransactionDetails, idx:Long)= m.copy(id = idx)
   def transact(s: Session[Task], models: List[FinancialsTransaction]): Task[Unit] =
     s.transaction.use: xa =>
-      s.prepareR(insert).use: pciMaster =>
-        s.prepareR(insertDetails).use: pciDetails =>
-          tryExec(xa, pciMaster, pciDetails, models, models.flatMap(_.lines).map(FinancialsTransactionDetails.encodeIt4))
+      s.prepareR(insert1).use: pciMaster =>
+        s.prepareR(insertDetails1).use: pciDetails =>
+          tryExec(xa, pciMaster, pciDetails, master2master, master2Details, Details2Details, models //, models.flatMap(_.lines)
+          , s, "master_compta_id_seq_1000", "details_compta_id_seq_1000")
   
   def transact(s: Session[Task], models: List[FinancialsTransaction], oldmodels: List[FinancialsTransaction]): Task[Unit] =
     s.transaction.use: xa =>
@@ -162,7 +165,9 @@ object FinancialsTransactionRepositorySQL:
         , toInstant(postingdate), period, posted, modelid, company, text, type_journal, file_content)
 
 
+  val mfEncoder1: Encoder[FinancialsTransaction] = (financialsTransactionCodec.values.contramap(FinancialsTransaction.encodeIt))
   val mfEncoder: Encoder[FinancialsTransaction] = financialsTransactionCodec4.values.contramap(FinancialsTransaction.encodeIt4)
+  val detailsEncoder: Encoder[FinancialsTransactionDetails] = financialsDetailsTransactionCodec.values.contramap(FinancialsTransactionDetails.encodeIt)
 
   def detailsDecoder: Decoder[FinancialsTransactionDetails] = financialsDetailsTransactionCodec.map:
       case (id, transid, account, side, oaccount, amount, duedate, text, currency, company, accountName, oaccountName) =>
@@ -248,7 +253,10 @@ object FinancialsTransactionRepositorySQL:
     sql"""SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
            FROM   master_compta
            WHERE id= $int8 AND company = $varchar 
-           """.query(mfDecoder)  
+           """.query(mfDecoder)
+  val insert1: Command[FinancialsTransaction] =
+    sql"""INSERT INTO master_compta
+         (id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content) VALUES $mfEncoder1 """.command
 
   val insert: Command[FinancialsTransaction] =
     sql"""INSERT INTO master_compta
@@ -258,6 +266,10 @@ object FinancialsTransactionRepositorySQL:
     sql"""INSERT INTO master_compta 
           (oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content)
          VALUES ${financialsTransactionCodec.values.list(n)}""".command
+
+  val insertDetails1: Command[FinancialsTransactionDetails] =
+    sql"""INSERT INTO details_compta (id, transid, account, side, oaccount, amount, duedate, text, currency, company
+          , account_name, oaccount_name) VALUES  $detailsEncoder""".command
 
   val insertDetails: Command[FinancialsTransactionDetails.D_TYPE4] =
     sql"""INSERT INTO details_compta (transid, account, side, oaccount, amount, duedate, text, currency, company
@@ -283,7 +295,7 @@ object FinancialsTransactionRepositorySQL:
     sql"""UPDATE master_compta UPDATE SET posted = true
             WHERE id =$int8 AND modelid = $int4 AND  company =$varchar and posted=false
           """.command
-
+  
   val DELETE: Command[(Long, Int, String)] =
     sql"DELETE FROM master_compta WHERE id = $int8 AND modelid = $int4 AND company = $varchar".command
   
@@ -291,4 +303,6 @@ object FinancialsTransactionRepositorySQL:
 
   val DELETE_DETAILS: Command[(Long, String)] = sql"DELETE FROM details_compta WHERE id = $int8 AND company = $varchar".command
   val DELETE_ALL_DETAILS: Command[Void] = sql"DELETE FROM details_compta WHERE company = '-1000'".command
+  def seq : Query[String , Long] = sql"""SELECT nextval($varchar)""".query(int8)
+  
   

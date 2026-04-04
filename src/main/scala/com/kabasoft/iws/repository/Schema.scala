@@ -1,14 +1,15 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.{AuthenticationError, RepositoryError}
-import com.kabasoft.iws.domain.*
+import com.kabasoft.iws.domain._
 import zio.schema.{DeriveSchema, Schema}
 
 object Schema {
   implicit val accountSchema: Schema[Account]                   = DeriveSchema.gen[Account]
   implicit val masterfileSchema: Schema[Masterfile]             = DeriveSchema.gen[Masterfile]
-  implicit val aparmrntSchema: Schema[Apartment]              = DeriveSchema.gen[Apartment]
-  implicit val roomSchema: Schema[Room]                   = DeriveSchema.gen[Room]
+  implicit val aparmrntSchema: Schema[Apartment]                = DeriveSchema.gen[Apartment]
+  implicit val roomSchema: Schema[Room]                         = DeriveSchema.gen[Room]
+  implicit val floorSchema: Schema[Floor]                        = DeriveSchema.gen[Floor]
   implicit val realEstateSchema: Schema[RealEstate]             = DeriveSchema.gen[RealEstate]
   implicit val moduleSchema: Schema[Module]                     = DeriveSchema.gen[Module]
   implicit val customerSchema: Schema[Customer]                 = DeriveSchema.gen[Customer]
@@ -16,12 +17,12 @@ object Schema {
   implicit val employeeSchema: Schema[Employee]                 = DeriveSchema.gen[Employee]
   implicit val fmoduleSchema : Schema[Fmodule]                  = DeriveSchema.gen[Fmodule]
   implicit val assetSchema:    Schema[Asset]                    = DeriveSchema.gen[Asset]
-  implicit val partnerSchema: Schema[Partner]             = DeriveSchema.gen[Partner]
+  implicit val partnerSchema: Schema[Partner]                   = DeriveSchema.gen[Partner]
   implicit val companySchema:       Schema[Company]             = DeriveSchema.gen[Company]
   implicit val bankAccountSchema: Schema[BankAccount]           = DeriveSchema.gen[BankAccount]
   implicit val bankStatementsSchema:Schema[BankStatement]       = DeriveSchema.gen[BankStatement]
   implicit val journalSchema:       Schema[Journal]             = DeriveSchema.gen[Journal]
-  implicit val permissionSchema:       Schema[Permission]          = DeriveSchema.gen[Permission]
+  implicit val permissionSchema:       Schema[Permission]       = DeriveSchema.gen[Permission]
   implicit val roleSchema:       Schema[Role]                      = DeriveSchema.gen[Role]
   implicit val userRoleSchema:       Schema[UserRole]              = DeriveSchema.gen[UserRole]
   implicit val userRightSchema:       Schema[UserRight]            = DeriveSchema.gen[UserRight]

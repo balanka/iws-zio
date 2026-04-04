@@ -910,6 +910,20 @@ insert into masterfile (id, name, description, parent, enterdate,changedate,post
 values('stk','Stueck','Stueck','' ,current_timestamp, current_timestamp, current_timestamp, 15,'1000' ),
       ('ltr','Liter','Liter','' ,current_timestamp, current_timestamp, current_timestamp, 15,'1000' ),
       ('kg','Kilogramm','Kilogramm','' ,current_timestamp, current_timestamp, current_timestamp, 15,'1000' );
+
+
+insert into masterfile (id, name, description, parent, postingdate, changedate, enterdate,  company, modelid)
+values('4711','Mon premier batiment','Mon premier batiment', '', current_timestamp, current_timestamp, current_timestamp, '1000',154),
+    ('4711','Premier etage','''Premier etage', '', current_timestamp, current_timestamp, current_timestamp, '1000',155),
+    ('4712','2ieme etage','2ieme etage', '', current_timestamp, current_timestamp, current_timestamp, '1000',155),
+    ('4711','Premier Apartement','Premier Apartement', '4711', current_timestamp, current_timestamp, current_timestamp, '1000',153),
+    ('4712','2ieme Apartement','2ieme Apartement', '4711', current_timestamp, current_timestamp, current_timestamp, '1000',153),
+    ('4711','Premiere chambre','Premiere chambre', '4711', current_timestamp, current_timestamp, current_timestamp, '1000',152),
+    ('4712','2ieme chambre','2ieme chambre', '4711', current_timestamp, current_timestamp, current_timestamp, '1000',152),
+    ('4713','Premiere chambre','Premiere chambre', '4712', current_timestamp, current_timestamp, current_timestamp, '1000',152),
+    ('4714','2ieme chambre','2ieme chambre', '4712', current_timestamp, current_timestamp, current_timestamp, '1000',152);
+
+
 -- ALTER TABLE masterfile ADD UNIQUE (modelid, company);
 -- ALTER TABLE module ADD UNIQUE (modelid, company);
 -- ALTER TABLE vat ADD UNIQUE (modelid, company);

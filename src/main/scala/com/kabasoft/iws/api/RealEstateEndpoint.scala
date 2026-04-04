@@ -31,7 +31,7 @@ object RealEstateEndpoint:
 
   private val mAll = Endpoint(RoutePattern.GET / "real" / int("modelid") ?? Doc.p(modelidDoc) / string("company") ??
     Doc.p(companyDoc)
-  )//.header(HeaderCodec.authorization)
+  ).header(HeaderCodec.authorization)
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized),
     ).out[List[RealEstate]] ?? Doc.p(mAllAPIDoc)
@@ -81,5 +81,5 @@ object RealEstateEndpoint:
     mDelete.implement: (id, modelid, company, _)  =>
       RealEstateRepository.delete((id, modelid, company))
 
-  val masterfileRoutes = Routes(masterfileCreateRoute, masterfileAllRoute, masterfileByIdRoute, masterfileModifyRoute
+  val realEstateRoutes = Routes(masterfileCreateRoute, masterfileAllRoute, masterfileByIdRoute, masterfileModifyRoute
     , masterfileDeleteRoute) @@ Middleware.debug

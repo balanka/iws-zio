@@ -5,12 +5,13 @@ import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{Apartment, Account, Article, Asset, BankAccount, BankStatement, Bom, Company, Customer, Employee
   , EmployeeSalaryItemDTO, FinancialsTransaction, FinancialsTransactionDetails, Fmodule, ImportFile, Journal, LoginRequest
   , Masterfile, PayrollTaxRange, PeriodicAccountBalance, Permission, Role, Room, RealEstate, SalaryItem, Stock, Store
-  , Supplier, Transaction, TransactionDetails, User, UserRight, Vat}
+  , Supplier, Transaction, TransactionDetails, User, UserRight, Vat, Floor}
 import zio.json._
 
 object Protocol:
   given roomCodec: JsonCodec[Room] = DeriveJsonCodec.gen[Room]
   given apartmentCodec: JsonCodec[Apartment] = DeriveJsonCodec.gen[Apartment]
+  given floorCodec: JsonCodec[Floor] = DeriveJsonCodec.gen[Floor]
   given realEstateCodec: JsonCodec[RealEstate] = DeriveJsonCodec.gen[RealEstate]
   given bankAccountCodec: JsonCodec[BankAccount] = DeriveJsonCodec.gen[BankAccount]
   given masterfileCodec: JsonCodec[Masterfile] = DeriveJsonCodec.gen[Masterfile]

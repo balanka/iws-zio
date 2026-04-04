@@ -34,6 +34,10 @@ import com.kabasoft.iws.api.SupplierEndpoint.supplierRoutes
 import com.kabasoft.iws.api.TransactionEndpoint.transactionRoutes
 import com.kabasoft.iws.api.UserEndpoint.userRoutes
 import com.kabasoft.iws.api.Utils.bearerAuthWithContext
+import com.kabasoft.iws.api.ApartmentEndpoint.apartmentRoutes
+import com.kabasoft.iws.api.RoomEndpoint.roomRoutes
+import com.kabasoft.iws.api.RealEstateEndpoint.realEstateRoutes
+import com.kabasoft.iws.api.FloorEndpoint.floorRoutes
 import com.kabasoft.iws.api.VatEndpoint.vatRoutes
 import com.kabasoft.iws.repository.*
 import com.kabasoft.iws.service.*
@@ -87,7 +91,7 @@ object IwsApp extends ZIOAppDefault {
    ++ bankStmtRoutes++transactionRoutes ++fmoduleRoutes++employeeRoutes++articleRoutes++salaryItemRoutes
    ++ importFileRoutes++payrollRoutes++pacRoutes++journalRoutes++payrollRoutes++masterfileRoutes++stockRoutes
    ++ userRoutes++permissionRoutes++payrollTaxRoutes++ financialsRoutes++roleRoutes++vatRoutes++storeRoutes
-   ++ inventoryJournalRoutes++partnerRoutes)
+   ++ inventoryJournalRoutes++partnerRoutes++apartmentRoutes++roomRoutes++realEstateRoutes++floorRoutes)
   
   @nowarn val run: ZIO[Any & ZIOAppArgs & Scope, Any, Any] =
     given Console[Task] = Console.make[Task]
@@ -146,6 +150,10 @@ object IwsApp extends ZIOAppDefault {
           PostGoodreceivingLive.live,
           PostBillOfDeliveryLive.live,
           PostCustomerInvoiceLive.live,
-          PostSupplierInvoiceLive.live
+          PostSupplierInvoiceLive.live,
+          ApartmentRepositoryLive.live,
+          RoomRepositoryLive.live,
+          FloorRepositoryLive.live,
+          RealEstateRepositoryLive.live,
         ).<*( ZIO.logInfo(s"http server started successfully!!!!"))
 }

@@ -96,7 +96,8 @@ object FinancialsEndpoint:
       val transaction = buildId(p._1)
       ZIO.logInfo(s"Insert financials transaction  ${transaction}") *>
       FinancialsTransactionRepository.create(transaction) *>
-      FinancialsTransactionRepository.getById1(transaction.id1, transaction.modelid, transaction.company)
+        FinancialsTransactionRepository.all(transaction.modelid, transaction.company).map(_.head)
+      //FinancialsTransactionRepository.getById(transaction.id, transaction.modelid, transaction.company)
   }}
 
   val financialsAllRoute =

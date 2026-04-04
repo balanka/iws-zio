@@ -31,7 +31,7 @@ object RoomEndpoint:
 
   private val mAll = Endpoint(RoutePattern.GET / "room" / int("modelid") ?? Doc.p(modelidDoc) / string("company") ??
     Doc.p(companyDoc)
-  )//.header(HeaderCodec.authorization)
+  ).header(HeaderCodec.authorization)
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized),
     ).out[List[Room]] ?? Doc.p(mAllAPIDoc)
@@ -81,5 +81,5 @@ object RoomEndpoint:
     mDelete.implement: (id, modelid, company, _)  =>
       RoomRepository.delete((id, modelid, company))
 
-  val masterfileRoutes = Routes(masterfileCreateRoute, masterfileAllRoute, masterfileByIdRoute, masterfileModifyRoute
+  val roomRoutes = Routes(masterfileCreateRoute, masterfileAllRoute, masterfileByIdRoute, masterfileModifyRoute
     , masterfileDeleteRoute) @@ Middleware.debug

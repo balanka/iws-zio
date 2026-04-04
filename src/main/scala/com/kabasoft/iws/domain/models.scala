@@ -1751,6 +1751,9 @@ final case class FinancialsTransactionDetails(
                                                accountName: String,
                                                oaccountName: String
                                              )
+trait Trans [A] {
+  def lines: List[A]
+}
 
 final case class Transaction(id: Long,
                              oid: Long,
@@ -1767,7 +1770,7 @@ final case class Transaction(id: Long,
                              text: String = "",
                              footText: String = "",
                              lines: List[TransactionDetails] = Nil
-                            ) {
+                            ) extends Trans [TransactionDetails] {
   def month: String = common.getMonthAsString(transdate)
   def year: Int     = common.getYear(transdate)
   def getPeriod: Int = common.getPeriod(transdate)
@@ -1837,7 +1840,7 @@ final case class FinancialsTransaction(
                                         typeJournal: Int = 0,
                                         file_content: Int = 0,
                                         lines: List[FinancialsTransactionDetails] = Nil
-                                      ) {
+                                      ) extends Trans [FinancialsTransactionDetails] {
   def month: String = common.getMonthAsString(transdate)
   def year: Int     = common.getYear(transdate)
   def getPeriod: Int = common.getPeriod(transdate)
@@ -1890,7 +1893,7 @@ object FinancialsTransaction:
     new FinancialsTransaction(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11, tr._12, tr._13, tr._14)
 
   def encodeIt(st: FinancialsTransaction): TYPE =
-    (st.id, st.oid, st.id1, st.costcenter, st.account
+    (st.id, st.oid, st.id, st.costcenter, st.account
       , st.transdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
       , st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
       , st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
@@ -2069,23 +2072,32 @@ object Room:
       st.kind, st.area,  st.company, st.modelid)
   def encodeIt2(st: Room): TYPE2 = ( st.name, st.description, st.parent, st.kind, st.area, st.id, st.company, st.modelid)
   def encodeIt3 (st: Room):(String, Int, String) = (st.id, st.modelid, st.company)
-
 final case class Apartment (id:String, name:String, description:String, parent:String, changedate:Instant=Instant.now(), postingdate:Instant = Instant.now(),
-                             enterdate:Instant = Instant.now(), rooms:List[Room]=List.empty[Room], company:String , modelid:Int = MODEL_ID)
+                            enterdate:Instant = Instant.now(), rooms:List[Room]=List.empty[Room], company:String , modelid:Int = MODEL_ID)
 object Apartment:
   val MODEL_ID = 153
   type TYPE2 = (String, String, String, String,  Int)
   def apply(p:Masterfile):Apartment = Apartment(p.id, p.name, p.parent, p.description, p.changedate, p.postingdate, p.enterdate, List.empty[Room], p.company)
   def toMasterfile(p:Apartment):Masterfile = Masterfile(p.id, p.name, p.parent, p.description, p.changedate, p.postingdate, p.enterdate, p.modelid, p.company)
   def encodeIt2(st: Apartment): TYPE2 = (st.id, st.name, st.description, st.company, st.modelid)
+  
+final case class Floor (id:String, name:String, description:String, parent:String, changedate:Instant=Instant.now(), postingdate:Instant = Instant.now(),
+                             enterdate:Instant = Instant.now(), apartments:List[Apartment]=List.empty[Apartment], company:String , modelid:Int = MODEL_ID)
+object Floor:
+  val MODEL_ID = 155
+  type TYPE2 = (String, String, String, String,  Int)
+  def apply(p:Apartment):Floor = Floor(p.id, p.name, p.parent, p.description, p.changedate, p.postingdate, p.enterdate, List.empty[Apartment], p.company)
+  def apply1(p:Masterfile):Floor = Floor(p.id, p.name, p.parent, p.description, p.changedate, p.postingdate, p.enterdate, List.empty[Apartment], p.company)
+  def toMasterfile(p:Floor):Masterfile = Masterfile(p.id, p.name, p.parent, p.description, p.changedate, p.postingdate, p.enterdate, p.modelid, p.company)
+  def encodeIt2(st: Floor): TYPE2 = (st.id, st.name, st.description, st.company, st.modelid)
 
 final case class RealEstate (id:String, name:String, description:String, changedate: Instant, postingdate: Instant,
-                             enterdate: Instant, apartments:List[Apartment]=List.empty[Apartment], modelid:Int = MODEL_ID, company:String )
+                             enterdate: Instant, apartments:List[Apartment]=List.empty[Apartment], floors:List[Floor]=List.empty[Floor], modelid:Int = MODEL_ID, company:String )
 object RealEstate:
   val MODEL_ID = 154
   type TYPE2 = (String, String, String, String,  Int)
   def apply(p:Masterfile):RealEstate = RealEstate(p.id, p.name, p.description, p.changedate, p.postingdate, p.enterdate
-    , List.empty[Apartment], MODEL_ID, p.company)
+    , List.empty[Apartment], List.empty[Floor], MODEL_ID, p.company)
   def encodeIt2(st: RealEstate): TYPE2 = (st.id, st.name, st.description, st.company, st.modelid)
 
 final case class Profile (token: String, company: String, currency:String, locale:String, language:String
