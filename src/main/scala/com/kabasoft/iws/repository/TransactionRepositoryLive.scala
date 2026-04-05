@@ -20,6 +20,24 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
 
   import TransactionRepositorySQL._
 
+  val TRANSACTION_SEQUENCE_PREF = "transaction_id_seq"
+  val TRANSACTION_DETAIL_SEQUENCE_PREF = "transaction_details_id_seq"
+
+  private def sequenceNames(prefix1: String, prefix2: String, models: List[Transaction]) = {
+    val company: String = models.headOption.getOrElse(Transaction.dummy).company
+    (s"${prefix1}_$company", s"${prefix2}_$company")
+  }
+  private def newMasterFilter(list: List[Transaction]) = list.filter(_.id === -1L)
+  private def oldMasterFilter(list: List[Transaction]) = list.filter(_.id > 0)
+  private def master2master(m:Transaction, idx: Long) = m.copy(id = idx, id1 = idx)
+  private def master2Details(m:Transaction, idx: Long) = m.lines.map(_.copy(transid = idx))
+  private def Details2Details(m:TransactionDetails, idx: Long) = m.copy(id = idx)
+  private def newDetailsFilter(m:Transaction) = m.lines.filter(line => line.id === -1L && line.company.contains("-"))
+    .map(line => line.copy(company = line.company.replace("-", "")))
+  private def details2DeleteFilter(m:Transaction) = m.lines.filter(line => line.transid === -2L)
+  private def details2UpdateFilter(m:Transaction) = m.lines.filter(line => line.id > 0 && line.company.contains("-"))
+    .map(line => line.copy(company = line.company.replace("-", "")))
+
   def buildId(transaction: Transaction): Transaction = {
     if(transaction.id1 >0L) transaction else
     {
@@ -29,42 +47,25 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
       }.headOption.getOrElse(transaction)
     }
   }
-
-  def transact(s: Session[Task], models: List[Transaction]): Task[Unit] =
+  def insertTransact(s: Session[Task], models: List[Transaction]): Task[Unit] =
     s.transaction.use: xa =>
       s.prepareR(insert).use: pciMaster =>
         s.prepareR(insertDetails).use: pciDetails =>
-          tryExec(xa, pciMaster, pciDetails, models, models.flatMap(_.lines).map(TransactionDetails.encodeIt4))
+          tryExec(xa, pciMaster, pciDetails, master2master, master2Details, Details2Details, models
+            , s, sequenceNames(TRANSACTION_SEQUENCE_PREF, TRANSACTION_DETAIL_SEQUENCE_PREF, models))
   
-  def transact(s: Session[Task], models: List[Transaction], newLines2Insert: List[TransactionDetails]
-             , oldmodels: List[Transaction], oldLines2Update: List[TransactionDetails]
-             ,  oldLines2Delete: List[TransactionDetails]): Task[Unit] =
-     s.transaction.use: xa =>
-       s.prepareR(insert).use: pciMaster =>
-         s.prepareR(UPDATE).use: pcuMaster =>
-           s.prepareR(insertDetails).use: pciDetails =>
-             s.prepareR(UPDATE_DETAILS).use: pcuDetails =>
-               s.prepareR(DELETE_DETAILS).use: pcdDetails =>
-                 tryExec(xa, pciMaster, pciDetails, pcuMaster, pcuDetails, pcdDetails
-                  , models, newLines2Insert.map(TransactionDetails.encodeIt4)
-                  , oldmodels.map(Transaction.encodeIt2), oldLines2Update.map(TransactionDetails.encodeIt2)
-                  , oldLines2Delete.map(TransactionDetails.encodeIt3))
-
-  def transact(s: Session[Task], models: List[Transaction], newLines2Insert: List[TransactionDetails]
-             , oldmodels: List[Transaction], oldLines2Update: List[TransactionDetails]
-             , oldmodels2Delete: List[Transaction], oldLines2Delete: List[TransactionDetails]): Task[Unit] =
-  s.transaction.use: xa =>
+  def transact(s: Session[Task], models: List[Transaction]): Task[Unit] =
     s.prepareR(insert).use: pciMaster =>
       s.prepareR(UPDATE).use: pcuMaster =>
         s.prepareR(insertDetails).use: pciDetails =>
           s.prepareR(UPDATE_DETAILS).use: pcuDetails =>
-            s.prepareR(DELETE).use: pcdMaster =>
-              s.prepareR(DELETE_DETAILS).use: pcdDetails =>
-                tryExec(xa, pciMaster, pciDetails, pcuMaster, pcuDetails, pcdMaster, pcdDetails
-                  , models, newLines2Insert.map(TransactionDetails.encodeIt4)
-                  , oldmodels.map(Transaction.encodeIt2), oldLines2Update.map(TransactionDetails.encodeIt2)
-                  , oldmodels2Delete.map(Transaction.encodeIt3)
-                  , oldLines2Delete.map(TransactionDetails.encodeIt3))
+            s.prepareR(DELETE_DETAILS).use: pcdDetails =>
+              execX(s, pciMaster, pciDetails, pcuMaster, pcuDetails, pcdDetails, newMasterFilter, oldMasterFilter
+                , newDetailsFilter, details2UpdateFilter, details2DeleteFilter
+                , master2master, master2Details, Details2Details, Transaction.encodeIt2
+                , TransactionDetails.encodeIt2, TransactionDetails.encodeIt3, models
+                , sequenceNames(TRANSACTION_SEQUENCE_PREF, TRANSACTION_DETAIL_SEQUENCE_PREF, models))
+
   override def create(c: Transaction): ZIO[Any, RepositoryError, Int] = create(List(c))
 
   override def create(models: List[Transaction]): ZIO[Any, RepositoryError, Int] =
@@ -75,31 +76,12 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
             tr.copy(lines = tr.lines.map(line=>line.copy(company = line.company.replace("-", "")))))))
       .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)
 
-//  override def copy(p: (Long, Int, String, Int)): ZIO[Any, RepositoryError, Int] = for {
-//    transaction <- getById((p._1, p._2, p._3)).map( tr=>
-//      tr.copy(modelid =p._4, lines = tr.lines.map(l=>l.copy(id = 0L, transid = 0L))))
-//    nr<-create(transaction)
-//  } yield nr 
-
   override def modify(model: Transaction): ZIO[Any, RepositoryError, Int] = modify(List(model))
-
-  override def modify(models: List[Transaction]): ZIO[Any, RepositoryError, Int] = {
-    val oldLines2Update = models.flatMap(_.lines).filter(line => line.id > 0 && line.company.contains("-"))
-      .map(line => line.copy(company = line.company.replace("-", "")))
-    val newLine2Insert = models.flatMap(_.lines).filter(line => line.id === -1L && line.company.contains("-"))
-      .map(line => line.copy(company = line.company.replace("-", "")))
-
-    val oldLine2Delete = models.flatMap(_.lines).filter(line => line.transid === -2L) 
-//    ZIO.logInfo(s"models ${models}") *>
-//      ZIO.logInfo(s"oldLines2Update ${oldLines2Update}") *>
-//      ZIO.logInfo(s"newLine2Insert ${newLine2Insert}") *>
-//      ZIO.logInfo(s"oldLine2Delete ${oldLine2Delete}") *>
+  override def modify(models: List[Transaction]): ZIO[Any, RepositoryError, Int] =
       postgres
         .use:
-          session =>
-            transact(session, List.empty, newLine2Insert, models, oldLines2Update, oldLine2Delete)
-        .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)//.debug("ALL>>>")
-  }
+          session => transact(session, models)
+        .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size).debug("ALL>>>")
 
   override def getById(p: (Long, Int, String)): ZIO[Any, RepositoryError, Transaction] = for {
     transaction <- queryWithTxUnique(postgres, p, BY_ID)
@@ -171,7 +153,7 @@ private[repository] object TransactionRepositorySQL:
         , period, posted, modelid, company, text, footText )
 
   val mfEncoder: Encoder[Transaction] = transactionCodec1.values.contramap(Transaction.encodeIt)
-  //val DetailsEncoder: Encoder[TransactionDetails] = transactionDetailsCodec.values.contramap(TransactionDetails.encodeIt)
+  val detailsEncoder: Encoder[TransactionDetails] = transactionDetailsCodec.values.contramap(TransactionDetails.encodeIt)
 
   val detailsDecoder: Decoder[TransactionDetails] = transactionDetailsCodec.map:
       case (id, transid, article, articleName, quantity, unit, price, currency, duedate, vatCode, vat, text, company) =>
@@ -238,9 +220,13 @@ private[repository] object TransactionRepositorySQL:
     sql"""INSERT INTO transaction (oid, id1, store, account, enterdate, transdate, postingdate, period, posted, modelid
          , company, text, foot_text) VALUES ${transactionCodec1.values.list(n)}""".command
 
-  val insertDetails: Command[TransactionDetails.D_TYPE1] =
-    sql"""INSERT INTO transaction_details (transid, article, article_name, quantity, unit, price, currency, duedate, vat_code
-          , vat, text, company) VALUES ($transactionDetailsCodec2 )""".command
+  val insertDetails: Command[TransactionDetails] =
+    sql"""INSERT INTO transaction_details (id, transid, article, article_name, quantity, unit, price, currency, duedate, vat_code
+          , vat, text, company) VALUES $detailsEncoder """.command
+
+//  val insertDetails: Command[TransactionDetails.D_TYPE1] =
+//    sql"""INSERT INTO transaction_details (transid, article, article_name, quantity, unit, price, currency, duedate, vat_code
+//          , vat, text, company) VALUES ($transactionDetailsCodec2 )""".command
     
 //  def insertAllDetails(n:Int): Command[List[TransactionDetails.D_TYPE1]] =
 //    sql"""INSERT INTO transaction_details (transid, article, article_name, quantity, unit, price, currency

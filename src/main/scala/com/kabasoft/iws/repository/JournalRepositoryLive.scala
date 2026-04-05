@@ -17,10 +17,27 @@ import java.time.{ Instant, LocalDateTime, ZoneId }
 final case class JournalRepositoryLive(postgres: Resource[Task, Session[Task]]) extends JournalRepository, MasterfileCRUD:
 
   import JournalRepositorySQL._
-  
+
+  val JOURNAL_LOG_SEQUENCE_PREF = "journal_id_seq"
+
+  private def sequenceName(prefix: String, models: List[Journal]) =
+    val company: String = models.headOption.getOrElse(Journal.dummy).company
+    s"${prefix}_$company"
+
+  private def master2master(m: Journal, idx: Long) = m.copy(id = idx)
+
+  def transact(session: Session[Task], models: List[Journal], sequenceName: String): Task[Unit] =
+    session.transaction.use: xa =>
+      session.prepareR(insert).use: pci =>
+        tryExec(xa, session, pci, master2master, models, sequenceName)
   override def create(c: Journal):ZIO[Any, RepositoryError, Int]=executeWithTx(postgres, c, insert, 1)
-  override def create(list: List[Journal]):ZIO[Any, RepositoryError, Int] =
-    executeWithTx(postgres, list.map(Journal.encodeIt), insertAll(list.size), list.size)
+  override def create(models: List[Journal]):ZIO[Any, RepositoryError, Int] =
+    postgres
+      .use:
+          session =>
+            transact(session, models, sequenceName(JOURNAL_LOG_SEQUENCE_PREF, models))
+      .mapBoth(e => RepositoryError(e.getMessage), _ => models.size)
+  
   override def all(p: (Int, String)):ZIO[Any, RepositoryError, List[Journal]] = queryWithTx(postgres, p, ALL)
   override def getById(p: (Long,  String)):ZIO[Any, RepositoryError, Journal] = queryWithTxUnique(postgres, p, BY_ID)
   override def getByPeriod(period: Int,  company: String): ZIO[Any, RepositoryError, List[Journal]] = { 

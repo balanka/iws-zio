@@ -1,30 +1,44 @@
 package com.kabasoft.iws.repository
 
+import TransactionLogRepositorySQL.*
 import cats.effect.Resource
-import cats.syntax.all._
-import cats._
-import skunk._
-import skunk.codec.all._
-import skunk.implicits._
-import zio.interop.catz._
+import cats.syntax.all.*
+import cats.*
+import skunk.*
+import skunk.codec.all.*
+import skunk.implicits.*
+import zio.interop.catz.*
 import zio.{Task, ZIO, ZLayer}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.TransactionLog
-import zio._
+import zio.*
+
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class TransactionLogRepositoryLive(postgres: Resource[Task, Session[Task]]) extends TransactionLogRepository, MasterfileCRUD:
   import TransactionLogRepositorySQL.*
+
+  val TRANSACTION_LOG_SEQUENCE_PREF = "transaction_log_id_seq"
+ 
+  private def sequenceName(prefix: String, models: List[TransactionLog]) = 
+    val company: String = models.headOption.getOrElse(TransactionLog.dummy).company
+    s"${prefix}_$company"
+  
+  private def master2master(m: TransactionLog, idx: Long) = m.copy(id = idx, id1 = idx)
+
+  def transact (session: Session[Task],  models: List[TransactionLog], sequenceName:String): Task[Unit] =
+    session.transaction.use: xa =>
+      session.prepareR(insert).use: pci =>
+         tryExec(xa, session, pci, master2master,  models, sequenceName)
   
   def create(item: TransactionLog): ZIO[Any, RepositoryError, Int]= create(List(item))
-    //executeWithTx(postgres, item, insert, 1)
-  def create(models: List[TransactionLog]): ZIO[Any, RepositoryError, Int]= 
-    executeWithTx(postgres, models.map(TransactionLog.encodeIt2), insertAll(models.size), models.size)
-  //def all(p: (Int, String)): ZIO[Any, RepositoryError, List[TransactionLog]] = queryWithTx(postgres, p, ALL)
-  //def getById(p: (Long, String)): ZIO[Any, RepositoryError, TransactionLog]= queryWithTxUnique(postgres, p, BY_ID)
-  //def getBy(ids: List[Long], modelid: Int, company: String): ZIO[Any, RepositoryError, List[TransactionLog]]
-  //def delete(p: (Long, Int, String)): ZIO[Any, RepositoryError, Int]
- // def getByModelId(modelid: Int, company: String): ZIO[Any, RepositoryError, List[TransactionLog]] = queryWithTx(postgres, (modelid, company), BY_MODELID)
+  def create(models: List[TransactionLog]): ZIO[Any, RepositoryError, Int]=
+    postgres
+      .use:
+          session =>
+            transact(session, models, sequenceName(TRANSACTION_LOG_SEQUENCE_PREF, models))
+      .mapBoth(e => RepositoryError(e.getMessage), _ => models.size)   
+
   def find4Period(fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[TransactionLog]] =
     queryWithTx(postgres, (fromPeriod, toPeriod, company), BY_PERIOD)
     

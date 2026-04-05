@@ -103,8 +103,6 @@ object TransactionModelId extends Enumeration :
   val PAYROLL: Value = Value(136)
   val CASH: Value = Value(144)
 
-
-import common.*
 final case class Store(id: String,
                        name: String,
                        description: String,
@@ -426,11 +424,11 @@ object Company:
       , st.salesClearingAcc, st.cashAcc, st.account, st.oaccount, st.id, st.modelid)
 
 
-abstract class AppError(message: String)
+abstract class AppError
 object AppError:
-  final case class RepositoryError(message: String) extends AppError(message)
-  final case class DecodingError(message: String) extends AppError(message)
-  case class AuthenticationError(message: String, userId: Int) extends AppError(message)
+  final case class RepositoryError(message: String) extends AppError
+  final case class DecodingError(message: String) extends AppError
+  case class AuthenticationError(message: String, userId: Int) extends AppError
 
 final case class Balance(id: String, idebit: BigDecimal, icredit: BigDecimal, debit: BigDecimal, credit: BigDecimal):
   def debiting(amount: BigDecimal): Balance = copy(debit = debit.add(amount))
@@ -480,32 +478,23 @@ final case class Account (
 
   import com.kabasoft.iws.domain.common.{reduce, given}
 
-  def reportBalance(acc: Account):Unit = 
+  private def reportBalance(acc: Account):Unit =
     subAccounts.toList match
       case Nil => acc.idebiting(idebit).icrediting(icredit).debiting(debit).crediting(credit)
       case x1 :: xs => (x1 :: xs).foreach( _.reportBalance(self))
 
   def reportBalanceA(acc:Account): Account = {
-    val x = acc.subAccounts.toList match
+    acc.subAccounts.toList match
       case Nil => acc
-      case x1:: xs => {
-         reportBalance(x1)
-        xs.map(reportBalance)
-        val z = reduce(acc.subAccounts,  Account.dummy).copy(id = acc.id, name= acc.name, description = acc.description, account = acc.account )
-        //val z = reduce(acc.subAccounts,  Account.dummy).copy(name= acc.name, description = acc.description )
-//        if (acc.id == "9901") {
-//          assert(acc.id == "9901")
-//        }
-        z
-      }
-    x
+      case x1:: xs =>
+          reportBalance(x1)
+          xs.foreach(reportBalance)
+          reduce(acc.subAccounts,  Account.dummy).copy(id = acc.id, name= acc.name, description = acc.description, account = acc.account )
   }
-  def withPac(pac: Option[PeriodicAccountBalance]): Account = {
-    val x = pac.map(p=>idebiting(p.idebit).icrediting(p.icredit).debiting(p.debit)
+  def withPac(pac: Option[PeriodicAccountBalance]): Account =
+     pac.map(p=>idebiting(p.idebit).icrediting(p.icredit).debiting(p.debit)
       .crediting(p.credit)).getOrElse(self)//.bdebiting(pac.bdebit).bcrediting(pac.bcredit)
-    x
-     }
-  
+
   def withPac(pac: PeriodicAccountBalance): Account = idebiting(pac.idebit).icrediting(pac.icredit).debiting(pac.debit)
     .crediting(pac.credit)//.bdebiting(pac.bdebit).bcrediting(pac.bcredit)
   
@@ -1800,11 +1789,16 @@ object Transaction:
       
   def encodeIt3(st: Transaction):TYPE3= (st.id, st.modelid, st.company)
 
+  val dummy:Transaction = Transaction(-1, 0, 0, "dummy", "dummy", Instant.now(), Instant.now()
+    , Instant.now(), -1, false, -1, "0", "dummy")
+
 final case class TransactionLog(id:Long, id1:Long, transid:Long, oid:Long, store:String, account:String, article:String,
                                 quantity:BigDecimal, stock:BigDecimal, wholeStock:BigDecimal, unit:String, price:BigDecimal, avgPrice:BigDecimal,
                                 currency:String, duedate:Instant, text:String, transdate:Instant, postingdate:Instant, enterdate:Instant,
                                 period:Int, company:String, modelid:Int)
 object TransactionLog:
+  val dummy:TransactionLog=TransactionLog(0, 0, 0, 0, "", "", "", BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, "", BigDecimal.ZERO
+    , BigDecimal.ZERO, "", Instant.now(), "", Instant.now(), Instant.now(), Instant.now(), 0, "", 0)
   type TYPE = (Long, Long, Long, Long, String, String, String, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal
     , String, scala.math.BigDecimal, scala.math.BigDecimal, String, LocalDateTime, String, LocalDateTime, LocalDateTime, LocalDateTime, Int, String, Int)
   type TYPE2 = (Long, Long, Long, String, String, String, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal
@@ -1851,6 +1845,7 @@ final case class FinancialsTransaction(
 }
 //account = $int8, side = $bool, oaccount = $varchar, amount = $numeric, duedate = $timestamp, text=$varchar, currency = $varchar
 object FinancialsTransactionDetails:
+  val FAKE_COMAPNY=0
   val dummy  = FinancialsTransactionDetails(0, 0, "", true, "", zeroAmount, Instant.now(), "", "EUR", "", "", "")
   type D_TYPE = (Long, Long, String, Boolean, String, scala.math.BigDecimal, LocalDateTime, String, String, String, String, String)
   type TYPE2 = (String, Boolean, String, scala.math.BigDecimal, LocalDateTime, String, String, String, String, Long, String)
@@ -1912,7 +1907,7 @@ object FinancialsTransaction:
 
 
   val dummy: FinancialsTransaction = FinancialsTransaction(-1, 0,0, "dummy", "dummy", Instant.now(), Instant.now()
-    , Instant.now(), -1, false,  -1, "",  "dummy", -1, -1)
+    , Instant.now(), -1, false,  -1, "0",  "dummy", -1, -1)
 
 final case class Journal(
                           id: Long,
@@ -1949,7 +1944,7 @@ object Journal:
     scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, String, Boolean,
     String, Int, Int, String, Int)
   val dummy: Journal = Journal(0L,0L,0L, "", "", "", "", Instant.now(), Instant.now(), Instant.now(), 0, zeroAmount, zeroAmount
-    , zeroAmount, zeroAmount, zeroAmount, "", true, "", 0, 0, "company", -1)
+    , zeroAmount, zeroAmount, zeroAmount, "", true, "", 0, 0, "", -1)
   
   def encodeIt(st: Journal): TYPE =
     (st.transid, st.oid, st.account, st.oaccount, st.parentAccount, st.parentOAccount

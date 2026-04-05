@@ -51,14 +51,59 @@ trait MasterfileCRUD:
         ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
       }.headOption.getOrElse(transaction)
     }
-  def tryExec[A](xa: Transaction[Task], pc: PreparedCommand[Task, A], models: List[A]): Task[Unit] =
+
+  def exec[T](pc: PreparedCommand[Task, T], list: List[T]): Task[Unit] =
+    list.traverse_ { p =>
+      for
+        _ <- pc.execute(p).debug("RRRRRRRR>>>")
+      yield ()
+    }
+  def exec[T](session: Session[Task], pci: PreparedCommand[Task, T]
+              , fn: (T, Long) => T, data: List[T], sequenceName:String): ZIO[Any, Throwable, Unit] = 
+    data.traverse { master =>
+      for {
+        transid <- session.unique(sequenceQuery)(sequenceName)
+        _ <- pci.execute(fn(master, transid)).debug("MMMMM>>>")
+      } yield ()
+    }.map(_.headOption.getOrElse(()))
+
+  def tryExec[T](xa: Transaction[Task], session: Session[Task], pci: PreparedCommand[Task, T], fm: (T, Long) => T
+                 , models: List[T],  sequenceName: String): Task[Unit] =
     for
       sp <- xa.savepoint
-      _ <- exec(pc, models)
-          .handleErrorWith(ex =>
-            ZIO.logInfo(s"Unique violation: ${ex.getMessage}, rolling back...") *>
-              xa.rollback(sp))
+      _ <- exec(session, pci, fm, models, sequenceName)
+        .handleErrorWith(ex =>
+          ZIO.logInfo(s"Unique violation: ${ex.getMessage}, rolling back...") *> xa.rollback(sp))
     yield ()
+     
+  def exec[T, D](masterPci: PreparedCommand[Task, T], detailsPci: PreparedCommand[Task, D], fm: (T, Long) => T
+                 , fn: (T, Long) => List[D], fd: (D, Long) => D, data: List[T], session: Session[Task]
+                 , sequenceName: (String, String)): ZIO[Any, Throwable, List[Unit]] = {
+    data.traverse { master =>
+      for {
+        transid <- session.unique(sequenceQuery)(sequenceName._1)
+        masterx = fm(master, transid)
+        _ <- masterPci.execute(masterx) //.debug("MMMMM>>>")
+        _ <- fn(masterx, transid).traverse_ { details =>
+          for {
+            id <- session.unique(sequenceQuery)(sequenceName._2)
+            _ <- detailsPci.execute(fd(details, id)) //.debug("DDDDDDD>>>")
+          } yield ()
+        }
+      } yield ()
+    }
+  }   
+  
+
+      
+//  def tryExec[A](xa: Transaction[Task], pc: PreparedCommand[Task, A], models: List[A]): Task[Unit] =
+//    for
+//      sp <- xa.savepoint
+//      _ <- exec(pc, models)
+//          .handleErrorWith(ex =>
+//            ZIO.logInfo(s"Unique violation: ${ex.getMessage}, rolling back...") *>
+//              xa.rollback(sp))
+//    yield ()
 
   def tryExec[A, B](xa: Transaction[Task], pciCustomer: PreparedCommand[Task, A]
                     , pciBankAcc: PreparedCommand[Task, B]
@@ -72,32 +117,19 @@ trait MasterfileCRUD:
               xa.rollback(sp))
     yield ()
 
-//  def tryExec [A, B](xa: Transaction[Task], pciTransaction: PreparedCommand[Task, (A, Long)]
-//                      , pciLine: PreparedCommand[Task, (B, Long)]
-//                      , transactions:List[A], lines:List[B], s:Session[Task], masterSeqName:String, detailsSeqName:String): Task[Unit] =
-//    for
-//    sp <- xa.savepoint
-//    _ <- exec (pciTransaction, transactions, s, masterSeqName) //*>
-//    _ <- exec (pciLine, lines, s, detailsSeqName)
-//    .handleErrorWith (ex =>
-//    ZIO.logInfo (s"Unique violation: ${ex.getMessage}, rolling back...") *> xa.rollback (sp) )
-//    yield ()
+
 
   def tryExec[A, B](xa: Transaction[Task], pciTransaction: PreparedCommand[Task, A]
                     , pciLine: PreparedCommand[Task, B], fm: (A, Long) => A
-                    , fn:(A, Long)=>List[B], fd: (B, Long) => B, transactions: List[A] //, lines: List[B]
-                    , s: Session[Task], masterSeqName: String, detailsSeqName: String): Task[Unit] =
+                    , fn:(A, Long)=>List[B], fd: (B, Long) => B, transactions: List[A] 
+                    , session: Session[Task], sequenceName:(String, String)): Task[Unit] =
     for
       sp <- xa.savepoint
-      _ <- exec(pciTransaction, pciLine,  fm, fn, fd, transactions, s, masterSeqName, detailsSeqName) //*>
+      _ <- exec(pciTransaction, pciLine,  fm, fn, fd, transactions, session, sequenceName) 
         .handleErrorWith(ex =>
           ZIO.logInfo(s"Unique violation: ${ex.getMessage}, rolling back...") *> xa.rollback(sp))
     yield ()
-
-
-
-
-
+  
   // C= Customer.TYPE3
   // D= BankAccount.TYPE2
   def tryExec[A, B, C, D](xa: Transaction[Task], pciCustomer: PreparedCommand[Task, A]
@@ -167,33 +199,33 @@ trait MasterfileCRUD:
     yield ()
 
     
-  def tryExec[A, B, C, D, E, F](xa: Transaction[Task]
-                                , pciCustomer: PreparedCommand[Task, A]
-                                , pciBankAcc: PreparedCommand[Task, B]
-                                , pcuCustomer: PreparedCommand[Task, C]
-                                , pcuBankAcc: PreparedCommand[Task, D]
-                                , pcdCustomer: PreparedCommand[Task, E]
-                                , pcdBankAcc: PreparedCommand[Task, F]
-                                , customers: List[A]
-                                , newBankaccounts: List[B]
-                                , oldCustomers: List[C]
-                                , oldBankaccounts: List[D]
-                                , customer2Delete: List[E]
-                                , bankacc2Delete: List[F]): Task[Unit] =
-
-    for
-      sp <- xa.savepoint
-      _ <- exec(pciCustomer, customers) *>
-        exec(pciBankAcc, newBankaccounts) *>
-        exec(pcuCustomer, oldCustomers) *>
-        exec(pcuBankAcc, oldBankaccounts) *>
-        exec(pcdCustomer, customer2Delete) *>
-        exec(pcdBankAcc, bankacc2Delete)
-          .handleErrorWith(ex =>
-            ZIO.logInfo(s"Unique violation: ${ex.getMessage}, rolling back...") *>
-              xa.rollback(sp))
-    yield ()
-    
+//  def tryExec[A, B, C, D, E, F](xa: Transaction[Task]
+//                                , pciCustomer: PreparedCommand[Task, A]
+//                                , pciBankAcc: PreparedCommand[Task, B]
+//                                , pcuCustomer: PreparedCommand[Task, C]
+//                                , pcuBankAcc: PreparedCommand[Task, D]
+//                                , pcdCustomer: PreparedCommand[Task, E]
+//                                , pcdBankAcc: PreparedCommand[Task, F]
+//                                , customers: List[A]
+//                                , newBankaccounts: List[B]
+//                                , oldCustomers: List[C]
+//                                , oldBankaccounts: List[D]
+//                                , customer2Delete: List[E]
+//                                , bankacc2Delete: List[F]): Task[Unit] =
+//
+//    for
+//      sp <- xa.savepoint
+//      _ <- exec(pciCustomer, customers) *>
+//        exec(pciBankAcc, newBankaccounts) *>
+//        exec(pcuCustomer, oldCustomers) *>
+//        exec(pcuBankAcc, oldBankaccounts) *>
+//        exec(pcdCustomer, customer2Delete) *>
+//        exec(pcdBankAcc, bankacc2Delete)
+//          .handleErrorWith(ex =>
+//            ZIO.logInfo(s"Unique violation: ${ex.getMessage}, rolling back...") *>
+//              xa.rollback(sp))
+//    yield ()
+//    
   def tryExec4[A, B, C, D, E, F, G](xa: Transaction[Task]
                                  , pciPac: PreparedCommand[Task, A]
                                  , pcuPac: PreparedCommand[Task, B]
@@ -422,32 +454,6 @@ trait MasterfileCRUD:
         .mapBoth(e => RepositoryError(e.getMessage), _ => size)            
     } yield result
   
-  def exec[T](pc: PreparedCommand[Task, T], list: List[T]): Task[Unit] =
-    list.traverse_ { p =>
-      for
-        _ <- pc.execute(p)//.debug("RRRRRRRR>>>")
-      yield ()
-    }
-
-  def exec[T, D](masterPci: PreparedCommand[Task, T], detailsPci: PreparedCommand[Task, D], fm: (T, Long) => T
-                 , fn: (T, Long) => List[D], fd: (D, Long) => D, data: List[T], s: Session[Task]
-                 , masterSequenceName: String, detailsSequenceName: String): ZIO[Any, Throwable, List[Unit]] = {
-    data.traverse { master =>
-      for {
-        transid <- s.unique(sequenceQuery)(masterSequenceName)
-        masterx = fm(master, transid)
-        _ <- masterPci.execute(masterx) //.debug("MMMMM>>>")
-        _ <- fn(masterx, transid).traverse_ { details =>
-          for {
-            id <- s.unique(sequenceQuery)(detailsSequenceName)
-            _ <- detailsPci.execute(fd(details, id)) //.debug("DDDDDDD>>>")
-          } yield ()
-        }
-      } yield ()
-    }
-    //oldmodels.map(FinancialsTransaction.encodeIt2)
-  }
-
   def execX[A, B, C, D, E, F](s: Session[Task], masterPci: PreparedCommand[Task, A], detailsPci: PreparedCommand[Task, B]
                  , masterPcu: PreparedCommand[Task, C], detailsPcu: PreparedCommand[Task, D], detailsPcd: PreparedCommand[Task, E]
                  , newMasterFilter: List[A]=> List[A], oldMasterFilter:List[A]=> List[A]
@@ -455,17 +461,17 @@ trait MasterfileCRUD:
                  , fnSetMasterId: (A, Long) => A, fnSetParentId: (A, Long) => List[B],  fnSetDetailsId: (B, Long) => B
                  , fnMasterUpdateEncoder:A=>C //, fnDetailsInsertEncoder:B=>F
                  , fnDetailsUpdateEncoder:B=>D, fnDetailsDeleteEncoder:B=>E
-                 , data: List[A], masterSequenceName: String, detailsSequenceName: String): ZIO[Any, Throwable, Unit] = {
+                 , data: List[A], sequenceName:(String, String)): ZIO[Any, Throwable, Unit] = {
                  newMasterFilter(data).traverse { master =>
                                   for {
-                                        transid <- s.unique(sequenceQuery)(masterSequenceName)
+                                        transid <- s.unique(sequenceQuery)(sequenceName._1)
                                         masterx = fnSetMasterId(master, transid)
                                               _ <- ZIO.logInfo(s"DDDDDDD>>> new master2Insert $masterx")
                                               _ <- masterPci.execute(masterx).debug("MMMMM>>>")
                                              _ <- fnSetParentId(masterx, transid).traverse_  { details =>
                                                       for {
                                                             _ <- ZIO.logInfo(s"DDDDDDD>>> new details2Insert $details")
-                                                            id <- s.unique(sequenceQuery)(detailsSequenceName)
+                                                            id <- s.unique(sequenceQuery)(sequenceName._2)
                                                             encodedDetails = fnSetDetailsId(details, id)
                                                               _ <- detailsPci.execute(encodedDetails).debug("DDDDDDD>>>")
                                                       } yield ()
@@ -485,7 +491,7 @@ trait MasterfileCRUD:
                                       _ <- ZIO.logInfo(s"DDDDDDD>>> newDetailsFilter ${newDetailsFilter(master)}")
                                       _ <- newDetailsFilter(master).traverse_ { details =>
                                               for {
-                                                    id <- s.unique(sequenceQuery)(detailsSequenceName)
+                                                    id <- s.unique(sequenceQuery)(sequenceName._2)
                                                     _ <- ZIO.logInfo(s"DDDDDDD>>> newDetails ${fnSetDetailsId(details, id)}")
                                                 //encodedDetails= fnDetailsInsertEncoder(fnSetDetailsId(details, id))
                                                     encodedDetails= fnSetDetailsId(details, id)

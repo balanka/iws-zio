@@ -18,7 +18,14 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
                    , accRepo: AccountRepository) extends FinancialsTransactionRepository, MasterfileCRUD:
 
   import FinancialsTransactionRepositorySQL._
-
+  
+  val FINANCIAL_SEQUENCE_PREF = "master_compta_id_seq"
+  val FINANCIAL_DETAIL_SEQUENCE_PREF = "details_compta_id_seq"
+  private def sequenceNames(prefix1: String, prefix2: String, models:List[FinancialsTransaction]) = {
+    val company:String = models.headOption.getOrElse(FinancialsTransaction.dummy).company
+    ( s"${prefix1}_$company", s"${prefix2}_$company")
+  }
+  
   private def newMasterFilter(list:List[FinancialsTransaction])= list.filter(_.id === -1L)
   private def oldMasterFilter(list:List[FinancialsTransaction])= list.filter(_.id > 0)
   private def master2master(m:FinancialsTransaction, idx:Long)= m.copy(id = idx, id1 = idx)
@@ -31,12 +38,12 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
                                                               .map(line => line.copy(company = line.company.replace("-", "")))
 
 
-  def insertTransact(s: Session[Task], models: List[FinancialsTransaction]): Task[Unit] =
-    s.transaction.use: xa =>
-      s.prepareR(insert1).use: pciMaster =>
-        s.prepareR(insertDetails1).use: pciDetails =>
-          tryExec(xa, pciMaster, pciDetails, master2master, master2Details, Details2Details, models //, models.flatMap(_.lines)
-          , s, "master_compta_id_seq_1000", "details_compta_id_seq_1000")
+  def insertTransact(session: Session[Task], models: List[FinancialsTransaction]): Task[Unit] =
+    session.transaction.use: xa =>
+      session.prepareR(insert1).use: pciMaster =>
+        session.prepareR(insertDetails1).use: pciDetails =>
+          tryExec(xa, pciMaster, pciDetails, master2master, master2Details, Details2Details, models, session
+           , sequenceNames(FINANCIAL_SEQUENCE_PREF, FINANCIAL_DETAIL_SEQUENCE_PREF, models))
   
   def transact(s: Session[Task], models: List[FinancialsTransaction], oldmodels: List[FinancialsTransaction]): Task[Unit] =
     s.transaction.use: xa =>
@@ -60,7 +67,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
                   , newDetailsFilter, details2UpdateFilter, details2DeleteFilter
                   , master2master, master2Details, Details2Details, FinancialsTransaction.encodeIt2
                   , FinancialsTransactionDetails.encodeIt2, FinancialsTransactionDetails.encodeIt3
-                  , models, "master_compta_id_seq_1000", "details_compta_id_seq_1000" )
+                  , models, sequenceNames (FINANCIAL_SEQUENCE_PREF,FINANCIAL_DETAIL_SEQUENCE_PREF, models))
 
   override def create(c: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = create(List(c))
 
