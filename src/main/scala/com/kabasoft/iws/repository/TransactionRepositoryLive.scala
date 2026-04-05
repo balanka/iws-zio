@@ -47,6 +47,7 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
       }.headOption.getOrElse(transaction)
     }
   }
+
   def insertTransact(s: Session[Task], models: List[Transaction]): Task[Unit] =
     s.transaction.use: xa =>
       s.prepareR(insert).use: pciMaster =>
@@ -72,7 +73,7 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
     (postgres
       .use:
         session =>
-          transact(session, models.map(buildId).map(tr=>
+          insertTransact(session, models.map(buildId).map(tr=>
             tr.copy(lines = tr.lines.map(line=>line.copy(company = line.company.replace("-", "")))))))
       .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)
 
@@ -152,7 +153,7 @@ private[repository] object TransactionRepositorySQL:
       Transaction(id, oid, id1, store, account, transdate.toInstant, enterdate.toInstant, postingdate.toInstant
         , period, posted, modelid, company, text, footText )
 
-  val mfEncoder: Encoder[Transaction] = transactionCodec1.values.contramap(Transaction.encodeIt)
+  val mfEncoder: Encoder[Transaction] = transactionCodec.values.contramap(Transaction.encodeIt)
   val detailsEncoder: Encoder[TransactionDetails] = transactionDetailsCodec.values.contramap(TransactionDetails.encodeIt)
 
   val detailsDecoder: Decoder[TransactionDetails] = transactionDetailsCodec.map:
@@ -213,12 +214,12 @@ private[repository] object TransactionRepositorySQL:
 //         WHERE id = $int4  AND company = $varchar """.command
          
   val insert: Command[Transaction] =
-    sql"""INSERT INTO transaction (oid, id1, store, account, enterdate, transdate, postingdate, period, posted, modelid
+    sql"""INSERT INTO transaction (id, oid, id1, store, account, enterdate, transdate, postingdate, period, posted, modelid
          , company, text, foot_text) VALUES $mfEncoder""".command
 
-  def insertAll(n:Int): Command[List[Transaction.TYPE]] = 
-    sql"""INSERT INTO transaction (oid, id1, store, account, enterdate, transdate, postingdate, period, posted, modelid
-         , company, text, foot_text) VALUES ${transactionCodec1.values.list(n)}""".command
+//  def insertAll(n:Int): Command[List[Transaction.TYPE]] = 
+//    sql"""INSERT INTO transaction (oid, id1, store, account, enterdate, transdate, postingdate, period, posted, modelid
+//         , company, text, foot_text) VALUES ${transactionCodec1.values.list(n)}""".command
 
   val insertDetails: Command[TransactionDetails] =
     sql"""INSERT INTO transaction_details (id, transid, article, article_name, quantity, unit, price, currency, duedate, vat_code

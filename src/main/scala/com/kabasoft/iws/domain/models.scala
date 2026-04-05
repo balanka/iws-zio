@@ -1670,10 +1670,6 @@ object Employee:
   type TYPE = (String, String, String, String, String, String, String, String, String, String, String, String, String, String,
     String, String, BigDecimal, Int, Instant, Instant, Instant)
 
-  //  def apply(c: TYPE): Employee =
-  //    Employee(c._1, c._2, c._3, c._4, c._5, c._6, c._7, c._8, c._9, c._10, c._11, c._12, c._13, c._14, c._15, c._16,
-  //      c._17, c._18, c._19, c._20, c._21, List.empty[BankAccount], List.empty[EmployeeSalaryItemDTO])
-
   def encodeIt(st: Employee):TYPE2 =
     (st.id, st.name, st.description, st.street, st.zip, st.city
       , st.state, st.country, st.phone, st.email, st.account
@@ -1693,9 +1689,8 @@ final case class TransactionDetails( id: Long, transid: Long, article: String, a
 
 object TransactionDetails:
   val dummy = TransactionDetails(0, 0, "", "", zeroAmount, "", zeroAmount, "", Instant.now(), "", zeroAmount, "",  "")
-  //(Long, Long, String, String, BigDecimal, String, BigDecimal, String, java.time.LocalDateTime, String, String, String)
-  type D_TYPE = (Long, Long, String, String, scala.math.BigDecimal, String, scala.math.BigDecimal, String, LocalDateTime, String, scala.math.BigDecimal, String, String)
-  type D_TYPE1 = (Long, String, String, scala.math.BigDecimal, String, scala.math.BigDecimal, String, LocalDateTime,  String, scala.math.BigDecimal, String, String)
+  private type D_TYPE = (Long, Long, String, String, scala.math.BigDecimal, String, scala.math.BigDecimal, String, LocalDateTime, String, scala.math.BigDecimal, String, String)
+  private type D_TYPE1 = (Long, String, String, scala.math.BigDecimal, String, scala.math.BigDecimal, String, LocalDateTime,  String, scala.math.BigDecimal, String, String)
   type TYPE2 = (Long, String, scala.math.BigDecimal, String, scala.math.BigDecimal, String, LocalDateTime, String, String, String, scala.math.BigDecimal, Long, String)
   implicit val monoid: Identity[TransactionDetails] =
     new Identity[TransactionDetails]:
@@ -1769,14 +1764,14 @@ final case class Transaction(id: Long,
   def duplicate: Transaction = copy(oid = id, id = 0, posted = false, lines=lines.map(line=>line.copy( id = 0, transid=0)) )
 }
 object Transaction:
-  type TYPE = (Long, Long, String, String, OffsetDateTime, OffsetDateTime, OffsetDateTime, Int, Boolean, Int, String, String, String)
+  type TYPE = (Long, Long, Long, String, String, OffsetDateTime, OffsetDateTime, OffsetDateTime, Int, Boolean, Int, String, String, String)
   type TYPE2= (Long, String, String, LocalDateTime, String, String, Long, Int, String)
   type TYPE3 = (Long, Int, String)
   private type Transaction_Type =
     (Long, Long, Long, String, String, Instant, Instant, Instant, Int, Boolean, Int, String, String, String)
   def apply(tr: Transaction_Type): Transaction =
     new Transaction(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11, tr._12, tr._13, tr._14, Nil)
-  def encodeIt(st: Transaction): TYPE = (st.oid, st.id1, st.store, st.account
+  def encodeIt(st: Transaction): TYPE = (st.id, st.oid, st.id1, st.store, st.account
     , st.transdate.atZone(ZoneId.of("Europe/Paris")).toOffsetDateTime
     , st.enterdate.atZone(ZoneId.of("Europe/Paris")).toOffsetDateTime
     , st.postingdate.atZone(ZoneId.of("Europe/Paris")).toOffsetDateTime

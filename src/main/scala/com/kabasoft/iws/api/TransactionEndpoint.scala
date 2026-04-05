@@ -99,8 +99,9 @@ object TransactionEndpoint:
     mCreate.implement { case (m, _) => {
       val transaction = buildId(m)
       ZIO.logInfo(s"Insert transaction  ${transaction}") *>
-        TransactionRepository.create(transaction) *>
-        TransactionRepository.getById1(transaction.id1, transaction.modelid, transaction.company)
+        TransactionRepository.create(transaction)*>
+       TransactionRepository.all(transaction.modelid, transaction.company).map(_.headOption.getOrElse(Transaction.dummy))
+       // TransactionRepository.getById(transaction.id, transaction.modelid, transaction.company)
      }
     }
 //  val copyTransactionRoute =
