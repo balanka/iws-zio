@@ -16,22 +16,20 @@ final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository
                                      , supplierRepo: SupplierRepository
                                      , companyRepo: CompanyRepository
                                      , accountRepo: AccountRepository
-                                     , vatRepo: VatRepository
-                                    ) extends BankStatementService:
+                                     , vatRepo: VatRepository) extends BankStatementService:
 
   override def post(id: Long, companyId: String): ZIO[Any, RepositoryError, BankStatement] =
     postBankStmtCreateTransaction(List(id), companyId) *> bankStmtRepo.getById((id, BankStatement.MODELID, companyId))
 
   private def postBankStmtCreateTransaction(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, Int] =
     for {
-      accounts <- ZIO.logInfo(s"get account by modelid  ${companyId}  ") *> accountRepo.all((Account.MODELID, companyId))
-      company <- ZIO.logInfo(s"get company by id  ${companyId}  ") *> companyRepo.getById((companyId, Company.MODEL_ID))
-      bankStmt <- ZIO.logInfo(s"get bankStmt by ids  ${ids}  ") *>
-        bankStmtRepo.getBy(ids, BankStatement.MODELID, companyId).map(_.toList)
-      vat <- vatRepo.all((Vat.MODEL_ID, company.id))
-      transactions <- ZIO.logInfo(s"Got bankStmt  ${bankStmt}  ") *> buildTransactions(bankStmt, vat, company, accounts).debug("<<<<<<created transactions")
-      posted <- ZIO.logInfo(s"Created transactions  ${transactions}  ") *> bankStmtRepo.post(bankStmt.map(_.copy(posted=true)), transactions.flatten)
-      _ <- ZIO.logInfo(s"Transaction posted ${posted}  ")
+          accounts <- ZIO.logInfo(s"get account by modelid  ${companyId}") *> accountRepo.all((Account.MODELID, companyId))
+           company <- ZIO.logInfo(s"get company by id  ${companyId}") *> companyRepo.getById((companyId, Company.MODEL_ID))
+           bankStmt <- ZIO.logInfo(s"get bankStmt by ids  ${ids}  ") *> bankStmtRepo.getBy(ids, BankStatement.MODELID, companyId).map(_.toList)
+                vat <- vatRepo.all((Vat.MODEL_ID, company.id))
+           transactions <- ZIO.logInfo(s"Got bankStmt  ${bankStmt} ") *> buildTransactions(bankStmt, vat, company, accounts).debug("<<<<<<created transactions")
+            posted <- ZIO.logInfo(s"Created transactions  ${transactions}  ") *> bankStmtRepo.post(bankStmt.map(_.copy(posted=true)), transactions.flatten)
+                 _ <- ZIO.logInfo(s"Transaction posted ${posted}")
     } yield posted
 
   override def post(ids: List[Long], companyId: String): ZIO[Any, RepositoryError, List[BankStatement]] =

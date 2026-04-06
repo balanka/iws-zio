@@ -71,8 +71,8 @@ final case class ApartmentRepositoryLive(postgres: Resource[Task, Session[Task]]
     } yield Apartment.apply(ap).copy(rooms = rooms_.filter(_.parent == ap.id))
 
     override def getByParent(parent: String, modelid: Int, company: String): ZIO[Any, RepositoryError, List[Apartment]] =for {
-      mf <-mfRepo.getByParent (parent, modelid, company)
-     }yield mf.map(Apartment.apply)
+      masterfiles <-mfRepo.getByParent (parent, modelid, company)
+     }yield masterfiles.map(Apartment.apply)
 
     override def getBy(ids: List[String], modelid: Int, company: String):ZIO[Any, RepositoryError, List[Apartment]] = for {
       apartments <- mfRepo.getBy(ids, modelid, company)

@@ -4,7 +4,7 @@ import cats.*
 import cats.effect.Resource
 import cats.syntax.all.*
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Apartment, Masterfile, RealEstate}
+import com.kabasoft.iws.domain.{Apartment, Floor, Masterfile, RealEstate}
 import skunk.*
 import zio.interop.catz.asyncInstance
 import zio.{Task, ZIO, ZLayer}
@@ -62,18 +62,23 @@ final case class RealEstateRepositoryLive(postgres: Resource[Task, Session[Task]
  
     override def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[RealEstate]] = for {
                   realEstates <- mfRepo.all(Id)
+                  floors_ <- mfRepo.all(Floor.MODEL_ID, Id._2)
                   apartments_ <- aptRepo.all(Apartment.MODEL_ID, Id._2)
-             } yield realEstates.map(p => RealEstate.apply(p).copy(apartments = apartments_.filter(_.parent == p.id)))
+             } yield realEstates.map(p => RealEstate.apply(p).copy(apartments = apartments_.filter(_.parent == p.id)
+                             , floors = floors_.map(Floor.apply1).filter(_.parent == p.id)))
   
     override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, RealEstate] = for {
       mf <- mfRepo.getById(p)
+      floors_ <- mfRepo.all(Floor.MODEL_ID, p._3)
       apartments_ <- aptRepo.getByParent(mf.id, Apartment.MODEL_ID, p._3)
-    } yield RealEstate.apply(mf).copy(apartments = apartments_)
+    } yield RealEstate.apply(mf).copy(apartments = apartments_, floors = floors_.map(Floor.apply1).filter(_.parent == mf.id))
     
     override def getBy(ids: List[String], modelid: Int, company: String):ZIO[Any, RepositoryError, List[RealEstate]] = for {
       realEstates <- mfRepo.getBy(ids, modelid, company)
+      floors_ <- mfRepo.all(Floor.MODEL_ID, company)
       apartments_ <-aptRepo.all(Apartment.MODEL_ID, company)
-    }yield realEstates.map(p => RealEstate.apply(p).copy(apartments = apartments_.filter(_.parent == p.id)))
+    }yield realEstates.map(p => RealEstate.apply(p).copy(apartments = apartments_.filter(_.parent == p.id)
+                                  , floors = floors_.map(Floor.apply1).filter(_.parent == p.id)))
   
     override def delete(p: (String, Int, String)):ZIO[Any, RepositoryError, Int] = mfRepo.delete(p)  
     override def deleteAll(p: List[(String, Int, String)]): ZIO[Any, RepositoryError, Int] = mfRepo.deleteAll(p)

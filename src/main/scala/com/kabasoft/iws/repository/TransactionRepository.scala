@@ -7,9 +7,6 @@ import zio._
 trait TransactionRepository:
   def create(model: Transaction): ZIO[Any, RepositoryError, Int]
   def create(item: List[Transaction]): ZIO[Any, RepositoryError, Int]
-
-//  def copy(p: (Long, Int, String, Int)): ZIO[Any, RepositoryError, Int]
-
   def delete(p:(Long, Int, String)): ZIO[Any, RepositoryError, Int]
   def deleteAll(): ZIO[Any, RepositoryError, Int]
   def all(Id:(Int,  String)): ZIO[Any, RepositoryError, List[Transaction]]

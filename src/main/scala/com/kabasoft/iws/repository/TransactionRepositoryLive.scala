@@ -140,13 +140,13 @@ private[repository] object TransactionRepositorySQL:
   private val transactionCodec =
     int8 *: int8 *: int8 *: varchar *: varchar *: timestamptz *: timestamptz *: timestamptz *: int4 *: bool *: int4 *: varchar *: varchar*: varchar
 
-  private val transactionCodec1 =
-    int8 *: int8 *: varchar *: varchar *: timestamptz *: timestamptz *: timestamptz *: int4 *: bool *: int4 *: varchar *: varchar*: varchar
+//  private val transactionCodec1 =
+//    int8 *: int8 *: varchar *: varchar *: timestamptz *: timestamptz *: timestamptz *: int4 *: bool *: int4 *: varchar *: varchar*: varchar
   private val transactionDetailsCodec =
     int8 *: int8 *: varchar *: varchar *:  numeric(12,2) *: varchar *: numeric(12,2) *: varchar *: timestamp *: varchar *: numeric(12, 2) *: varchar *: varchar
 
-  private val transactionDetailsCodec2 =
-    int8 *: varchar *: varchar *: numeric(12, 2) *: varchar *: numeric(12, 2) *: varchar *: timestamp *: varchar *: numeric(12, 2) *: varchar *: varchar
+//  private val transactionDetailsCodec2 =
+//    int8 *: varchar *: varchar *: numeric(12, 2) *: varchar *: numeric(12, 2) *: varchar *: timestamp *: varchar *: numeric(12, 2) *: varchar *: varchar
 
   val mfDecoder: Decoder[Transaction] = transactionCodec.map:
     case (id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, footText) =>

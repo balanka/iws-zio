@@ -21,7 +21,7 @@ object TransactionEndpoint:
   val idDoc = "The unique Id for identifying the transaction"
   val idsDoc = "The list of transaction Id to post"
   val mCreateAPIFoc = "Create a new transaction"
-  val mCopyAPIFoc = "Create a new transaction ( i.e. bill  of delivery) from an existing one by copying it (i.e. a customer order)"
+  val mCopyAPIDoc = "Create a new transaction ( i.e. bill  of delivery) from an existing one by copying it (i.e. a customer order)"
   val mAllAPIDoc = "Get a transaction by modelId and company"
   val postAllDoc = "Post all transaction with tge specified ids"
   val companyDoc = "The company whom the transaction belongs to (i.e. 111111)"
@@ -37,13 +37,13 @@ object TransactionEndpoint:
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ) ?? Doc.p(mCreateAPIFoc)
   
-  private val mCopy = Endpoint(RoutePattern.POST / "ltr/copy")
-    .in[Transaction]
-    .header(HeaderCodec.authorization)
-    .out[Transaction]
-    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
-      HttpCodec.error[AuthenticationError](Status.Unauthorized)
-    ) ?? Doc.p(mCopyAPIFoc)
+//  private val mCopy = Endpoint(RoutePattern.POST / "ltr/copy")
+//    .in[Transaction]
+//    .header(HeaderCodec.authorization)
+//    .out[Transaction]
+//    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+//      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+//    ) ?? Doc.p(mCopyAPIFoc)
 
   private val mAll = Endpoint(RoutePattern.GET / "ltr" / int("modelid") ?? Doc.p(modelidDoc) / string("company") ??
     Doc.p(companyDoc)).header(HeaderCodec.authorization)
@@ -73,7 +73,7 @@ object TransactionEndpoint:
     .in[Transaction]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
-    ).out[Transaction] ?? Doc.p(mModifyAPIDoc)
+    ).out[Transaction] ?? Doc.p(mCopyAPIDoc)
 
 
   private val mDelete = Endpoint(RoutePattern.DELETE / "ltr" / long("id") ?? Doc.p(modelidDoc) / int("modelid") ?? Doc.p(modelidDoc)

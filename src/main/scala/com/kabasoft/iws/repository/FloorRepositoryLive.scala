@@ -1,12 +1,10 @@
 package com.kabasoft.iws.repository
 
-import cats.*
 import cats.effect.Resource
-import cats.syntax.all.*
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{Apartment, Floor, Masterfile, Room}
-import skunk.*
-import zio.interop.catz.asyncInstance
+import skunk._
+
 import zio.{Task, ZIO, ZLayer}
 
 
@@ -41,14 +39,14 @@ final case class FloorRepositoryLive(postgres: Resource[Task, Session[Task]], mf
     } yield Floor.apply1(mf).copy(apartments = apartments_.filter(_.parent == mf.id))
 
     override def getByParent(parent: String, modelid: Int, company: String): ZIO[Any, RepositoryError, List[Floor]] =for {
-      mf <-mfRepo.getByParent (parent, modelid, company)
-      apartmens_ <- apartRepo.all(Apartment.MODEL_ID, company)
-     } yield mf.map(fromMasterfile)
+      masterfiles <-mfRepo.getByParent (parent, modelid, company)
+      apartments_ <- apartRepo.all(Apartment.MODEL_ID, company)
+     } yield masterfiles.map(fromMasterfile).map(p=>p.copy(apartments = apartments_.filter(_.parent == p.id)))
 
     override def getBy(ids: List[String], modelid: Int, company: String):ZIO[Any, RepositoryError, List[Floor]] = for {
       floors <- mfRepo.getBy(ids, modelid, company)
-      apartmens_ <-apartRepo.all(Apartment.MODEL_ID, company)
-    } yield floors.map(p => fromMasterfile(p).copy(apartments = apartmens_.filter(_.parent == p.id)))
+      apartments_ <-apartRepo.all(Apartment.MODEL_ID, company)
+    } yield floors.map(p => fromMasterfile(p).copy(apartments = apartments_.filter(_.parent == p.id)))
   
     override def delete(p: (String, Int, String)):ZIO[Any, RepositoryError, Int] = mfRepo.delete(p)  
     override def deleteAll(p: List[(String, Int, String)]): ZIO[Any, RepositoryError, Int] = mfRepo.deleteAll(p)

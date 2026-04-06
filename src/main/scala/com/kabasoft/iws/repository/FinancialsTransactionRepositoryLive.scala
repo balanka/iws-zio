@@ -19,8 +19,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
 
   import FinancialsTransactionRepositorySQL._
   
-  val FINANCIAL_SEQUENCE_PREF = "master_compta_id_seq"
-  val FINANCIAL_DETAIL_SEQUENCE_PREF = "details_compta_id_seq"
+
   private def sequenceNames(prefix1: String, prefix2: String, models:List[FinancialsTransaction]) = {
     val company:String = models.headOption.getOrElse(FinancialsTransaction.dummy).company
     ( s"${prefix1}_$company", s"${prefix2}_$company")
@@ -43,18 +42,8 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
       session.prepareR(insert1).use: pciMaster =>
         session.prepareR(insertDetails1).use: pciDetails =>
           tryExec(xa, pciMaster, pciDetails, master2master, master2Details, Details2Details, models, session
-           , sequenceNames(FINANCIAL_SEQUENCE_PREF, FINANCIAL_DETAIL_SEQUENCE_PREF, models))
-  
-  def transact(s: Session[Task], models: List[FinancialsTransaction], oldmodels: List[FinancialsTransaction]): Task[Unit] =
-    s.transaction.use: xa =>
-      s.prepareR(insert).use: pciMaster =>
-        s.prepareR(UPDATE).use: pcuMaster =>
-          s.prepareR(insertDetails).use: pciDetails =>
-            s.prepareR(UPDATE_DETAILS).use: pcuDetails =>
-               tryExec(xa, pciMaster, pciDetails, pcuMaster, pcuDetails
-                , models, models.flatMap(_.lines).map(FinancialsTransactionDetails.encodeIt4)
-                , oldmodels.map(FinancialsTransaction.encodeIt2)
-                , oldmodels.flatMap(_.lines).map(FinancialsTransactionDetails.encodeIt2))
+           , sequenceNames(FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF, 
+              FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF, models))
 
 
   def transact(s: Session[Task], models: List[FinancialsTransaction]): Task[Unit] =
@@ -67,7 +56,8 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
                   , newDetailsFilter, details2UpdateFilter, details2DeleteFilter
                   , master2master, master2Details, Details2Details, FinancialsTransaction.encodeIt2
                   , FinancialsTransactionDetails.encodeIt2, FinancialsTransactionDetails.encodeIt3
-                  , models, sequenceNames (FINANCIAL_SEQUENCE_PREF,FINANCIAL_DETAIL_SEQUENCE_PREF, models))
+                  , models, sequenceNames (FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF,
+                    FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF, models))
 
   override def create(c: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = create(List(c))
 
@@ -150,7 +140,13 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
 object FinancialsTransactionRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]] & AccountRepository, Throwable, FinancialsTransactionRepository] =
     ZLayer.fromFunction(new FinancialsTransactionRepositoryLive(_, _))
-
+  val FINANCIAL_SEQUENCE_PREF = "master_compta_id_seq"
+  val FINANCIAL_DETAIL_SEQUENCE_PREF = "details_compta_id_seq"
+  
+  def sequenceNames(prefix1: String, prefix2: String, models: List[FinancialsTransaction]) = {
+    val company: String = models.headOption.getOrElse(FinancialsTransaction.dummy).company
+    (s"${prefix1}_$company", s"${prefix2}_$company")
+  }
 object FinancialsTransactionRepositorySQL:
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
@@ -265,7 +261,7 @@ object FinancialsTransactionRepositorySQL:
 
   val insert: Command[FinancialsTransaction] =
     sql"""INSERT INTO master_compta
-         (oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content) VALUES $mfEncoder """.command
+         (id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content) VALUES $mfEncoder """.command
 
   def insertAll(n:Int): Command[List[FinancialsTransaction.TYPE]] =
     sql"""INSERT INTO master_compta 

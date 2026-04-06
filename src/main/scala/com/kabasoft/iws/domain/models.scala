@@ -954,6 +954,7 @@ object BankStatement  {
   val DATE_FORMAT     = "dd.MM.yyyy"
   val FIELD_SEPARATOR = ';'
   val NUMBER_FORMAT   = NumberFormat.getInstance(Locale.GERMAN)
+  val dummy:BankStatement=BankStatement(0L, "", Instant.now(), Instant.now(), "", "", "", "", "", BigDecimal.ZERO, "", "", "", "", false, BankStatement.MODELID, 0)
   type TYPE = (Long, String, LocalDateTime, LocalDateTime, String, String, String, String, String, scala.math.BigDecimal, String, String, String, String, Boolean, Int, Int)
   type TYPE4 = (String, LocalDateTime, LocalDateTime, String, String, String, String, String, scala.math.BigDecimal, String, String, String, String, Boolean, Int, Int)
   type TYPE2 = (Boolean, Int, Long, Int, String)

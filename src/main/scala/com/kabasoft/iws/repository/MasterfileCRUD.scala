@@ -1,22 +1,22 @@
 package com.kabasoft.iws.repository
 
-import cats.*
-import cats.syntax.all.*
+import cats._
+import cats.syntax.all._
 import cats.effect.Resource
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{FinancialsTransaction, common}
-import skunk.*
+import skunk._
 import skunk.codec.all.{int8, text}
 import skunk.implicits.sql
 import zio.*
-import zio.interop.catz.*
-
+import zio.interop.catz._
 import java.time.Instant
 
 trait MasterfileCRUD:
 
 
   val sequenceQuery: Query[String, Long] = sql"SELECT nextval($text)".query(int8)
+
   def transact[A, B](s: Session[Task], listA: List[A], listB: List[B], insertA:Command[A], insertB:Command[B]): Task[Unit] =
     s.transaction.use: xa =>
       s.prepareR(insertA).use: pciCustomer =>
@@ -59,7 +59,7 @@ trait MasterfileCRUD:
       yield ()
     }
   def exec[T](session: Session[Task], pci: PreparedCommand[Task, T]
-              , fn: (T, Long) => T, data: List[T], sequenceName:String): ZIO[Any, Throwable, Unit] = 
+              , fn: (T, Long) => T, data: List[T], sequenceName:String):Task[Unit] =
     data.traverse { master =>
       for {
         transid <- session.unique(sequenceQuery)(sequenceName)
@@ -92,18 +92,32 @@ trait MasterfileCRUD:
         }
       } yield ()
     }
-  }   
-  
+  }
 
-      
-//  def tryExec[A](xa: Transaction[Task], pc: PreparedCommand[Task, A], models: List[A]): Task[Unit] =
-//    for
-//      sp <- xa.savepoint
-//      _ <- exec(pc, models)
-//          .handleErrorWith(ex =>
-//            ZIO.logInfo(s"Unique violation: ${ex.getMessage}, rolling back...") *>
-//              xa.rollback(sp))
-//    yield ()
+  def execZ[A, B, C, D](session: Session[Task], masterPci: PreparedCommand[Task, A], detailsPci: PreparedCommand[Task, B]
+                    , updatePcu: PreparedCommand[Task, D], fnSetMasterId: (A, Long) => A
+                    , fnSetDetailsTransId: (A, Long) => List[B], fnSetDetailsId: (B, Long) => B //,fnMasterEncoder:A=>E
+                    , fnUpdateEncoder:C=>D , data: List[A], updateData:List[C], sequenceName: (String, String)): ZIO[Any, Throwable, Unit] = for {
+          _<- updateData.traverse { data2Update =>
+            for {
+              _<- updatePcu.execute(fnUpdateEncoder(data2Update))
+            } yield ()
+          }
+          _<- data.traverse { master =>
+                     for {
+                          transid <- session.unique(sequenceQuery)(sequenceName._1)
+                          masterx = fnSetMasterId(master, transid)
+                                _ <- masterPci.execute(masterx).debug("MMMMM>>>")
+                                _ <- fnSetDetailsTransId(masterx, transid).traverse_ {
+                                  details =>
+                                              for {
+                                                    id <- session.unique(sequenceQuery)(sequenceName._2)
+                                                     _ <- detailsPci.execute(fnSetDetailsId(details, id)).debug("DDDDDDD>>>")
+                                              } yield ()
+                                }
+                    } yield ()
+          }
+       } yield ()
 
   def tryExec[A, B](xa: Transaction[Task], pciCustomer: PreparedCommand[Task, A]
                     , pciBankAcc: PreparedCommand[Task, B]
@@ -184,7 +198,7 @@ trait MasterfileCRUD:
                              , newBankaccounts: List[B]
                              , oldCustomers: List[C]
                              , oldBankaccounts: List[D]
-                             , bankacc2Delete: List[E], s: Session[Task]): Task[Unit] =
+                             , bankacc2Delete: List[E]): Task[Unit] =
 
     for
       sp <- xa.savepoint
@@ -198,34 +212,6 @@ trait MasterfileCRUD:
               xa.rollback(sp))
     yield ()
 
-    
-//  def tryExec[A, B, C, D, E, F](xa: Transaction[Task]
-//                                , pciCustomer: PreparedCommand[Task, A]
-//                                , pciBankAcc: PreparedCommand[Task, B]
-//                                , pcuCustomer: PreparedCommand[Task, C]
-//                                , pcuBankAcc: PreparedCommand[Task, D]
-//                                , pcdCustomer: PreparedCommand[Task, E]
-//                                , pcdBankAcc: PreparedCommand[Task, F]
-//                                , customers: List[A]
-//                                , newBankaccounts: List[B]
-//                                , oldCustomers: List[C]
-//                                , oldBankaccounts: List[D]
-//                                , customer2Delete: List[E]
-//                                , bankacc2Delete: List[F]): Task[Unit] =
-//
-//    for
-//      sp <- xa.savepoint
-//      _ <- exec(pciCustomer, customers) *>
-//        exec(pciBankAcc, newBankaccounts) *>
-//        exec(pcuCustomer, oldCustomers) *>
-//        exec(pcuBankAcc, oldBankaccounts) *>
-//        exec(pcdCustomer, customer2Delete) *>
-//        exec(pcdBankAcc, bankacc2Delete)
-//          .handleErrorWith(ex =>
-//            ZIO.logInfo(s"Unique violation: ${ex.getMessage}, rolling back...") *>
-//              xa.rollback(sp))
-//    yield ()
-//    
   def tryExec4[A, B, C, D, E, F, G](xa: Transaction[Task]
                                  , pciPac: PreparedCommand[Task, A]
                                  , pcuPac: PreparedCommand[Task, B]
@@ -341,8 +327,7 @@ trait MasterfileCRUD:
       .use: session =>
         session
           .prepare(q)
-          //.flatMap(ps => ps.unique(p))
-      //.mapBoth(e => RepositoryError(e.getMessage), a => a).debug("Data/Error")
+
         
   def queryWithTxUnique[A, B](postgres: Resource[Task, Session[Task]], p:A, q:Query[A, B]):ZIO[Any, RepositoryError, B] =
      postgres
@@ -459,16 +444,16 @@ trait MasterfileCRUD:
                  , newMasterFilter: List[A]=> List[A], oldMasterFilter:List[A]=> List[A]
                  , newDetailsFilter: A => List[B], details2UpdateFilter: A => List[B], details2DeleteFilter: A => List[B]
                  , fnSetMasterId: (A, Long) => A, fnSetParentId: (A, Long) => List[B],  fnSetDetailsId: (B, Long) => B
-                 , fnMasterUpdateEncoder:A=>C //, fnDetailsInsertEncoder:B=>F
+                 , fnMasterUpdateEncoder:A=>C
                  , fnDetailsUpdateEncoder:B=>D, fnDetailsDeleteEncoder:B=>E
                  , data: List[A], sequenceName:(String, String)): ZIO[Any, Throwable, Unit] = {
                  newMasterFilter(data).traverse { master =>
                                   for {
-                                        transid <- s.unique(sequenceQuery)(sequenceName._1)
-                                        masterx = fnSetMasterId(master, transid)
+                                        id <- s.unique(sequenceQuery)(sequenceName._1)
+                                        masterx = fnSetMasterId(master, id)
                                               _ <- ZIO.logInfo(s"DDDDDDD>>> new master2Insert $masterx")
                                               _ <- masterPci.execute(masterx).debug("MMMMM>>>")
-                                             _ <- fnSetParentId(masterx, transid).traverse_  { details =>
+                                             _ <- fnSetParentId(masterx, id).traverse_  { details =>
                                                       for {
                                                             _ <- ZIO.logInfo(s"DDDDDDD>>> new details2Insert $details")
                                                             id <- s.unique(sequenceQuery)(sequenceName._2)
@@ -493,9 +478,7 @@ trait MasterfileCRUD:
                                               for {
                                                     id <- s.unique(sequenceQuery)(sequenceName._2)
                                                     _ <- ZIO.logInfo(s"DDDDDDD>>> newDetails ${fnSetDetailsId(details, id)}")
-                                                //encodedDetails= fnDetailsInsertEncoder(fnSetDetailsId(details, id))
-                                                    encodedDetails= fnSetDetailsId(details, id)
-                                                   _ <- detailsPci.execute(encodedDetails).debug("DDDDDDD>>>")
+                                                    _ <- detailsPci.execute(fnSetDetailsId(details, id)).debug("DDDDDDD>>>")
                                               } yield ()
                                       }
                                       _ <- details2DeleteFilter(master).map(fnDetailsDeleteEncoder).traverse_ { details =>
