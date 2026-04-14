@@ -66,6 +66,8 @@ create sequence public.transaction_details_id_seq_1000 start with 2726;
 alter sequence public.transaction_details_id_seq_1000 owner to postgres;
 create sequence public.transaction_log_id_seq_1000 start with 400;
 alter sequence public.transaction_log_id_seq_1000 owner to postgres;
+create sequence public.bankstatement_id_seq_1000 start with 43952;
+alter sequence public.bankstatement_id_seq_1000 owner to postgres;
 
 create sequence master_compta_id_seq_3000 start with 5635;
 alter sequence master_compta_id_seq_3000 owner to postgres;
@@ -77,6 +79,8 @@ create sequence public.transaction_details_id_seq_3000 start with 2726;
 alter sequence public.transaction_details_id_seq_3000 owner to postgres;
 create sequence public.transaction_log_id_seq_3000 start with 400;
 alter sequence public.transaction_log_id_seq_3000 owner to postgres;
+create sequence public.bankstatement_id_seq_3000 start with 1;
+alter sequence public.bankstatement_id_seq_3000 owner to postgres;
 
 create sequence master_compta_id_seq_5000 start with 1;
 alter sequence master_compta_id_seq_5000 owner to postgres;
@@ -90,6 +94,8 @@ create sequence public.transaction_log_id_seq_5000 start with 1;
 alter sequence public.transaction_log_id_seq_5000 owner to postgres;
 create sequence public.journal_id_seq_5000 start with 1;
 alter sequence public.journal_id_seq_5000 owner to postgres;
+create sequence public.bankstatement_id_seq_5000 start with 1;
+alter sequence public.bankstatement_id_seq_5000 owner to postgres;
 
 create sequence master_compta_id_seq_5600 start with 1;
 alter sequence master_compta_id_seq_5600 owner to postgres;
@@ -103,6 +109,11 @@ create sequence public.transaction_log_id_seq_5600 start with 1;
 alter sequence public.transaction_log_id_seq_5600 owner to postgres;
 create sequence public.journal_id_seq_5600 start with 1;
 alter sequence public.journal_id_seq_5600 owner to postgres;
+create sequence public.bankstatement_id_seq_5600 start with 1;
+alter sequence public.bankstatement_id_seq_5600 owner to postgres;
+
+
+ id    |     name     | description  |     postingdate     |     changedate      |      enterdate      | company | modelid | account  | is_debit | balancesheet
 
 
 

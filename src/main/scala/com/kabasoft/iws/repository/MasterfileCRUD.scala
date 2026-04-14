@@ -4,13 +4,11 @@ import cats._
 import cats.syntax.all._
 import cats.effect.Resource
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{FinancialsTransaction, common}
 import skunk._
 import skunk.codec.all.{int8, text}
 import skunk.implicits.sql
 import zio.*
 import zio.interop.catz._
-import java.time.Instant
 
 trait MasterfileCRUD:
 
@@ -44,13 +42,13 @@ trait MasterfileCRUD:
                 tryExec(xa, insertPrepCmdA, insertPrepCmdB, updatePrepCmdA, updatePrepCmdB, deletePrepCmdB
                   , insertListA, insertListB, updateListA, updateListB, deleteListB)
                                  
-  def buildId(transaction: FinancialsTransaction): FinancialsTransaction =
-    if (transaction.id1 > 0L) transaction else {
-      List(transaction).zipWithIndex.map { case (ftr, i) =>
-        val idx = Instant.now().getNano + i.toLong
-        ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
-      }.headOption.getOrElse(transaction)
-    }
+//  def buildId(transaction: FinancialsTransaction): FinancialsTransaction =
+//    if (transaction.id1 > 0L) transaction else {
+//      List(transaction).zipWithIndex.map { case (ftr, i) =>
+//        val idx = Instant.now().getNano + i.toLong
+//        ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
+//      }.headOption.getOrElse(transaction)
+//    }
 
   def exec[T](pc: PreparedCommand[Task, T], list: List[T]): Task[Unit] =
     list.traverse_ { p =>
@@ -75,10 +73,10 @@ trait MasterfileCRUD:
         .handleErrorWith(ex =>
           ZIO.logInfo(s"Unique violation: ${ex.getMessage}, rolling back...") *> xa.rollback(sp))
     yield ()
-     
+
   def exec[T, D](masterPci: PreparedCommand[Task, T], detailsPci: PreparedCommand[Task, D], fm: (T, Long) => T
                  , fn: (T, Long) => List[D], fd: (D, Long) => D, data: List[T], session: Session[Task]
-                 , sequenceName: (String, String)): ZIO[Any, Throwable, List[Unit]] = {
+                 , sequenceName: (String, String)): Task[List[T]] = {
     data.traverse { master =>
       for {
         transid <- session.unique(sequenceQuery)(sequenceName._1)
@@ -90,8 +88,34 @@ trait MasterfileCRUD:
             _ <- detailsPci.execute(fd(details, id)) //.debug("DDDDDDD>>>")
           } yield ()
         }
-      } yield ()
-    }
+      } yield masterx
+    }.mapBoth(e => e, l => l)
+  }
+  
+  def exec[T, D](xa: Transaction[Task], masterPci: PreparedCommand[Task, T], detailsPci: PreparedCommand[Task, D], fm: (T, Long) => T
+                 , fn: (T, Long) => List[D], fd: (D, Long) => D, data: List[T], session: Session[Task]
+                 , sequenceName: (String, String)): ZIO[Any, RepositoryError, List[T]] = {
+    data.traverse { master =>
+      for {
+        transid <- session.unique(sequenceQuery)(sequenceName._1)
+        sp <- xa.savepoint
+        masterx = fm(master, transid)
+        _ <- ZIO.logInfo(s" masterx: $masterx")
+        _ <- masterPci.execute(masterx).debug("MMMMM masterx>>>").handleErrorWith(ex =>
+          ZIO.logInfo(s"Unique violation: ${ex.getMessage}, rolling back...") *> xa.rollback(sp))
+        _ <- fn(masterx, transid).traverse_ { details =>
+          for {
+            id <- session.unique(sequenceQuery)(sequenceName._2)
+            _ <- ZIO.logInfo(s"details: ${details}")
+            detailsx = fd(details, id)
+            _ <- ZIO.logInfo(s"fd(details, id): ${detailsx}")
+            _ <- detailsPci.execute(detailsx).debug("MMMMM details>>>").handleErrorWith(ex =>
+              ZIO.logInfo(s"Unique violation: ${ex.getMessage}, rolling back...") *> xa.rollback(sp)) //.debug("DDDDDDD>>>")
+          } yield ()
+        }
+        _ <- xa.commit
+      } yield masterx
+    }.mapError(e=>RepositoryError(e.getMessage))
   }
 
   def execZ[A, B, C, D](session: Session[Task], masterPci: PreparedCommand[Task, A], detailsPci: PreparedCommand[Task, B]
@@ -131,18 +155,27 @@ trait MasterfileCRUD:
               xa.rollback(sp))
     yield ()
 
-
-
   def tryExec[A, B](xa: Transaction[Task], pciTransaction: PreparedCommand[Task, A]
                     , pciLine: PreparedCommand[Task, B], fm: (A, Long) => A
-                    , fn:(A, Long)=>List[B], fd: (B, Long) => B, transactions: List[A] 
-                    , session: Session[Task], sequenceName:(String, String)): Task[Unit] =
+                    , fn: (A, Long) => List[B], fd: (B, Long) => B, transactions: List[A]
+                    , session: Session[Task], sequenceName: (String, String)): Task[Unit] =
     for
       sp <- xa.savepoint
-      _ <- exec(pciTransaction, pciLine,  fm, fn, fd, transactions, session, sequenceName) 
+      _ <- exec(pciTransaction, pciLine, fm, fn, fd, transactions, session, sequenceName)
         .handleErrorWith(ex =>
           ZIO.logInfo(s"Unique violation: ${ex.getMessage}, rolling back...") *> xa.rollback(sp))
     yield ()
+    
+  def tryExecX[A, B](xa: Transaction[Task], pciTransaction: PreparedCommand[Task, A]
+                    , pciLine: PreparedCommand[Task, B], fm: (A, Long) => A
+                    , fn: (A, Long) => List[B], fd: (B, Long) => B, transactions: List[A]
+                    , session: Session[Task], sequenceName: (String, String)): ZIO[Any, RepositoryError, List[A]] =
+    for
+      //sp <- xa.savepoint
+      trans <- exec(xa, pciTransaction, pciLine, fm, fn, fd, transactions, session, sequenceName)
+        //.handleErrorWith(ex =>
+         // ZIO.logInfo(s"Unique violation: ${ex.getMessage}, rolling back...") *> xa.rollback(sp))
+    yield trans
   
   // C= Customer.TYPE3
   // D= BankAccount.TYPE2
