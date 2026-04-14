@@ -44,7 +44,7 @@ final class PostGoodreceivingLive(accRepo: AccountRepository
     transLogEntries <- buildTransactionLog(transactions, stocks, newStock, articles)
     updatedArticle <- updateAvgPrice(transactions, stocks, articles)
     newFtr = transactions.map(buildTransaction(_,  articles, accounts, suppliers, vats, company.purchasingClearingAcc
-      , TransactionModelId.PAYABLES.id)).unzip
+      , TransactionModelId.PAYABLES.modelid)).unzip
     _<- ZIO.logInfo(s"New FTransactions ${newFtr}")
     (transaction:List[Transaction], financials:List[FinancialsTransaction]) = newFtr
     result <- postFinancials(financials, financialsService)

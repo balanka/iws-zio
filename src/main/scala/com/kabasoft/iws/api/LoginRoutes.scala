@@ -8,6 +8,7 @@ import zio.http.Header.Custom
 import zio.http._
 
 import zio.json.{DecoderOps, EncoderOps}
+import pdi.jwt.{Jwt, JwtAlgorithm, JwtClaim}
 
 object LoginRoutes:
   //private val defaultLifeSpan =  3*365*24*60*60L // 3 years

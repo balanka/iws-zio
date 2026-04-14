@@ -20,13 +20,26 @@ object Utils {
         val result = Jwt.decode(token, SECRET_KEY, Seq(JwtAlgorithm.HS512)).toOption
         println(s"jwtDecodedX  $result")
         result
-      
+
 
   def jwtDecode(token: String, key: String): Try[JwtClaim] =
      val result = Jwt.decode(token, key, Seq(JwtAlgorithm.HS512))
      println(s"jwtDecodedY  $result")
      result
 
+  val bearerAuthWithContext2: HandlerAspect[Any, String] =
+    HandlerAspect.interceptIncomingHandler(Handler.fromFunctionZIO[Request] { request =>
+      request.header(Header.Authorization) match {
+        case Some(Header.Authorization.Bearer(token)) =>
+          ZIO
+            .fromTry(jwtDecode(token.value.asString, SECRET_KEY))
+            .orElseFail(Response.badRequest("Invalid or expired token!"))
+            .flatMap(claim => ZIO.fromOption(claim.subject).orElseFail(Response.badRequest("Missing subject claim!")))
+            .map(u => (request, u))
+
+        case _ => ZIO.fail(Response.unauthorized.addHeaders(Headers(Header.WWWAuthenticate.Bearer(realm = "Access"))))
+      }
+    })
   val bearerAuthWithContext: HandlerAspect[Any, String] =
     HandlerAspect.interceptIncomingHandler(Handler.fromFunctionZIO[Request] { request =>
       request.header(Header.Authorization) match

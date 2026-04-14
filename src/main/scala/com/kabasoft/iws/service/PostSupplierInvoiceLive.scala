@@ -69,7 +69,7 @@ final class PostSupplierInvoiceLive(vatRepo: VatRepository
     vatIds = transactions.flatMap(_.lines.map(_.vatCode)).distinct
     vats <-  vatRepo.getBy(vatIds, Vat.MODEL_ID, company.id)
     newFtr = transactions.map(buildFinancials(_, accounts, suppliers, vats, company.purchasingClearingAcc
-      , TransactionModelId.PAYABLES.id))
+      , TransactionModelId.PAYABLES.modelid))
     (transactionsx:List[Transaction], financials:List[FinancialsTransaction]) = newFtr.unzip
     result <- postFinancials(financials, financialsService)
     models = result.map(_._1)

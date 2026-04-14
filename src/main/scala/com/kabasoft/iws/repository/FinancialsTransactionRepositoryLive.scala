@@ -18,7 +18,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
                    , accRepo: AccountRepository) extends FinancialsTransactionRepository, MasterfileCRUD:
 
   import FinancialsTransactionRepositorySQL._
-  
+
 
   private def sequenceNames(prefix1: String, prefix2: String, models:List[FinancialsTransaction]) = {
     val company:String = models.headOption.getOrElse(FinancialsTransaction.dummy).company
@@ -28,25 +28,34 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
   private def newMasterFilter(list:List[FinancialsTransaction])= list.filter(_.id === -1L)
   private def oldMasterFilter(list:List[FinancialsTransaction])= list.filter(_.id > 0)
   private def master2master(m:FinancialsTransaction, idx:Long)= m.copy(id = idx, id1 = idx)
-  private def master2Details(m:FinancialsTransaction, idx:Long)= m.lines.map(_.copy(transid = idx))
-  private def Details2Details(m:FinancialsTransactionDetails, idx:Long)= m.copy(id = idx)
+  private def master2Details(m:FinancialsTransaction, idx:Long)= m.lines.map(mx=>mx.copy(transid = idx, company = mx.company.replace("-", "")))
+  private def Details2Details(m:FinancialsTransactionDetails, idx:Long)= m.copy(id = idx, company = m.company.replace("-", ""))
   private def newDetailsFilter(m: FinancialsTransaction) = m.lines.filter(line => line.id=== -1L && line.company.contains("-"))
                                                            .map(line => line.copy(company = line.company.replace("-", "")))
   private def details2DeleteFilter (m:FinancialsTransaction)= m.lines.filter(line => line.transid === -2L)
   private def details2UpdateFilter(m: FinancialsTransaction)= m.lines.filter(line => line.id > 0 && line.company.contains("-"))
                                                               .map(line => line.copy(company = line.company.replace("-", "")))
 
+  def insertTransact(session: Session[Task], models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =
+      ZIO.uninterruptibleMask { restore =>
+         restore(session.transaction.use { xa =>
+            restore(session.prepareR(insert1).use { pciMaster =>
+              restore(session.prepareR(insertDetails1).use { pciDetails =>
+                exec(xa, pciMaster, pciDetails, master2master, master2Details, Details2Details,
+                  models, session,
+                  sequenceNames(
+                    FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF,
+                    FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF,
+                    models
+                ) ).catchAll { repoError =>ZIO.fail(new Throwable(repoError.message))
+              }
+            })
+        })
+      }).mapError(e => RepositoryError(e.getMessage))
+    }
 
-  def insertTransact(session: Session[Task], models: List[FinancialsTransaction]): Task[Unit] =
-    session.transaction.use: xa =>
-      session.prepareR(insert1).use: pciMaster =>
-        session.prepareR(insertDetails1).use: pciDetails =>
-          tryExec(xa, pciMaster, pciDetails, master2master, master2Details, Details2Details, models, session
-           , sequenceNames(FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF, 
-              FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF, models))
 
-
-  def transact(s: Session[Task], models: List[FinancialsTransaction]): Task[Unit] =
+  def transact1(s: Session[Task], models: List[FinancialsTransaction]): Task[Unit] =
       s.prepareR(insert).use: pciMaster =>
         s.prepareR(UPDATE).use: pcuMaster =>
           s.prepareR(insertDetails1).use: pciDetails =>
@@ -59,45 +68,193 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
                   , models, sequenceNames (FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF,
                     FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF, models))
 
-  override def create(c: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = create(List(c))
 
-  override def create(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =
-    (postgres
-      .use:
-        session =>
-          insertTransact(session, models.map(buildId).map(tr=>
-            tr.copy(lines = tr.lines.map(line=>line.copy(company = line.company.replace("-", "")))))))
-        .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)
+  def transact(s: Session[Task], models: List[FinancialsTransaction]): Task[Unit] = {
+//    val (masterSeq, detailSeq) = (
+//      FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF,
+//      FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF
+//    )
 
-  override def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = modify(List(model))
+    def nextId(name: String): ZIO[Any, Throwable, Long] = s.unique(sequenceQuery)(name)
 
-  override def modify(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] ={
-    postgres
-      .use:
-        session =>transact(session, models)
-      .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)
-}
+    def withId[A](name: String, f: Long => A): ZIO[Any, Throwable, A] = nextId(name).map(f)
+
+    (for {
+      pciMaster <- s.prepareR(insert)
+      pcuMaster <- s.prepareR(UPDATE)
+      pciDetails <- s.prepareR(insertDetails1)
+      pcuDetails <- s.prepareR(UPDATE_DETAILS)
+      pcdDetails <- s.prepareR(DELETE_DETAILS)
+    } yield (pciMaster, pcuMaster, pciDetails, pcuDetails, pcdDetails)).use {
+      case (pciMaster, pcuMaster, pciDetails, pcuDetails, pcdDetails) =>
+        // Add new masters if any
+        ZIO.foreachDiscard(newMasterFilter(models)) { master =>
+          val (masterSeq, detailSeq) = sequenceNames (
+            FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF
+            , FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF
+            , models)
+          withId(masterSeq, id => master2master(master, id)).flatMap { masterWithId =>
+            ZIO.logInfo(s"Insert master: $masterWithId") *>
+              pciMaster.execute(masterWithId) *>
+              ZIO.foreachDiscard(master2Details(masterWithId, masterWithId.id)) { detail =>
+                withId(detailSeq, id => Details2Details(detail, id)).flatMap { detailWithId =>
+                  ZIO.logInfo(s"Insert detail: $detailWithId") *>
+                    pciDetails.execute(detailWithId)
+                }
+              }
+          }
+        }.*>(
+
+        // Update Old masters, if any to
+        ZIO.foreachDiscard(oldMasterFilter(models)) { master =>
+          val (_, detailSeq) = sequenceNames (
+            FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF
+            , FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF
+            , models)
+          pcuMaster.execute(FinancialsTransaction.encodeIt2(master)) *>
+            ZIO.foreachDiscard(details2UpdateFilter(master).map(FinancialsTransactionDetails.encodeIt2))(pcuDetails.execute) *>
+            ZIO.foreachDiscard(newDetailsFilter(master)) { detail =>
+              withId(detailSeq, id => Details2Details(detail, id)).flatMap { detailWithId =>
+                ZIO.logInfo(s"Insert new detail: $detailWithId") *>
+                  pciDetails.execute(detailWithId)
+              }
+            } *>
+             // delete lines to delete if any to
+            ZIO.foreachDiscard(details2DeleteFilter(master).map(FinancialsTransactionDetails.encodeIt3))(pcdDetails.execute)
+        }
+        )
+    }
+  }
+  override def create(c: FinancialsTransaction): ZIO[Any, RepositoryError, FinancialsTransaction] = for {
+    trans <- modify(List(c)).map(_.headOption.getOrElse(FinancialsTransaction.dummy))
+    //trans <- create(List(c)).map(_.headOption.getOrElse(FinancialsTransaction.dummy))
+       _ <- ZIO.logInfo(s"Inserted : $trans")
+
+   trans2 <- getById(trans.id, trans.modelid, trans.company)
+  } yield trans2
+
+  override def create(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = //modify(models)
+    for {
+      created <- postgres.use { session =>
+        (for {
+          xa <- session.transaction
+          pciMaster <- session.prepareR(insert1)
+          pciDetails <- session.prepareR(insertDetails1)
+          results <- Resource.eval(
+            exec(xa, pciMaster, pciDetails, master2master, master2Details, Details2Details,
+              models, session,
+              sequenceNames(
+                FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF,
+                FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF,
+                models
+              )).mapError(e => new Throwable(e.message))
+          )
+        } yield results).use(ZIO.succeed)
+      }.mapError(e => RepositoryError(e.getMessage))
+
+      detailed <- ZIO.foreach(created) { result =>
+        getById(result.id, result.modelid, result.company)
+      }//.map(_.flatten).mapError(e => RepositoryError(e.message))
+
+    } yield detailed
+
+  // Version interne avec Task (pour .use)
+  private def transactModifyInternal(s: Session[Task], models: List[FinancialsTransaction]): Task[List[FinancialsTransaction]] = {
+    val (seqMaster, seqDetail) = sequenceNames(
+      FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF,
+      FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF,
+      models
+    )
+
+    def nextId(company: String): Task[Long] = s.unique(sequenceQuery)(company)
+
+    def exec[A](cmd: PreparedCommand[Task, A], value: A): Task[Unit] = cmd.execute(value).unit
+
+    def withId[A](company: String, f: Long => A): Task[A] = nextId(company).map(f)
+
+    (for {
+      pciMaster <- s.prepareR(insert1)
+      pcuMaster <- s.prepareR(UPDATE)
+      pciDetails <- s.prepareR(insertDetails1)
+      pcuDetails <- s.prepareR(UPDATE_DETAILS)
+      pcdDetails <- s.prepareR(DELETE_DETAILS)
+    } yield (pciMaster, pcuMaster, pciDetails, pcuDetails, pcdDetails)).use {
+      case (pciMaster, pcuMaster, pciDetails, pcuDetails, pcdDetails) =>
+        for {
+          newMasters <- ZIO.collectAll(
+            newMasterFilter(models).map { master =>
+              withId(seqMaster, id => master2master(master, id)).tap { m =>
+                ZIO.logInfo(s"Insert new master: $m  ") *>
+                exec(pciMaster, m) *>
+                  ZIO.foreachDiscard(master2Details(m, m.id)) { d =>
+                    ZIO.logInfo(s"Insert new details: $d") *>
+                    withId(seqDetail, id => Details2Details(d, id)).tap(exec(pciDetails, _))
+                  }
+              }
+            }
+          )
+
+          updatedMasters <- ZIO.collectAll(
+            oldMasterFilter(models).map { master =>
+              ZIO.succeed(master).tap { m =>
+                ZIO.logInfo(s"updating  old master: $m") *>
+                exec(pcuMaster, FinancialsTransaction.encodeIt2(m)) *>
+                  ZIO.logInfo(s"updating  olddetails: ") *>
+                  ZIO.foreachDiscard(details2UpdateFilter(m).map(FinancialsTransactionDetails.encodeIt2))(exec(pcuDetails, _)) *>
+                  ZIO.foreachDiscard(newDetailsFilter(m)) { d =>
+                    ZIO.logInfo(s"Inserting new details: $d") *>
+                    withId(seqDetail, id => Details2Details(d, id)).tap(exec(pciDetails, _))
+                  } *>
+                  ZIO.logInfo(s"Deleting old details: ") *>
+                  ZIO.foreachDiscard(details2DeleteFilter(m).map(FinancialsTransactionDetails.encodeIt3))(exec(pcdDetails, _))
+              }
+            }
+          )
+        } yield newMasters ++ updatedMasters
+    }
+  }
+
+
+  // Dans votre méthode modify
+  override def modify(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =
+    postgres.use { session =>
+      transactModifyInternal(session, models) // Utilise la version Task
+    }.mapError(e => RepositoryError(e.getMessage))
+
+
+  override def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, FinancialsTransaction] =
+    for {
+      trans <- modify(List(model)).map(_.headOption.getOrElse(FinancialsTransaction.dummy))
+      modified <- getById(trans.id, trans.modelid, trans.company)
+    } yield modified
+
+//  override def modify(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =
+//    postgres.use { session =>
+//      transact(session, models).mapError(e => new Throwable(e.getMessage)) // RepositoryError -> Throwable
+//    }.mapError(e => RepositoryError(e.getMessage))
+
   def list(p: (Int, String)):ZIO[Any, RepositoryError, List[FinancialsTransaction]] = queryWithTx(postgres, p, ALL)
 
   private def  getDetails(p:(Long, String)): ZIO[Any, RepositoryError, List[FinancialsTransactionDetails]] = for {
     details <- queryWithTx(postgres, p, DETAILS1)
+    _ <- ZIO.logInfo(s"Details: $details")
   }yield details
 
-  private def getByTransId1(trans: FinancialsTransaction): ZIO[Any, RepositoryError, FinancialsTransaction] = for {
-    lines_ <- getDetails(trans.id1, trans.company)
+  private def withLines(trans: FinancialsTransaction): ZIO[Any, RepositoryError, FinancialsTransaction] = for {
+    lines_ <- getDetails(trans.id, trans.company)
   } yield trans.copy(lines = if (lines_.nonEmpty) lines_ else List.empty[FinancialsTransactionDetails])
-
-  private def withLines(trans: FinancialsTransaction): ZIO[Any, RepositoryError, FinancialsTransaction] =
-    getByTransId1(trans)
 
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
     transactions <- list(p)
-    details     <-  transactions.map(withLines).flip
-  } yield details
+    transactionsWithDetails     <-  transactions.map(withLines).flip
+   // _ <- ZIO.logInfo(s"transactions with Details: $transactionsWithDetails")
+  } yield transactionsWithDetails
 
   override def getById(p: (Long, Int, String)):ZIO[Any, RepositoryError, FinancialsTransaction] = for { 
     transaction <- queryWithTxUnique(postgres, p, BY_ID)
+    //_ <- ZIO.logInfo(s"transactions : $transaction")
     details <- withLines(transaction)
+   // _ <- ZIO.logInfo(s"transactions with Details: $details")
 } yield details
 
   override def getById1(p: (Long, Int, String)): ZIO[Any, RepositoryError, FinancialsTransaction] = for {
@@ -143,7 +300,7 @@ object FinancialsTransactionRepositoryLive:
   val FINANCIAL_SEQUENCE_PREF = "master_compta_id_seq"
   val FINANCIAL_DETAIL_SEQUENCE_PREF = "details_compta_id_seq"
   
-  def sequenceNames(prefix1: String, prefix2: String, models: List[FinancialsTransaction]) = {
+  def sequenceNames(prefix1: String, prefix2: String, models: List[FinancialsTransaction]): (String, String) = {
     val company: String = models.headOption.getOrElse(FinancialsTransaction.dummy).company
     (s"${prefix1}_$company", s"${prefix2}_$company")
   }
@@ -154,7 +311,7 @@ object FinancialsTransactionRepositorySQL:
   private val financialsTransactionCodec =
     (int8 *: int8 *: int8 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: int4 *: bool *: int4 *: varchar *: varchar *: int4 *: int4)
   private val financialsTransactionCodec4 =
-    int8 *: int8 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: int4 *: bool *: int4 *: varchar *: varchar *: int4 *: int4   
+    int8 *: int8 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: int4 *: bool *: int4 *: varchar *: varchar *: int4 *: int4
   private val financialsDetailsTransactionCodec =
     (int8 *: int8 *: varchar *: bool *: varchar *: numeric(12, 2) *: timestamp *: varchar *: varchar *: varchar *: varchar *: varchar)
   private val financialsDetailsTransactionCodec4 =
@@ -304,6 +461,4 @@ object FinancialsTransactionRepositorySQL:
 
   val DELETE_DETAILS: Command[(Long, String)] = sql"DELETE FROM details_compta WHERE id = $int8 AND company = $varchar".command
   val DELETE_ALL_DETAILS: Command[Void] = sql"DELETE FROM details_compta WHERE company = '-1000'".command
-  def seq : Query[String , Long] = sql"""SELECT nextval($varchar)""".query(int8)
-  
-  
+

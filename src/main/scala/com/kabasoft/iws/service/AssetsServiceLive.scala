@@ -13,7 +13,7 @@ final class AssetsServiceLive(assetRepo: AssetRepository
                               , companyRepo: CompanyRepository,
                               ftrRepo: FinancialsTransactionRepository) extends AssetsService:
 
-  override def generate( period:Int, company: String): ZIO[Any, RepositoryError, Int] = for {
+  override def generate( period:Int, company: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
     _<- ZIO.logInfo(s" Generating  transaction for the period  ${period} and   company ${company}")
     transactions <- build(company).debug("transactions")
     nr           <-  ftrRepo.create(transactions) //ZIO.succeed(transactions).map(_.size) 
@@ -40,7 +40,7 @@ final class AssetsServiceLive(assetRepo: AssetRepository
     val date = Instant.now()
     val period = common.getPeriod(date)
     val line: FinancialsTransactionDetails = buildTransactionDetails (asset, accounts, company)
-    FinancialsTransaction(-1L, -1L, -1L, "100", asset.oaccount, date, date, date, period, posted = false, TransactionModelId.GENERAL_LEDGER.id,
+    FinancialsTransaction(-1L, -1L, -1L, "100", asset.oaccount, date, date, date, period, posted = false, TransactionModelId.GENERAL_LEDGER.modelid,
       asset.company, "Depreciation of asset "+period, 0, 0, List(line))
   )//.mapBoth(e => RepositoryError(e.getMessage), a => a)
 

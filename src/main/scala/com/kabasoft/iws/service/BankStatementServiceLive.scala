@@ -61,7 +61,7 @@ final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository
                                      , partner: BusinessPartner
                                      , optVat: Option[Vat]
                                      , accounts: List[Account]): FinancialsTransaction = {
-    val modelid = if (bs.amount.compareTo(zeroAmount) >= 0) RECEIVABLES.id else PAYABLES.id
+    val modelid = if (bs.amount.compareTo(zeroAmount) >= 0) RECEIVABLES.modelid else PAYABLES.modelid
     buildTransaction(bs, partner, modelid, buildLines(bs, partner, optVat, accounts))
   }
   def buildLines(bs: BankStatement, partner: BusinessPartner, optVat: Option[Vat], accounts: List[Account]): List[FinancialsTransactionDetails] = {
@@ -96,8 +96,8 @@ final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository
   private def buildPaymentSettlement(bs: BankStatement, partner: BusinessPartner, company: Company, accounts: List[Account]): FinancialsTransaction = {
   val bankAccountName = accounts.find(_.id == company.bankAcc).fold(s"Bank account with id ${company.bankAcc} not found!!!")(_.name)
   val accountName = accounts.find(_.id == partner.account).fold(s"Account with id ${partner.account} not found!!!")(_.name)
-  val modelid = if (bs.amount.compareTo(zeroAmount) >= 0) SETTLEMENT.id else PAYMENT.id
-  val line = if (modelid == PAYMENT.id) {
+  val modelid = if (bs.amount.compareTo(zeroAmount) >= 0) SETTLEMENT.modelid else PAYMENT.modelid
+  val line = if (modelid == PAYMENT.modelid) {
     FinancialsTransactionDetails(-1L, -1L, partner.account, side = true, company.bankAcc, bs.amount.abs(), bs.valuedate
       , bs.purpose, bs.currency, company.id, accountName, bankAccountName)
   } else {

@@ -6,10 +6,10 @@ import zio._
 
 trait FinancialsTransactionRepository:
 
-  def create(item: FinancialsTransaction): ZIO[Any, RepositoryError, Int]
-  def create(models: List[FinancialsTransaction]):ZIO[Any, RepositoryError, Int]
-  def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, Int]
-  def modify(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int]
+  def create(item: FinancialsTransaction): ZIO[Any, RepositoryError, FinancialsTransaction]
+  def create(models: List[FinancialsTransaction]):ZIO[Any, RepositoryError, List[FinancialsTransaction]]
+  def modify(model: FinancialsTransaction): ZIO[Any, RepositoryError, FinancialsTransaction]
+  def modify(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]]
   def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]]
   def getById(Id: (Long, Int, String)): ZIO[Any, RepositoryError, FinancialsTransaction]
   def getById1(Id: (Long, Int, String)): ZIO[Any, RepositoryError, FinancialsTransaction]
@@ -25,10 +25,10 @@ trait FinancialsTransactionRepository:
 
 object FinancialsTransactionRepository:
 
-  def create(model: FinancialsTransaction): ZIO[FinancialsTransactionRepository, RepositoryError, Int] =
+  def create(model: FinancialsTransaction): ZIO[FinancialsTransactionRepository, RepositoryError, FinancialsTransaction] =
     ZIO.serviceWithZIO[FinancialsTransactionRepository](_.create(model))
 
-  def create(models: List[FinancialsTransaction]): ZIO[FinancialsTransactionRepository, RepositoryError, Int] =
+  def create(models: List[FinancialsTransaction]): ZIO[FinancialsTransactionRepository, RepositoryError, List[FinancialsTransaction]] =
     ZIO.serviceWithZIO[FinancialsTransactionRepository](_.create(models))
   
   def delete(id: Long, modelid: Int, company: String): ZIO[FinancialsTransactionRepository, RepositoryError, Int] =
@@ -54,10 +54,10 @@ object FinancialsTransactionRepository:
   def find4Period(fromPeriod: Int, toPeriod: Int, modelid:Int, company: String, posted:Boolean): ZIO[FinancialsTransactionRepository, RepositoryError, List[FinancialsTransaction]] =
     ZIO.service[FinancialsTransactionRepository] flatMap (_.find4Period(fromPeriod, toPeriod, modelid, company, posted))
 
-  def modify(model: FinancialsTransaction): ZIO[FinancialsTransactionRepository, RepositoryError, Int] =
+  def modify(model: FinancialsTransaction): ZIO[FinancialsTransactionRepository, RepositoryError, FinancialsTransaction] =
     ZIO.serviceWithZIO[FinancialsTransactionRepository](_.modify(model))
 
-  def modify(models: List[FinancialsTransaction]): ZIO[FinancialsTransactionRepository, RepositoryError, Int] =
+  def modify(models: List[FinancialsTransaction]): ZIO[FinancialsTransactionRepository, RepositoryError, List[FinancialsTransaction]] =
     ZIO.serviceWithZIO[FinancialsTransactionRepository](_.modify(models))
 
 

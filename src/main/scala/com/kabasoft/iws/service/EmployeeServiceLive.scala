@@ -16,7 +16,7 @@ final class EmployeeServiceLive(empRepo: EmployeeRepository
                                 , ftrRepo: FinancialsTransactionRepository) 
                    extends EmployeeService:
 
-  override def generate(period: Int, company: String): ZIO[Any, RepositoryError, Int] = for {
+  override def generate(period: Int, company: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
     _<- ZIO.logDebug(s" Posting transaction for the company ${company}")
     transactions <- build(period, company).debug("transactions")
     nr          <- ftrRepo.create(transactions) //ZIO.succeed(transactions).map(_.size)
@@ -53,7 +53,7 @@ final class EmployeeServiceLive(empRepo: EmployeeRepository
       date,
       period,
       posted = false,
-      TransactionModelId.PAYROLL.id,
+      TransactionModelId.PAYROLL.modelid,
       emp.company,
       "Salary "+period,
       0,

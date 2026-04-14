@@ -46,12 +46,12 @@ trait  PostLogisticalTransaction:
     // build details for vat
     val vatDetails:List[FinancialsTransactionDetails] = model.lines.map { l =>
       val vat = vats.find(vat => vat.id == l.vatCode).getOrElse(Vat.dummy)
-      if (model.modelid == TransactionModelId.SUPPLIER_INVOICE.id) {
+      if (model.modelid == TransactionModelId.SUPPLIER_INVOICE.modelid) {
         val accountName = accounts.find(_.id == partnerAccountId).fold("")(acc => acc.name)
         val oaccountName = accounts.find(_.id == vat.inputVatAccount).fold("")(acc => acc.name)
         FinancialsTransactionDetails(-1, 0, vat.inputVatAccount, side = true, partnerAccountId, l.quantity.multiply(l.price).multiply(vat.percent)
           , Instant.now(), l.text, currency, model.company, accountName, oaccountName)
-      } else if (model.modelid == TransactionModelId.CUSTOMER_INVOICE.id) {
+      } else if (model.modelid == TransactionModelId.CUSTOMER_INVOICE.modelid) {
         val accountName = accounts.find(_.id == vat.outputVatAccount).fold("")(acc => acc.name)
         val oaccountName = accounts.find(_.id == partnerAccountId).fold("")(acc => acc.name)
         FinancialsTransactionDetails(-1, 0, partnerAccountId, side = true, vat.outputVatAccount, l.quantity.multiply(l.price).multiply(vat.percent)
@@ -60,24 +60,24 @@ trait  PostLogisticalTransaction:
     }.filterNot(_.account == FinancialsTransactionDetails.dummy.account)
     // build details for net amount
     val netDetails:List[FinancialsTransactionDetails] = model.lines.map { line =>
-      if (model.modelid == TransactionModelId.GOORECEIVING.id) {
+      if (model.modelid == TransactionModelId.GOORECEIVING.modelid) {
         val account = articleId2Account(line.article, articles, accounts, true)
         val oaccountName = accounts.find(_.id == oaccountId).fold("")(acc => acc.name)
         FinancialsTransactionDetails(-1, 0, account.id, side = true, oaccountId, line.quantity.multiply(line.price), Instant.now()
           , model.text, currency, model.company, account.name, oaccountName)
-      } else if (model.modelid == TransactionModelId.BILL_OF_DELIVERY.id) {
+      } else if (model.modelid == TransactionModelId.BILL_OF_DELIVERY.modelid) {
         val article = articles.find(_.id == line.article).getOrElse(Article.dummy)
         val account = articleId2Account(line.article, articles, accounts, false)
         val oaccount = articleId2Account(line.article, articles, accounts, true)
         FinancialsTransactionDetails(-1, 0, account.id, side = true, oaccount.id, line.quantity.multiply(article.avgPrice), Instant.now()
           , model.text, currency, model.company, account.name, oaccount.name)
-      } else if (model.modelid == TransactionModelId.SUPPLIER_INVOICE.id) {
+      } else if (model.modelid == TransactionModelId.SUPPLIER_INVOICE.modelid) {
         val accountId = oaccountId
         val accountName = accounts.find(_.id == accountId).fold("")(acc => acc.name)
         val oaccountName = accounts.find(_.id == partnerAccountId).fold("")(acc => acc.name)
         FinancialsTransactionDetails(-1, 0, accountId, side = true, partnerAccountId, line.quantity.multiply(line.price), Instant.now()
           , model.text, currency, model.company, accountName, oaccountName)
-      } else if (model.modelid == TransactionModelId.CUSTOMER_INVOICE.id) {
+      } else if (model.modelid == TransactionModelId.CUSTOMER_INVOICE.modelid) {
         val oaccountName = accounts.find(_.id == oaccountId).fold("")(acc => acc.name)
         val accountName = accounts.find(_.id == partnerAccountId).fold("")(acc => acc.name)
         FinancialsTransactionDetails(-1, 0, partnerAccountId , side = true, oaccountId, line.quantity.multiply(line.price), Instant.now()
@@ -130,7 +130,7 @@ trait  PostLogisticalTransaction:
 
   private def createPac(model: Transaction, line: TransactionDetails, accounts: List[Account], articles: List[Article], oaccountId:String): List[PeriodicAccountBalance] = {
     val article: Article = articles.find(_.id == line.article).getOrElse(Article.dummy)
-    val pacList =  if (model.modelid == TransactionModelId.BILL_OF_DELIVERY.id)  {
+    val pacList =  if (model.modelid == TransactionModelId.BILL_OF_DELIVERY.modelid)  {
       val accountId = oaccountId
       val account = accounts.find(_.id == accountId).getOrElse(Account.dummy)
       val oaccount = accounts.find(_.id == article.account).getOrElse(Account.dummy)
@@ -209,7 +209,7 @@ trait  PostLogisticalTransaction:
                           pac: PeriodicAccountBalance, account: String, oaccount: String, side: Boolean, article: Article): Journal = {
     val parentAccount= ""
     val parentOAccount= ""
-    val amount = if (model.modelid == TransactionModelId.BILL_OF_DELIVERY.id) {
+    val amount = if (model.modelid == TransactionModelId.BILL_OF_DELIVERY.modelid) {
       line.quantity.multiply(article.avgPrice)
     } else {
       line.quantity.multiply(line.price)

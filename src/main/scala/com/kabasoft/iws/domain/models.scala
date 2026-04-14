@@ -5,7 +5,7 @@ import zio.stm.*
 import zio.{UIO, *}
 import com.kabasoft.iws.domain.AccountClass.dummy
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.common.zeroAmount
+import com.kabasoft.iws.domain.common.{getPeriod, zeroAmount}
 
 import java.util.Locale
 import java.time.{Instant, LocalDate, LocalDateTime, OffsetDateTime, ZoneId}
@@ -81,27 +81,28 @@ object common:
     val year = LocalDateTime.ofInstant(instant, ZoneId.of("UTC+2")).getYear
     year.toString.concat(getMonthAsString(instant)).toInt
 
-object TransactionModelId extends Enumeration :
-  type modelId = Value
-  val RQF: Value = Value(100)
-  val REQUISITION: Value = Value(101)
-  val CONTRACT: Value = Value(103)
-  val PURCHASE_ORDER: Value = Value(104)
-  val GOORECEIVING: Value = Value(105)
-  val SUPPLIER_INVOICE: Value = Value(1006)
-  val QUOTATION: Value = Value(107)
-  val SALES_CONTRACT: Value = Value(108)
-  val SALES_ORDER: Value = Value(109)
-  val BILL_OF_DELIVERY: Value = Value(110)
-  val CUSTOMER_INVOICE: Value = Value(111)
-  val PAYABLES: Value= Value(112)
-  val PAYMENT: Value = Value(114)
-  val RECEIVABLES: Value = Value(122)
-  val SETTLEMENT: Value = Value(124)
-  val PAYMENT_SETTLEMENT: Value = Value(125)
-  val GENERAL_LEDGER: Value = Value(134)
-  val PAYROLL: Value = Value(136)
-  val CASH: Value = Value(144)
+enum TransactionModelId (val modelid:Int) :
+  //type modelId = Value
+  case  RQF extends TransactionModelId(100)
+  case REQUISITION extends TransactionModelId(101)
+  case CONTRACT extends TransactionModelId(103)
+  case PURCHASE_ORDER extends TransactionModelId(104)
+  case GOORECEIVING extends TransactionModelId(105)
+  case SUPPLIER_INVOICE extends TransactionModelId(1006)
+  case QUOTATION extends TransactionModelId(107)
+  case SALES_CONTRACT extends TransactionModelId(108)
+  case SALES_ORDER extends TransactionModelId(109)
+  case BILL_OF_DELIVERY extends TransactionModelId(110)
+  case CUSTOMER_INVOICE extends TransactionModelId(111)
+  case PAYABLES extends TransactionModelId(112)
+  case PAYMENT extends TransactionModelId(114)
+  case BANK extends TransactionModelId(118)
+  case RECEIVABLES extends TransactionModelId(122)
+  case SETTLEMENT extends TransactionModelId(124)
+  case PAYMENT_SETTLEMENT extends TransactionModelId(125)
+  case GENERAL_LEDGER extends TransactionModelId(134)
+  case PAYROLL extends TransactionModelId(136)
+  case CASH extends TransactionModelId(144)
 
 final case class Store(id: String,
                        name: String,
@@ -783,6 +784,8 @@ object Asset:
 
 sealed trait IWS:
   def id: String
+  def modelid:Int
+  def company:String
 
 final case class Masterfile(id: String,
                             name: String = "",
@@ -1168,17 +1171,17 @@ final case class TStock(id:String, store:String, article:String, quantity:TRef[B
 }
 
 object Stock {
-  import com.kabasoft.iws.domain.common.{given}
+  import com.kabasoft.iws.domain.common.given
   val MODELID = 37
-  val dummy: Stock =   make("-1", "-1", zeroAmount, "", "-1")
+  val dummy: Stock =   make("-1", "-1", zeroAmount, zeroAmount, "", "-1")
   type TYPE2 = (scala.math.BigDecimal, String)
   type TYPE3 = (scala.math.BigDecimal, String, String, Int, String)
   type TYPE4 = (String, String, String, scala.math.BigDecimal, String, String, Int)
   type TYPE = (String, String, String, scala.math.BigDecimal, scala.math.BigDecimal, String, String, Int)
   private type STOCK_Type = (String, String, String,  BigDecimal, BigDecimal, String, String, Int)
-  def buildId(store:String, article:String, charge:String, company:String) = store.concat(article).concat(company).concat(charge)
-  def make (store:String, article:String, quantity:BigDecimal, charge:String, company:String): Stock =
-    Stock( buildId(store, article,  charge, company), store, article, quantity, zeroAmount, charge, company, Stock.MODELID)
+  def buildId(store:String, article:String, charge:String, company:String): String = store.concat(article).concat(company).concat(charge)
+  def make (store:String, article:String, quantity:BigDecimal, price:BigDecimal, charge:String, company:String): Stock =
+    Stock( buildId(store, article,  charge, company), store, article, quantity, price, charge, company, Stock.MODELID)
   def apply(stock: STOCK_Type): Stock = Stock(stock._1, stock._2, stock._3, stock._4, stock._5, stock._6, stock._7, stock._8)
 
   def apply(stock: TStock): ZIO[Any, Nothing, Stock] = for {
@@ -1186,10 +1189,10 @@ object Stock {
   } yield Stock(stock.id, stock.store, stock.article, quantity_, stock.price, stock.charge,  stock.company, stock.modelid)
 
   def create(model: Transaction): List[Stock] =
-    model.lines.map(line => Stock.make(model.store, line.article, line.quantity, "", model.company))
+    model.lines.map(line => Stock.make(model.store, line.article, line.quantity, line.price, "", model.company))
 
   def create(models: List[Transaction]): List[Stock] =
-    val x = models.flatMap(m=>m.lines.map(line => Stock.make(m.store, line.article, line.quantity, "", m.company)))
+    val x = models.flatMap(m=>m.lines.map(line => Stock.make(m.store, line.article, line.quantity, line.price, "", m.company)))
     groupByStock( x).toList
 
   private def groupByStock(r: List[Stock]) =
@@ -1883,6 +1886,10 @@ object FinancialsTransaction:
   def apply(tr: FinancialsTransaction_Type): FinancialsTransaction =
     new FinancialsTransaction(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11, tr._12, tr._13, tr._14)
 
+  def apply(tr: FinancialsTransaction): FinancialsTransaction =
+    new FinancialsTransaction(-1L, tr.id, -1L, tr.costcenter, tr.account, tr.transdate, Instant.now(), Instant.now(), tr.period
+        ,false, tr.modelid,  tr.company, tr.text).copy(lines =tr.lines.map(_.copy(id = -1L, company = s"-${tr.company}")))
+
   def encodeIt(st: FinancialsTransaction): TYPE =
     (st.id, st.oid, st.id, st.costcenter, st.account
       , st.transdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
@@ -2094,4 +2101,23 @@ object RealEstate:
 final case class Profile (token: String, company: String, currency:String, locale:String, language:String
                           , incomeStmtAcc:String, stockAcc:String, expenseAcc:String, revenueAcc:String,  vat: String
                           , modules: List[Module], roles: List[Role], rights:List[UserRight], error: String)
+
+trait CopyTransactionStrategy[A, B]:
+  def copy(trans: A, modelid:Int, company: Company): B
+  
+object CopyFromReceavables2Bank extends CopyTransactionStrategy[FinancialsTransaction, FinancialsTransaction]:
+  def copy(trans: FinancialsTransaction, modelidx:Int, company: Company): FinancialsTransaction = 
+    val linesx = trans.lines.map(l=>l.copy(account = company.bankAcc, oaccount = l.account ))
+    FinancialsTransaction.apply(trans).copy(modelid=modelidx, lines = linesx )
+
+object CopyFromPayables2Bank extends CopyTransactionStrategy[FinancialsTransaction, FinancialsTransaction]:
+  def copy(trans: FinancialsTransaction, modelidx:Int, company: Company): FinancialsTransaction = 
+    val linesx = trans.lines.map(l=>l.copy(account = l.oaccount,  oaccount = company.purchasingClearingAcc ))
+    FinancialsTransaction.apply(trans).copy(modelid=modelidx, lines = linesx )
+  
+object CopySelf extends CopyTransactionStrategy[FinancialsTransaction, FinancialsTransaction]:
+    def copy(trans: FinancialsTransaction, modelidx: Int, company: Company): FinancialsTransaction = 
+      val linesx = trans.lines.map(l => l.copy(account = l.oaccount, oaccount = company.purchasingClearingAcc))
+      FinancialsTransaction.apply(trans).copy(modelid = modelidx, lines = linesx, posted=false, transdate = Instant.now()
+        , period =getPeriod(Instant.now()))
 

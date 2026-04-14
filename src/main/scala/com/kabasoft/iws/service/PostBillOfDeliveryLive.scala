@@ -46,7 +46,7 @@ final class PostBillOfDeliveryLive( accRepo: AccountRepository
     // build transaction's log entries
     transLogEntries <- buildTransactionLog(transactions, stocks, newStock, articles)
     // build financials transaction 
-    newFtr = transactions.map(buildFinancials(_,  articles, accounts, customers, TransactionModelId.RECEIVABLES.id))
+    newFtr = transactions.map(buildFinancials(_,  articles, accounts, customers, TransactionModelId.RECEIVABLES.modelid))
     (transaction:List[Transaction], financials:List[FinancialsTransaction]) = newFtr.unzip
     result <- postFinancials(financials, financialsService)
     models = result.map(_._1)

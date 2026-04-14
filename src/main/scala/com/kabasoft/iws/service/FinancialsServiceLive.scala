@@ -2,21 +2,40 @@ package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.common.given
-import com.kabasoft.iws.domain.{Account, FinancialsTransaction, FinancialsTransactionDetails, Journal, PeriodicAccountBalance, TPeriodicAccountBalance, common}
-import com.kabasoft.iws.repository.{AccountRepository, FinancialsTransactionRepository, JournalRepository, PacRepository, PostFinancialsTransactionRepository}
+import com.kabasoft.iws.domain.{Account, Company, CopyFromPayables2Bank, CopyFromReceavables2Bank, CopySelf, FinancialsTransaction, FinancialsTransactionDetails, Journal, PeriodicAccountBalance, TPeriodicAccountBalance, TransactionModelId, common}
+import com.kabasoft.iws.repository.{AccountRepository, CompanyRepository, FinancialsTransactionRepository, JournalRepository, PacRepository, PostFinancialsTransactionRepository}
 import com.kabasoft.iws.service.FinancialsService.buildPacIds
-import zio._
+import zio.*
+
 import scala.collection.immutable.List
 import zio.prelude.FlipOps
+import TransactionModelId.*
 
 
-final class FinancialsServiceLive( accRepo: AccountRepository
+
+final class FinancialsServiceLive( compRepo: CompanyRepository
+                                  , accRepo: AccountRepository
                                   , pacRepo: PacRepository
                                   , ftrRepo: FinancialsTransactionRepository
                                   , journalRepo: JournalRepository
                                   , repository4PostingTransaction:PostFinancialsTransactionRepository)
              extends FinancialsService:
 
+  override def copyFrom(id:Long, modelidFrom: Int, modelidTo: Int, companyId:String): ZIO[Any, RepositoryError, FinancialsTransaction] =
+    for {
+      company <- compRepo.getById(companyId, Company.MODEL_ID)
+      //_ <- ZIO.logInfo(s" Company with id = $companyId ${company}")
+      trans <- ftrRepo.getById(id, modelidFrom, companyId)
+      //_ <- ZIO.logInfo(s"Financials transaction with id = $id to copy from  ${trans}")
+      transaction =  (trans.modelid, modelidTo)  match {
+        case (RECEIVABLES.modelid, BANK.modelid) => CopyFromReceavables2Bank.copy(trans, modelidTo, company)
+        case (PAYABLES.modelid, BANK.modelid) => CopyFromPayables2Bank.copy(trans, modelidTo, company)
+        case                          _ =>  CopySelf.copy(trans, modelidTo, company)
+      }
+     // _ <- ZIO.logInfo(s"newly Created financials transaction  from one with id = $id ${transaction}")
+      trans2 <- ftrRepo.create(transaction)
+    }yield trans2
+    
   override def journal(accountId: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[Journal]] =
      journalRepo.find4Period(accountId, fromPeriod, toPeriod, company).map(_.toList)
   
@@ -144,6 +163,6 @@ final class FinancialsServiceLive( accRepo: AccountRepository
 
 
 object FinancialsServiceLive:
-  val live: ZLayer[AccountRepository&PacRepository& FinancialsTransactionRepository& JournalRepository& PostFinancialsTransactionRepository
+  val live: ZLayer[AccountRepository&CompanyRepository&PacRepository& FinancialsTransactionRepository& JournalRepository& PostFinancialsTransactionRepository
     , RepositoryError, FinancialsService] =
-    ZLayer.fromFunction(new FinancialsServiceLive(_, _, _, _,_))
+    ZLayer.fromFunction(new FinancialsServiceLive(_, _, _, _,_, _))

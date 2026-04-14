@@ -19,7 +19,9 @@ import zio.http.codec._
 import zio.http.endpoint.Endpoint
 
 object FinancialsEndpoint:
-  val modelidDoc = "The modelId for identifying the typ of financials transaction (Customer / Ventor invoice, setllement, payment, etc... )"
+  val modelidDoc = "The modelId for identifying the typ of financials transaction (Customer / Vendor invoice, setllement, payment, etc... )"
+  val modelidFromDoc = "The modelId for identifying the typ of financials transaction (target) which to copy to"
+  val modelidToDoc = "The modelId for identifying the typ of financials transaction (origin) which to copy from "
   val idDoc = "The unique Id for identifying the financials transaction"
   val idsDoc = "The list of financials transaction's Id to post or to fetch from DB"
   val mCreateAPIFoc = "Create a new financials transaction (Customer / Ventor invoice, setllement, payment, etc... )"
@@ -28,6 +30,8 @@ object FinancialsEndpoint:
   val companyDoc = "The company whom the financials transaction belongs to (i.e. 111111)"
   val mByIdAPIDoc = "Get financials transaction by its Id and modelId"
   val mModifyAPIDoc = "Modify a financials transaction"
+  val mDuplicateAPIDoc = "Copy/duplicate a financials transaction"
+  val mCopyAPIDoc = "Copy a financials transaction from another one"
   val mDeleteAPIDoc = "Delete a financials transaction"
   val postAPIDoc = "Post a financials transaction"
   val postAllAPIDoc = "Post a set of financials transaction with specified ids"
@@ -71,8 +75,15 @@ object FinancialsEndpoint:
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ).out[FinancialsTransaction] ?? Doc.p(mModifyAPIDoc)
-
-
+// copyFromFTr/id/modelidFrom/modelidTo/company
+  private val trCopyFrom = Endpoint(RoutePattern.GET / "copyFromFTr"/int("id") ?? Doc.p(idDoc)
+    /int("modelidFrom") ?? Doc.p(modelidFromDoc) / int("modelidTo")?? Doc.p(modelidToDoc)
+    / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    //.in[FinancialsTransaction]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[FinancialsTransaction] ?? Doc.p(mCopyAPIDoc)
+  
   private val mDelete = Endpoint(RoutePattern.DELETE / "ftr" / long("id") ?? Doc.p(modelidDoc) / int("modelid") ?? Doc.p(modelidDoc)
     / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
@@ -85,19 +96,11 @@ object FinancialsEndpoint:
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized),
     ).out[List[FinancialsTransaction]] ?? Doc.p(postAllDoc)
-
-  def buildId(transaction: FinancialsTransaction): FinancialsTransaction =
-    List(transaction).zipWithIndex.map { case (ftr, i) =>
-      val idx = Instant.now().getNano + i.toLong
-      ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
-    }.headOption.getOrElse(transaction)
   
   val financialsCreateRoute = mCreate.implement { case (p)=> {
-      val transaction = buildId(p._1)
+      val transaction = p._1
       ZIO.logInfo(s"Insert financials transaction  ${transaction}") *>
-      FinancialsTransactionRepository.create(transaction) *>
-        FinancialsTransactionRepository.all(transaction.modelid, transaction.company).map(_.headOption.getOrElse(FinancialsTransaction.dummy))
-      //FinancialsTransactionRepository.getById(transaction.id, transaction.modelid, transaction.company)
+      FinancialsTransactionRepository.create(transaction)
   }}
 
   val financialsAllRoute =
@@ -119,25 +122,28 @@ object FinancialsEndpoint:
   val financialsModifyRoute =
     mModify.implement: (_, m) =>
       ZIO.logInfo(s"Modify financials transaction  ${m}") *>
-        FinancialsTransactionRepository.modify(m) *>
-        FinancialsTransactionRepository.getById((m.id, m.modelid, m.company))
-
+        FinancialsTransactionRepository.modify(m)
+  
   val financialsCancelnRoute =
     trCanceln.implement: (_, ftr) =>
       ZIO.logInfo(s"Canceln  financials transaction ${ftr}") *>
-        FinancialsTransactionRepository.create(ftr.cancel) *>
-        FinancialsTransactionRepository.getById((ftr.id, ftr.modelid, ftr.company))
-
+        FinancialsTransactionRepository.create(ftr.cancel)
+//// copyFromFTr/id/modelidFrom/modelidTo/company
+  val financialsCopyFromRoute =
+    trCopyFrom.implement: (p) =>
+      ZIO.logInfo(s"Copy one transaction from another ${p}") *>
+        FinancialsService.copyFrom(p._1, p._2, p._3, p._4)
+        
   val financialsDuplicateRoute =
     trDuplicate.implement: (_, ftr) =>
       ZIO.logInfo(s"Duplicate  transaction ${ftr}") *>
-        FinancialsTransactionRepository.create(ftr.duplicate) *>
-        FinancialsTransactionRepository.getById((ftr.id, ftr.modelid, ftr.company))
-
+        FinancialsTransactionRepository.create(ftr.duplicate) 
+  
   val financialsDeleteRoute =
     mDelete.implement: (id, modelid, company, _) =>
       FinancialsTransactionRepository.delete(id, modelid, company)
 
   val financialsRoutes = Routes(financialsCreateRoute, financialsAllRoute, financialsPostAllRoute, financialsByIdRoute
-    , financialsModifyRoute, financialsDuplicateRoute, financialsCancelnRoute, financialsDeleteRoute) @@ Middleware.debug
+    , financialsModifyRoute, financialsDuplicateRoute, financialsCancelnRoute, financialsDeleteRoute, financialsCopyFromRoute)
+    @@ Middleware.debug
 

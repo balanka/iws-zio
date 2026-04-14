@@ -54,7 +54,7 @@ private[repository] object StockRepositorySQL:
   
   val mfDecoder: Decoder[Stock] = mfCodec.map:
     case (_, store, article, quantity, price, charge, company, _) =>
-      Stock.make(store, article, quantity.bigDecimal, charge, company)
+      Stock.make(store, article, quantity.bigDecimal, price.bigDecimal, charge, company)
 
   val mfEncoder: Encoder[Stock] = mfCodec_.values.contramap(Stock.encodeIt4)
   //val mfEncoder: Encoder[Stock] = mfCodec.values.contramap(Stock.encodeIt)

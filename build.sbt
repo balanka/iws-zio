@@ -8,13 +8,13 @@ val testcontainersVersion      = "1.21.3"
 val testcontainersScalaVersion = "0.43.0"
 val postgresql                 = "42.7.7"
 val JwtCoreVersion             = "9.1.1"
-val zioSchemaVersion           = "1.7.5"
+val zioSchemaVersion           = "1.8.3"
 val skunkVersion              = "0.6.5"
 //val skunkVersion              = "1.0.0-M7"
-val zioPreludeVersion         = "1.0.0-RC42"
-val zioInteropCatsVersion = "23.1.0.10"
+val zioPreludeVersion         = "1.0.0-RC47"
+val zioInteropCatsVersion = "23.1.0.13"
 val catsVersion           = "2.13.0"
-val catsEffectVersion     = "3.6.3"
+val catsEffectVersion     = "3.7.0"
 
 
 ThisBuild / resolvers +=
@@ -44,8 +44,8 @@ lazy val root = (project in file("."))
       List(
         name         := "iws-skunk",
         organization := "KABA Soft GmbH",
-        version      := "2.4.0",
-         scalaVersion := "3.8.1"
+        version      := "2.4.6",
+         scalaVersion := "3.8.3"
       )
     ),
     name           := "iws-zio",

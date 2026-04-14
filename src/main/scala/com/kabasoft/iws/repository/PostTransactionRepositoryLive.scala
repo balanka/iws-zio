@@ -62,7 +62,8 @@ final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[
       _ <- ZIO.logInfo(s" Transaction posted  ${models}")
       nr <- (postgres
         .use:
-          session => transact(session, models, financials.map(buildId),   transLogEntries, stock2update, newStock, articles))
+          session => transact(session, models, financials//.map(buildId)
+            ,   transLogEntries, stock2update, newStock, articles))
         .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)
     } yield nr
                         
@@ -84,7 +85,8 @@ final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[
       _ <- ZIO.logInfo(s" Transaction posted  ${models}")
       nr <- (postgres
         .use:
-          session => transact(session, models, financials.map(buildId), newPacs, pac2updatex
+          //session => transact(session, models, financials.map(buildId), newPacs, pac2updatex
+          session => transact(session, models, financials, newPacs, pac2updatex
             , transLogEntries, journals, stock2update, newStock, articles))
         .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size)
     } yield nr

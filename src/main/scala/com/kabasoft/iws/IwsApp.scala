@@ -3,7 +3,7 @@ import com.kabasoft.iws.healthcheck.expose
 import com.kabasoft.iws.api.LoginRoutes.loginRoutes
 import com.kabasoft.iws.config.AppConfig
 import com.kabasoft.iws.resources.AppResources
-import zio.interop.catz.*
+import zio.interop.catz._
 import cats.effect.std.Console
 import natchez.Trace.Implicits.noop
 import com.kabasoft.iws.config.appConfig
@@ -33,14 +33,14 @@ import com.kabasoft.iws.api.StoreEndpoint.storeRoutes
 import com.kabasoft.iws.api.SupplierEndpoint.supplierRoutes
 import com.kabasoft.iws.api.TransactionEndpoint.transactionRoutes
 import com.kabasoft.iws.api.UserEndpoint.userRoutes
-import com.kabasoft.iws.api.Utils.bearerAuthWithContext
+import com.kabasoft.iws.api.Utils.bearerAuthWithContext2
 import com.kabasoft.iws.api.ApartmentEndpoint.apartmentRoutes
 import com.kabasoft.iws.api.RoomEndpoint.roomRoutes
 import com.kabasoft.iws.api.RealEstateEndpoint.realEstateRoutes
 import com.kabasoft.iws.api.FloorEndpoint.floorRoutes
 import com.kabasoft.iws.api.VatEndpoint.vatRoutes
-import com.kabasoft.iws.repository.*
-import com.kabasoft.iws.service.*
+import com.kabasoft.iws.repository._
+import com.kabasoft.iws.service._
 import zio.*
 import zio.http.Header.{AccessControlAllowMethods, AccessControlAllowOrigin, Origin}
 import zio.http.Middleware.{CorsConfig, cors}
@@ -103,7 +103,7 @@ object IwsApp extends ZIOAppDefault {
     )
     ZIO.logInfo(s"Starting http server") *>
       Server
-        .serve((loginRoutes++expose++httpApp@@bearerAuthWithContext)@@cors(config))
+        .serve((loginRoutes++expose++httpApp@@bearerAuthWithContext2)@@cors(config))
         .provide(
           serverLayer,
           appResourcesL.project(_.postgres),
