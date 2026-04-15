@@ -1,6 +1,6 @@
-val zioVersion                 = "2.1.22"
-val zioHttpVersion             = "3.7.4"
-val zioJsonVersion             = "0.7.45"
+val zioVersion                 = "2.1.25"
+val zioHttpVersion             = "3.10.1"
+val zioJsonVersion             = "0.9.1"
 val zioConfigVersion           = "4.0.5"
 val logbackVersion             = "1.2.7"
 val testcontainersVersion      = "1.21.3"
@@ -44,7 +44,7 @@ lazy val root = (project in file("."))
       List(
         name         := "iws-skunk",
         organization := "KABA Soft GmbH",
-        version      := "2.4.6",
+        version      := "2.4.8",
          scalaVersion := "3.8.3"
       )
     ),

@@ -25,6 +25,8 @@ insert into user_right (moduleid, roleid, short, company, modelid)  select   mod
 insert into module (id, name, description, company, modelid, path, parent) select id, name, description, '5700',modelid, path, parent from module where company='5600';
 insert into fmodule (id, name, description, company, modelid, account, is_debit, parent, acc_filter, oacc_filter) select id, name, description, '5700',modelid, account, is_debit, parent, acc_filter, oacc_filter from fmodule where company='5600';
 
+insert into article (id,  name, description, parent, sprice, pprice, avg_price,currency, stocked, quantity_unit, pack_unit, account, oaccount, vat_code, company, modelid)
+select id,  name, description, parent, sprice, pprice, avg_price,currency, stocked, quantity_unit, pack_unit, account, oaccount, vat_code, '5700', modelid from article where company='5600';
 
 
 update module set parent='80' where id in ('10', '171', '172', '39', '38', '41') and company='5600';
@@ -165,6 +167,9 @@ select currval('transaction_id_seq');
 select  nextval('transaction_id_seq'::regclass);
 select currval('transaction_details_id_seq'::regclass);
 select  nextval('transaction_details_id_seq'::regclass);
+
+insert into article (id,  name, description, parent, sprice, pprice, avg_price,currency, stocked, quantity_unit, pack_unit, account, oaccount, vat_code, company, modelid)
+    select id,  name, description, parent, sprice, pprice, avg_price,currency, stocked, quantity_unit, pack_unit, account, oaccount, vat_code, '5700', modelid from article where company='5600';
 
 
 - prospects

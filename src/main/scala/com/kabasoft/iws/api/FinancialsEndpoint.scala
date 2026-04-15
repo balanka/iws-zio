@@ -51,6 +51,12 @@ object FinancialsEndpoint:
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ).out[List[FinancialsTransaction]] ?? Doc.p(mAllAPIDoc)
 
+  private val mAlln = Endpoint(RoutePattern.GET / "ftr" /"n"/ string("company") ?? Doc.p(companyDoc)
+    / string("modelid") ?? Doc.p(modelidDoc)).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[List[FinancialsTransaction]] ?? Doc.p(mAllAPIDoc)
+
   private val mById = Endpoint(RoutePattern.GET / "ftr" / long("id") ?? Doc.p(idDoc) / int("modelid") ?? Doc.p(modelidDoc)
     / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
@@ -97,16 +103,20 @@ object FinancialsEndpoint:
       HttpCodec.error[AuthenticationError](Status.Unauthorized),
     ).out[List[FinancialsTransaction]] ?? Doc.p(postAllDoc)
   
-  val financialsCreateRoute = mCreate.implement { case (p)=> {
+  val financialsCreateRoute = mCreate.implement { p =>
       val transaction = p._1
       ZIO.logInfo(s"Insert financials transaction  ${transaction}") *>
       FinancialsTransactionRepository.create(transaction)
-  }}
-
+  }
   val financialsAllRoute =
     mAll.implement: p =>
       ZIO.logInfo(s"Get all financials transaction  for modelid: ${p._1}") *>
         FinancialsTransactionRepository.all((p._1, p._2))
+
+  val financialsAllNRoute =
+    mAlln.implement: p =>
+      ZIO.logInfo(s"Get all financials transaction  for modelid: ${p._2.split(',').map(_.toInt).toList}") *>
+        FinancialsTransactionRepository.alln((p._2.split(',').map(_.toInt).toList, p._1))
 
   val financialsPostAllRoute =
     trPostAll.implement: p =>
@@ -143,7 +153,7 @@ object FinancialsEndpoint:
     mDelete.implement: (id, modelid, company, _) =>
       FinancialsTransactionRepository.delete(id, modelid, company)
 
-  val financialsRoutes = Routes(financialsCreateRoute, financialsAllRoute, financialsPostAllRoute, financialsByIdRoute
+  val financialsRoutes = Routes(financialsCreateRoute, financialsAllRoute, financialsPostAllRoute, financialsByIdRoute, financialsAllNRoute
     , financialsModifyRoute, financialsDuplicateRoute, financialsCancelnRoute, financialsDeleteRoute, financialsCopyFromRoute)
     @@ Middleware.debug
 

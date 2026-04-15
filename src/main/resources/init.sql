@@ -541,6 +541,7 @@ create table if not exists fmodule
     account varchar(50)  not null,
     is_debit boolean,
     parent varchar(50)  not null,
+    copy_from varchar default '',
     company varchar(50)  not null,
     modelid integer  not null
 );
@@ -665,19 +666,19 @@ insert into store (id,  name, description, account, company, modelid) values
                    ('002', 'Nebenlager', 'Nebenlager', '','1000', 35);
 insert into stock (id, store, article, quantity, charge, company, modelid) values ('31100011000', '311', '0001', 0, '', '1000', 37);
 
-insert into fmodule (id,  name, description, account, is_debit, parent, company, modelid) values
-                    (112, 'Payables', 'Payables/Supplier invoices', '1810', false, '1300', '1000', 151),
+insert into fmodule (id,  name, description, account, is_debit, parent, copy_from, company, modelid) values
+                    (112, 'Payables', 'Payables/Supplier invoices', '1810', false, '1300', '','1000', 151),
                     (114, 'Payment', 'Payment', '1810', false, '1300', '1000', 151),
-                    (122, 'Receivables', 'Receivables/Customer invoices', '1810', false, '1300', '1000', 151),
-                    (124, 'Settlement', 'Settlement', '1810', false, '1300', '1000', 151),
-                    (134, 'General ledger', 'General ledger', '1810', false, '1300', '1000', 151),
-                    (136, 'Payroll', 'Payroll', '1810', false, '1300', '1000', 151),
-                    (137,'Purchase order', 'Purchase order', '-1', false,'1301', '1000', 151),
-                    (138,'Goodreceiving', 'Goodreceiving', '-1', false,'1301', '1000', 151),
-                    (139,'Supplier invoice', 'Supplier invoice', '-1', false,'1301', '1000', 151),
-                    (109,'Sales order', 'Sales order', '-1', false,'1301', '1000', 151),
-                    (110,'Bill of delivery', 'Bill of delivery', '-1', false,'1301', '1000', 151),
-                    (111,'Customer invoice', 'Customer invoice', '-1', false,'1301', '1000', 151);
+                    (122, 'Receivables', 'Receivables/Customer invoices', '1810', false, '1300', '', '1000', 151),
+                    (124, 'Settlement', 'Settlement', '1810', false, '1300', '', '1000', 151),
+                    (134, 'General ledger', 'General ledger', '1810', false, '1300', '', '1000', 151),
+                    (136, 'Payroll', 'Payroll', '1810', false, '1300', '', '1000', 151),
+                    (137,'Purchase order', 'Purchase order', '-1', false,'1301', '', '1000', 151),
+                    (138,'Goodreceiving', 'Goodreceiving', '-1', false,'1301', '', '1000', 151),
+                    (139,'Supplier invoice', 'Supplier invoice', '-1', false,'1301', '', '1000', 151),
+                    (109,'Sales order', 'Sales order', '-1', false,'1301', '', '1000', 151),
+                    (110,'Bill of delivery', 'Bill of delivery', '-1', false,'1301', '', '1000', 151),
+                    (111,'Customer invoice', 'Customer invoice', '-1', false,'1301', '', '1000', 151);
 
 insert into role (id,  name, description, company, modelid) values
                  (-1, 'devops', 'DevOps', '1000', 121),

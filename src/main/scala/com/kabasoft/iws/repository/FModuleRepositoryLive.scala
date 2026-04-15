@@ -30,12 +30,12 @@ object FModuleRepositoryLive:
     ZLayer.fromFunction(new FModuleRepositoryLive(_))
 
 private[repository] object FModuleRepositorySQL:
-  type TYPE = (Int, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Boolean, String, Int, String, String, Int, String)
+  type TYPE = (Int, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Boolean, String, String, String, String, Int, String)
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 
   private val mfCodec =
-    (int4 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: varchar  *:bool  *: varchar *:int4 *: varchar *:varchar *:int4 *: varchar)
+    (int4 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: varchar  *:bool  *: varchar *:varchar *: varchar *:varchar *:int4 *: varchar)
   private[repository] def encodeIt(st: Fmodule): TYPE =
     (st.id,
       st.name,
@@ -122,7 +122,7 @@ private[repository] object FModuleRepositorySQL:
 
   val UPDATE: Command[Fmodule.TYPE2] =
     sql"""UPDATE fmodule
-          SET name = $varchar, description = $varchar, account = $varchar, is_debit=$bool, parent=$varchar, copy_from=$int4
+          SET name = $varchar, description = $varchar, account = $varchar, is_debit=$bool, parent=$varchar, copy_from=$varchar
           , acc_filter= $varchar, oacc_filter= $varchar
           WHERE id=$int4 and modelid=$int4 and company= $varchar""".command
   

@@ -129,8 +129,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
     trans <- modify(List(c)).map(_.headOption.getOrElse(FinancialsTransaction.dummy))
     //trans <- create(List(c)).map(_.headOption.getOrElse(FinancialsTransaction.dummy))
        _ <- ZIO.logInfo(s"Inserted : $trans")
-
-   trans2 <- getById(trans.id, trans.modelid, trans.company)
+    trans2 <- getById(trans.id, trans.modelid, trans.company)
   } yield trans2
 
   override def create(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = //modify(models)
@@ -232,7 +231,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
 //    postgres.use { session =>
 //      transact(session, models).mapError(e => new Throwable(e.getMessage)) // RepositoryError -> Throwable
 //    }.mapError(e => RepositoryError(e.getMessage))
-
+  def listn(p: (List[Int], String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = queryWithTx(postgres, p, ALLn(p._1.size))
   def list(p: (Int, String)):ZIO[Any, RepositoryError, List[FinancialsTransaction]] = queryWithTx(postgres, p, ALL)
 
   private def  getDetails(p:(Long, String)): ZIO[Any, RepositoryError, List[FinancialsTransactionDetails]] = for {
@@ -250,6 +249,12 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
    // _ <- ZIO.logInfo(s"transactions with Details: $transactionsWithDetails")
   } yield transactionsWithDetails
 
+  override def alln(p: (List[Int], String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
+    transactions <- listn(p)
+    transactionsWithDetails <- transactions.map(withLines).flip
+    // _ <- ZIO.logInfo(s"transactions with Details: $transactionsWithDetails")
+  } yield transactionsWithDetails
+  
   override def getById(p: (Long, Int, String)):ZIO[Any, RepositoryError, FinancialsTransaction] = for { 
     transaction <- queryWithTxUnique(postgres, p, BY_ID)
     //_ <- ZIO.logInfo(s"transactions : $transaction")
@@ -373,11 +378,17 @@ object FinancialsTransactionRepositorySQL:
            FROM   master_compta
            WHERE id1 = $int8 AND modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
-
+           
   val ALL: Query[Int *: String *: EmptyTuple, FinancialsTransaction] =
     sql"""SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
            FROM   master_compta
            WHERE  modelid = $int4 AND company = $varchar
+           """.query(mfDecoder)
+           
+  def ALLn (n: Int): Query[List[Int] *: String *: EmptyTuple, FinancialsTransaction] =
+    sql"""SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
+           FROM   master_compta
+           WHERE  modelid IN  (${int4.list(n)}) AND company = $varchar
            """.query(mfDecoder)
 
   def ALL_DETAILS_ID(lst: List[Long], company:String) = {
