@@ -2,13 +2,10 @@ package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.AppError.*
-import com.kabasoft.iws.domain.{AppError, FinancialsTransaction, common}
+import com.kabasoft.iws.domain.{AppError, FinancialsTransaction}
 import com.kabasoft.iws.repository.FinancialsTransactionRepository
 import com.kabasoft.iws.service.FinancialsService
 
-import java.time.Instant
-//import com.kabasoft.iws.service.TransactionService
-//import com.kabasoft.iws.api.Protocol._
 import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, ftransactionSchema, repositoryErrorSchema}
 import zio._
 import zio.http.RoutePattern
@@ -115,8 +112,8 @@ object FinancialsEndpoint:
 
   val financialsAllNRoute =
     mAlln.implement: p =>
-      ZIO.logInfo(s"Get all financials transaction  for modelid: ${p._2.split(',').map(_.toInt).toList}") *>
-        FinancialsTransactionRepository.alln((p._2.split(',').map(_.toInt).toList, p._1))
+      ZIO.logInfo(s"Get all financials transaction  for modelid: ${p._2.split(',').map(_.trim.toInt).toList}") *>
+        FinancialsTransactionRepository.alln((p._2.split(',').map(_.trim.toInt).toList, p._1))
 
   val financialsPostAllRoute =
     trPostAll.implement: p =>

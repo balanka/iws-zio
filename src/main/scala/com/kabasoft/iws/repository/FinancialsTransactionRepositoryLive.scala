@@ -29,12 +29,12 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
   private def oldMasterFilter(list:List[FinancialsTransaction])= list.filter(_.id > 0)
   private def master2master(m:FinancialsTransaction, idx:Long)= m.copy(id = idx, id1 = idx)
   private def master2Details(m:FinancialsTransaction, idx:Long)= m.lines.map(mx=>mx.copy(transid = idx, company = mx.company.replace("-", "")))
-  private def Details2Details(m:FinancialsTransactionDetails, idx:Long)= m.copy(id = idx, company = m.company.replace("-", ""))
-  private def newDetailsFilter(m: FinancialsTransaction) = m.lines.filter(line => line.id=== -1L && line.company.contains("-"))
-                                                           .map(line => line.copy(company = line.company.replace("-", "")))
+  private def Details2Details(m:FinancialsTransactionDetails, idx:Long)= m.copy(id = idx)
+  private def newDetailsFilter(m: FinancialsTransaction) = m.lines.filter(line => line.id=== -1L)// && line.company.contains("-"))
+                                                           .map(line => line.copy(transid = m.id))
   private def details2DeleteFilter (m:FinancialsTransaction)= m.lines.filter(line => line.transid === -2L)
-  private def details2UpdateFilter(m: FinancialsTransaction)= m.lines.filter(line => line.id > 0 && line.company.contains("-"))
-                                                              .map(line => line.copy(company = line.company.replace("-", "")))
+  private def details2UpdateFilter(m: FinancialsTransaction)= m.lines.filter(line => line.id > 0 && line.transid === -1L)// && line.company.contains("-"))
+                                                              .map(line => line.copy(transid = m.id))
 
   def insertTransact(session: Session[Task], models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =
       ZIO.uninterruptibleMask { restore =>
@@ -53,21 +53,6 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
         })
       }).mapError(e => RepositoryError(e.getMessage))
     }
-
-
-  def transact1(s: Session[Task], models: List[FinancialsTransaction]): Task[Unit] =
-      s.prepareR(insert).use: pciMaster =>
-        s.prepareR(UPDATE).use: pcuMaster =>
-          s.prepareR(insertDetails1).use: pciDetails =>
-            s.prepareR(UPDATE_DETAILS).use: pcuDetails =>
-              s.prepareR(DELETE_DETAILS).use: pcdDetails =>
-                execX(s, pciMaster, pciDetails, pcuMaster, pcuDetails, pcdDetails, newMasterFilter, oldMasterFilter
-                  , newDetailsFilter, details2UpdateFilter, details2DeleteFilter
-                  , master2master, master2Details, Details2Details, FinancialsTransaction.encodeIt2
-                  , FinancialsTransactionDetails.encodeIt2, FinancialsTransactionDetails.encodeIt3
-                  , models, sequenceNames (FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF,
-                    FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF, models))
-
 
   def transact(s: Session[Task], models: List[FinancialsTransaction]): Task[Unit] = {
 //    val (masterSeq, detailSeq) = (
@@ -112,15 +97,17 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
             , FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF
             , models)
           pcuMaster.execute(FinancialsTransaction.encodeIt2(master)) *>
-            ZIO.foreachDiscard(details2UpdateFilter(master).map(FinancialsTransactionDetails.encodeIt2))(pcuDetails.execute) *>
+            ZIO.foreachDiscard(details2UpdateFilter(master).tapEach( m =>ZIO.logInfo(s"Update old details: $m"))
+              .map(FinancialsTransactionDetails.encodeIt2))(pcuDetails.execute) *>
             ZIO.foreachDiscard(newDetailsFilter(master)) { detail =>
               withId(detailSeq, id => Details2Details(detail, id)).flatMap { detailWithId =>
-                ZIO.logInfo(s"Insert new detail: $detailWithId") *>
+                ZIO.logInfo(s"Insert new details: $detailWithId") *>
                   pciDetails.execute(detailWithId)
               }
             } *>
              // delete lines to delete if any to
-            ZIO.foreachDiscard(details2DeleteFilter(master).map(FinancialsTransactionDetails.encodeIt3))(pcdDetails.execute)
+            ZIO.foreachDiscard(details2DeleteFilter(master).tapEach( m =>ZIO.logInfo(s"Delete old details: $m"))
+               .map(FinancialsTransactionDetails.encodeIt3))(pcdDetails.execute)
         }
         )
     }

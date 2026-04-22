@@ -41,15 +41,7 @@ trait MasterfileCRUD:
               s.prepareR(deleteCmdB).use: deletePrepCmdB =>
                 tryExec(xa, insertPrepCmdA, insertPrepCmdB, updatePrepCmdA, updatePrepCmdB, deletePrepCmdB
                   , insertListA, insertListB, updateListA, updateListB, deleteListB)
-                                 
-//  def buildId(transaction: FinancialsTransaction): FinancialsTransaction =
-//    if (transaction.id1 > 0L) transaction else {
-//      List(transaction).zipWithIndex.map { case (ftr, i) =>
-//        val idx = Instant.now().getNano + i.toLong
-//        ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
-//      }.headOption.getOrElse(transaction)
-//    }
-
+  
   def exec[T](pc: PreparedCommand[Task, T], list: List[T]): Task[Unit] =
     list.traverse_ { p =>
       for
