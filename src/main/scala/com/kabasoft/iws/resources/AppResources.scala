@@ -16,7 +16,7 @@ object AppResources:
   def make(
       cfg: AppConfig
   )(using Temporal[Task], natchez.Trace[Task], Network[Task], Console[Task]): Resource[Task, AppResources] = {
-    
+
     def mkPostgreSqlResource(c: PostgreSQLConfig): SessionPool[Task] =
       Session
         .pooled[Task](
