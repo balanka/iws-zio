@@ -8,7 +8,7 @@ import zio.http.Header.Custom
 import zio.http._
 
 import zio.json.{DecoderOps, EncoderOps}
-import pdi.jwt.{Jwt, JwtAlgorithm, JwtClaim}
+
 
 object LoginRoutes:
   //private val defaultLifeSpan =  3*365*24*60*60L // 3 years
@@ -55,8 +55,7 @@ object LoginRoutes:
       val token = user.hash//Utils.jwtEncode(json, defaultLifeSpan)
       println(s"token >>>>>> $token")
        Response.json(user.toJson).addHeader(Custom("authorization", token))
-        //.addHeader(Custom("Access-Control-Allow-Origin", "*"))
-        .addHeader(Custom("Access-Control-Allow-Origin", webUrl))
+        //.addHeader(Custom("Access-Control-Allow-Origin", webUrl))
     } else {
       Response.unauthorized("Invalid username or password.")
     }

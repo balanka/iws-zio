@@ -77,17 +77,17 @@ object IwsApp extends ZIOAppDefault {
     ) >>> Server.live
   }
 
-  val config: CorsConfig =
-    CorsConfig(
-      allowedOrigin = {
-        case origin @ Origin.Value(_, host, _) if (host == web_hostName ||
-          host == "localhost" || host == "127.0.0.1" ) => Some(AccessControlAllowOrigin.Specific(origin))
-        case _ => None
-      },
-      allowedMethods = AccessControlAllowMethods(Method.GET, Method.POST, Method.PUT, Method.PATCH, Method.DELETE)
-    )
+//  val config: CorsConfig =
+//    CorsConfig(
+//      allowedOrigin = {
+//        case origin @ Origin.Value(_, host, _) if (host == web_hostName ||
+//          host == "localhost" || host == "127.0.0.1" ) => Some(AccessControlAllowOrigin.Specific(origin))
+//        case _ => None
+//      },
+//      allowedMethods = AccessControlAllowMethods(Method.GET, Method.POST, Method.PUT, Method.PATCH, Method.DELETE)
+//    )
 
-  private val httpApp = (AccountRoutes++assetRoutes ++ supplierRoutes++ customerRoutes ++ moduleRoutes ++ companyRoutes 
+  private val httpApp = (AccountRoutes++assetRoutes ++ supplierRoutes++ customerRoutes ++ moduleRoutes ++ companyRoutes
    ++ bankStmtRoutes++transactionRoutes ++fmoduleRoutes++employeeRoutes++articleRoutes++salaryItemRoutes
    ++ importFileRoutes++payrollRoutes++pacRoutes++journalRoutes++payrollRoutes++masterfileRoutes++stockRoutes
    ++ userRoutes++permissionRoutes++payrollTaxRoutes++ financialsRoutes++roleRoutes++vatRoutes++storeRoutes
@@ -103,7 +103,7 @@ object IwsApp extends ZIOAppDefault {
     )
     ZIO.logInfo(s"Starting http server") *>
       Server
-        .serve((loginRoutes++expose++httpApp@@bearerAuthWithContext2)@@cors(config))
+        .serve((loginRoutes++expose++httpApp@@bearerAuthWithContext2))//@@cors(config))
         .provide(
           serverLayer,
           appResourcesL.project(_.postgres),

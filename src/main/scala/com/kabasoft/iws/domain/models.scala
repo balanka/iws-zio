@@ -12,7 +12,7 @@ import java.time.{Instant, LocalDate, LocalDateTime, OffsetDateTime, ZoneId}
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
 import scala.collection.immutable.{::, List, Nil}
-import scala.annotation.{nowarn, tailrec}
+import scala.annotation.tailrec
 import java.math.{BigDecimal, RoundingMode}
 
 

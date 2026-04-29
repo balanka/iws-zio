@@ -21,7 +21,11 @@ ThisBuild / resolvers +=
   "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 ThisBuild / scalacOptions ++= Seq("-Wunused:all","-Xmax-inlines",  "128")
 maintainer := "batexy@gmail.com"
-dockerBaseImage := "openjdk:26-rc-slim"//"openjdk:26-ea-slim"
+//dockerBaseImage := "openjdk:26-rc-slim"//"openjdk:26-ea-slim"
+//dockerBaseImage := "eclipse-temurin:17-jdk-alpine"
+dockerBaseImage := "eclipse-temurin:21-jre-alpine"
+jlinkIgnoreMissingDependency := JlinkIgnore.everything
+dockerEntrypoint := Seq("/opt/docker/jre/bin/java", "-jar", "/opt/docker/lib/iws-api.jar")
 
 //assemblyMergeStrategy in assembly := {
 //  case PathList("META-INF", xs @ _*) => MergeStrategy.discard
@@ -35,16 +39,25 @@ dockerBuildCommand := {
     dockerExecCommand.value ++ Seq("buildx", "build", "--platform=linux/amd64", "--load") ++ dockerBuildOptions.value :+ "."
   } else dockerBuildCommand.value
 }
+assemblyMergeStrategy := {
+  case PathList("scala", "annotation", "unroll.class") => MergeStrategy.last
+  case PathList("scala", "annotation", "unroll.tasty") => MergeStrategy.last
+  case PathList("META-INF", "versions", "11", "module-info.class") => MergeStrategy.last
+  case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.last
+  case PathList("META-INF", "versions", "9", "module-info.class") => MergeStrategy.last
+  case PathList("META-INF", "versions", "9", "OSGI-INF", "MANIFEST.MF") => MergeStrategy.last
+  case x => (assemblyMergeStrategy.value)(x)
+}
 lazy val root = (project in file("."))
   .settings(
     Docker / packageName := "iws-api",
     Compile / mainClass := Some("com.kabasoft.iws.IwsApp"),
-    dockerEnvVars ++= Map(("BUILDPLATFORM", "linux/amd64")),
+    //dockerEnvVars ++= Map(("BUILDPLATFORM", "linux/amd64")),
     inThisBuild(
       List(
         name         := "iws-skunk",
-        organization := "KABA Soft GmbH",
-        version      := "2.5.0",
+        organization := "kabasoft",
+        version      := "2.5.2",
          scalaVersion := "3.8.3"
       )
     ),
