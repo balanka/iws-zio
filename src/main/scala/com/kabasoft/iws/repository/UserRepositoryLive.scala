@@ -57,9 +57,9 @@ final case class UserRepositoryLive(postgres: Resource[Task, Session[Task]], rep
 
   override def getByUserName(p: (String, Int, String)):ZIO[Any, RepositoryError, User]= for {
       users_ <- queryWithTxUnique(postgres, p, BY_NAME)
-      _<- ZIO.logInfo(s"users_ =>> ${users_}")
+      //_<- ZIO.logInfo(s"users_ =>> ${users_}")
       users <- setRoleAndRight(p._3, List(users_))
-      _<- ZIO.logInfo(s"users =>> ${users}")
+      //_<- ZIO.logInfo(s"users =>> ${users}")
   } yield users.headOption.getOrElse(User.dummy)
 
 

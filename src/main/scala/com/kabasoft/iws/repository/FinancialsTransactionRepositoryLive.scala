@@ -28,7 +28,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
   private def newMasterFilter(list:List[FinancialsTransaction])= list.filter(_.id === -1L)
   private def oldMasterFilter(list:List[FinancialsTransaction])= list.filter(_.id > 0)
   private def master2master(m:FinancialsTransaction, idx:Long)= m.copy(id = idx, id1 = idx)
-  private def master2Details(m:FinancialsTransaction, idx:Long)= m.lines.map(mx=>mx.copy(transid = idx, company = mx.company.replace("-", "")))
+  private def master2Details(m:FinancialsTransaction, idx:Long)= m.lines.map(mx=>mx.copy(transid = idx))//, company = mx.company.replace("-", "")))
   private def Details2Details(m:FinancialsTransactionDetails, idx:Long)= m.copy(id = idx)
   private def newDetailsFilter(m: FinancialsTransaction) = m.lines.filter(line => line.id=== -1L)// && line.company.contains("-"))
                                                            .map(line => line.copy(transid = m.id))
@@ -55,13 +55,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
     }
 
   def transact(s: Session[Task], models: List[FinancialsTransaction]): Task[Unit] = {
-//    val (masterSeq, detailSeq) = (
-//      FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF,
-//      FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF
-//    )
-
     def nextId(name: String): ZIO[Any, Throwable, Long] = s.unique(sequenceQuery)(name)
-
     def withId[A](name: String, f: Long => A): ZIO[Any, Throwable, A] = nextId(name).map(f)
 
     (for {
@@ -223,7 +217,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
 
   private def  getDetails(p:(Long, String)): ZIO[Any, RepositoryError, List[FinancialsTransactionDetails]] = for {
     details <- queryWithTx(postgres, p, DETAILS1)
-    _ <- ZIO.logInfo(s"Details: $details")
+    //_ <- ZIO.logInfo(s"Details: $details")
   }yield details
 
   private def withLines(trans: FinancialsTransaction): ZIO[Any, RepositoryError, FinancialsTransaction] = for {
@@ -293,8 +287,10 @@ object FinancialsTransactionRepositoryLive:
   val FINANCIAL_DETAIL_SEQUENCE_PREF = "details_compta_id_seq"
   
   def sequenceNames(prefix1: String, prefix2: String, models: List[FinancialsTransaction]): (String, String) = {
-    val company: String = models.headOption.getOrElse(FinancialsTransaction.dummy).company
-    (s"${prefix1}_$company", s"${prefix2}_$company")
+    val model = models.headOption.getOrElse(FinancialsTransaction.dummy)
+    val modelid: Int = model.modelid
+    val company: String = model.company
+    (s"${prefix1}_${company}_${modelid}", s"${prefix2}_${company}")
   }
 object FinancialsTransactionRepositorySQL:
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
