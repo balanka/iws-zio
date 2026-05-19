@@ -1,10 +1,11 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain._
-import com.kabasoft.iws.repository.{AccountRepository, ArticleRepository, CompanyRepository, JournalRepository,
-  PacRepository, PostTransactionRepository, StockRepository, TransactionLogRepository, TransactionRepository}
-import zio._
+import com.kabasoft.iws.domain.*
+import com.kabasoft.iws.domain.TransactionModelId.{PURCHASE_ORDER, GOORECEIVING, SALES_ORDER, BILL_OF_DELIVERY
+  , CUSTOMER_INVOICE, SUPPLIER_INVOICE}
+import com.kabasoft.iws.repository.{AccountRepository, ArticleRepository, CompanyRepository, FModuleRepository, JournalRepository, PacRepository, PostTransactionRepository, StockRepository, TransactionLogRepository, TransactionRepository}
+import zio.*
 
 final class TransactionServiceLive(trRepo: TransactionRepository
                                    , orderService:PostOrder
@@ -13,6 +14,7 @@ final class TransactionServiceLive(trRepo: TransactionRepository
                                    , postBillOfDelivery: PostBillOfDelivery
                                    , postSupplierInvoice: PostSupplierInvoice
                                    , postCustomerInvoice: PostCustomerInvoice
+                                   //, fmoduleRepo: FModuleRepository
                                    , companyRepository: CompanyRepository
                                   ) extends TransactionService:
 
@@ -29,12 +31,12 @@ final class TransactionServiceLive(trRepo: TransactionRepository
     company <- companyRepository.getById((companyId, Company.MODEL_ID))
     models = queries.filter(_.posted == false).map(_.copy(posted = true))
     _<- ZIO.logInfo(s"Posting transactions  ${models}")
-    goodreceiving = models.filter(_.modelid == TransactionModelId.GOORECEIVING.modelid)
-    bilOfDelivery = models.filter(_.modelid == TransactionModelId.BILL_OF_DELIVERY.modelid)
-    purchaseOrder = models.filter(_.modelid == TransactionModelId.PURCHASE_ORDER.modelid)
-    salesOrder = models.filter(_.modelid == TransactionModelId.SALES_ORDER.modelid)
-    supplierInvoice = models.filter(_.modelid == TransactionModelId.SUPPLIER_INVOICE.modelid)
-    customerInvoice = models.filter(_.modelid == TransactionModelId.CUSTOMER_INVOICE.modelid)
+    goodreceiving = models.filter(_.modelid == GOORECEIVING.modelid)
+    bilOfDelivery = models.filter(_.modelid == BILL_OF_DELIVERY.modelid)
+    purchaseOrder = models.filter(_.modelid == PURCHASE_ORDER.modelid)
+    salesOrder = models.filter(_.modelid == SALES_ORDER.modelid)
+    supplierInvoice = models.filter(_.modelid == SUPPLIER_INVOICE.modelid)
+    customerInvoice = models.filter(_.modelid == CUSTOMER_INVOICE.modelid)
     postedOrder <- ZIO.when(purchaseOrder.nonEmpty)(orderService.postAll(purchaseOrder, company))
     postedSalesOrder <- ZIO.when(salesOrder.nonEmpty)( salesOrderService.postAll(salesOrder, company))
     postedGoodreceiving <- ZIO.when(goodreceiving.nonEmpty)(postGoodreceiving.postAll(goodreceiving, company))
@@ -46,11 +48,30 @@ final class TransactionServiceLive(trRepo: TransactionRepository
 
   override def post(id: (Long, Int), company: String): ZIO[Any, RepositoryError, Int] = postAll(List(id), company)
 
+  override def copyFrom(id: Long, modelidFrom: Int, modelidTo: Int, companyId: String): ZIO[Any, RepositoryError, Transaction] =
+    for {
+      company <- companyRepository.getById(companyId, Company.MODEL_ID)
+      //fmodule <- fmoduleRepo.getById(modelidTo, Fmodule.MODEL_ID, companyId)
+      //account <- accRepo.getById(fmodule.account, Account.MODELID, companyId)
+      _ <- ZIO.logInfo(s" Company with id = $companyId ${company}")
+      trans <- trRepo.getById(id, modelidFrom, companyId)
+      _ <- ZIO.logInfo(s"Copying the transaction ${trans} to a new one with modelid $modelidTo ")
+      transaction = (trans.modelid, modelidTo) match {
+        case (PURCHASE_ORDER.modelid, GOORECEIVING.modelid) => Copy2Self.copy(trans,  modelidTo, company)
+        case (GOORECEIVING.modelid, SUPPLIER_INVOICE.modelid) => Copy2Self.copy(trans,  modelidTo, company)
+        case (SALES_ORDER.modelid, BILL_OF_DELIVERY.modelid) => Copy2Self.copy(trans,  modelidTo, company)
+        case (BILL_OF_DELIVERY.modelid, CUSTOMER_INVOICE.modelid) => Copy2Self.copy(trans,  modelidTo, company)
+        case _ => Copy2Self.copy(trans,  modelidTo, company)
+      }
+       _ <- ZIO.logInfo(s"newly Created financials transaction  from one with id = $id ${transaction}")
+      trans2 <- trRepo.create(transaction)
+    } yield trans2
+
 
 
 object TransactionServiceLive:
   val live: ZLayer[PacRepository& TransactionRepository& TransactionLogRepository& AccountRepository& PostOrder& PostSalesOrder&
-     PostGoodreceiving&  PostBillOfDelivery&  PostCustomerInvoice& PostSupplierInvoice&CompanyRepository&
+     PostGoodreceiving&  PostBillOfDelivery&  PostCustomerInvoice& PostSupplierInvoice&CompanyRepository& //FModuleRepository&
     JournalRepository&  ArticleRepository&  StockRepository&  PostTransactionRepository, RepositoryError, TransactionService] =
     ZLayer.fromFunction(new TransactionServiceLive(_, _, _, _, _, _, _,_))
 

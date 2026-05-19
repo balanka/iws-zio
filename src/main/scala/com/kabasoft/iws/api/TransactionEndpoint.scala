@@ -2,13 +2,11 @@ package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.AppError.*
-import com.kabasoft.iws.domain.{AppError, Transaction, common}
+import com.kabasoft.iws.domain.{AppError, Transaction}
 import com.kabasoft.iws.repository.TransactionRepository
 import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, repositoryErrorSchema, transactionSchema}
 import com.kabasoft.iws.service.TransactionService
 
-import java.time.Instant
-//import zio.schema.annotation.description
 import zio._
 import zio.schema.Schema
 import zio.http._
@@ -19,6 +17,8 @@ import zio.http.endpoint.Endpoint
 object TransactionEndpoint:
   val modelidDoc = "The modelId for identifying the typ of transaction "
   val idDoc = "The unique Id for identifying the transaction"
+  val modelidFromDoc = "The modelId for identifying the type of the transaction (target) which to copy to"
+  val modelidToDoc = "The modelId for identifying the type of the transaction (origin) which to copy from "
   val idsDoc = "The list of transaction Id to post"
   val mCreateAPIFoc = "Create a new transaction"
   val mCopyAPIDoc = "Create a new transaction ( i.e. bill  of delivery) from an existing one by copying it (i.e. a customer order)"
@@ -36,14 +36,14 @@ object TransactionEndpoint:
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ) ?? Doc.p(mCreateAPIFoc)
-  
-//  private val mCopy = Endpoint(RoutePattern.POST / "ltr/copy")
-//    .in[Transaction]
-//    .header(HeaderCodec.authorization)
-//    .out[Transaction]
-//    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
-//      HttpCodec.error[AuthenticationError](Status.Unauthorized)
-//    ) ?? Doc.p(mCopyAPIFoc)
+
+  // copyFromLTr/id/modelidFrom/modelidTo/company
+  private val trCopyFrom = Endpoint(RoutePattern.GET / "ltrx" / int("id") ?? Doc.p(idDoc)
+    / int("modelidFrom") ?? Doc.p(modelidFromDoc) / int("modelidTo") ?? Doc.p(modelidToDoc)
+    / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[Transaction] ?? Doc.p(mCopyAPIDoc)
 
   private val mAll = Endpoint(RoutePattern.GET / "ltr" / int("modelid") ?? Doc.p(modelidDoc) / string("company") ??
     Doc.p(companyDoc)).header(HeaderCodec.authorization)
@@ -89,28 +89,16 @@ object TransactionEndpoint:
       HttpCodec.error[AuthenticationError](Status.Unauthorized),
     ).out[List[Transaction]] ?? Doc.p(postAllDoc)
 
-  def buildId(transaction: Transaction): Transaction =
-    List(transaction).zipWithIndex.map { case (ftr, i) =>
-      val idx = Instant.now().getNano + i.toLong
-      ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
-    }.headOption.getOrElse(transaction)
 
   val createTransactionRoute =
-    mCreate.implement { case (m, _) => {
-      val transaction = buildId(m)
-      ZIO.logInfo(s"Insert transaction  ${transaction}") *>
-        TransactionRepository.create(transaction)*>
-       TransactionRepository.all(transaction.modelid, transaction.company).map(_.headOption.getOrElse(Transaction.dummy))
-       // TransactionRepository.getById(transaction.id, transaction.modelid, transaction.company)
-     }
-    }
-//  val copyTransactionRoute =
-//    mCopy.implement { case (m, _) => { 
-//      val transaction = buildId(m)
-//      ZIO.logInfo(s"Insert transaction  ${transaction}") *>
-//        TransactionRepository.create(transaction) *>
-//        TransactionRepository.getById1(transaction.id1, transaction.modelid, transaction.company)
-//    }
+       mCreate.implement { case (transaction, _) =>
+         ZIO.logInfo(s"Insert transaction  ${transaction}") *> TransactionRepository.create(transaction)
+       }
+
+  val copyTransactionRoute =
+    trCopyFrom.implement: (p) =>
+      ZIO.logInfo(s"Copy one transaction from another ${p}") *>
+        TransactionService.copyFrom(p._1, p._2, p._3, p._4)
 
 
   val trAllRoute =
@@ -127,31 +115,24 @@ object TransactionEndpoint:
 
   val trByIdRoute =
     mById.implement: p =>
-      ZIO.logInfo(s"Modify transaction  ${p}") *>
-        TransactionRepository.getById(p._1, p._2, p._3)
+      ZIO.logInfo(s"Modify transaction  ${p}") *> TransactionRepository.getById(p._1, p._2, p._3)
 
   val modifyTransactionRoute =
     mModify.implement: (_, m) =>
-      ZIO.logInfo(s"Modify transaction  ${m}") *>
-        TransactionRepository.modify(m) *>
-        TransactionRepository.getById((m.id, m.modelid, m.company))
+      ZIO.logInfo(s"Modify transaction  ${m}") *> TransactionRepository.modify(m)
 
   val trCancelnRoute =
     trCanceln.implement: (_, ftr) =>
-      ZIO.logInfo(s"Canceln  transaction ${ftr}") *>
-        TransactionRepository.create(ftr.cancel)  *>
-        TransactionRepository.getById((ftr.id, ftr.modelid, ftr.company))
+      ZIO.logInfo(s"Canceln  transaction ${ftr}") *> TransactionRepository.create(ftr.cancel)
 
   val trDuplicateRoute =
     trDuplicate.implement: (_, ftr) =>
-      ZIO.logInfo(s"Duplicate  transaction ${ftr}") *>
-        TransactionRepository.create(ftr.duplicate) *>
-        TransactionRepository.getById((ftr.id, ftr.modelid, ftr.company))
+      ZIO.logInfo(s"Duplicate  transaction ${ftr}") *> TransactionRepository.create(ftr.duplicate)
 
   val deleteTransactionRoute =
      mDelete.implement: (id, modelid, company, _) =>
        TransactionRepository.delete(id, modelid, company)
 
   val transactionRoutes = Routes(createTransactionRoute, trAllRoute, trPostAllRoute, trByIdRoute, modifyTransactionRoute
-    , trDuplicateRoute, trCancelnRoute, deleteTransactionRoute) @@ Middleware.debug
+    , trDuplicateRoute, trCancelnRoute, deleteTransactionRoute, copyTransactionRoute) @@ Middleware.debug
       

@@ -2102,25 +2102,32 @@ final case class Profile (token: String, company: String, currency:String, local
                           , incomeStmtAcc:String, stockAcc:String, expenseAcc:String, revenueAcc:String,  vat: String
                           , modules: List[Module], roles: List[Role], rights:List[UserRight], error: String)
 
-trait CopyTransactionStrategy[A, B, C]:
+trait CopyFinancialsStrategy[A, B, C]:
   def copy(trans: A, account:C, modelid:Int, company: Company): B
   
-object CopyFromReceavables2Bank extends CopyTransactionStrategy[FinancialsTransaction, FinancialsTransaction, Account]:
+object CopyFromReceavables2Bank extends CopyFinancialsStrategy[FinancialsTransaction, FinancialsTransaction, Account]:
   def copy(trans: FinancialsTransaction, account:Account, modelidx:Int, company: Company): FinancialsTransaction =
     val linesx = trans.lines.map(l=>l.copy(account = account.id, accountName = account.name, oaccount = l.account
       , oaccountName = l.accountName))
-    FinancialsTransaction.apply(trans).copy(modelid=modelidx, lines = linesx )
+    FinancialsTransaction.apply(trans).copy(modelid=modelidx, posted=false, transdate = Instant.now(), lines = linesx )
 
-object CopyFromPayables2Bank extends CopyTransactionStrategy[FinancialsTransaction, FinancialsTransaction, Account]:
+object CopyFromPayables2Bank extends CopyFinancialsStrategy[FinancialsTransaction, FinancialsTransaction, Account]:
   def copy(trans: FinancialsTransaction, account:Account, modelidx:Int, company: Company): FinancialsTransaction =
     val linesx = trans.lines.map(l=>l.copy(account = l.oaccount, accountName = l.oaccountName, oaccount = account.id
       , oaccountName = account.name ))
-    FinancialsTransaction.apply(trans).copy(modelid=modelidx, lines = linesx )
+    FinancialsTransaction.apply(trans).copy(modelid=modelidx, posted=false, transdate = Instant.now(), lines = linesx )
   
-object CopySelf extends CopyTransactionStrategy[FinancialsTransaction, FinancialsTransaction, Account]:
+object CopySelf extends CopyFinancialsStrategy[FinancialsTransaction, FinancialsTransaction, Account]:
     def copy(trans: FinancialsTransaction, account:Account, modelidx: Int, company: Company): FinancialsTransaction =
       val linesx = trans.lines.map(l => l.copy(account = l.account, accountName = l.accountName, oaccount =l.oaccount
         , oaccountName = l.oaccountName))
       FinancialsTransaction.apply(trans).copy(modelid = modelidx, lines = linesx, posted=false, transdate = Instant.now()
         , period =getPeriod(Instant.now()))
 
+trait CopyTransactionStrategy[A, B]:
+  def copy(trans: A,  modelidTo:Int, company: Company): B
+
+object Copy2Self extends CopyTransactionStrategy[Transaction, Transaction]:
+  def copy(trans: Transaction,  modelidTo: Int, company: Company): Transaction =
+    trans.copy(id = -1L, oid = trans.id,  modelid = modelidTo,  posted=false, transdate = Instant.now()
+      , period =getPeriod(Instant.now()), lines = trans.lines.map((line:TransactionDetails) =>line.copy(id = -1L, transid = -1L, company = company.id)))

@@ -44,11 +44,7 @@ object LoginRoutes:
     println(s"pwd >>>>>> $pwd")
     val iwsWeb =scala.util.Properties.envOrElse("IWS_WEB_HOST", "http://127.0.0.1")
     println(s" IWS_WEB_HOST >>>>>> ${iwsWeb}")
-
     val webUrl = scala.util.Properties.envOrElse("IWS_WEB_HOST", "http://192.168.64.1")
-   // val webUrl = scala.util.Properties.envOrElse("IWS_WEB_URL", "http://127.0.0.1:3000")
-    //val webUrl = scala.util.Properties.envOrElse("IWS_WEB_URL", s"http://localhost:5173")
-    //if (env.keySet().contains("IWS_WEB_URL")) env.get("IWS_WEB_URL") else "http://localhost:3000"
     println(s" Effective webUrl >>>>>> $webUrl")
     if (check) {
       //val json = s""""$loginRequest.password""""

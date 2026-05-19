@@ -42,10 +42,8 @@ import com.kabasoft.iws.api.VatEndpoint.vatRoutes
 import com.kabasoft.iws.repository._
 import com.kabasoft.iws.service._
 import zio.*
-import zio.http.Header.{AccessControlAllowMethods, AccessControlAllowOrigin, Origin}
-import zio.http.Middleware.{CorsConfig, cors}
 import zio.http.Server.Config
-import zio.http.{Method, Server}
+import zio.http.Server
 
 import java.lang.System
 import java.time.Clock

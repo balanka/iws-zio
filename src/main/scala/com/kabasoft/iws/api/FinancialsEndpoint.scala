@@ -78,11 +78,10 @@ object FinancialsEndpoint:
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ).out[FinancialsTransaction] ?? Doc.p(mModifyAPIDoc)
-// copyFromFTr/id/modelidFrom/modelidTo/company
-  private val trCopyFrom = Endpoint(RoutePattern.GET / "copyFromFTr"/int("id") ?? Doc.p(idDoc)
+  // ftrx/id/modelidFrom/modelidTo/company
+  private val trCopyFrom = Endpoint(RoutePattern.GET / "ftrx"/int("id") ?? Doc.p(idDoc)
     /int("modelidFrom") ?? Doc.p(modelidFromDoc) / int("modelidTo")?? Doc.p(modelidToDoc)
     / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
-    //.in[FinancialsTransaction]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ).out[FinancialsTransaction] ?? Doc.p(mCopyAPIDoc)

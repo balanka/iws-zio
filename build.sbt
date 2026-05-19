@@ -8,7 +8,7 @@ val testcontainersVersion      = "1.21.3"
 val testcontainersScalaVersion = "0.43.0"
 val postgresql                 = "42.7.7"
 val JwtCoreVersion             = "9.1.1"
-val zioSchemaVersion           = "1.8.3"
+val zioSchemaVersion           = "1.8.5"
 val skunkVersion              = "0.6.5"
 //val skunkVersion              = "1.0.0"
 val zioPreludeVersion         = "1.0.0-RC47"
@@ -32,8 +32,8 @@ dockerEntrypoint := Seq("/opt/docker/jre/bin/java", "-jar", "/opt/docker/lib/iws
 //  case x => MergeStrategy.first
 //}
 dockerBuildCommand := {
-  if (sys.props("os.arch") == "amd64") {
-  //if (sys.props("os.arch") != "amd64") {
+  //if (sys.props("os.arch") == "amd64") {
+  if (sys.props("os.arch") != "amd64") {
     // use buildx with platform to build supported amd64 images on other CPU architectures
     // this may require that you have first run 'docker buildx create' to set docker buildx up
     dockerExecCommand.value ++ Seq("buildx", "build", "--platform=linux/amd64", "--load") ++ dockerBuildOptions.value :+ "."
@@ -57,7 +57,7 @@ lazy val root = (project in file("."))
       List(
         name         := "iws-skunk",
         organization := "kabasoft",
-        version      := "2.5.4",
+        version      := "2.6.3",
          scalaVersion := "3.8.3"
       )
     ),
