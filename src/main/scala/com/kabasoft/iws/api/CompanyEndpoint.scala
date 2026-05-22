@@ -52,7 +52,7 @@ object CompanyEndpoint:
 
   val createCompanyRoute =
     mCreate.implement: (m,_) =>
-      ZIO.logInfo(s"Insert company  ${m}") 
+      ZIO.logInfo(s"Insert company  ${m}")
         *> CompanyRepository.create(m)
         *> CompanyRepository.getById(m.id, m.modelid)
 

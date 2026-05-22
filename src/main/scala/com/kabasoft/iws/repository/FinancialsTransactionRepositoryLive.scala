@@ -4,7 +4,7 @@ import cats._
 import cats.effect.Resource
 import cats.syntax.all._
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails}
+import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, Journal}
 import skunk._
 import skunk.codec.all._
 import skunk.implicits._
@@ -18,36 +18,18 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
                    , accRepo: AccountRepository) extends FinancialsTransactionRepository, MasterfileCRUD:
 
   import FinancialsTransactionRepositorySQL._
-
-
-  private def sequenceNames(prefix1: String, prefix2: String, models:List[FinancialsTransaction]) = {
-    val company:String = models.headOption.getOrElse(FinancialsTransaction.dummy).company
-    ( s"${prefix1}_$company", s"${prefix2}_$company")
-  }
-  
-  private def newMasterFilter(list:List[FinancialsTransaction])= list.filter(_.id === -1L)
-  private def oldMasterFilter(list:List[FinancialsTransaction])= list.filter(_.id > 0)
-  private def master2master(m:FinancialsTransaction, idx:Long)= m.copy(id = idx, id1 = idx)
-  private def master2Details(m:FinancialsTransaction, idx:Long)= m.lines.map(mx=>mx.copy(transid = idx))//, company = mx.company.replace("-", "")))
-  private def Details2Details(m:FinancialsTransactionDetails, idx:Long)= m.copy(id = idx)
-  private def newDetailsFilter(m: FinancialsTransaction) = m.lines.filter(line => line.id=== -1L)// && line.company.contains("-"))
-                                                           .map(line => line.copy(transid = m.id))
-  private def details2DeleteFilter (m:FinancialsTransaction)= m.lines.filter(line => line.transid === -2L)
-  private def details2UpdateFilter(m: FinancialsTransaction)= m.lines.filter(line => line.id > 0 && line.transid === -1L)// && line.company.contains("-"))
-                                                              .map(line => line.copy(transid = m.id))
+  import FinancialsTransactionRepositoryLive.{ sequenceNames, FINANCIAL_SEQUENCE_PREF, FINANCIAL_DETAIL_SEQUENCE_PREF
+    , newMasterFilter, oldMasterFilter, master2master, master2Details, Details2Details, newDetailsFilter, details2DeleteFilter, details2UpdateFilter}
 
   def insertTransact(session: Session[Task], models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =
       ZIO.uninterruptibleMask { restore =>
          restore(session.transaction.use { xa =>
-            restore(session.prepareR(insert1).use { pciMaster =>
+            restore(session.prepareR(insert).use { pciMaster =>
               restore(session.prepareR(insertDetails1).use { pciDetails =>
                 exec(xa, pciMaster, pciDetails, master2master, master2Details, Details2Details,
                   models, session,
-                  sequenceNames(
-                    FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF,
-                    FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF,
-                    models
-                ) ).catchAll { repoError =>ZIO.fail(new Throwable(repoError.message))
+                  sequenceNames(FINANCIAL_SEQUENCE_PREF, FINANCIAL_DETAIL_SEQUENCE_PREF, models)
+                ).catchAll { repoError =>ZIO.fail(new Throwable(repoError.message))
               }
             })
         })
@@ -68,10 +50,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
       case (pciMaster, pcuMaster, pciDetails, pcuDetails, pcdDetails) =>
         // Add new masters if any
         ZIO.foreachDiscard(newMasterFilter(models)) { master =>
-          val (masterSeq, detailSeq) = sequenceNames (
-            FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF
-            , FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF
-            , models)
+          val (masterSeq, detailSeq) = sequenceNames (FINANCIAL_SEQUENCE_PREF, FINANCIAL_DETAIL_SEQUENCE_PREF,models)
           withId(masterSeq, id => master2master(master, id)).flatMap { masterWithId =>
             ZIO.logInfo(s"Insert master: $masterWithId") *>
               pciMaster.execute(masterWithId) *>
@@ -86,10 +65,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
 
         // Update Old masters, if any to
         ZIO.foreachDiscard(oldMasterFilter(models)) { master =>
-          val (_, detailSeq) = sequenceNames (
-            FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF
-            , FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF
-            , models)
+          val (_, detailSeq) = sequenceNames ( FINANCIAL_SEQUENCE_PREF, FINANCIAL_DETAIL_SEQUENCE_PREF, models)
           pcuMaster.execute(FinancialsTransaction.encodeIt2(master)) *>
             ZIO.foreachDiscard(details2UpdateFilter(master).tapEach( m =>ZIO.logInfo(s"Update old details: $m"))
               .map(FinancialsTransactionDetails.encodeIt2))(pcuDetails.execute) *>
@@ -118,12 +94,12 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
       created <- postgres.use { session =>
         (for {
           xa <- session.transaction
-          pciMaster <- session.prepareR(insert1)
+          pciMaster <- session.prepareR(insert)
           pciDetails <- session.prepareR(insertDetails1)
           results <- Resource.eval(
             exec(xa, pciMaster, pciDetails, master2master, master2Details, Details2Details,
               models, session,
-              sequenceNames(
+              FinancialsTransactionRepositoryLive.sequenceNames(
                 FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF,
                 FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF,
                 models
@@ -153,7 +129,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
     def withId[A](company: String, f: Long => A): Task[A] = nextId(company).map(f)
 
     (for {
-      pciMaster <- s.prepareR(insert1)
+      pciMaster <- s.prepareR(insert)
       pcuMaster <- s.prepareR(UPDATE)
       pciDetails <- s.prepareR(insertDetails1)
       pcuDetails <- s.prepareR(UPDATE_DETAILS)
@@ -190,7 +166,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
               }
             }
           )
-        } yield newMasters ++ updatedMasters
+        } yield (newMasters ++ updatedMasters).toList
     }
   }
 
@@ -285,14 +261,26 @@ object FinancialsTransactionRepositoryLive:
     ZLayer.fromFunction(new FinancialsTransactionRepositoryLive(_, _))
   val FINANCIAL_SEQUENCE_PREF = "master_compta_id_seq"
   val FINANCIAL_DETAIL_SEQUENCE_PREF = "details_compta_id_seq"
-  
+
+   def newMasterFilter(list: List[FinancialsTransaction]): Seq[FinancialsTransaction] = list.filter(_.id === -1L)
+   def oldMasterFilter(list: List[FinancialsTransaction]) = list.filter(_.id > 0)
+   def master2master(m: FinancialsTransaction, idx: Long) = m.copy(id = idx, id1 = idx)
+   def master2Details(m: FinancialsTransaction, idx: Long) = m.lines.map(mx => mx.copy(transid = idx))
+   def Details2Details(m: FinancialsTransactionDetails, idx: Long) = m.copy(id = idx)
+   def newDetailsFilter(m: FinancialsTransaction) = m.lines.filter(line => line.id === -1L).map(line => line.copy(transid = m.id))
+   def details2DeleteFilter(m: FinancialsTransaction) = m.lines.filter(line => line.transid === -2L)
+   def details2UpdateFilter(m: FinancialsTransaction) = m.lines.filter(line => line.id > 0 && line.transid === -1L).map(line => line.copy(transid = m.id))
+   def setJournalId(m: Journal, idx: Long) = m.copy(id = idx)
+
   def sequenceNames(prefix1: String, prefix2: String, models: List[FinancialsTransaction]): (String, String) = {
     val model = models.headOption.getOrElse(FinancialsTransaction.dummy)
     val modelid: Int = model.modelid
     val company: String = model.company
     (s"${prefix1}_${company}_${modelid}", s"${prefix2}_${company}")
   }
+
 object FinancialsTransactionRepositorySQL:
+
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 
@@ -309,7 +297,6 @@ object FinancialsTransactionRepositorySQL:
     case (id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content) =>
       FinancialsTransaction(id, oid, id1, costcenter, account, toInstant(transdate), toInstant(enterdate)
         , toInstant(postingdate), period, posted, modelid, company, text, type_journal, file_content)
-
 
   val mfEncoder1: Encoder[FinancialsTransaction] = (financialsTransactionCodec.values.contramap(FinancialsTransaction.encodeIt))
   val mfEncoder: Encoder[FinancialsTransaction] = financialsTransactionCodec4.values.contramap(FinancialsTransaction.encodeIt4)
@@ -330,7 +317,6 @@ object FinancialsTransactionRepositorySQL:
            FROM   master_compta
            WHERE id  IN (${int8.list(nr)}) AND modelid= $int4 AND company = $varchar
            """.query(mfDecoder)
-
   def BY_IDS(nr: Int): Query[(List[Long], Int, String), FinancialsTransaction] =
     sql"""SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
            FROM   master_compta
@@ -406,13 +392,13 @@ object FinancialsTransactionRepositorySQL:
            FROM   master_compta
            WHERE id= $int8 AND company = $varchar 
            """.query(mfDecoder)
-  val insert1: Command[FinancialsTransaction] =
+  val insert: Command[FinancialsTransaction] =
     sql"""INSERT INTO master_compta
          (id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content) VALUES $mfEncoder1 """.command
 
-  val insert: Command[FinancialsTransaction] =
-    sql"""INSERT INTO master_compta
-         (id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content) VALUES $mfEncoder """.command
+//  val insertXX: Command[FinancialsTransaction] =
+//    sql"""INSERT INTO master_compta
+//         (id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content) VALUES $mfEncoder """.command
 
   def insertAll(n:Int): Command[List[FinancialsTransaction.TYPE]] =
     sql"""INSERT INTO master_compta 
@@ -423,9 +409,9 @@ object FinancialsTransactionRepositorySQL:
     sql"""INSERT INTO details_compta (id, transid, account, side, oaccount, amount, duedate, text, currency, company
           , account_name, oaccount_name) VALUES  $detailsEncoder""".command
 
-  val insertDetails: Command[FinancialsTransactionDetails.D_TYPE4] =
-    sql"""INSERT INTO details_compta (transid, account, side, oaccount, amount, duedate, text, currency, company
-          , account_name, oaccount_name) VALUES  ($financialsDetailsTransactionCodec4)""".command  //  RETURNING id
+//  val insertDetails: Command[FinancialsTransactionDetails.D_TYPE4] =
+//    sql"""INSERT INTO details_compta (transid, account, side, oaccount, amount, duedate, text, currency, company
+//          , account_name, oaccount_name) VALUES  ($financialsDetailsTransactionCodec4)""".command  //  RETURNING id
     
   def insertAllDetails(n:Int): Command[List[FinancialsTransactionDetails.D_TYPE4]] =
     sql"""INSERT INTO details_compta (transid, account, side, oaccount, amount, duedate, text, currency, company

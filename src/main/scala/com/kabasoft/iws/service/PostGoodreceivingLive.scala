@@ -45,13 +45,14 @@ final class PostGoodreceivingLive(accRepo: AccountRepository
     updatedArticle <- updateAvgPrice(transactions, stocks, articles)
     newFtr = transactions.map(buildTransaction(_,  articles, accounts, suppliers, vats, company.purchasingClearingAcc
       , TransactionModelId.PAYABLES.modelid)).unzip
-    _<- ZIO.logInfo(s"New FTransactions ${newFtr}")
     (transaction:List[Transaction], financials:List[FinancialsTransaction]) = newFtr
+    _<- ZIO.logInfo(s"New Transactions ${transaction}")
+    _<- ZIO.logInfo(s"New Financials ${financials}")
     result <- postFinancials(financials, financialsService)
     models = result.map(_._1)
-    newPacs = result.map(_._2).flatten
+    newPacs = result.flatMap(_._2)
     oldPacs = result.map(_._3).flip.map(_.flatten)
-    journalEntries = result.map(_._4).flatten
+    journalEntries = result.flatMap(_._4)
     _<-ZIO.logInfo(s"result2   from  bill of delivery  transaction with  of company ${result}")
     _<-ZIO.logInfo(s"new Pacs   from  bill of delivery  transaction with  of company ${newPacs}")
     _<-ZIO.logInfo(s"Oldoacs   from  bill of delivery  transaction with  of company ${oldPacs}")

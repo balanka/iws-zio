@@ -8,10 +8,12 @@ import skunk.codec.all.*
 import skunk.implicits.*
 import zio.prelude.FlipOps
 import zio.interop.catz.*
-import zio.{ZIO, *}
+import zio.*
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Transaction, TransactionDetails, common}
-import com.kabasoft.iws.repository.TransactionRepositoryLive.{TRANSACTION_SEQUENCE_PREF, TRANSACTION_DETAIL_SEQUENCE_PREF}
+import com.kabasoft.iws.domain.{Transaction, TransactionDetails, TransactionLog, common}
+import com.kabasoft.iws.repository.TransactionRepositoryLive.{ newTransactionDetailsFilter, newTransactionFilter
+  , oldTransactionFilter, sequenceNames, setDetailsId, setTransactionId, transaction2Details
+  , transactionDetails2DeleteFilter, transactionDetails2UpdateFilter}
 
 import java.time.{Instant, LocalDateTime, ZoneId}
 
@@ -21,81 +23,8 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
 
   import TransactionRepositorySQL._
 
-  private def sequenceNames(prefix1: String, prefix2: String, models: List[Transaction]) = {
-    val company: String = models.headOption.getOrElse(Transaction.dummy).company
-    (s"${prefix1}_$company", s"${prefix2}_$company")
-  }
-  private def newMasterFilter(list: List[Transaction]) = list.filter(_.id === -1L)
-  private def oldMasterFilter(list: List[Transaction]) = list.filter(_.id > 0)
-  private def master2master(m:Transaction, idx: Long) = m.copy(id = idx, id1 = idx)
-  private def master2Details(m:Transaction, idx: Long) = m.lines.map(_.copy(transid = idx))
-  private def Details2Details(m:TransactionDetails, idx: Long) = m.copy(id = idx)
-  private def newDetailsFilter(m:Transaction) = m.lines.filter(_.id === -1L).map(line => line.copy(transid = m.id))
-  private def details2DeleteFilter(m:Transaction) = m.lines.filter(_.transid === -2L)
-  private def details2UpdateFilter(m:Transaction) =m.lines.filter(line => line.id > 0 && line.transid === -1L)
-                                                          .map(line => line.copy(transid = m.id))
-
-
-  def buildId(transaction: Transaction): Transaction = {
-    if(transaction.id1 >0L) transaction else
-    {
-      List(transaction).zipWithIndex.map { case (ftr, i) =>
-        val idx = Instant.now().getNano + i.toLong
-        ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
-      }.headOption.getOrElse(transaction)
-    }
-  }
-
-  def insertTransact(s: Session[Task], models: List[Transaction]): Task[Unit] =
-    s.transaction.use: xa =>
-      s.prepareR(insert).use: pciMaster =>
-        s.prepareR(insertDetails).use: pciDetails =>
-          tryExec(xa, pciMaster, pciDetails, master2master, master2Details, Details2Details, models
-            , s, sequenceNames(TRANSACTION_SEQUENCE_PREF, TRANSACTION_DETAIL_SEQUENCE_PREF, models))
-  
-  def transact(s: Session[Task], models: List[Transaction]): Task[Unit] =
-    s.prepareR(insert).use: pciMaster =>
-      s.prepareR(UPDATE).use: pcuMaster =>
-        s.prepareR(insertDetails).use: pciDetails =>
-          s.prepareR(UPDATE_DETAILS).use: pcuDetails =>
-            s.prepareR(DELETE_DETAILS).use: pcdDetails =>
-              execX(s, pciMaster, pciDetails, pcuMaster, pcuDetails, pcdDetails, newMasterFilter, oldMasterFilter
-                , newDetailsFilter, details2UpdateFilter, details2DeleteFilter
-                , master2master, master2Details, Details2Details, Transaction.encodeIt2
-                , TransactionDetails.encodeIt2, TransactionDetails.encodeIt3, models
-                , sequenceNames(TRANSACTION_SEQUENCE_PREF, TRANSACTION_DETAIL_SEQUENCE_PREF, models))
-
-  override def create(c: Transaction): ZIO[Any, RepositoryError, Transaction] = for {
-    trans <- modify(List(c)).map(_.headOption.getOrElse(Transaction.dummy))
-    _ <- ZIO.logInfo(s"Inserted : $trans")
-    trans2 <- getById(trans.id, trans.modelid, trans.company)
-  } yield trans2
-
-  override def create(models: List[Transaction]): ZIO[Any, RepositoryError, List[Transaction]] =
-    for {
-      created <- postgres.use { session =>
-        (for {
-          xa <- session.transaction
-          pciMaster <- session.prepareR(insert)
-          pciDetails <- session.prepareR(insertDetails)
-          results <- Resource.eval(
-            exec(xa, pciMaster, pciDetails, master2master, master2Details, Details2Details,
-              models, session,
-              sequenceNames(
-                TransactionRepositoryLive.TRANSACTION_SEQUENCE_PREF,
-                TransactionRepositoryLive.TRANSACTION_DETAIL_SEQUENCE_PREF,
-                models
-              )).mapError(e => new Throwable(e.message))
-          )
-        } yield results).use(ZIO.succeed)
-      }.mapError(e => RepositoryError(e.getMessage))
-
-      detailed <- ZIO.foreach(created) { result =>
-        getById(result.id, result.modelid, result.company)
-      }//.map(_.flatten).mapError(e => RepositoryError(e.message))
-
-    } yield detailed
-
+  override def create(model: Transaction): ZIO[Any, RepositoryError, Transaction] = modify(model)
+  override def create(models: List[Transaction]): ZIO[Any, RepositoryError, List[Transaction]] = modify(models)
   override def modify(model: Transaction): ZIO[Any, RepositoryError, Transaction] =
     for {
       trans <- modify(List(model)).map(_.headOption.getOrElse(Transaction.dummy))
@@ -130,31 +59,31 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
       case (pciMaster, pcuMaster, pciDetails, pcuDetails, pcdDetails) =>
         for {
           newMasters <- ZIO.collectAll(
-            newMasterFilter(models).map { master =>
-              withId(seqMaster, id => master2master(master, id)).tap { m =>
+            newTransactionFilter(models).map { master =>
+              withId(seqMaster, id => setTransactionId(master, id)).tap { m =>
                 ZIO.logInfo(s"Insert new master: $m  ") *>
                   exec(pciMaster, m) *>
-                  ZIO.foreachDiscard(master2Details(m, m.id)) { d =>
+                  ZIO.foreachDiscard(transaction2Details(m, m.id)) { d =>
                     ZIO.logInfo(s"Insert new details: $d") *>
-                      withId(seqDetail, id => Details2Details(d, id)).tap(exec(pciDetails, _))
+                      withId(seqDetail, id => setDetailsId(d, id)).tap(exec(pciDetails, _))
                   }
               }
             }
           )
 
           updatedMasters <- ZIO.collectAll(
-            oldMasterFilter(models).map { master =>
+            oldTransactionFilter(models).map { master =>
               ZIO.succeed(master).tap { m =>
                 ZIO.logInfo(s"updating  old master: $m") *>
                   exec(pcuMaster, Transaction.encodeIt2(m)) *>
-                  ZIO.logInfo(s"updating  old details: ${details2UpdateFilter(m)}") *>
-                  ZIO.foreachDiscard(details2UpdateFilter(m).map(TransactionDetails.encodeIt2))(exec(pcuDetails, _)) *>
-                  ZIO.foreachDiscard(newDetailsFilter(m)) { d =>
+                  ZIO.logInfo(s"updating  old details: ${transactionDetails2UpdateFilter(m)}") *>
+                  ZIO.foreachDiscard(transactionDetails2UpdateFilter(m).map(TransactionDetails.encodeIt2))(exec(pcuDetails, _)) *>
+                  ZIO.foreachDiscard(newTransactionDetailsFilter(m)) { d =>
                     ZIO.logInfo(s"Inserting new details: $d") *>
-                      withId(seqDetail, id => Details2Details(d, id)).tap(exec(pciDetails, _))
+                      withId(seqDetail, id => setDetailsId(d, id)).tap(exec(pciDetails, _))
                   } *>
                   ZIO.logInfo(s"Deleting old details: ") *>
-                  ZIO.foreachDiscard(details2DeleteFilter(m).map(TransactionDetails.encodeIt3))(exec(pcdDetails, _))
+                  ZIO.foreachDiscard(transactionDetails2DeleteFilter(m).map(TransactionDetails.encodeIt3))(exec(pcdDetails, _))
               }
             }
           )
@@ -213,6 +142,7 @@ object TransactionRepositoryLive:
     ZLayer.fromFunction(new TransactionRepositoryLive(_, _, _))
   val TRANSACTION_SEQUENCE_PREF = "transaction_id_seq"
   val TRANSACTION_DETAIL_SEQUENCE_PREF = "transaction_details_id_seq"
+  val TRANSACTION_LOG_SEQUENCE_PREF = "transaction_log_id_seq"
 
   def sequenceNames(prefix1: String, prefix2: String, models: List[Transaction]): (String, String) = {
     val model = models.headOption.getOrElse(Transaction.dummy)
@@ -220,6 +150,22 @@ object TransactionRepositoryLive:
     val company: String = model.company
     (s"${prefix1}_${company}_${modelid}", s"${prefix2}_${company}")
   }
+
+  def sequenceName(prefix: String,  models: List[TransactionLog]) = {
+    val company: String = models.headOption.getOrElse(TransactionLog.dummy).company
+    s"${prefix}_$company"
+  }
+
+   def newTransactionFilter(list: List[Transaction]) = list.filter(_.id === -1L)
+   def oldTransactionFilter(list: List[Transaction]) = list.filter(_.id > 0)
+   def setTransactionId(m: Transaction, idx: Long) = m.copy(id = idx, id1 = idx)
+   def transaction2Details(m: Transaction, idx: Long) = m.lines.map(_.copy(transid = idx))
+   def setDetailsId(m: TransactionDetails, idx: Long) = m.copy(id = idx)
+   def newTransactionDetailsFilter(m: Transaction) = m.lines.filter(_.id === -1L).map(line => line.copy(transid = m.id))
+   def transactionDetails2DeleteFilter(m: Transaction) = m.lines.filter(_.transid === -2L)
+   def transactionDetails2UpdateFilter(m: Transaction) = m.lines.filter(line => line.id > 0 && line.transid === -1L)
+                                                          .map(line => line.copy(transid = m.id))
+  def setTransactionLogId(m: TransactionLog, idx: Long) = m.copy(id = idx)
 
 private[repository] object TransactionRepositorySQL:
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =

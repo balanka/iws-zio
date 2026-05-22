@@ -2,28 +2,21 @@ package com.kabasoft.iws.repository
 
 import cats.effect.Resource
 import cats.syntax.all.*
-import cats._
-import skunk._
-import skunk.codec.all._
-import skunk.implicits._
-import zio.interop.catz._
-import zio.{Task, ZIO, ZLayer }
+import cats.*
+import skunk.*
+import skunk.codec.all.*
+import skunk.implicits.*
+import zio.interop.catz.*
+import zio.{Task, ZIO, ZLayer}
 import com.kabasoft.iws.domain.Journal
 import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.repository.JournalRepositoryLive.{JOURNAL_SEQUENCE_PREF, sequenceName}
 
-
-import java.time.{ Instant, LocalDateTime, ZoneId }
+import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class JournalRepositoryLive(postgres: Resource[Task, Session[Task]]) extends JournalRepository, MasterfileCRUD:
 
   import JournalRepositorySQL._
-
-  val JOURNAL_LOG_SEQUENCE_PREF = "journal_id_seq"
-
-  private def sequenceName(prefix: String, models: List[Journal]) =
-    val company: String = models.headOption.getOrElse(Journal.dummy).company
-    s"${prefix}_$company"
-
   private def master2master(m: Journal, idx: Long) = m.copy(id = idx)
 
   def transact(session: Session[Task], models: List[Journal], sequenceName: String): Task[Unit] =
@@ -35,7 +28,7 @@ final case class JournalRepositoryLive(postgres: Resource[Task, Session[Task]]) 
     postgres
       .use:
           session =>
-            transact(session, models, sequenceName(JOURNAL_LOG_SEQUENCE_PREF, models))
+            transact(session, models, sequenceName(JOURNAL_SEQUENCE_PREF, models))
       .mapBoth(e => RepositoryError(e.getMessage), _ => models.size)
   
   override def all(p: (Int, String)):ZIO[Any, RepositoryError, List[Journal]] = queryWithTx(postgres, p, ALL)
@@ -69,6 +62,11 @@ final case class JournalRepositoryLive(postgres: Resource[Task, Session[Task]]) 
 object JournalRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]], RepositoryError, JournalRepository] =
     ZLayer.fromFunction(new JournalRepositoryLive(_))
+
+  def sequenceName(prefix: String, models: List[Journal]) =
+    val company: String = models.headOption.getOrElse(Journal.dummy).company
+    s"${prefix}_$company"
+  val JOURNAL_SEQUENCE_PREF = "journal_id_seq"
 
 object JournalRepositorySQL:
   def toInstant(localDateTime: LocalDateTime): Instant = localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant

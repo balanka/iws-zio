@@ -4,7 +4,8 @@ import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.*
 import com.kabasoft.iws.domain.TransactionModelId.{PURCHASE_ORDER, GOORECEIVING, SALES_ORDER, BILL_OF_DELIVERY
   , CUSTOMER_INVOICE, SUPPLIER_INVOICE}
-import com.kabasoft.iws.repository.{AccountRepository, ArticleRepository, CompanyRepository, FModuleRepository, JournalRepository, PacRepository, PostTransactionRepository, StockRepository, TransactionLogRepository, TransactionRepository}
+import com.kabasoft.iws.repository.{AccountRepository, ArticleRepository, CompanyRepository, JournalRepository
+  , PacRepository, PostTransactionRepository, StockRepository, TransactionLogRepository, TransactionRepository}
 import zio.*
 
 final class TransactionServiceLive(trRepo: TransactionRepository
@@ -14,7 +15,6 @@ final class TransactionServiceLive(trRepo: TransactionRepository
                                    , postBillOfDelivery: PostBillOfDelivery
                                    , postSupplierInvoice: PostSupplierInvoice
                                    , postCustomerInvoice: PostCustomerInvoice
-                                   //, fmoduleRepo: FModuleRepository
                                    , companyRepository: CompanyRepository
                                   ) extends TransactionService:
 
