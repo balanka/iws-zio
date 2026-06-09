@@ -26,7 +26,7 @@ object LoginRoutes:
         .flatMap(request => //ZIO.logInfo(s"RequestX >>>>>>n ${request}")*>
           ZIO.fromEither(request.fromJson[LoginRequest])
         ).catchAll(e => ZIO.logInfo(s"Unparseable body: ${e.toString}") *> ZIO.succeed(LoginRequest.dummy))
-      user <- UserRepository.getByUserName((loginRequest.userName, User.MODELID, loginRequest.company))
+      user <- UserRepository.getByUserName((loginRequest.userName, ModelId.USER.modelid, loginRequest.company))
     } yield checkLogin(user, loginRequest)
   }
 

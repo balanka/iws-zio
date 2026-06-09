@@ -39,7 +39,7 @@ final class PostSupplierInvoiceLive(vatRepo: VatRepository
       val accountName = accounts.find(_.id == vat.inputVatAccount).fold("")(acc => acc.name)
       val oaccountName = accounts.find(_.id == partnerAccountId).fold("")(acc => acc.name)
       FinancialsTransactionDetails(-1, 0, vat.inputVatAccount, side = true, partnerAccountId, l.quantity.multiply(l.price).multiply(vat.percent)
-        , Instant.now(), l.text, currency, model.company, accountName, oaccountName)
+        , Instant.now(), l.text, currency, model.company, accountName, oaccountName, modelid)
     }.groupBy(line => (line.account, line.oaccount)).map { case (_, v) => common.reduce(v, FinancialsTransactionDetails.dummy)
     }.toList
     // build details for net amount
@@ -48,7 +48,7 @@ final class PostSupplierInvoiceLive(vatRepo: VatRepository
       val accountName = accounts.find(_.id == accountId).fold("")(acc => acc.name)
       val oaccountName = accounts.find(_.id == partnerAccountId).fold("")(acc => acc.name)
       FinancialsTransactionDetails(-1, 0, accountId, side = true, partnerAccountId, line.quantity.multiply(line.price), Instant.now()
-        , model.text, currency, model.company, accountName, oaccountName)
+        , model.text, currency, model.company, accountName, oaccountName, modelid)
     }.groupBy(line => (line.account, line.oaccount)).map { case (_, v) => common.reduce(v, FinancialsTransactionDetails.dummy)
     }.toList
 
@@ -63,11 +63,11 @@ final class PostSupplierInvoiceLive(vatRepo: VatRepository
   private def postTransaction(transactions: List[Transaction], company: Company):
   ZIO[Any, RepositoryError, (List[Transaction], List[FinancialsTransaction], List[PeriodicAccountBalance]
     , ZIO[Any, Nothing, List[PeriodicAccountBalance]], List[TransactionLog], List[Journal], List[Stock], List[Stock], List[Article])] = for {
-    accounts <- accRepo.all(Account.MODELID, company.id)
-    suppliers <- supplierRepo.all(Supplier.MODELID, company.id)
+    accounts <- accRepo.all(ModelId.ACCOUNT.modelid, company.id)
+    suppliers <- supplierRepo.all(ModelId.SUPPLIER.modelid, company.id)
     _ <-ZIO.logInfo(s"Posting supplier invoice transaction  4  suppliers  ${suppliers}")
     vatIds = transactions.flatMap(_.lines.map(_.vatCode)).distinct
-    vats <-  vatRepo.getBy(vatIds, Vat.MODEL_ID, company.id)
+    vats <-  vatRepo.getBy(vatIds, ModelId.VAT.modelid, company.id)
     newFtr = transactions.map(buildFinancials(_, accounts, suppliers, vats, company.purchasingClearingAcc
       , TransactionModelId.PAYABLES.modelid))
     (transactionsx:List[Transaction], financials:List[FinancialsTransaction]) = newFtr.unzip

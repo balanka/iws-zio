@@ -2,13 +2,14 @@ package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Apartment, Account, Article, Asset, BankAccount, BankStatement, Bom, Company, Customer, Employee
-  , EmployeeSalaryItemDTO, FinancialsTransaction, FinancialsTransactionDetails, Fmodule, ImportFile, Journal, LoginRequest
-  , Masterfile, PayrollTaxRange, PeriodicAccountBalance, Permission, Role, Room, RealEstate, SalaryItem, Stock, Store
-  , Supplier, Transaction, TransactionDetails, User, UserRight, Vat, Floor}
-import zio.json._
+import com.kabasoft.iws.domain.{Account, Apartment, Article, Asset, BankAccount, BankStatement, Bom, Company, Customer
+  , Employee, EmployeeSalaryItemDTO, FinancialsTransaction, FinancialsTransactionDetails, Floor, Fmodule, ImportFile
+  , Journal, LoginRequest, Masterfile, PayrollTaxRange, PeriodicAccountBalance, Permission, RealEstate, ReminderBalance
+  , Role, Room, SalaryItem, Stock, Store, Supplier, Transaction, TransactionDetails, User, UserRight, Vat}
+import zio.json.*
 
 object Protocol:
+  given reminderBalanceCodec:JsonCodec[ReminderBalance]= DeriveJsonCodec.gen[ReminderBalance]
   given roomCodec: JsonCodec[Room] = DeriveJsonCodec.gen[Room]
   given apartmentCodec: JsonCodec[Apartment] = DeriveJsonCodec.gen[Apartment]
   given floorCodec: JsonCodec[Floor] = DeriveJsonCodec.gen[Floor]

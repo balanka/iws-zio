@@ -2,17 +2,16 @@ package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.AppError.*
-import com.kabasoft.iws.domain.{AppError, FinancialsTransaction}
+import com.kabasoft.iws.domain.{AppError, FinancialsTransaction, ReminderBalance}
 import com.kabasoft.iws.repository.FinancialsTransactionRepository
 import com.kabasoft.iws.service.FinancialsService
-
-import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, ftransactionSchema, repositoryErrorSchema}
-import zio._
+import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, ftransactionSchema, reminderBalance, repositoryErrorSchema}
+import zio.*
 import zio.http.RoutePattern
 import zio.schema.Schema
-import zio.http._
+import zio.http.*
 import zio.http.codec.PathCodec.{int, long, path, string}
-import zio.http.codec._
+import zio.http.codec.*
 import zio.http.endpoint.Endpoint
 
 object FinancialsEndpoint:
@@ -21,6 +20,7 @@ object FinancialsEndpoint:
   val modelidToDoc = "The modelId for identifying the typ of financials transaction (origin) which to copy from "
   val idDoc = "The unique Id for identifying the financials transaction"
   val idsDoc = "The list of financials transaction's Id to post or to fetch from DB"
+  val accountIdDoc = "Receivable account id for finding for reminding balance due"
   val mCreateAPIFoc = "Create a new financials transaction (Customer / Ventor invoice, setllement, payment, etc... )"
   val mAllAPIDoc = "Get a financials transaction by modelId and company"
   val postAllDoc = "Post all financials transaction with the specified ids and type"
@@ -59,6 +59,12 @@ object FinancialsEndpoint:
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ).out[FinancialsTransaction] ?? Doc.p(mByIdAPIDoc)
+
+  private val balanceByPaiementRemeinder = Endpoint(RoutePattern.GET / "ftr" /"balance"/ string("accountId") ?? Doc.p(accountIdDoc) /
+     string("companyId") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ).out[List[ReminderBalance]] ?? Doc.p(mByIdAPIDoc)
   
 
   private val mModify = Endpoint(RoutePattern.PUT / "ftr").header(HeaderCodec.authorization)
@@ -149,7 +155,13 @@ object FinancialsEndpoint:
     mDelete.implement: (id, modelid, company, _) =>
       FinancialsTransactionRepository.delete(id, modelid, company)
 
-  val financialsRoutes = Routes(financialsCreateRoute, financialsAllRoute, financialsPostAllRoute, financialsByIdRoute, financialsAllNRoute
-    , financialsModifyRoute, financialsDuplicateRoute, financialsCancelnRoute, financialsDeleteRoute, financialsCopyFromRoute)
+  val balanceByPaiementRemeinderRoute =
+    balanceByPaiementRemeinder.implement: (accountId, companyId, _) =>
+      FinancialsService.findBalance4paymentReminder(accountId, companyId)
+
+
+  val financialsRoutes = Routes(financialsCreateRoute, financialsAllRoute, financialsPostAllRoute, financialsByIdRoute
+    , financialsAllNRoute, financialsModifyRoute, financialsDuplicateRoute, financialsCancelnRoute, financialsDeleteRoute
+    , financialsCopyFromRoute, balanceByPaiementRemeinderRoute)
     @@ Middleware.debug
 
