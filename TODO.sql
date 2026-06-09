@@ -384,6 +384,8 @@ create sequence master_compta_id_seq_5600_124 start with 1;
 alter sequence master_compta_id_seq_5600_124 owner to postgres;
 create sequence public.transaction_id_seq_5600_124 start with 1;
 alter sequence public.transacti186;
+
+
 alter sequence master_compta_id_seq_5600_112 owner to postgres;
 create sequence public.transaction_id_seq_5600_112 start with 1;
 alter sequence public.transaction_id_seq_5600_112 owner to postgres;

@@ -11,7 +11,7 @@ object TransactionBuilder {
   val lineTransactionId1 = 1L
   val lineTransactionId2 = 2L
 
-  val modelid = TransactionModelId.GOORECEIVING.id
+  val modelid = TransactionModelId.GOODRECEIVING.id
   val modelid2 = TransactionModelId.SUPPLIER_INVOICE.id
   val modelid3 = TransactionModelId.BILL_OF_DELIVERY.id
   val modelid4 = TransactionModelId.CUSTOMER_INVOICE.id

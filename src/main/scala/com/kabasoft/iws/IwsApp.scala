@@ -3,7 +3,7 @@ import com.kabasoft.iws.healthcheck.expose
 import com.kabasoft.iws.api.LoginRoutes.loginRoutes
 import com.kabasoft.iws.config.AppConfig
 import com.kabasoft.iws.resources.AppResources
-import zio.interop.catz._
+import zio.interop.catz.*
 import cats.effect.std.Console
 import natchez.Trace.Implicits.noop
 import com.kabasoft.iws.config.appConfig
@@ -149,6 +149,9 @@ object IwsApp extends ZIOAppDefault {
           PostBillOfDeliveryLive.live,
           PostCustomerInvoiceLive.live,
           PostSupplierInvoiceLive.live,
+          PostStockTransferLive.live,
+          PostStocktakeLive.live,
+          PostConsumptionLive.live,
           ApartmentRepositoryLive.live,
           RoomRepositoryLive.live,
           FloorRepositoryLive.live,

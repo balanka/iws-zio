@@ -23,7 +23,7 @@ final class PostGoodreceivingLive(accRepo: AccountRepository
       _ <- ZIO.foreachDiscard(transactions.map(_.id))(
       id => ZIO.logDebug(s"Posting Goodreceiving transaction  with id ${id} of company ${transactions.head.company}"))
       stockIds = Stock.create(transactions).map(_.id).distinct
-      oldStocks <- stockRepo.getBy(stockIds, Stock.MODELID, company.id)
+      oldStocks <- stockRepo.getBy(stockIds, ModelId.STOCK.modelid, company.id)
       newStock <- buildNewStock(transactions, oldStocks).flip
       post <- postTransaction(transactions, company, newStock, oldStocks)
       nr <- repository4PostingTransaction.post(post._1, post._2, post._3, post._4, post._5, post._6, post._7, post._8, post._9)
@@ -33,20 +33,22 @@ final class PostGoodreceivingLive(accRepo: AccountRepository
   private def postTransaction(transactions: List[Transaction], company: Company, newStock:List[Stock], oldStocks:List[Stock]):
   ZIO[Any, RepositoryError, (List[Transaction], List[FinancialsTransaction], List[PeriodicAccountBalance]
     , ZIO[Any, Nothing, List[PeriodicAccountBalance]], List[TransactionLog], List[Journal], List[Stock], List[Stock], List[Article])] = for {
-    accounts <- accRepo.all(Account.MODELID, company.id)
+    accounts <- accRepo.all(ModelId.ACCOUNT.modelid, company.id)
     articleIdsx = transactions.flatMap(m => m.lines.map(_.article))
     articleIds = articleIdsx.distinct
-    articles <- artRepo.getBy(articleIds, Article.MODELID, company.id)
-    suppliers <- supplierRepo.all(Supplier.MODELID, company.id)
+    articles <- artRepo.getBy(articleIds, ModelId.ARTICLE.modelid, company.id)
+    suppliers <- supplierRepo.all(ModelId.SUPPLIER.modelid, company.id)
     vatIds = transactions.flatMap(_.lines.map(_.vatCode)).distinct
-    vats <-  vatRepo.getBy(vatIds, Vat.MODEL_ID, company.id)
+    vats <-  vatRepo.getBy(vatIds, ModelId.VAT.modelid, company.id)
     stocks <- updateStock(transactions, oldStocks)
     transLogEntries <- buildTransactionLog(transactions, stocks, newStock, articles)
     updatedArticle <- updateAvgPrice(transactions, stocks, articles)
+    // build financials transaction
     newFtr = transactions.map(buildTransaction(_,  articles, accounts, suppliers, vats, company.purchasingClearingAcc
-      , TransactionModelId.PAYABLES.modelid)).unzip
-    (transaction:List[Transaction], financials:List[FinancialsTransaction]) = newFtr
-    _<- ZIO.logInfo(s"New Transactions ${transaction}")
+      , TransactionModelId.PAYABLES.modelid))
+    tupleOfLists <- ZIO.collectAll(newFtr).map(_.unzip)   // <- binds the effect
+    (transactionsx, financials) = tupleOfLists
+    _<- ZIO.logInfo(s"New Transactions ${transactionsx}")
     _<- ZIO.logInfo(s"New Financials ${financials}")
     result <- postFinancials(financials, financialsService)
     models = result.map(_._1)
@@ -59,7 +61,7 @@ final class PostGoodreceivingLive(accRepo: AccountRepository
     _<-ZIO.logInfo(s"Transaction log entries ${transLogEntries}")
     //journalEntries <- makeJournal(transactions, newRecords, oldPacs, articles, company.purchasingClearingAcc)
 
-  } yield ( transaction, models, newPacs, oldPacs, transLogEntries, journalEntries, stocks, newStock, updatedArticle)
+  } yield ( transactionsx, models, newPacs, oldPacs, transLogEntries, journalEntries, stocks, newStock, updatedArticle)
   //} yield (transactions,  oldPacs.flip,  newRecords, transLogEntries, journalEntries, stocks, newStock, updatedArticle)
 
   private def updateStock(transactions: List[Transaction], oldStocks:List[Stock]): ZIO[Any, RepositoryError, List[Stock]] = 
@@ -70,7 +72,7 @@ final class PostGoodreceivingLive(accRepo: AccountRepository
   private def updateArticleAvgPrice(line: TransactionDetails, stocks:List[Stock], articles:List[Article]): ZIO[Any, Nothing, List[Article]] =
     articles.map ( article => {
     val purchasedValue = line.price.multiply(line.quantity)
-    val wholeStock = groupByStockFirst(stocks.filter(st=>st.article == line.article))
+    val wholeStock = groupByStock(stocks.filter(st=>st.article == line.article)).headOption
     val wholeQuantityBefore = wholeStock.fold(zeroAmount)(_.quantity)
     val wholeValueBefore = wholeQuantityBefore.multiply(article.avgPrice)
     val wholeValueAfter = wholeValueBefore.add(purchasedValue)
@@ -90,15 +92,10 @@ final class PostGoodreceivingLive(accRepo: AccountRepository
   private def updateOldStock(transactions: List[Transaction], oldStocks:List[Stock]): ZIO[Any, RepositoryError, List[TStock]] = for {
     updatedStock <-groupByStock(Stock.create(transactions))
       .flatMap(ts=> oldStocks.filter(st=>st.id==ts.id)
-      .map(st=>TStock.apply(st, ts.quantity))).flip
+      .map(st=>TStock.fromStockAndQuantity(st, ts.quantity))).flip
   }yield updatedStock
-
-  private def groupByStockFirst(r: List[Stock]) =
-    (r.groupBy(_.article) map { case (_, v) =>
-      common.reduce(v, Stock.dummy)
-    }).filterNot(_.article == Stock.dummy.article).headOption
-    
-  private def groupByStock(r: List[Stock]) =
+  
+  private def groupByStock(r: List[Stock]): List[Stock] =
     (r.groupBy(_.article) map { case (_, v) =>
       common.reduce(v, Stock.dummy)
     }).filterNot(_.article == Stock.dummy.article).toList

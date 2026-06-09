@@ -22,12 +22,12 @@ object FinancialsTransactionBuilder {
   val currency = "EUR"
   val costCenter = "311"
 
-  val line1=  FinancialsTransactionDetails(-1, 0,  faccountId, side, incaccountId1 , amount.subtract(vatAmount), Instant.now(), text, currency, company, faccountName, incaccountName1 )
-  val line2=  FinancialsTransactionDetails(-1, 0,  faccountId, side, vataccountId, vatAmount, Instant.now(), text, currency, company, faccountName, vataccountName)
-  val line3 = FinancialsTransactionDetails(-3, 0,  accountId, side, faccountId, amount.add(vatAmount) , Instant.now(), text, currency, company, accountName, faccountName)
-  val line4 = FinancialsTransactionDetails(1, 0,  accountId, side, faccountId, amount.add(vatAmount) , Instant.now(), text, currency, company, accountName, faccountName)
-  val line5 = FinancialsTransactionDetails(1, 1,  faccountId, side, incaccountId1, amount.subtract(vatAmount) , Instant.now(), text, currency, company, faccountName, incaccountName1 )
-  val line6 = FinancialsTransactionDetails(2, 1,  faccountId, side, vataccountId, vatAmount , Instant.now(), text, currency, company, faccountName, vataccountName)
+  val line1=  FinancialsTransactionDetails(-1, 0,  faccountId, side, incaccountId1 , amount.subtract(vatAmount), Instant.now(), text, currency, company, faccountName, incaccountName1, modelid )
+  val line2=  FinancialsTransactionDetails(-1, 0,  faccountId, side, vataccountId, vatAmount, Instant.now(), text, currency, company, faccountName, vataccountName, modelid)
+  val line3 = FinancialsTransactionDetails(-3, 0,  accountId, side, faccountId, amount.add(vatAmount) , Instant.now(), text, currency, company, accountName, faccountName, modelid2)
+  val line4 = FinancialsTransactionDetails(1, 0,  accountId, side, faccountId, amount.add(vatAmount) , Instant.now(), text, currency, company, accountName, faccountName, modelid2)
+  val line5 = FinancialsTransactionDetails(1, 1,  faccountId, side, incaccountId1, amount.subtract(vatAmount) , Instant.now(), text, currency, company, faccountName, incaccountName1, modelid2 )
+  val line6 = FinancialsTransactionDetails(2, 1,  faccountId, side, vataccountId, vatAmount , Instant.now(), text, currency, company, faccountName, vataccountName, modelid2)
 
 
 

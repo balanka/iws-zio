@@ -2,7 +2,7 @@ package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.common.given
-import com.kabasoft.iws.domain.{Account, Company, CopyFromPayables2Bank, CopyFromReceavables2Bank, CopySelf, FinancialsTransaction, FinancialsTransactionDetails, Fmodule, Journal, PeriodicAccountBalance, TPeriodicAccountBalance, TransactionModelId, common}
+import com.kabasoft.iws.domain.{Account, Company, CopyFromPayables2Bank, CopyFromReceavables2Bank, CopySelf, FinancialsTransaction, FinancialsTransactionDetails, Fmodule, Journal, ModelId, PeriodicAccountBalance, ReminderBalance, TPeriodicAccountBalance, TransactionModelId, common}
 import com.kabasoft.iws.repository.{AccountRepository, CompanyRepository, FModuleRepository, FinancialsTransactionRepository, JournalRepository, PacRepository, PostFinancialsTransactionRepository}
 import com.kabasoft.iws.service.FinancialsService.buildPacIds
 import zio.*
@@ -21,21 +21,29 @@ final class FinancialsServiceLive( compRepo: CompanyRepository
                                   , journalRepo: JournalRepository
                                   , repository4PostingTransaction:PostFinancialsTransactionRepository)
              extends FinancialsService:
-
+  
+  override def findBalance4paymentReminder (accountId:String, companyId:String):  ZIO[Any, RepositoryError, List[ReminderBalance]]=
+     for
+       _ <- ZIO.logInfo(s"Get balance 4  payment reminder 4  accountId $accountId and companyId ${companyId}")
+       balance <- pacRepo.findBalance4paymentReminder(accountId, companyId)
+     yield balance
+     
   override def copyFrom(id:Long, modelidFrom: Int, modelidTo: Int, companyId:String): ZIO[Any, RepositoryError, FinancialsTransaction] =
     for {
-      company <- compRepo.getById(companyId, Company.MODEL_ID)
-      fmodule <- fmoduleRepo.getById(modelidTo, Fmodule.MODEL_ID, companyId)
-      account <- accRepo.getById(fmodule.account, Account.MODELID, companyId)
-      //_ <- ZIO.logInfo(s" Company with id = $companyId ${company}")
+      company <- compRepo.getById(companyId, ModelId.COMPANY.modelid)
+      fmodule <- fmoduleRepo.getById(modelidTo, ModelId.FMODULE.modelid, companyId)
       trans <- ftrRepo.getById(id, modelidFrom, companyId)
-      //_ <- ZIO.logInfo(s"Financials transaction with id = $id to copy from  ${trans}")
+      account <- if (fmodule.id == fmodule.copyFrom.toInt) ZIO.succeed(Account.dummy)
+                 else accRepo.getById(fmodule.account, ModelId.ACCOUNT.modelid, companyId)
+      _ <- ZIO.logInfo(s" Company with id = $companyId ${company}")
+
+      _ <- ZIO.logInfo(s"Financials transaction with id = $id to copy from  ${trans}")
       transaction =  (trans.modelid, modelidTo)  match {
         case (RECEIVABLES.modelid, BANK.modelid) => CopyFromReceavables2Bank.copy(trans, account, modelidTo, company)
         case (PAYABLES.modelid, BANK.modelid) => CopyFromPayables2Bank.copy(trans, account, modelidTo, company)
         case                          _ =>  CopySelf.copy(trans, account, modelidTo, company)
       }
-     // _ <- ZIO.logInfo(s"newly Created financials transaction  from one with id = $id ${transaction}")
+      _ <- ZIO.logInfo(s"newly Created financials transaction  from one with id = $id ${transaction}")
       trans2 <- ftrRepo.create(transaction)
     }yield trans2
     
@@ -43,10 +51,10 @@ final class FinancialsServiceLive( compRepo: CompanyRepository
      journalRepo.find4Period(accountId, fromPeriod, toPeriod, company).map(_.toList)
   
   def getBy(id: String, company: String): ZIO[Any, RepositoryError, PeriodicAccountBalance] =
-    pacRepo.getById(id, PeriodicAccountBalance.MODELID, company)
+    pacRepo.getById(id, ModelId.PERIODIC_ACCOUNT_BALANCE.modelid, company)
 
   def getByIds(ids: List[String], company: String): ZIO[Any, RepositoryError, List[PeriodicAccountBalance]] =
-    pacRepo.getBy(ids, PeriodicAccountBalance.MODELID, company)
+    pacRepo.getBy(ids, ModelId.PERIODIC_ACCOUNT_BALANCE.modelid, company)
 
   override def postTransaction4Period(fromPeriod: Int, toPeriod: Int, modelid: Int, company: String): ZIO[Any, RepositoryError, Int] =
     for {
@@ -76,12 +84,12 @@ final class FinancialsServiceLive( compRepo: CompanyRepository
     val pacids = buildPacIds(model)
     val company = transaction.company
     for {
-      pacs <- pacRepo.getBy(pacids, PeriodicAccountBalance.MODELID, company).map(_.filterNot(_.id.equals(PeriodicAccountBalance.dummy.id)))
+      pacs <- pacRepo.getBy(pacids, ModelId.PERIODIC_ACCOUNT_BALANCE.modelid, company).map(_.filterNot(_.id.equals(PeriodicAccountBalance.dummy.id)))
       newPacs = PeriodicAccountBalance.create(model).filterNot(pac => pacs.map(_.id).contains(pac.id))
         .groupBy(_.id) map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy) }
       tpacs <- pacs.map(TPeriodicAccountBalance.apply).flip
       oldPacs <- updatePac(model, tpacs).map(e => e.map(PeriodicAccountBalance.applyT))
-      accounts <- accRepo.getBy(model.lines.flatMap(line => List(line.account, line.oaccount)), Account.MODELID, model.company)
+      accounts <- accRepo.getBy(model.lines.flatMap(line => List(line.account, line.oaccount)), ModelId.ACCOUNT.modelid, model.company)
       journalEntries <- makeJournal(model, newPacs.toList, oldPacs.flip, accounts)
     } yield (model, newPacs.toList, oldPacs.flip, journalEntries)
   }
@@ -91,12 +99,12 @@ final class FinancialsServiceLive( compRepo: CompanyRepository
     val pacids = buildPacIds(model)
     val company = transaction.company
     for {
-      pacs <- pacRepo.getBy(pacids, PeriodicAccountBalance.MODELID, company).map(_.filterNot(_.id.equals(PeriodicAccountBalance.dummy.id)))
+      pacs <- pacRepo.getBy(pacids, ModelId.PERIODIC_ACCOUNT_BALANCE.modelid, company).map(_.filterNot(_.id.equals(PeriodicAccountBalance.dummy.id)))
       newRecords = PeriodicAccountBalance.create(model).filterNot(pac => pacs.map(_.id).contains(pac.id))
         .groupBy(_.id) map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy)}
       tpacs <- pacs.map(TPeriodicAccountBalance.apply).flip
       oldPacs <- updatePac(model, tpacs).map(e=>e.map(PeriodicAccountBalance.applyT))
-      accounts <- accRepo.getBy(model.lines.flatMap(line=>List(line.account, line.oaccount)), Account.MODELID, model.company)
+      accounts <- accRepo.getBy(model.lines.flatMap(line=>List(line.account, line.oaccount)), ModelId.ACCOUNT.modelid, model.company)
       journalEntries <- makeJournal(model, newRecords.toList, oldPacs.flip, accounts)
       post <- repository4PostingTransaction.post(List.empty[FinancialsTransaction], List(model), newRecords.toList, oldPacs.flip, journalEntries)
     } yield post
