@@ -81,264 +81,100 @@ alter sequence public.bankstatement_id_seq_1000 owner to postgres;
 6057,144
 7185,112
 
+create sequence master_compta_id_seq_5700_104 start with 1;
+alter sequence master_compta_id_seq_5700_104 owner to postgres;
+create sequence public.transaction_id_seq_5700_104 start with 1;
+alter sequence public.transaction_id_seq_5700_104 owner to postgres;
 
-create sequence master_compta_id_seq_1000_104 start with 1;
-alter sequence master_compta_id_seq_1000_104 owner to postgres;
-create sequence public.transaction_id_seq_1000_104 start with 1;
-alter sequence public.transaction_id_seq_1000_104 owner to postgres;
+create sequence master_compta_id_seq_5700_105 start with 1;
+alter sequence master_compta_id_seq_5700_105 owner to postgres;
+create sequence public.transaction_id_seq_5700_105 start with 1;
+alter sequence public.transaction_id_seq_5700_105 owner to postgres;
 
-create sequence master_compta_id_seq_1000_105 start with 1;
-alter sequence master_compta_id_seq_1000_105 owner to postgres;
-create sequence public.transaction_id_seq_1000_105 start with 1;
-alter sequence public.transaction_id_seq_1000_105 owner to postgres;
+create sequence master_compta_id_seq_5700_109 start with 1;
+alter sequence master_compta_id_seq_5700_109 owner to postgres;
+create sequence public.transaction_id_seq_5700_109 start with 1;
+alter sequence public.transaction_id_seq_5700_109 owner to postgres;
 
-create sequence master_compta_id_seq_1000_109 start with 1;
-alter sequence master_compta_id_seq_1000_109 owner to postgres;
-create sequence public.transaction_id_seq_1000_109 start with 1;
-alter sequence public.transaction_id_seq_1000_109 owner to postgres;
+create sequence master_compta_id_seq_5700_110 start with 1;
+alter sequence master_compta_id_seq_5700_110 owner to postgres;
+create sequence public.transaction_id_seq_5700_110 start with 1;
+alter sequence public.transaction_id_seq_5700_110 owner to postgres;
 
-create sequence master_compta_id_seq_1000_110 start with 1;
-alter sequence master_compta_id_seq_1000_110 owner to postgres;
-create sequence public.transaction_id_seq_1000_110 start with 1;
-alter sequence public.transaction_id_seq_1000_110 owner to postgres;
+create sequence master_compta_id_seq_5700_111 start with 1;
+alter sequence master_compta_id_seq_5700_111 owner to postgres;
+create sequence public.transaction_id_seq_5700_111 start with 1;
+alter sequence public.transaction_id_seq_5700_111 owner to postgres;
 
-create sequence master_compta_id_seq_1000_111 start with 1;
-alter sequence master_compta_id_seq_1000_111 owner to postgres;
-create sequence public.transaction_id_seq_1000_111 start with 1;
-alter sequence public.transaction_id_seq_1000_111 owner to postgres;
+create sequence master_compta_id_seq_5700_112 start with 1;
+alter sequence master_compta_id_seq_5700_112 owner to postgres;
+create sequence public.transaction_id_seq_5700_112 start with 1;
+alter sequence public.transaction_id_seq_5700_112 owner to postgres;
 
-create sequence master_compta_id_seq_1000_112 start with 7186;
-alter sequence master_compta_id_seq_1000_112 owner to postgres;
-create sequence public.transaction_id_seq_1000_112 start with 1375;
-alter sequence public.transaction_id_seq_1000_112 owner to postgres;
+create sequence master_compta_id_seq_5700_114 start with 1;
+alter sequence master_compta_id_seq_5700_114 owner to postgres;
+create sequence public.transaction_id_seq_5700_114 start with 1;
+alter sequence public.transaction_id_seq_5700_114 owner to postgres;
 
-create sequence master_compta_id_seq_1000_114 start with 7185;
-alter sequence master_compta_id_seq_1000_114 owner to postgres;
-create sequence public.transaction_id_seq_1000_114 start with 1375;
-alter sequence public.transaction_id_seq_1000_114 owner to postgres;
+create sequence master_compta_id_seq_5700_118 start with 1;
+alter sequence master_compta_id_seq_5700_118 owner to postgres;
+create sequence public.transaction_id_seq_5700_118 start with 1;
+alter sequence public.transaction_id_seq_5700_118 owner to postgres;
 
-create sequence master_compta_id_seq_1000_118 start with 7300;
-alter sequence master_compta_id_seq_1000_118 owner to postgres;
-create sequence public.transaction_id_seq_1000_118 start with 1375;
-alter sequence public.transaction_id_seq_1000_118 owner to postgres;
+create sequence master_compta_id_seq_5700_122 start with 23;
+alter sequence master_compta_id_seq_5700_122 owner to postgres;
+create sequence public.transaction_id_seq_5700_122 start with 1;
+alter sequence public.transaction_id_seq_5700_122 owner to postgres;
 
-create sequence master_compta_id_seq_1000_122 start with 6774;
-alter sequence master_compta_id_seq_1000_122 owner to postgres;
-create sequence public.transaction_id_seq_1000_122 start with 1375;
-alter sequence public.transaction_id_seq_1000_122 owner to postgres;
+create sequence master_compta_id_seq_5700_124 start with 1;
+alter sequence master_compta_id_seq_5700_124 owner to postgres;
+create sequence public.transaction_id_seq_5700_124 start with 1;
+alter sequence public.transaction_id_seq_5700_124 owner to postgres;
 
-create sequence master_compta_id_seq_1000_124 start with 7120;
-alter sequence master_compta_id_seq_1000_124 owner to postgres;
-create sequence public.transaction_id_seq_1000_124 start with 1375;
-alter sequence public.transaction_id_seq_1000_124 owner to postgres;
+create sequence master_compta_id_seq_5700_134 start with 1;
+alter sequence master_compta_id_seq_5700_134 owner to postgres;
+create sequence public.transaction_id_seq_5700_134 start with 1;
+alter sequence public.transaction_id_seq_5700_134 owner to postgres;
 
-create sequence master_compta_id_seq_1000_134 start with 7118;
-alter sequence master_compta_id_seq_1000_134 owner to postgres;
-create sequence public.transaction_id_seq_1000_134 start with 1375;
-alter sequence public.transaction_id_seq_1000_134 owner to postgres;
+create sequence master_compta_id_seq_5700_136 start with 1;
+alter sequence master_compta_id_seq_5700_136 owner to postgres;
+create sequence public.transaction_id_seq_5700_136 start with 1;
+alter sequence public.transaction_id_seq_5700_136 owner to postgres;
 
-create sequence master_compta_id_seq_1000_136 start with 6726;
-alter sequence master_compta_id_seq_1000_136 owner to postgres;
-create sequence public.transaction_id_seq_1000_136 start with 1375;
-alter sequence public.transaction_id_seq_1000_136 owner to postgres;
+create sequence master_compta_id_seq_5700_144 start with 1;
+alter sequence master_compta_id_seq_5700_144 owner to postgres;
+create sequence public.transaction_id_seq_5700_144 start with 1;
+alter sequence public.transaction_id_seq_5700_144 owner to postgres;
 
-create sequence master_compta_id_seq_1000_144 start with 6058;
-alter sequence master_compta_id_seq_1000_144 owner to postgres;
-create sequence public.transaction_id_seq_1000_144 start with 1375;
-alter sequence public.transaction_id_seq_1000_144 owner to postgres;
+create sequence master_compta_id_seq_5700_1006 start with 1;
+alter sequence master_compta_id_seq_5700_1006 owner to postgres;
+create sequence public.transaction_id_seq_5700_1006 start with 1;
+alter sequence public.transaction_id_seq_5700_1006 owner to postgres;
 
-create sequence master_compta_id_seq_1000_1006 start with 1;
-alter sequence master_compta_id_seq_1000_1006 owner to postgres;
-create sequence public.transaction_id_seq_1000_1006 start with 1;
-alter sequence public.transaction_id_seq_1000_1006 owner to postgres;
+create sequence master_compta_id_seq_5700_1017 start with 1;
+alter sequence master_compta_id_seq_5700_1017 owner to postgres;
+create sequence public.transaction_id_seq_5700_1017 start with 1;
+alter sequence public.transaction_id_seq_5700_1017 owner to postgres;
 
-create sequence master_compta_id_seq_1000_1017 start with 1;
-alter sequence master_compta_id_seq_1000_1017 owner to postgres;
-create sequence public.transaction_id_seq_1000_1017 start with 1;
-alter sequence public.transaction_id_seq_1000_1017 owner to postgres;
-
-create sequence master_compta_id_seq_1000_1018 start with 1;
-alter sequence master_compta_id_seq_1000_1018 owner to postgres;
-create sequence public.transaction_id_seq_1000_1018 start with 1;
-alter sequence public.transaction_id_seq_1000_1018 owner to postgres;
-
-
-create sequence master_compta_id_seq_1000_1019 start with 1;
-alter sequence master_compta_id_seq_1000_1019 owner to postgres;
-create sequence public.transaction_id_seq_1000_1019 start with 1;
-alter sequence public.transaction_id_seq_1000_1019 owner to postgres;
-
--- create sequence public.details_compta_id_seq_1000_104 start with 1;
--- alter sequence public.details_compta_id_seq_1000_104 owner to postgres;
--- create sequence public.transaction_details_id_seq_1000_104 start with 1;
--- alter sequence public.transaction_details_id_seq_1000_104 owner to postgres;
--- create sequence public.details_compta_id_seq_1000_105 start with 1;
--- alter sequence public.details_compta_id_seq_1000_105 owner to postgres;
--- create sequence public.transaction_details_id_seq_1000_105 start with 1;
--- alter sequence public.transaction_details_id_seq_1000_105 owner to postgres;
--- create sequence public.details_compta_id_seq_1000_109 start with 1;
--- alter sequence public.details_compta_id_seq_1000_109 owner to postgres;
--- create sequence public.transaction_details_id_seq_1000_109 start with 1;
--- alter sequence public.transaction_details_id_seq_1000_109 owner to postgres;
-
--- create sequence public.details_compta_id_seq_1000_110 start with 1;
--- alter sequence public.details_compta_id_seq_1000_110 owner to postgres;
--- create sequence public.transaction_details_id_seq_1000_110 start with 1;
--- alter sequence public.transaction_details_id_seq_1000_110 owner to postgres;
--- create sequence public.details_compta_id_seq_1000_111 start with 1;
--- alter sequence public.details_compta_id_seq_1000_111 owner to postgres;
--- create sequence public.transaction_details_id_seq_1000_111 start with 1;
--- alter sequence public.transaction_details_id_seq_1000_111 owner to postgres;
--- create sequence public.details_compta_id_seq_1000_112 start with 7184;
--- alter sequence public.details_compta_id_seq_1000_112 owner to postgres;
--- create sequence public.transaction_details_id_seq_1000_112 start with 2726;
--- alter sequence public.transaction_details_id_seq_1000_112 owner to postgres;
--- create sequence public.details_compta_id_seq_1000_114 start with 7184;
--- alter sequence public.details_compta_id_seq_1000_114 owner to postgres;
--- create sequence public.transaction_details_id_seq_1000_114 start with 2726;
--- alter sequence public.transaction_details_id_seq_1000_114 owner to postgres;
--- create sequence public.details_compta_id_seq_1000_118 start with 7184;
--- alter sequence public.details_compta_id_seq_1000_118 owner to postgres;
--- create sequence public.transaction_details_id_seq_1000_118 start with 2726;
--- alter sequence public.transaction_details_id_seq_1000_118 owner to postgres;
--- create sequence public.details_compta_id_seq_1000_122 start with 7184;
--- alter sequence public.details_compta_id_seq_1000_122 owner to postgres;
--- create sequence public.transaction_details_id_seq_1000_122 start with 2726;
--- alter sequence public.transaction_details_id_seq_1000_122 owner to postgres;
--- create sequence public.details_compta_id_seq_1000_124 start with 7184;
--- alter sequence public.details_compta_id_seq_1000_124 owner to postgres;
--- create sequence public.transaction_details_id_seq_1000_124 start with 2726;
--- alter sequence public.transaction_details_id_seq_1000_124 owner to postgres;
-
--- create sequence public.details_compta_id_seq_1000_134 start with 7184;
--- alter sequence public.details_compta_id_seq_1000_134 owner to postgres;
--- create sequence public.transaction_details_id_seq_1000_134 start with 2726;
--- alter sequence public.transaction_details_id_seq_1000_134 owner to postgres;
-
---create sequence public.details_compta_id_seq_1000_136 start with 7184;
---alter sequence public.details_compta_id_seq_1000_136 owner to postgres;
---create sequence public.transaction_details_id_seq_1000_136 start with 2726;
---alter sequence public.transaction_details_id_seq_1000_136 owner to postgres;
-
--- create sequence public.details_compta_id_seq_1000_144 start with 7184;
--- alter sequence public.details_compta_id_seq_1000_144 owner to postgres;
--- create sequence public.transaction_details_id_seq_1000_144 start with 2726;
--- alter sequence public.transaction_details_id_seq_1000_144 owner to postgres;
--- create sequence public.details_compta_id_seq_1000_1017 start with 1;
--- alter sequence public.details_compta_id_seq_1000_1017 owner to postgres;
--- create sequence public.transaction_details_id_seq_1000_1017 start with 1;
--- alter sequence public.transaction_details_id_seq_1000_1017 owner to postgres;
-
--- create sequence public.transaction_details_id_seq_1000_1018 start with 1;
--- alter sequence public.transaction_details_id_seq_1000_1018 owner to postgres;
--- create sequence public.details_compta_id_seq_1000_1018 start with 1;
--- alter sequence public.details_compta_id_seq_1000_1018 owner to postgres;
--- create sequence public.details_compta_id_seq_1000_1019 start with 1;
--- alter sequence public.details_compta_id_seq_1000_1019 owner to postgres;
--- create sequence public.transaction_details_id_seq_1000_1019 start with 1;
--- alter sequence public.transaction_details_id_seq_1000_1019 owner to postgres;
-
--- create sequence public.transaction_details_id_seq_1000_1006 start with 1;
--- alter sequence public.transaction_details_id_seq_1000_1006 owner to postgres;
--- create sequence public.details_compta_id_seq_1000_1006 start with 1;
--- alter sequence public.details_compta_id_seq_1000_1006 owner to postgres;
+create sequence master_compta_id_seq_5700_1018 start with 1;
+alter sequence master_compta_id_seq_5700_1018 owner to postgres;
+create sequence public.transaction_id_seq_5700_1018 start with 1;
+alter sequence public.transaction_id_seq_5700_1018 owner to postgres;
 
 
+create sequence master_compta_id_seq_5700_1019 start with 1;
+alter sequence master_compta_id_seq_5700_1019 owner to postgres;
+create sequence public.transaction_id_seq_5700_1019 start with 1;
+alter sequence public.transaction_id_seq_5700_1019 owner to postgres;
 
-
-
-
-  122
- 1019
-  114
-  109
-  112
-  105
-  118
- 1006
-  104
-  111
-  136
- 1017
-  124
-  110
-  134
-  144
-
-create sequence master_compta_id_seq_3000 start with 5635;
-alter sequence master_compta_id_seq_3000 owner to postgres;
-create sequence public.details_compta_id_seq_3000 start with 7184;
-alter sequence public.details_compta_id_seq_3000 owner to postgres;
-create sequence public.transaction_id_seq_3000 start with 1375;
-alter sequence public.transaction_id_seq_3000 owner to postgres;
-create sequence public.transaction_details_id_seq_3000 start with 2726;
-alter sequence public.transaction_details_id_seq_3000 owner to postgres;
-create sequence public.transaction_log_id_seq_3000 start with 400;
-alter sequence public.transaction_log_id_seq_3000 owner to postgres;
-create sequence public.bankstatement_id_seq_3000 start with 1;
-alter sequence public.bankstatement_id_seq_3000 owner to postgres;
-
-create sequence master_compta_id_seq_5000 start with 1;
-alter sequence master_compta_id_seq_5000 owner to postgres;
-create sequence public.details_compta_id_seq_5000 start with 1;
-alter sequence public.details_compta_id_seq_5000 owner to postgres;
-create sequence public.transaction_id_seq_5000 start with 1;
-alter sequence public.transaction_id_seq_5000 owner to postgres;
-create sequence public.transaction_details_id_seq_5000 start with 1;
-alter sequence public.transaction_details_id_seq_5000 owner to postgres;
-create sequence public.transaction_log_id_seq_5000 start with 1;
-alter sequence public.transaction_log_id_seq_5000 owner to postgres;
-create sequence public.journal_id_seq_5000 start with 1;
-alter sequence public.journal_id_seq_5000 owner to postgres;
-create sequence public.bankstatement_id_seq_5000 start with 1;
-alter sequence public.bankstatement_id_seq_5000 owner to postgres;
-
--- truncate table master_compta;
--- truncate table details_compta;
--- truncate table transaction;
--- truncate table transaction_details;
--- truncate table transaction_log;
--- truncate table journal;
--- truncate table bankstatement;
--- create sequence master_compta_id_seq_5600_104 start with 1;
--- alter sequence master_compta_id_seq_5600_104 owner to postgres;
--- create sequence public.transaction_id_seq_5600_104 start with 1;
--- alter sequence public.transaction_id_seq_5600_104 owner to postgres;
---
--- create sequence master_compta_id_seq_5600_105 start with 1;
--- alter sequence master_compta_id_seq_5600_105 owner to postgres;
--- create sequence public.transaction_id_seq_5600_105 start with 1;
--- alter sequence public.transaction_id_seq_5600_105 owner to postgres;
---
--- create sequence master_compta_id_seq_5600_109 start with 1;
--- alter sequence master_compta_id_seq_5600_109 owner to postgres;
--- create sequence public.transaction_id_seq_5600_109 start with 1;
--- alter sequence public.transaction_id_seq_5600_109 owner to postgres;
---
--- create sequence master_compta_id_seq_5600_110 start with 1;
--- alter sequence master_compta_id_seq_5600_110 owner to postgres;
--- create sequence public.transaction_id_seq_5600_110 start with 1;
--- alter sequence public.transaction_id_seq_5600_110 owner to postgres;
---
--- create sequence master_compta_id_seq_5600_111 start with 1;
--- alter sequence master_compta_id_seq_5600_111 owner to postgres;
--- create sequence public.transaction_id_seq_5600_111 start with 1;
--- alter sequence public.transaction_id_seq_5600_111 owner to postgres;
--- create sequence master_compta_id_seq_5600_112 start with 1
-
-
-delete  from  master_compta where company='5600';
-delete  from  details_compta where company='5600';
-delete  from  transaction where company='5600';
-delete  from  transaction_details where company='5600';
-delete  from  journal where company='5600';
-delete  from  transaction_log where company='5600';
-delete  from  bankstatement where company='5600';
 
 create sequence master_compta_id_seq_5600_104 start with 1;
 alter sequence master_compta_id_seq_5600_104 owner to postgres;
 create sequence public.transaction_id_seq_5600_104 start with 1;
 alter sequence public.transaction_id_seq_5600_104 owner to postgres;
+
+ALTER SEQUENCE transaction_id_seq_5700_104 START WITH 1;
+--ALTER SEQUENCE transaction_id_seq_5700_105 START WITH 1;
 
 create sequence master_compta_id_seq_5600_105 start with 1;
 alter sequence master_compta_id_seq_5600_105 owner to postgres;
@@ -365,59 +201,34 @@ alter sequence master_compta_id_seq_5600_112 owner to postgres;
 create sequence public.transaction_id_seq_5600_112 start with 1;
 alter sequence public.transaction_id_seq_5600_112 owner to postgres;
 
-create sequence master_compta_id_seq_5600_114 start with 1;
+create sequence master_compta_id_seq_5600_114 start with 7185;
 alter sequence master_compta_id_seq_5600_114 owner to postgres;
-create sequence public.transaction_id_seq_5600_114 start with 1;
+create sequence public.transaction_id_seq_5600_114 start with 1375;
 alter sequence public.transaction_id_seq_5600_114 owner to postgres;
 
-create sequence master_compta_id_seq_5600_118 start with 1;
+create sequence master_compta_id_seq_5600_118 start with 7300;
 alter sequence master_compta_id_seq_5600_118 owner to postgres;
-create sequence public.transaction_id_seq_5600_118 start with 1;
+create sequence public.transaction_id_seq_5600_118 start with 1375;
 alter sequence public.transaction_id_seq_5600_118 owner to postgres;
 
-create sequence master_compta_id_seq_5600_122 start with 1;
+create sequence master_compta_id_seq_5600_122 start with 6774;
 alter sequence master_compta_id_seq_5600_122 owner to postgres;
-create sequence public.transaction_id_seq_5600_122 start with 1;
+create sequence public.transaction_id_seq_5600_122 start with 1375;
 alter sequence public.transaction_id_seq_5600_122 owner to postgres;
 
-create sequence master_compta_id_seq_5600_124 start with 1;
+create sequence master_compta_id_seq_5600_124 start with 7120;
 alter sequence master_compta_id_seq_5600_124 owner to postgres;
-create sequence public.transaction_id_seq_5600_124 start with 1;
-alter sequence public.transacti186;
-
-
-alter sequence master_compta_id_seq_5600_112 owner to postgres;
-create sequence public.transaction_id_seq_5600_112 start with 1;
-alter sequence public.transaction_id_seq_5600_112 owner to postgres;
-
-create sequence master_compta_id_seq_5600_114 start with 1;
-alter sequence master_compta_id_seq_5600_114 owner to postgres;
-create sequence public.transaction_id_seq_5600_114 start with 1;
-alter sequence public.transaction_id_seq_5600_114 owner to postgres;
-
-create sequence master_compta_id_seq_5600_118 start with 1;
-alter sequence master_compta_id_seq_5600_118 owner to postgres;
-create sequence public.transaction_id_seq_5600_118 start with 1;
-alter sequence public.transaction_id_seq_5600_118 owner to postgres;
-
-create sequence master_compta_id_seq_5600_122 start with 1;
-alter sequence master_compta_id_seq_5600_122 owner to postgres;
-create sequence public.transaction_id_seq_5600_122 start with 1;
-alter sequence public.transaction_id_seq_5600_122 owner to postgres;
-
-create sequence master_compta_id_seq_5600_124 start with 1;
-alter sequence master_compta_id_seq_5600_124 owner to postgres;
-create sequence public.transaction_id_seq_5600_124 start with 1;
+create sequence public.transaction_id_seq_5600_124 start with 1375;
 alter sequence public.transaction_id_seq_5600_124 owner to postgres;
 
-create sequence master_compta_id_seq_5600_134 start with 1;
+create sequence master_compta_id_seq_5600_134 start with 7118;
 alter sequence master_compta_id_seq_5600_134 owner to postgres;
-create sequence public.transaction_id_seq_5600_134 start with 1;
+create sequence public.transaction_id_seq_5600_134 start with 1375;
 alter sequence public.transaction_id_seq_5600_134 owner to postgres;
 
-create sequence master_compta_id_seq_5600_136 start with 1;
+create sequence master_compta_id_seq_5600_136 start with 6726;
 alter sequence master_compta_id_seq_5600_136 owner to postgres;
-create sequence public.transaction_id_seq_5600_136 start with 1;
+create sequence public.transaction_id_seq_5600_136 start with 1375;
 alter sequence public.transaction_id_seq_5600_136 owner to postgres;
 
 create sequence master_compta_id_seq_5600_144 start with 1;
@@ -440,28 +251,11 @@ alter sequence master_compta_id_seq_5600_1018 owner to postgres;
 create sequence public.transaction_id_seq_5600_1018 start with 1;
 alter sequence public.transaction_id_seq_5600_1018 owner to postgres;
 
+
 create sequence master_compta_id_seq_5600_1019 start with 1;
 alter sequence master_compta_id_seq_5600_1019 owner to postgres;
 create sequence public.transaction_id_seq_5600_1019 start with 1;
 alter sequence public.transaction_id_seq_5600_1019 owner to postgres;
-
-create sequence public.transaction_log_id_seq_5600 start with 1;
-alter sequence public.transaction_log_id_seq_5600 owner to postgres;
-create sequence public.journal_id_seq_5600 start with 1;
-alter sequence public.journal_id_seq_5600 owner to postgres;
-create sequence public.bankstatement_id_seq_5600 start with 1;
-alter sequence public.bankstatement_id_seq_5600 owner to postgres;
-
-
-
-
-
-
-
-
- id    |     name     | description  |     postingdate     |     changedate      |      enterdate      | company | modelid | account  | is_debit | balancesheet
-
-
 
 select currval('transaction_log_id_seq');
 select nextval('transaction_log_id_seq'::regclass);
