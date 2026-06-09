@@ -21,17 +21,17 @@ final class AssetsServiceLive(assetRepo: AssetRepository
 
   private def build(companyId: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
     //<- ZIO.logInfo(s" Posting transaction with id ${id} of company ${company}")
-    company  <- companyRepo.getById((companyId, Company.MODEL_ID))//.debug("employee")
-    assets   <- assetRepo.all((Asset.MODELID, companyId))//.debug("assets")
-    accounts <- accountRepo.all((Account.MODELID, companyId))//.debug("accounts")
+    company  <- companyRepo.getById((companyId, ModelId.COMPANY.modelid))//.debug("employee")
+    assets   <- assetRepo.all((ModelId.ASSET.modelid, companyId))//.debug("assets")
+    accounts <- accountRepo.all((ModelId.ACCOUNT.modelid, companyId))//.debug("accounts")
 
   } yield buildTransaction(assets, accounts, company)
 
 
-  private def buildTransactionDetails(asset:Asset, accounts:List[Account], company: Company) = 
+  private def buildTransactionDetails(asset:Asset, accounts:List[Account], company: Company, modelid:Int) = 
      val amount = zeroAmount // ToDo replace this implement the calculation of the amount to depreciate
      FinancialsTransactionDetails(-1L, -1L, asset.oaccount, side = true, asset.account, amount,
-      Instant.now(), asset.name, company.currency, company.id, getName(accounts, asset.oaccount), getName(accounts, asset.account))
+      Instant.now(), asset.name, company.currency, company.id, getName(accounts, asset.oaccount), getName(accounts, asset.account), modelid)
      
   def getName (accounts:List[Account], id:String): String =
     accounts.find(_.id == id).fold(s"Account with id ${id} not found!!!")(_.name)
@@ -39,8 +39,9 @@ final class AssetsServiceLive(assetRepo: AssetRepository
   private def buildTransaction(assets:List[Asset],  accounts:List[Account], company: Company) = assets.map(asset=>
     val date = Instant.now()
     val period = common.getPeriod(date)
-    val line: FinancialsTransactionDetails = buildTransactionDetails (asset, accounts, company)
-    FinancialsTransaction(-1L, -1L, -1L, "100", asset.oaccount, date, date, date, period, posted = false, TransactionModelId.GENERAL_LEDGER.modelid,
+    val modelid = TransactionModelId.GENERAL_LEDGER.modelid
+    val line: FinancialsTransactionDetails = buildTransactionDetails (asset, accounts, company, modelid)
+    FinancialsTransaction(-1L, -1L, -1L, "100", asset.oaccount, date, date, date, period, posted = false, modelid,
       asset.company, "Depreciation of asset "+period, 0, 0, List(line))
   )//.mapBoth(e => RepositoryError(e.getMessage), a => a)
 
