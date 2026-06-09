@@ -2,9 +2,8 @@ package com.kabasoft.iws.repository
 
 import cats.effect.Resource
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Apartment, Floor, Masterfile, Room}
-import skunk._
-
+import com.kabasoft.iws.domain.{Apartment, Floor, Masterfile, ModelId, Room}
+import skunk.*
 import zio.{Task, ZIO, ZLayer}
 
 
@@ -30,22 +29,22 @@ final case class FloorRepositoryLive(postgres: Resource[Task, Session[Task]], mf
  
     override def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Floor]] = for {
                   mfs  <- mfRepo.all(Id)
-                  apartments_ <- apartRepo.all(Apartment.MODEL_ID, Id._2)
+                  apartments_ <- apartRepo.all(ModelId.APARTMENT.modelid, Id._2)
              } yield mfs.map(p => fromMasterfile(p).copy(apartments = apartments_.filter(_.parent == p.id)))
   
     override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, Floor] = for {
       mf <- mfRepo.getById(p)
-      apartments_ <- apartRepo.getByParent(mf.id, Room.MODEL_ID, p._3)
+      apartments_ <- apartRepo.getByParent(mf.id, ModelId.ROOM.modelid, p._3)
     } yield Floor.apply1(mf).copy(apartments = apartments_.filter(_.parent == mf.id))
 
     override def getByParent(parent: String, modelid: Int, company: String): ZIO[Any, RepositoryError, List[Floor]] =for {
       masterfiles <-mfRepo.getByParent (parent, modelid, company)
-      apartments_ <- apartRepo.all(Apartment.MODEL_ID, company)
+      apartments_ <- apartRepo.all(ModelId.APARTMENT.modelid, company)
      } yield masterfiles.map(fromMasterfile).map(p=>p.copy(apartments = apartments_.filter(_.parent == p.id)))
 
     override def getBy(ids: List[String], modelid: Int, company: String):ZIO[Any, RepositoryError, List[Floor]] = for {
       floors <- mfRepo.getBy(ids, modelid, company)
-      apartments_ <-apartRepo.all(Apartment.MODEL_ID, company)
+      apartments_ <-apartRepo.all(ModelId.APARTMENT.modelid, company)
     } yield floors.map(p => fromMasterfile(p).copy(apartments = apartments_.filter(_.parent == p.id)))
   
     override def delete(p: (String, Int, String)):ZIO[Any, RepositoryError, Int] = mfRepo.delete(p)  

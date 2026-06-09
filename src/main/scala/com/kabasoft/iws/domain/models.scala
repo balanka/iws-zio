@@ -81,13 +81,67 @@ object common:
     val year = LocalDateTime.ofInstant(instant, ZoneId.of("UTC+2")).getYear
     year.toString.concat(getMonthAsString(instant)).toInt
 
+enum ModelId(val modelid: Int):
+//type modelId = Value
+  case SUPPLIER extends ModelId(1)
+  case CUSTOMER extends ModelId(3)
+  case COST_CEMTER extends ModelId(6)
+  case ACCOUNT extends ModelId(9)
+  case COMPANY extends ModelId(10)
+  case BANK extends ModelId(11)
+  case BANK_ACCOUNT extends ModelId(12)
+  case ARTICLE_GROUP extends ModelId(13)
+  case VAT extends ModelId(14)
+  case QUANTITY_UNIT extends ModelId(15)
+  case REMINDER_BALANCE extends ModelId(16)
+  case BANK_STATEMENT extends ModelId(18)
+  case ASSET extends ModelId(19)
+  case STOCK extends ModelId(37)
+  case EMPLOYEE extends ModelId(33)
+  case ARTICLE extends ModelId(34)
+  case STORE extends ModelId(35)
+  case ACCOUNT_CLASS extends ModelId(36)
+  case ACCOUNT_GROUP extends ModelId(31)
+  case CLOSE_ACCOUNT_PERIOD extends ModelId (38)
+  case CREATE_PAYROLL_TRANSACTION extends ModelId (39)
+  case BOM extends ModelId (40)
+  case CREATE_DEPRECIATION_TRANSACTION extends ModelId (41)
+  case CURRENCY extends ModelId (99)
+  case PURCHASE_ORDER extends ModelId (104)
+  case GOODRECEIVING extends ModelId (105)
+  case PERIODIC_ACCOUNT_BALANCE extends ModelId (106)
+  case SALES_ORDER extends ModelId (109)
+  case BILL_OF_DELIVERY extends ModelId (110)
+  case USER extends ModelId (111)
+  case CUSTOMER_INVOICE extends ModelId (111)
+  case BANK_PAYMENT_SETLLEMENT extends ModelId (118)
+  case ROLE extends ModelId (121)
+  case USER_RIGHT extends ModelId (131)
+  case PERMISSION extends ModelId (141)
+  case FMODULE extends ModelId (151)
+  case ROOM extends ModelId (152)
+  case APARTMENT extends ModelId (153)
+  case REALESTATE extends ModelId (154)
+  case FLOOR extends ModelId (155)
+  case USER_ROLE extends ModelId (161)
+  case SALARY_ITEM extends ModelId (171)
+  case PAYROLL_TAX_RANGE extends ModelId (172)
+  case PARTNER extends ModelId (173)
+  case IMPORT_FILE extends ModelId (181)
+  case MODULE extends ModelId (400)
+  case BALANCESHEET extends ModelId (1000)
+  case SUPPLIER_INVOICE extends ModelId (1006)
+  case FINANCIALS extends ModelId(1300)
+  case TRANSACTION extends ModelId(1301)
+  case LOGIN extends ModelId ( 11111)
+
 enum TransactionModelId (val modelid:Int) :
   //type modelId = Value
   case  RQF extends TransactionModelId(100)
   case REQUISITION extends TransactionModelId(101)
   case CONTRACT extends TransactionModelId(103)
   case PURCHASE_ORDER extends TransactionModelId(104)
-  case GOORECEIVING extends TransactionModelId(105)
+  case GOODRECEIVING extends TransactionModelId(105)
   case SUPPLIER_INVOICE extends TransactionModelId(1006)
   case QUOTATION extends TransactionModelId(107)
   case SALES_CONTRACT extends TransactionModelId(108)
@@ -103,6 +157,9 @@ enum TransactionModelId (val modelid:Int) :
   case GENERAL_LEDGER extends TransactionModelId(134)
   case PAYROLL extends TransactionModelId(136)
   case CASH extends TransactionModelId(144)
+  case STOCK_TRANSFER extends TransactionModelId(126)
+  case CONSUMPTION extends TransactionModelId(127)
+  case STOCK_TAKE extends TransactionModelId(128)
 
 final case class Store(id: String,
                        name: String,
@@ -114,10 +171,9 @@ final case class Store(id: String,
                        changedate: Instant = Instant.now(),
                        postingdate: Instant = Instant.now(),
                        company: String,
-                       modelid: Int = Store.MODELID,
+                       modelid: Int = ModelId.STORE.modelid,
                        stocks:List[Stock]=List.empty[Stock])
 object Store:
-  val MODELID = 35
   type TYPE2 = (String, String, String, String, String, String, Int, String)
   def encodeIt2(st: Store): TYPE2 = (st.name, st.description, st.costcenter,  st.costcenter, st.oaccount, st.id, st.modelid, st.company)
 
@@ -139,7 +195,7 @@ final case class Article(id: String,
                          revenueAccount: String,
                          vatCode: String,
                          company: String,
-                         modelid: Int = Article.MODELID,
+                         modelid: Int = ModelId.ARTICLE.modelid,
                          enterdate: Instant = Instant.now(),
                          changedate: Instant = Instant.now(),
                          postingdate: Instant = Instant.now(),
@@ -162,7 +218,7 @@ final case class TArticle(id: String,
                           revenueAccount: String,
                           vatCode: String,
                           company: String,
-                          modelid: Int = Article.MODELID,
+                          modelid: Int = ModelId.ARTICLE.modelid,
                           enterdate: Instant = Instant.now(),
                           changedate: Instant = Instant.now(),
                           postingdate: Instant = Instant.now(),
@@ -191,8 +247,6 @@ final case class TArticle(id: String,
     }
 }
 object Article {
-
-  val MODELID = 34
   type TYPE2 = (scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, String, Int, String)
   private type Article_Type = (String, String, String, String, BigDecimal, BigDecimal, BigDecimal, String, Boolean, String,
     String, String, String, String, String, String, Int, Instant, Instant, Instant
@@ -339,13 +393,12 @@ object Article {
   def encodeIt3(st: Article):TYPE2 =
     (scala.math.BigDecimal(st.sprice), scala.math.BigDecimal(st.pprice), scala.math.BigDecimal(st.avgPrice), st.id, st.modelid, st.company)
   val dummy = Article("-1", "dummy",  "dummy", "", zeroAmount, zeroAmount, zeroAmount, "", false, "", "", "", "", "", ""
-    , "-1", Article.MODELID, Instant.now(), Instant.now(), Instant.now())
+    , "-1", ModelId.ARTICLE.modelid, Instant.now(), Instant.now(), Instant.now())
 }
-final case class Bom(id:String, parent:String, quantity:BigDecimal, description:String, company:String, modelid: Int =Bom.MODELID)
+final case class Bom(id:String, parent:String, quantity:BigDecimal, description:String, company:String, modelid: Int =ModelId.BOM.modelid)
 object Bom:
-  val MODELID= 34
   type TYPE2 =(String, String, scala.math.BigDecimal, String, Int, String)
-  val dummy: Bom = Bom("-1", "", zeroAmount, "", "", 36)
+  val dummy: Bom = Bom("-1", "", zeroAmount, "", "", ModelId.BOM.modelid)
   def encodeIt2(st:Bom):TYPE2 =(st.parent, st.description, st.quantity, st.id, st.modelid, st.company)
 
 
@@ -373,14 +426,13 @@ final case class Company(
                           purchasingClearingAcc:String,
                           salesClearingAcc:String,
                           cashAcc:String,
-                          modelid: Int,
+                          modelid: Int =ModelId.COMPANY.modelid,
                           bankaccounts: List[BankAccount] = List.empty[BankAccount],
                           enterdate: Instant = Instant.now(),
                           changedate: Instant = Instant.now(),
                           postingdate: Instant = Instant.now(),
                         )
 object Company:
-  val MODEL_ID=10;
   type TYPE= (
     String,
       String,
@@ -412,7 +464,7 @@ object Company:
   type TYPE3=(String,String,String,String,String,String,String,String,String,String,String,String,String,String,String,String,String,String,String,String, String, Int)
   //def apply(c:TYPE):Company = Company(c._1, c._2,c._3,c._4,c._5,c._6,c._7,c._8,c._9,c._10
   //  ,c._11,c._12,c._13,c._14,c._15, c._16,c._17,c._18,c._19, c._20, c._21, c._22, c._23, List.empty[BankAccount])
-  def dummy:Company = Company("-1",  "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", MODEL_ID, Nil)
+  def dummy:Company = Company("-1",  "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ModelId.COMPANY.modelid, Nil)
 
   def encodeIt(st: Company): TYPE2 =
     (st.id, st.name,  st.street, st.zip, st.city, st.state, st.country, st.email, st.partner, st.phone, st.bankAcc,
@@ -463,7 +515,7 @@ final case class Account (
                            changedate: Instant = Instant.now(),
                            postingdate: Instant = Instant.now(),
                            company: String,
-                           modelid: Int = 9,
+                           modelid: Int = ModelId.ACCOUNT.modelid,
                            account: String,
                            isDebit: Boolean,
                            balancesheet: Boolean,
@@ -571,8 +623,6 @@ final case class Account (
 }
 object Account {
   import com.kabasoft.iws.domain.common.{reduce, given}
-
-  val MODELID = 9
   type TYPE = (String, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int, String, Boolean, Boolean
     , String, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal)
   //acc.name, acc.description, acc.account, acc.isDebit, acc.balancesheet, acc.currency,  acc.id, acc.modelid, acc.company
@@ -622,7 +672,7 @@ object Account {
       Nil.toSet
     )
 
-  val dummy: Account = Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", Account.MODELID, "X+"
+  val dummy: Account = Account("", "", "", Instant.now(), Instant.now(), Instant.now(), "1000", ModelId.ACCOUNT.modelid, "X+"
     , false, false, "EUR", zeroAmount, zeroAmount, zeroAmount, zeroAmount, zeroAmount, zeroAmount, Nil.toSet)
 
   def encodeIt(acc: Account): Account_Tyoe3 =
@@ -756,7 +806,7 @@ final case class Asset (id: String,
                         changedate: Instant = Instant.now(),
                         postingdate: Instant = Instant.now(),
                         company: String,
-                        modelid: Int = Asset.MODELID,
+                        modelid: Int = ModelId.ASSET.modelid,
                         account: String,
                         oaccount: String,
                         depMethod:Int,
@@ -767,7 +817,6 @@ final case class Asset (id: String,
                         frequency:Int,
                         currency: String)
 object Asset:
-  val MODELID = 19
   type TYPE=(String, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int, String, String, Int, scala.math.BigDecimal, scala.math.BigDecimal, Int, scala.math.BigDecimal, Int, String)
   type TYPE2 =(String, String, String, String, Int, scala.math.BigDecimal, String, scala.math.BigDecimal, Int, scala.math.BigDecimal, Int, String, Int, String)
   def encodeIt(st: Asset): TYPE =
@@ -811,7 +860,7 @@ object Masterfile:
   def encodeIt3(st: Masterfile):(String, Int, String)  = ( st.id, st.modelid, st.company)
 
 object AccountClass:
-  val dummy  = AccountClass("", "", "", "", Instant.now(), Instant.now(), Instant.now(), 36,
+  val dummy  = AccountClass("", "", "", "", Instant.now(), Instant.now(), Instant.now(), ModelId.ACCOUNT_CLASS.modelid,
     "1000", true, zeroAmount, zeroAmount, zeroAmount, zeroAmount)
 
 final case  class AccountClass ( id: String,
@@ -821,7 +870,7 @@ final case  class AccountClass ( id: String,
                                  enterdate: Instant = Instant.now(),
                                  changedate: Instant = Instant.now(),
                                  postingdate: Instant = Instant.now(),
-                                 modelid: Int,
+                                 modelid: Int = ModelId.ACCOUNT_CLASS.modelid,
                                  company: String,
                                  isDebit: Boolean,
                                  idebit: BigDecimal = zeroAmount,
@@ -849,8 +898,6 @@ final case  class AccountClass ( id: String,
   def balance: BigDecimal = if (isDebit) dbalance else cbalance
   def getBalance: Balance = Balance(id, idebit, icredit, debit, credit)
 }
-object Costcenter:
-  val MODEL_ID = 6
 
 final case class ImportFile( id: String,
                              name: String,
@@ -859,10 +906,9 @@ final case class ImportFile( id: String,
                              enterdate: Instant = Instant.now(),
                              changedate: Instant = Instant.now(),
                              postingdate: Instant = Instant.now(),
-                             modelid: Int = ImportFile.MODELID,
+                             modelid: Int = ModelId.IMPORT_FILE.modelid,
                              company: String) extends IWS
 object ImportFile:
-  val MODELID  = 81
   type TYPE = (String, String, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int)
   type TYPE2 = (String, String, String, String, Int, String)
   def encodeIt(st: ImportFile):TYPE =
@@ -882,11 +928,10 @@ final case class SalaryItem(id: String,
                             enterdate: Instant = Instant.now(),
                             changedate: Instant = Instant.now(),
                             postingdate: Instant = Instant.now(),
-                            modelid: Int = SalaryItem.MODELID,
+                            modelid: Int = ModelId.SALARY_ITEM.modelid,
                             company: String
                            ) extends IWS
 object SalaryItem:
-  val MODELID = 171
   type TYPE = (String, String, String, String, scala.math.BigDecimal, scala.math.BigDecimal, LocalDateTime, LocalDateTime, LocalDateTime, String, Int)
   type TYPE2 = (String, String, String, scala.math.BigDecimal, scala.math.BigDecimal, String, Int, String)
   def encodeIt(st: SalaryItem): TYPE =
@@ -898,9 +943,8 @@ object SalaryItem:
   def encodeIt2(st: SalaryItem): TYPE2 =
     (st.name, st.description, st.account, st.amount, st.percentage, st.id, st.modelid, st.company)
 
-final case class PayrollTaxRange (id: String, fromAmount:BigDecimal, toAmount:BigDecimal, tax:BigDecimal, taxClass:String, modelid: Int = PayrollTaxRange.MODELID, company: String)
+final case class PayrollTaxRange (id: String, fromAmount:BigDecimal, toAmount:BigDecimal, tax:BigDecimal, taxClass:String, modelid: Int = ModelId.PAYROLL_TAX_RANGE.modelid, company: String)
 object PayrollTaxRange:
-  val MODELID = 172
   type TYPE = (String, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, String, String, Int)
   def encodeIt(st: PayrollTaxRange): TYPE = (st.id, st.fromAmount, st.toAmount, st.tax, st.taxClass, st.company, st.modelid)
 
@@ -914,13 +958,10 @@ final case class EmployeeSalaryItemDTO(id: String, owner: String, account: Strin
 
 object EmployeeSalaryItemDTO:
   def apply(item:EmployeeSalaryItem):EmployeeSalaryItemDTO =EmployeeSalaryItemDTO(item.id, item.owner, item.account, "", item.amount, item.percentage, item.text, item.company)
-object Bank:
-  val MODEL_ID = 11
 
-final case class BankAccount(id: String, bic: String, owner: String, company: String, modelid: Int = BankAccount.MODEL_ID )
+final case class BankAccount(id: String, bic: String, owner: String, company: String, modelid: Int =  ModelId.BANK_ACCOUNT.modelid )
 object BankAccount:
   import scala.math.Ordering
-  val MODEL_ID = 12
   type TYPE = (String, String, String, String, Int)
   type TYPE2 = (String, String, String, Int, String)
 
@@ -946,18 +987,16 @@ final case class BankStatement(
                                 company: String,
                                 companyIban: String,
                                 posted: Boolean = false,
-                                modelid: Int = BankStatement.MODELID,
+                                modelid: Int =  ModelId.BANK_STATEMENT.modelid,
                                 period: Int //= common.getPeriod(Instant.now())
                               )
 object BankStatement  {
-  val MODELID         = 18
   val CENTURY         = "20"
-  //val COMPANY_IBAN    = "DE47480501610043006329"
   val zoneId          = ZoneId.of("Europe/Berlin")
   val DATE_FORMAT     = "dd.MM.yyyy"
   val FIELD_SEPARATOR = ';'
   val NUMBER_FORMAT   = NumberFormat.getInstance(Locale.GERMAN)
-  val dummy:BankStatement=BankStatement(0L, "", Instant.now(), Instant.now(), "", "", "", "", "", BigDecimal.ZERO, "", "", "", "", false, BankStatement.MODELID, 0)
+  val dummy:BankStatement=BankStatement(0L, "", Instant.now(), Instant.now(), "", "", "", "", "", BigDecimal.ZERO, "", "", "", "", false, ModelId.BANK_STATEMENT.modelid, 0)
   type TYPE = (Long, String, LocalDateTime, LocalDateTime, String, String, String, String, String, scala.math.BigDecimal, String, String, String, String, Boolean, Int, Int)
   type TYPE4 = (String, LocalDateTime, LocalDateTime, String, String, String, String, String, scala.math.BigDecimal, String, String, String, String, Boolean, Int, Int)
   type TYPE2 = (Boolean, Int, Long, Int, String)
@@ -1048,7 +1087,7 @@ object BankStatement  {
       company,
       companyIban,
       posted,
-      MODELID,
+      ModelId.BANK_STATEMENT.modelid,
       period
     )
     println ("BankStatement>>"+bs)
@@ -1084,11 +1123,10 @@ final case class Module(
                          enterdate: Instant = Instant.now(),
                          changedate: Instant = Instant.now(),
                          postingdate: Instant = Instant.now(),
-                         modelid: Int = 400,
+                         modelid: Int = ModelId.MODULE.modelid,
                          company: String
                        )
 object Module:
-  val MODEL_ID = 400
   type TYPE=(String, String, String, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int)
   type TYPE2=(String, String, String, String, String, Int, String)
   def encodeIt(st: Module): TYPE =
@@ -1110,11 +1148,10 @@ final case class Vat(
                       changedate: Instant = Instant.now(),
                       postingdate: Instant = Instant.now(),
                       company: String,
-                      modelid: Int = Vat.MODEL_ID
-                    )
+                      modelid: Int = ModelId.VAT.modelid
+                    ) extends IWS
 object Vat:
-  val MODEL_ID = 14
-  val dummy: Vat = Vat("", "", "", zeroAmount, "", "", Instant.now(), Instant.now(), Instant.now(), "", Vat.MODEL_ID)
+  val dummy: Vat = Vat("", "", "", zeroAmount, "", "", Instant.now(), Instant.now(), Instant.now(), "", ModelId.VAT.modelid)
 
   def encodeIt(st: Vat): (String, String, String, scala.BigDecimal, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int) =
     (st.id,
@@ -1134,9 +1171,9 @@ object Vat:
     (st.name, st.description, st.percent, st.inputVatAccount, st.outputVatAccount, st.id, st.modelid, st.company)
 
 final case class Stock(id:String, store:String, article:String, quantity:BigDecimal,  price: BigDecimal
-                       , charge:String, company:String, modelid: Int = Stock.MODELID)
+                       , charge:String, company:String, modelid: Int = ModelId.STOCK.modelid)
 final case class TStock(id:String, store:String, article:String, quantity:TRef[BigDecimal], price:BigDecimal
-                        , charge:String, company:String, modelid: Int = Stock.MODELID) {
+                        , charge:String, company:String, modelid: Int = ModelId.STOCK.modelid) {
   self =>
   def transfer(from: TStock,  quantity: BigDecimal): ZIO[Any, RepositoryError, Unit] = {
     self.quantity.get.commit.map(m=>m.add(quantity)).map(m =>if (m.signum()<0) RepositoryError(s"Negative stock ${quantity}") else ())
@@ -1172,7 +1209,6 @@ final case class TStock(id:String, store:String, article:String, quantity:TRef[B
 
 object Stock {
   import com.kabasoft.iws.domain.common.given
-  val MODELID = 37
   val dummy: Stock =   make("-1", "-1", zeroAmount, zeroAmount, "", "-1")
   type TYPE2 = (scala.math.BigDecimal, String)
   type TYPE3 = (scala.math.BigDecimal, String, String, Int, String)
@@ -1181,12 +1217,12 @@ object Stock {
   private type STOCK_Type = (String, String, String,  BigDecimal, BigDecimal, String, String, Int)
   def buildId(store:String, article:String, charge:String, company:String): String = store.concat(article).concat(company).concat(charge)
   def make (store:String, article:String, quantity:BigDecimal, price:BigDecimal, charge:String, company:String): Stock =
-    Stock( buildId(store, article,  charge, company), store, article, quantity, price, charge, company, Stock.MODELID)
+    Stock( buildId(store, article,  charge, company), store, article, quantity, price, charge, company, ModelId.STOCK.modelid)
   def apply(stock: STOCK_Type): Stock = Stock(stock._1, stock._2, stock._3, stock._4, stock._5, stock._6, stock._7, stock._8)
 
   def apply(stock: TStock): ZIO[Any, Nothing, Stock] = for {
     quantity_  <- stock.quantity.get.commit
-  } yield Stock(stock.id, stock.store, stock.article, quantity_, stock.price, stock.charge,  stock.company, stock.modelid)
+  } yield Stock(stock.id, stock.store, stock.article, quantity_, stock.price, stock.charge,  stock.company, ModelId.STOCK.modelid)
 
   def create(model: Transaction): List[Stock] =
     model.lines.map(line => Stock.make(model.store, line.article, line.quantity, line.price, "", model.company))
@@ -1217,7 +1253,7 @@ object TStock:
     quantity  <- TRef.makeCommit(stock.quantity)
   } yield TStock(stock.id, stock.store, stock.article, quantity, stock.price, stock.charge,  stock.company, stock.modelid)
 
-  def apply(stock: Stock, quantity:BigDecimal): ZIO[Any, RepositoryError, TStock] =
+  def fromStockAndQuantity(stock: Stock, quantity:BigDecimal): ZIO[Any, RepositoryError, TStock] =
     TRef.makeCommit(stock.quantity.add(quantity)).flatMap( quantity_ =>
       if (quantity.add(stock.quantity).compareTo (zeroAmount) >= 0.00)
         ZIO.succeed(TStock(stock.id, stock.store, stock.article, quantity_, stock.price, stock.charge,  stock.company, stock.modelid))
@@ -1238,7 +1274,7 @@ final case class TPeriodicAccountBalance(
                                           currency: String,
                                           company: String,
                                           name: String,
-                                          modelid: Int = PeriodicAccountBalance.MODELID
+                                          modelid: Int = ModelId.PERIODIC_ACCOUNT_BALANCE.modelid
                                         ) {
   self =>
   def transfer(from: TPeriodicAccountBalance, to: TPeriodicAccountBalance): ZIO[Any, Nothing, Unit] =
@@ -1286,7 +1322,7 @@ object TPeriodicAccountBalance:
         line.currency,
         model.company,
         line.accountName,
-        PeriodicAccountBalance.MODELID
+        ModelId.PERIODIC_ACCOUNT_BALANCE.modelid
       )
       val credited = PeriodicAccountBalance(
         PeriodicAccountBalance.createId(model.period, line.oaccount),
@@ -1301,7 +1337,7 @@ object TPeriodicAccountBalance:
         line.currency,
         model.company,
         line.oaccountName,
-        PeriodicAccountBalance.MODELID)
+        ModelId.PERIODIC_ACCOUNT_BALANCE.modelid)
       List(debited, credited)
 
   def transferX(from: TPeriodicAccountBalance, to: TPeriodicAccountBalance, amount: BigDecimal): IO[Nothing, Unit] = {
@@ -1314,7 +1350,7 @@ object TPeriodicAccountBalance:
       } yield ()
     }
   }
-
+final case class ReminderBalance (id: String, period: Int, balance: BigDecimal, modelid:Int = ModelId.REMINDER_BALANCE.modelid)
 final case class PeriodicAccountBalance(
                                          id: String,
                                          account: String,
@@ -1328,7 +1364,7 @@ final case class PeriodicAccountBalance(
                                          currency: String,
                                          company: String,
                                          name: String,
-                                         modelid: Int = PeriodicAccountBalance.MODELID) {
+                                         modelid: Int = ModelId.PERIODIC_ACCOUNT_BALANCE.modelid) {
   def debiting(amount: BigDecimal): PeriodicAccountBalance = copy(debit = debit.add(amount))
   def crediting(amount: BigDecimal): PeriodicAccountBalance = copy(credit = credit.add(amount))
   def idebiting(amount: BigDecimal): PeriodicAccountBalance = copy(idebit = idebit.add(amount))
@@ -1350,7 +1386,6 @@ object PeriodicAccountBalance:
   import com.kabasoft.iws.domain.common.given
   type TYPE2 = (scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, String, Int, String)
   type TYPE = (String, String, Int, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, String, String, String, Int)
-  val MODELID                                   = 106
   def createId(period: Int, accountId: String) = period.toString.concat(accountId)
   val dummy                                    =
     PeriodicAccountBalance("-1", "", 0, zeroAmount, zeroAmount, zeroAmount, zeroAmount, zeroAmount, zeroAmount, "", "", "")
@@ -1369,7 +1404,7 @@ object PeriodicAccountBalance:
       currency,
       company,
       name,
-      PeriodicAccountBalance.MODELID
+      ModelId.PERIODIC_ACCOUNT_BALANCE.modelid
     )
   def create(model: FinancialsTransaction): List[PeriodicAccountBalance] =
     createx(model).groupBy(_.id).map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy)}.toList
@@ -1390,7 +1425,7 @@ object PeriodicAccountBalance:
           line.currency,
           model.company,
           line.accountName,
-          PeriodicAccountBalance.MODELID
+          ModelId.PERIODIC_ACCOUNT_BALANCE.modelid
         ),
         PeriodicAccountBalance.apply(
           PeriodicAccountBalance.createId(model.period, line.oaccount),
@@ -1405,7 +1440,7 @@ object PeriodicAccountBalance:
           line.currency,
           model.company,
           line.oaccountName,
-          PeriodicAccountBalance.MODELID
+          ModelId.PERIODIC_ACCOUNT_BALANCE.modelid
         )
       )
 
@@ -1434,13 +1469,12 @@ final case class Partner (id: String,
                            phone: String,
                            email: String,
                            company: String,
-                           modelid: Int = Supplier.MODELID,
+                           modelid: Int = ModelId.PARTNER.modelid,
                            enterdate: Instant = Instant.now(),
                            changedate: Instant = Instant.now(),
                            postingdate: Instant = Instant.now()
                          )
 object Partner:
-  val MODELID = 173
   type TYPE = (String, String, String, String, String, String, String, String, String, String, String, Int, LocalDateTime, LocalDateTime, LocalDateTime)
   type TYPE2 = (String, String, String, String, String, String, String, String, String, String, Int, String)
 
@@ -1495,14 +1529,13 @@ final case class Supplier(
                            vatCode: String,
                            currency: String,
                            company: String,
-                           modelid: Int = Supplier.MODELID,
+                           modelid: Int = ModelId.SUPPLIER.modelid,
                            enterdate: Instant = Instant.now(),
                            changedate: Instant = Instant.now(),
                            postingdate: Instant = Instant.now(),
                            bankaccounts: List[BankAccount] = List.empty[BankAccount]
                          ) extends BusinessPartner
 object Supplier                      {
-  val MODELID = 1
   type TYPE2 = (String, String, String, String, String, String, String, String, String, String, String, String
     , String, String, String, String, Int, LocalDateTime, LocalDateTime, LocalDateTime)
   type TYPE3 = (String, String, String, String, String, String, String, String, String, String, String, String
@@ -1586,14 +1619,13 @@ final case class Customer(
                            vatCode: String,
                            currency: String,
                            company: String,
-                           modelid: Int = Customer.MODELID,
+                           modelid: Int = ModelId.CUSTOMER.modelid,
                            enterdate: Instant = Instant.now(),
                            changedate: Instant = Instant.now(),
                            postingdate: Instant = Instant.now(),
                            bankaccounts: List[BankAccount] = List.empty[BankAccount]
                          ) extends BusinessPartner
 object Customer                      {
-  val MODELID = 3
   type TYPE2 = (String, String, String, String, String, String, String, String, String, String, String, String
     , String, String, String, String, Int, LocalDateTime, LocalDateTime, LocalDateTime)
   type TYPE3 = (String, String, String, String, String, String, String, String, String, String, String
@@ -1660,13 +1692,12 @@ object Customer                      {
 
 final case class Employee(id: String, name: String, description: String, street: String, zip: String, city: String
                           , state: String, country: String, phone: String, email: String, account: String, oaccount: String
-                          , taxCode: String, vatCode: String, currency: String, company: String, salary:BigDecimal, modelid: Int = Employee.MODELID
+                          , taxCode: String, vatCode: String, currency: String, company: String, salary:BigDecimal, modelid: Int = ModelId.EMPLOYEE.modelid
                           , enterdate: Instant = Instant.now(), changedate: Instant = Instant.now(), postingdate: Instant = Instant.now()
                           , bankaccounts: List[BankAccount] = List.empty[BankAccount]
                           , salaryItems: List[EmployeeSalaryItemDTO] = List.empty[EmployeeSalaryItemDTO]
                          ) extends BusinessPartner
 object Employee:
-  val MODELID = 33
   type TYPE2 = (String, String, String, String, String, String, String, String, String, String, String, String, String, String
     , String,  String, scala.math.BigDecimal, Int, LocalDateTime, LocalDateTime, LocalDateTime)
   type TYPE3 = (String, String, String, String, String, String, String, String, String, String, String, String
@@ -1687,15 +1718,15 @@ object Employee:
       , st.taxCode, st.vatCode, st.currency, st.salary, st.id, st.modelid, st.company)
 
 final case class TransactionDetails( id: Long, transid: Long, article: String, articleName:String, quantity: BigDecimal, unit: String, price: BigDecimal,
-                                     currency: String, duedate: Instant = Instant.now(), vatCode:String, vat:BigDecimal, text: String, company: String) {
+                                     currency: String, duedate: Instant = Instant.now(), vatCode:String, vat:BigDecimal, text: String, company: String, modelid:Int) {
   def amount: BigDecimal =quantity.multiply(price)
 }
 
 object TransactionDetails:
-  val dummy = TransactionDetails(0, 0, "", "", zeroAmount, "", zeroAmount, "", Instant.now(), "", zeroAmount, "",  "")
-  private type D_TYPE = (Long, Long, String, String, scala.math.BigDecimal, String, scala.math.BigDecimal, String, LocalDateTime, String, scala.math.BigDecimal, String, String)
-  private type D_TYPE1 = (Long, String, String, scala.math.BigDecimal, String, scala.math.BigDecimal, String, LocalDateTime,  String, scala.math.BigDecimal, String, String)
-  type TYPE2 = (Long, String, scala.math.BigDecimal, String, scala.math.BigDecimal, String, LocalDateTime, String, String, String, scala.math.BigDecimal, Long, String)
+  val dummy = TransactionDetails(0, 0, "", "", zeroAmount, "", zeroAmount, "", Instant.now(), "", zeroAmount, "",  "", -1)
+  private type D_TYPE = (Long, Long, String, String, scala.math.BigDecimal, String, scala.math.BigDecimal, String, LocalDateTime, String, scala.math.BigDecimal, String, String, Int)
+  private type D_TYPE1 = (Long, String, String, scala.math.BigDecimal, String, scala.math.BigDecimal, String, LocalDateTime,  String, scala.math.BigDecimal, String, String, Int)
+  type TYPE2 = (Long, String, scala.math.BigDecimal, String, scala.math.BigDecimal, String, LocalDateTime, String, String, String, scala.math.BigDecimal, Long, String, Int)
   implicit val monoid: Identity[TransactionDetails] =
     new Identity[TransactionDetails]:
       def identity: TransactionDetails = dummy
@@ -1704,25 +1735,26 @@ object TransactionDetails:
 
   def encodeIt(dt: TransactionDetails): D_TYPE =
     (dt.id, dt.transid, dt.article, dt.articleName, dt.quantity, dt.unit, dt.price, dt.currency
-      , dt.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime, dt.vatCode, dt.vat, dt.text,  dt.company)
+      , dt.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime, dt.vatCode, dt.vat, dt.text,  dt.company, dt.modelid)
+      //id, transid, article, article_name, quantity, unit, price, currency, duedate, vat_code , vat, text, company, modelid
 
   def encodeIt2(dt: TransactionDetails): TYPE2 =
     (dt.transid, dt.article, dt.quantity, dt.unit, dt.price, dt.currency, dt.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
-      , dt.text, dt.articleName, dt.vatCode, dt.vat,  dt.id, dt.company)
+      , dt.text, dt.articleName, dt.vatCode, dt.vat,  dt.id, dt.company, dt.modelid)
 
-  def encodeIt3(dt: TransactionDetails): (Long, String) = (dt.id, dt.company)
+  def encodeIt3(dt: TransactionDetails): (Long, String, Int) = (dt.id, dt.company, dt.modelid)
 
   def encodeIt4(dt: TransactionDetails): D_TYPE1 =
     (dt.transid, dt.article, dt.articleName, dt.quantity, dt.unit, dt.price, dt.currency
-      , dt.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime, dt.vatCode, dt.vat, dt.text, dt.company)
+      , dt.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime, dt.vatCode, dt.vat, dt.text, dt.company, dt.modelid)
 
-  private type TransactionDetails_Type = (Long, Long, String, String, BigDecimal, String, BigDecimal, String, Instant,  String, BigDecimal, String, String)
+  private type TransactionDetails_Type = (Long, Long, String, String, BigDecimal, String, BigDecimal, String, Instant,  String, BigDecimal, String, String, Int)
 
   def apply(tr: TransactionDetails_Type): TransactionDetails =
-    new TransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11,  tr._12, tr._13)
+    new TransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11,  tr._12, tr._13, tr._14)
   def apply(tr: TransactionDetails): TransactionDetails =
     new TransactionDetails(tr.id, tr.transid, tr.article, tr.articleName, tr.quantity, tr.unit, tr.price, tr.currency
-      , tr.duedate, tr.vatCode, tr.vat, tr.text, tr.company)
+      , tr.duedate, tr.vatCode, tr.vat, tr.text, tr.company, tr.modelid)
 
 
 final case class FinancialsTransactionDetails(
@@ -1737,7 +1769,8 @@ final case class FinancialsTransactionDetails(
                                                currency: String,
                                                company: String,
                                                accountName: String,
-                                               oaccountName: String
+                                               oaccountName: String,
+                                               modelid:Int
                                              )
 trait Trans [A] {
   def lines: List[A]
@@ -1773,6 +1806,10 @@ object Transaction:
   type TYPE3 = (Long, Int, String)
   private type Transaction_Type =
     (Long, Long, Long, String, String, Instant, Instant, Instant, Int, Boolean, Int, String, String, String)
+
+  def apply(tr: Transaction):Transaction =
+    new Transaction(-1L, tr.id, -1L, tr.store, tr.account, Instant.now(), Instant.now(), Instant.now(), tr.period, false
+      , tr.modelid, tr.company, tr.text).copy(lines = tr.lines.map(_.copy(id = -1L, transid = -1L, company = tr.company, modelid = tr.modelid)))
   def apply(tr: Transaction_Type): Transaction =
     new Transaction(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11, tr._12, tr._13, tr._14, Nil)
   def encodeIt(st: Transaction): TYPE = (st.id, st.oid, st.id1, st.store, st.account
@@ -1845,10 +1882,10 @@ final case class FinancialsTransaction(
 //account = $int8, side = $bool, oaccount = $varchar, amount = $numeric, duedate = $timestamp, text=$varchar, currency = $varchar
 object FinancialsTransactionDetails:
   val FAKE_COMAPNY=0
-  val dummy  = FinancialsTransactionDetails(0, 0, "", true, "", zeroAmount, Instant.now(), "", "EUR", "", "", "")
-  type D_TYPE = (Long, Long, String, Boolean, String, scala.math.BigDecimal, LocalDateTime, String, String, String, String, String)
-  type TYPE2 = (String, Boolean, String, scala.math.BigDecimal, LocalDateTime, String, String, String, String, Long, String)
-  type D_TYPE4 = (Long, String, Boolean, String, scala.math.BigDecimal, LocalDateTime, String, String, String, String, String)
+  val dummy  = FinancialsTransactionDetails(0, 0, "", true, "", zeroAmount, Instant.now(), "", "EUR", "", "", "", -1)
+  type D_TYPE = (Long, Long, String, Boolean, String, scala.math.BigDecimal, LocalDateTime, String, String, String, String, String, Int)
+  type TYPE2 = (String, Boolean, String, scala.math.BigDecimal, LocalDateTime, String, String, String, String, Long, String, Int)
+  type D_TYPE4 = (Long, String, Boolean, String, scala.math.BigDecimal, LocalDateTime, String, String, String, String, String, Int)
 
   implicit val monoid: Identity[FinancialsTransactionDetails] =
     new Identity[FinancialsTransactionDetails]:
@@ -1859,22 +1896,22 @@ object FinancialsTransactionDetails:
   def encodeIt(dt: FinancialsTransactionDetails): D_TYPE =
     (dt.id, dt.transid, dt.account, dt.side, dt.oaccount, dt.amount
       , dt.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
-      , dt.text, dt.currency, dt.company, dt.accountName, dt.oaccountName)
+      , dt.text, dt.currency, dt.company, dt.accountName, dt.oaccountName, dt.modelid)
 
   def encodeIt4(dt: FinancialsTransactionDetails): D_TYPE4 =
     (dt.transid, dt.account, dt.side, dt.oaccount, dt.amount
       , dt.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
-      , dt.text, dt.currency, dt.company, dt.accountName, dt.oaccountName)
+      , dt.text, dt.currency, dt.company, dt.accountName, dt.oaccountName, dt.modelid)
 
   def encodeIt2(dt: FinancialsTransactionDetails): TYPE2 =
     (dt.account, dt.side, dt.oaccount, dt.amount, dt.duedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
-      , dt.text, dt.currency, dt.accountName, dt.oaccountName, dt.id, dt.company)
+      , dt.text, dt.currency, dt.accountName, dt.oaccountName, dt.id, dt.company, dt.modelid)
 
-  def encodeIt3(dt: FinancialsTransactionDetails): (Long, String) = (dt.id, dt.company)
+  def encodeIt3(dt: FinancialsTransactionDetails): (Long, String, Int) = (dt.id, dt.company, dt.modelid)
 
-  private type FinancialsTransactionDetails_Type = (Long, Long,  String, Boolean, String, BigDecimal, Instant, String, String, String, String, String)
+  private type FinancialsTransactionDetails_Type = (Long, Long,  String, Boolean, String, BigDecimal, Instant, String, String, String, String, String, Int)
   def apply(tr: FinancialsTransactionDetails_Type): FinancialsTransactionDetails =
-    new FinancialsTransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11, tr._12)
+    new FinancialsTransactionDetails(tr._1, tr._2, tr._3, tr._4, tr._5, tr._6, tr._7, tr._8, tr._9, tr._10, tr._11, tr._12, tr._13)
 
 object FinancialsTransaction:
   private type FinancialsTransaction_Type =
@@ -1888,7 +1925,7 @@ object FinancialsTransaction:
 
   def apply(tr: FinancialsTransaction): FinancialsTransaction =
     new FinancialsTransaction(-1L, tr.id, -1L, tr.costcenter, tr.account, tr.transdate, Instant.now(), Instant.now(), tr.period
-        ,false, tr.modelid,  tr.company, tr.text).copy(lines =tr.lines.map(_.copy(id = -1L, company = s"-${tr.company}")))
+        ,false, tr.modelid,  tr.company, tr.text).copy(lines =tr.lines.map(_.copy(id = -1L, transid = -1L, company = tr.company)))
 
   def encodeIt(st: FinancialsTransaction): TYPE =
     (st.id, st.oid, st.id, st.costcenter, st.account
@@ -1967,18 +2004,17 @@ final case class User(
                        email: String,
                        department: String, // Role,
                        menu: String = "",
-                       company: String = "1000",
-                       modelid: Int = User.MODELID,
+                       company: String = "",
+                       modelid: Int = ModelId.USER.modelid,
                        roles:List[Role] = List.empty[Role],
                        rights:List[UserRight]=List.empty[UserRight],
                        modules:List[Int]=List.empty[Int]
                      )
 object User:
-  val MODELID = 111
   type TYPE = (Int, String, String, String, String, String, String, String, String, String, Int)
   type TYPE2 = (String, String, String, String, String, String, Int, Int, String)
   def apply(u: TYPE): User = new User( u._1, u._2,u._3,u._4,u._5,u._6,u._7,u._8,u._9, u._10, u._11)
-  val dummy: User = new User( -1, "dummy", "dummy", "dummy", "dummy", "dummy", "dummy", "dummy", "dummy", "dummy", MODELID)
+  val dummy: User = new User( -1, "dummy", "dummy", "dummy", "dummy", "dummy", "dummy", "dummy", "dummy", "dummy", ModelId.USER.modelid)
 
   def encodeIt(st: User): TYPE =
     (st.id, st.userName, st.firstName, st.lastName, st.hash, st.phone, st.email, st.department, st.menu, st.company, st.modelid)
@@ -1992,11 +2028,10 @@ final case class Role(id:Int, name:String, description:String,
                       changedate: Instant,
                       postingdate: Instant,
                       enterdate: Instant,
-                      modelid:Int = Role.MODEL_ID,
+                      modelid:Int =ModelId.ROLE.modelid,
                       company:String,
                       rights:List[UserRight]=List.empty[UserRight])
 object Role:
-  val MODEL_ID = 121
   type TYPE = (Int, String, String, Instant, Instant, Instant, Int, String)
   type TYPE2= (Int, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int)
   type TYPE3= ( String, String, Int, Int, String)
@@ -2010,23 +2045,15 @@ object Role:
 
   def encodeIt2(st: Role): TYPE3 = (st.name, st.description, st.id, st.modelid, st.company)
 
-final case class  UserRight (moduleid:Int,  roleid:Int, short:String, company:String, modelid:Int = UserRight.MODEL_ID)
-final case class  UserRole (userid:Int,  roleid:Int, company:String, modelid:Int = UserRole.MODEL_ID)
-
-object UserRole:
-  val MODEL_ID = 161
-
-object UserRight:
-  val MODEL_ID  = 131
-
+final case class  UserRight (moduleid:Int,  roleid:Int, short:String, company:String, modelid:Int = ModelId.USER_RIGHT.modelid)
+final case class  UserRole (userid:Int,  roleid:Int, company:String, modelid:Int = ModelId.USER_ROLE.modelid)
 final case class  Permission (id:Int, name:String, description:String, short:String,
                               changedate: Instant,
                               postingdate: Instant,
                               enterdate: Instant,
-                              modelid:Int = MODEL_ID,
+                              modelid:Int = ModelId.PERMISSION.modelid,
                               company:String )
 object Permission:
-  val MODEL_ID  =141
   type TYPE = (Int, String, String, String, LocalDateTime, LocalDateTime, LocalDateTime, Int, String)
   type TYPE2 = (String, String, String, Int, Int, String)
   def encodeIt(st: Permission): TYPE =
@@ -2048,18 +2075,16 @@ final case class  Fmodule (id:Int, name:String, description:String,
                            copyFrom:String="",
                            accFilter:String="",
                            oaccFilter:String="",
-                           modelid:Int = Fmodule.MODEL_ID,
+                           modelid:Int = ModelId.FMODULE.modelid,
                            company:String )
 object Fmodule:
-  val MODEL_ID = 151
   type TYPE2 = (String, String, String, Boolean, String, String, String, String, Int, Int, String)
   def encodeIt2(st: Fmodule): TYPE2 =
     (st.name, st.description, st.account, st.isDebit, st.parent, st.copyFrom, st.accFilter, st.oaccFilter, st.id, st.modelid, st.company)
 
 final case class Room (id:String, name:String, description:String,  parent:String, changedate: Instant, postingdate: Instant,
-                             enterdate: Instant, kind:Int, area:BigDecimal, company:String, modelid:Int = MODEL_ID )
+                             enterdate: Instant, kind:Int, area:BigDecimal, company:String, modelid:Int = ModelId.ROOM.modelid )
 object Room:
-  val MODEL_ID = 152
   type TYPE = (String, String, String, String, LocalDateTime, LocalDateTime, LocalDateTime, Int, scala.math.BigDecimal, String, Int)
   type TYPE2 = (String, String, String,  Int, scala.math.BigDecimal, String, String, Int)
   def encodeIt(st: Room): TYPE =
@@ -2071,18 +2096,16 @@ object Room:
   def encodeIt2(st: Room): TYPE2 = ( st.name, st.description, st.parent, st.kind, st.area, st.id, st.company, st.modelid)
   def encodeIt3 (st: Room):(String, Int, String) = (st.id, st.modelid, st.company)
 final case class Apartment (id:String, name:String, description:String, parent:String, changedate:Instant=Instant.now(), postingdate:Instant = Instant.now(),
-                            enterdate:Instant = Instant.now(), rooms:List[Room]=List.empty[Room], company:String , modelid:Int = MODEL_ID)
+                            enterdate:Instant = Instant.now(), rooms:List[Room]=List.empty[Room], company:String , modelid:Int = ModelId.APARTMENT.modelid)
 object Apartment:
-  val MODEL_ID = 153
   type TYPE2 = (String, String, String, String,  Int)
   def apply(p:Masterfile):Apartment = Apartment(p.id, p.name, p.parent, p.description, p.changedate, p.postingdate, p.enterdate, List.empty[Room], p.company)
   def toMasterfile(p:Apartment):Masterfile = Masterfile(p.id, p.name, p.parent, p.description, p.changedate, p.postingdate, p.enterdate, p.modelid, p.company)
   def encodeIt2(st: Apartment): TYPE2 = (st.id, st.name, st.description, st.company, st.modelid)
   
 final case class Floor (id:String, name:String, description:String, parent:String, changedate:Instant=Instant.now(), postingdate:Instant = Instant.now(),
-                             enterdate:Instant = Instant.now(), apartments:List[Apartment]=List.empty[Apartment], company:String , modelid:Int = MODEL_ID)
+                             enterdate:Instant = Instant.now(), apartments:List[Apartment]=List.empty[Apartment], company:String , modelid:Int = ModelId.FLOOR.modelid)
 object Floor:
-  val MODEL_ID = 155
   type TYPE2 = (String, String, String, String,  Int)
   def apply(p:Apartment):Floor = Floor(p.id, p.name, p.parent, p.description, p.changedate, p.postingdate, p.enterdate, List.empty[Apartment], p.company)
   def apply1(p:Masterfile):Floor = Floor(p.id, p.name, p.parent, p.description, p.changedate, p.postingdate, p.enterdate, List.empty[Apartment], p.company)
@@ -2090,44 +2113,45 @@ object Floor:
   def encodeIt2(st: Floor): TYPE2 = (st.id, st.name, st.description, st.company, st.modelid)
 
 final case class RealEstate (id:String, name:String, description:String, changedate: Instant, postingdate: Instant,
-                             enterdate: Instant, apartments:List[Apartment]=List.empty[Apartment], floors:List[Floor]=List.empty[Floor], modelid:Int = MODEL_ID, company:String )
+                             enterdate: Instant, apartments:List[Apartment]=List.empty[Apartment], floors:List[Floor]=List.empty[Floor], modelid:Int = ModelId.REALESTATE.modelid, company:String )
 object RealEstate:
-  val MODEL_ID = 154
   type TYPE2 = (String, String, String, String,  Int)
   def apply(p:Masterfile):RealEstate = RealEstate(p.id, p.name, p.description, p.changedate, p.postingdate, p.enterdate
-    , List.empty[Apartment], List.empty[Floor], MODEL_ID, p.company)
+    , List.empty[Apartment], List.empty[Floor], ModelId.REALESTATE.modelid, p.company)
   def encodeIt2(st: RealEstate): TYPE2 = (st.id, st.name, st.description, st.company, st.modelid)
 
 final case class Profile (token: String, company: String, currency:String, locale:String, language:String
                           , incomeStmtAcc:String, stockAcc:String, expenseAcc:String, revenueAcc:String,  vat: String
                           , modules: List[Module], roles: List[Role], rights:List[UserRight], error: String)
-
+ 
 trait CopyFinancialsStrategy[A, B, C]:
   def copy(trans: A, account:C, modelid:Int, company: Company): B
   
 object CopyFromReceavables2Bank extends CopyFinancialsStrategy[FinancialsTransaction, FinancialsTransaction, Account]:
   def copy(trans: FinancialsTransaction, account:Account, modelidx:Int, company: Company): FinancialsTransaction =
-    val linesx = trans.lines.map(l=>l.copy(account = account.id, accountName = account.name, oaccount = l.account
-      , oaccountName = l.accountName))
-    FinancialsTransaction.apply(trans).copy(modelid=modelidx, posted=false, transdate = Instant.now(), lines = linesx )
+    val financials = FinancialsTransaction.apply(trans)
+    financials.copy(lines = financials.lines.map(l=>l.copy(account = account.id, accountName = account.name, oaccount = l.account
+      , oaccountName = l.accountName, modelid = modelidx)))
 
 object CopyFromPayables2Bank extends CopyFinancialsStrategy[FinancialsTransaction, FinancialsTransaction, Account]:
   def copy(trans: FinancialsTransaction, account:Account, modelidx:Int, company: Company): FinancialsTransaction =
-    val linesx = trans.lines.map(l=>l.copy(account = l.oaccount, accountName = l.oaccountName, oaccount = account.id
-      , oaccountName = account.name ))
-    FinancialsTransaction.apply(trans).copy(modelid=modelidx, posted=false, transdate = Instant.now(), lines = linesx )
+    val financials = FinancialsTransaction.apply(trans)
+     financials.copy(lines = financials.lines.map(l=>l.copy(account = l.oaccount, accountName = l.oaccountName, oaccount = account.id
+       , oaccountName = account.name, modelid = modelidx )) )
   
 object CopySelf extends CopyFinancialsStrategy[FinancialsTransaction, FinancialsTransaction, Account]:
     def copy(trans: FinancialsTransaction, account:Account, modelidx: Int, company: Company): FinancialsTransaction =
-      val linesx = trans.lines.map(l => l.copy(account = l.account, accountName = l.accountName, oaccount =l.oaccount
-        , oaccountName = l.oaccountName))
-      FinancialsTransaction.apply(trans).copy(modelid = modelidx, lines = linesx, posted=false, transdate = Instant.now()
-        , period =getPeriod(Instant.now()))
+      val financials = FinancialsTransaction.apply(trans)
+      financials.copy(lines = financials.lines.map(l => l.copy(account = l.account, accountName = l.accountName
+        , oaccount =l.oaccount, oaccountName = l.oaccountName, modelid = modelidx)) )
+
 
 trait CopyTransactionStrategy[A, B]:
   def copy(trans: A,  modelidTo:Int, company: Company): B
 
 object Copy2Self extends CopyTransactionStrategy[Transaction, Transaction]:
-  def copy(trans: Transaction,  modelidTo: Int, company: Company): Transaction =
-    trans.copy(id = -1L, oid = trans.id,  modelid = modelidTo,  posted=false, transdate = Instant.now()
-      , period =getPeriod(Instant.now()), lines = trans.lines.map((line:TransactionDetails) =>line.copy(id = -1L, transid = -1L, company = company.id)))
+  def copy(trans: Transaction,  modelidTo: Int, company: Company): Transaction = {
+    val transaction = Transaction.apply(trans).copy(period =getPeriod(Instant.now()), modelid = modelidTo)
+    transaction.copy(lines = transaction.lines.map((line:TransactionDetails) =>
+      line.copy(id = -1L, transid = -1L, company = company.id, modelid = modelidTo)) )
+  }

@@ -1,14 +1,14 @@
 package com.kabasoft.iws.repository
 
 import cats.effect.Resource
-import cats.syntax.all._
-import cats._
-import skunk._
-import skunk.codec.all._
-import skunk.implicits._
-import zio.interop.catz._
+import cats.syntax.all.*
+import cats.*
+import skunk.*
+import skunk.codec.all.*
+import skunk.implicits.*
+import zio.interop.catz.*
 import zio.{Task, ZIO, ZLayer}
-import com.kabasoft.iws.domain.{Account, BankAccount, Employee, EmployeeSalaryItem, EmployeeSalaryItemDTO}
+import com.kabasoft.iws.domain.{Account, BankAccount, Employee, EmployeeSalaryItem, EmployeeSalaryItemDTO, ModelId}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 
 import java.time.{Instant, LocalDateTime, ZoneId}
@@ -69,9 +69,9 @@ final case class EmployeeRepositoryLive(postgres: Resource[Task, Session[Task]]
 
     override def modify(modelsx: List[Employee]): ZIO[Any, RepositoryError, Int] =
       val newBankaccounts = modelsx.flatMap(_.bankaccounts).filter(m => m.id.nonEmpty && m.modelid == - 1)
-        .map(m => m.copy(modelid = BankAccount.MODEL_ID))
+        .map(m => m.copy(modelid = ModelId.BANK_ACCOUNT.modelid))
       val oldBankaccounts = modelsx.flatMap(_.bankaccounts).filter(m => m.id.nonEmpty && m.modelid == -2)
-                                 .map(m => m.copy(modelid = BankAccount.MODEL_ID))
+                                 .map(m => m.copy(modelid = ModelId.BANK_ACCOUNT.modelid))
       val newSalaryItems = modelsx.flatMap(_.salaryItems.filter(m => m.id.nonEmpty && m.owner.equals("-1")))
       val oldSalaryItems = modelsx.flatMap(_.salaryItems.filter(m => m.id.nonEmpty && m.owner.equals("-2")))
       val models: List[Employee] = modelsx.map(e=>e.copy(bankaccounts = newBankaccounts++oldBankaccounts
@@ -90,8 +90,8 @@ final case class EmployeeRepositoryLive(postgres: Resource[Task, Session[Task]]
     
     override def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Employee]] = for {
       employee <- list(Id)
-      bankAccounts_ <- bankAccRepo.all(BankAccount.MODEL_ID, Id._2)
-      accounts <- accRepo.all((BankAccount.MODEL_ID, Id._2))
+      bankAccounts_ <- bankAccRepo.all(ModelId.BANK_ACCOUNT.modelid, Id._2)
+      accounts <- accRepo.all((ModelId.ACCOUNT.modelid, Id._2))
       salaryItems_ <- listSalaryItem(Id._2)
     } yield employee.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id),
       salaryItems = salaryItems_.filter(_.id == c.id).map(EmployeeSalaryItemDTO.apply)

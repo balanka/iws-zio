@@ -11,6 +11,7 @@ object Schema {
   implicit val roomSchema: Schema[Room]                         = DeriveSchema.gen[Room]
   implicit val floorSchema: Schema[Floor]                        = DeriveSchema.gen[Floor]
   implicit val realEstateSchema: Schema[RealEstate]             = DeriveSchema.gen[RealEstate]
+  implicit val reminderBalance:Schema[ReminderBalance]         =  DeriveSchema.gen[ReminderBalance]
   implicit val moduleSchema: Schema[Module]                     = DeriveSchema.gen[Module]
   implicit val customerSchema: Schema[Customer]                 = DeriveSchema.gen[Customer]
   implicit val supplierschema: Schema[Supplier]                 = DeriveSchema.gen[Supplier]

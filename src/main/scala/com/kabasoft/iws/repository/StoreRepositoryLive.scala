@@ -1,14 +1,15 @@
 package com.kabasoft.iws.repository
 
 import cats.effect.Resource
-import cats.syntax.all._
-import cats._
-import skunk._
-import skunk.codec.all._
-import skunk.implicits._
-import zio.{Task, ZIO, ZLayer }
-import com.kabasoft.iws.domain.{Stock, Store, Article}
+import cats.syntax.all.*
+import cats.*
+import skunk.*
+import skunk.codec.all.*
+import skunk.implicits.*
+import zio.{Task, ZIO, ZLayer}
+import com.kabasoft.iws.domain.{Article, ModelId, Stock, Store}
 import com.kabasoft.iws.domain.AppError.RepositoryError
+
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class StoreRepositoryLive(postgres: Resource[Task, Session[Task]], stockRepo:StockRepository
@@ -26,10 +27,10 @@ final case class StoreRepositoryLive(postgres: Resource[Task, Session[Task]], st
     for {
     stores <- list(Id)
     _ <- ZIO.logInfo(s" all_stores ${stores}")
-    stocks_ <- stockRepo.all(Stock.MODELID, Id._2)
+    stocks_ <- stockRepo.all(ModelId.STOCK.modelid, Id._2)
     _ <- ZIO.logInfo(s" stocks ${stocks_}")
     articleIds = if stocks_.isEmpty then List("") else stocks_.map(_.article)
-    articles <- articleRepo.getBy(articleIds, Article.MODELID, Id._2)
+    articles <- articleRepo.getBy(articleIds, ModelId.ARTICLE.modelid, Id._2)
   } yield stores.map(c => c.copy(stocks = stocks_.filter(_.store == c.id)
                 .map(stock =>stock.copy(price = articles.find(_.id == stock.article).getOrElse(Article.dummy).avgPrice))))
 

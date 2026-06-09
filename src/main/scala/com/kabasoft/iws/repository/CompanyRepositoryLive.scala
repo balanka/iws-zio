@@ -1,15 +1,16 @@
 package com.kabasoft.iws.repository
-import cats._
+import cats.*
 import cats.effect.Resource
-import cats.syntax.all._
+import cats.syntax.all.*
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{BankAccount, Company}
-import skunk._
-import skunk.codec.all._
-import skunk.implicits._
-import zio.interop.catz._
+import com.kabasoft.iws.domain.{BankAccount, Company, ModelId}
+import skunk.*
+import skunk.codec.all.*
+import skunk.implicits.*
+import zio.interop.catz.*
 import zio.prelude.FlipOps
 import zio.{Task, ZIO, ZLayer}
+
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
@@ -46,7 +47,7 @@ final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
       .map(bankAccount => bankAccount.copy(company = bankAccount.company.replace("-", "")))
     val newLine2Insert = models.flatMap(_.bankaccounts).filter(bankAccount => bankAccount.modelid === -1
         && bankAccount.company.contains("-") && bankAccount.id.nonEmpty)
-      .map(bankAccount => bankAccount.copy(modelid = BankAccount.MODEL_ID,
+      .map(bankAccount => bankAccount.copy(modelid = ModelId.BANK_ACCOUNT.modelid,
         company = bankAccount.company.replace("-", "")))
     val oldLine2Delete = models.flatMap(_.bankaccounts).filter(_.modelid === -2)
       .map(bankAccount => bankAccount.copy(company = bankAccount.company.replace("-", "")))
@@ -67,12 +68,12 @@ final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
   
   override def all(modelid: Int): ZIO[Any, RepositoryError, List[Company]] = for {
     companies <- list(modelid).map(_.toList)
-    bankAccounts_ <- bankAccRepo.bankAccout4All(BankAccount.MODEL_ID)
+    bankAccounts_ <- bankAccRepo.bankAccout4All(ModelId.BANK_ACCOUNT.modelid)
   } yield companies.map(c => c.copy(bankaccounts = bankAccounts_.filter( bac => bac.owner == c.id & bac.company == c.id)))
   
-  override def getById(p: (String, Int)): ZIO[Any, RepositoryError, Company] =  for{
+  override def getById(p: (String, Int)): ZIO[Any, RepositoryError, Company] =  for {
     comp <- queryWithTxUnique(postgres, p, BY_ID)
-    bankAccounts_ <- bankAccRepo.getByOwner(comp.id, BankAccount.MODEL_ID, comp.id)
+    bankAccounts_ <- bankAccRepo.getByOwner(comp.id, ModelId.BANK_ACCOUNT.modelid, comp.id)
   }yield comp.copy(bankaccounts =bankAccounts_)
   override def getBy(ids: List[String], modelid: Int):ZIO[Any, RepositoryError, List[Company]] =
     queryWithTx(postgres, (ids, modelid), ALL_BY_ID(ids.length))

@@ -37,7 +37,7 @@ object TransactionEndpoint:
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ) ?? Doc.p(mCreateAPIFoc)
 
-  // copyFromLTr/id/modelidFrom/modelidTo/company
+  // ltrx/id/modelidFrom/modelidTo/company
   private val trCopyFrom = Endpoint(RoutePattern.GET / "ltrx" / int("id") ?? Doc.p(idDoc)
     / int("modelidFrom") ?? Doc.p(modelidFromDoc) / int("modelidTo") ?? Doc.p(modelidToDoc)
     / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)

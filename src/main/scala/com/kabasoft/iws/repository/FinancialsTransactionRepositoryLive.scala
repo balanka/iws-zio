@@ -25,7 +25,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
       ZIO.uninterruptibleMask { restore =>
          restore(session.transaction.use { xa =>
             restore(session.prepareR(insert).use { pciMaster =>
-              restore(session.prepareR(insertDetails1).use { pciDetails =>
+              restore(session.prepareR(insertDetails).use { pciDetails =>
                 exec(xa, pciMaster, pciDetails, master2master, master2Details, Details2Details,
                   models, session,
                   sequenceNames(FINANCIAL_SEQUENCE_PREF, FINANCIAL_DETAIL_SEQUENCE_PREF, models)
@@ -43,7 +43,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
     (for {
       pciMaster <- s.prepareR(insert)
       pcuMaster <- s.prepareR(UPDATE)
-      pciDetails <- s.prepareR(insertDetails1)
+      pciDetails <- s.prepareR(insertDetails)
       pcuDetails <- s.prepareR(UPDATE_DETAILS)
       pcdDetails <- s.prepareR(DELETE_DETAILS)
     } yield (pciMaster, pcuMaster, pciDetails, pcuDetails, pcdDetails)).use {
@@ -95,7 +95,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
         (for {
           xa <- session.transaction
           pciMaster <- session.prepareR(insert)
-          pciDetails <- session.prepareR(insertDetails1)
+          pciDetails <- session.prepareR(insertDetails)
           results <- Resource.eval(
             exec(xa, pciMaster, pciDetails, master2master, master2Details, Details2Details,
               models, session,
@@ -131,7 +131,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
     (for {
       pciMaster <- s.prepareR(insert)
       pcuMaster <- s.prepareR(UPDATE)
-      pciDetails <- s.prepareR(insertDetails1)
+      pciDetails <- s.prepareR(insertDetails)
       pcuDetails <- s.prepareR(UPDATE_DETAILS)
       pcdDetails <- s.prepareR(DELETE_DETAILS)
     } yield (pciMaster, pcuMaster, pciDetails, pcuDetails, pcdDetails)).use {
@@ -191,19 +191,20 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
   def listn(p: (List[Int], String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = queryWithTx(postgres, p, ALLn(p._1.size))
   def list(p: (Int, String)):ZIO[Any, RepositoryError, List[FinancialsTransaction]] = queryWithTx(postgres, p, ALL)
 
-  private def  getDetails(p:(Long, String)): ZIO[Any, RepositoryError, List[FinancialsTransactionDetails]] = for {
+  private def  getDetails(p:(Long, String, Int)): ZIO[Any, RepositoryError, List[FinancialsTransactionDetails]] = for {
     details <- queryWithTx(postgres, p, DETAILS1)
     //_ <- ZIO.logInfo(s"Details: $details")
   }yield details
 
   private def withLines(trans: FinancialsTransaction): ZIO[Any, RepositoryError, FinancialsTransaction] = for {
-    lines_ <- getDetails(trans.id, trans.company)
+    lines_ <- getDetails(trans.id, trans.company, trans.modelid)
+    //_ <- ZIO.logInfo(s"transactions  Details: $lines_")
   } yield trans.copy(lines = if (lines_.nonEmpty) lines_ else List.empty[FinancialsTransactionDetails])
 
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
     transactions <- list(p)
     transactionsWithDetails     <-  transactions.map(withLines).flip
-   // _ <- ZIO.logInfo(s"transactions with Details: $transactionsWithDetails")
+    //_ <- ZIO.logInfo(s"transactions with Details: $transactionsWithDetails")
   } yield transactionsWithDetails
 
   override def alln(p: (List[Int], String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
@@ -289,9 +290,9 @@ object FinancialsTransactionRepositorySQL:
   private val financialsTransactionCodec4 =
     int8 *: int8 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: int4 *: bool *: int4 *: varchar *: varchar *: int4 *: int4
   private val financialsDetailsTransactionCodec =
-    (int8 *: int8 *: varchar *: bool *: varchar *: numeric(12, 2) *: timestamp *: varchar *: varchar *: varchar *: varchar *: varchar)
+    (int8 *: int8 *: varchar *: bool *: varchar *: numeric(12, 2) *: timestamp *: varchar *: varchar *: varchar *: varchar *: varchar*: int4)
   private val financialsDetailsTransactionCodec4 =
-    (int8 *: varchar *: bool *: varchar *: numeric(12,2) *: timestamp *: varchar *: varchar *: varchar *: varchar *: varchar)
+    (int8 *: varchar *: bool *: varchar *: numeric(12,2) *: timestamp *: varchar *: varchar *: varchar *: varchar *: varchar*: int4)
 
   val mfDecoder: Decoder[FinancialsTransaction] = financialsTransactionCodec.map:
     case (id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content) =>
@@ -303,9 +304,9 @@ object FinancialsTransactionRepositorySQL:
   val detailsEncoder: Encoder[FinancialsTransactionDetails] = financialsDetailsTransactionCodec.values.contramap(FinancialsTransactionDetails.encodeIt)
 
   def detailsDecoder: Decoder[FinancialsTransactionDetails] = financialsDetailsTransactionCodec.map:
-      case (id, transid, account, side, oaccount, amount, duedate, text, currency, company, accountName, oaccountName) =>
+      case (id, transid, account, side, oaccount, amount, duedate, text, currency, company, accountName, oaccountName, modelid) =>
         FinancialsTransactionDetails(id, transid, account, side, oaccount, amount.bigDecimal, toInstant(duedate), text
-        , currency,  company, accountName, oaccountName)
+        , currency,  company, accountName, oaccountName, modelid)
 
   def base: Fragment[Void]  =
     sql""" SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
@@ -360,25 +361,25 @@ object FinancialsTransactionRepositorySQL:
            WHERE  modelid IN  (${int4.list(n)}) AND company = $varchar
            """.query(mfDecoder)
 
-  def ALL_DETAILS_ID(lst: List[Long], company:String) = {
-    val query: Fragment[Void] =
-      sql"""SELECT id, transid, account, side, oaccount, amount,  duedate, text, currency,  company, account_name, oaccount_name
-           FROM   details_compta"""
-    query(Void) |+|
-      AppliedFragment.apply[lst.type](sql" WHERE transid  IN (${int8.list(lst)})", lst) |+|
-      sql""" AND company = $varchar""".apply(company)
-  }
+//  def ALL_DETAILS_ID(lst: List[Long], company:String) = {
+//    val query: Fragment[Void] =
+//      sql"""SELECT id, transid, account, side, oaccount, amount,  duedate, text, currency,  company, account_name, oaccount_name, modelid
+//           FROM   details_compta"""
+//    query(Void) |+|
+//      AppliedFragment.apply[lst.type](sql" WHERE transid  IN (${int8.list(lst)})", lst) |+|
+//      sql""" AND company = $varchar""".apply(company)
+//  }
 
-  def DETAILS(n: Int): Query[List[Long] *: String *: EmptyTuple, FinancialsTransactionDetails] =
-    sql"""SELECT id, transid, account, side, oaccount, amount,  duedate, text, currency,  company, account_name, oaccount_name
+  def DETAILS(n: Int): Query[List[Long] *: String *: Int*:EmptyTuple, FinancialsTransactionDetails] =
+    sql"""SELECT id, transid, account, side, oaccount, amount,  duedate, text, currency,  company, account_name, oaccount_name, modelid
            FROM   details_compta
-           WHERE  transid  IN (${int8.list(n)})  AND company = $varchar
+           WHERE  transid  IN (${int8.list(n)})  AND company = $varchar AND modelid = $int4
            """.query(detailsDecoder)
 
-  val DETAILS1: Query[Long *: String *: EmptyTuple, FinancialsTransactionDetails] =
-    sql"""SELECT id, transid, account, side, oaccount, amount,  duedate, text, currency,  company, account_name, oaccount_name
+  val DETAILS1: Query[Long *: String *: Int *:EmptyTuple, FinancialsTransactionDetails] =
+    sql"""SELECT id, transid, account, side, oaccount, amount,  duedate, text, currency,  company, account_name, oaccount_name, modelid
            FROM   details_compta
-           WHERE  transid = $int8  AND company = $varchar
+           WHERE  transid = $int8  AND company = $varchar AND modelid = $int4
            """.query(detailsDecoder)
 
   val FIND_4_PERIOD: Query[Int *: String *: Boolean *: Int *: Int *: EmptyTuple, FinancialsTransaction] =
@@ -395,27 +396,19 @@ object FinancialsTransactionRepositorySQL:
   val insert: Command[FinancialsTransaction] =
     sql"""INSERT INTO master_compta
          (id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content) VALUES $mfEncoder1 """.command
-
-//  val insertXX: Command[FinancialsTransaction] =
-//    sql"""INSERT INTO master_compta
-//         (id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content) VALUES $mfEncoder """.command
-
+  
   def insertAll(n:Int): Command[List[FinancialsTransaction.TYPE]] =
     sql"""INSERT INTO master_compta 
           (oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content)
          VALUES ${financialsTransactionCodec.values.list(n)}""".command
 
-  val insertDetails1: Command[FinancialsTransactionDetails] =
+  val insertDetails: Command[FinancialsTransactionDetails] =
     sql"""INSERT INTO details_compta (id, transid, account, side, oaccount, amount, duedate, text, currency, company
-          , account_name, oaccount_name) VALUES  $detailsEncoder""".command
-
-//  val insertDetails: Command[FinancialsTransactionDetails.D_TYPE4] =
-//    sql"""INSERT INTO details_compta (transid, account, side, oaccount, amount, duedate, text, currency, company
-//          , account_name, oaccount_name) VALUES  ($financialsDetailsTransactionCodec4)""".command  //  RETURNING id
-    
+          , account_name, oaccount_name, modelid) VALUES  $detailsEncoder""".command
+  
   def insertAllDetails(n:Int): Command[List[FinancialsTransactionDetails.D_TYPE4]] =
     sql"""INSERT INTO details_compta (transid, account, side, oaccount, amount, duedate, text, currency, company
-          , account_name, oaccount_name) VALUES (${financialsDetailsTransactionCodec4.values.list(n)})""".command
+          , account_name, oaccount_name, modelid) VALUES (${financialsDetailsTransactionCodec4.values.list(n)})""".command
 
   val UPDATE: Command[FinancialsTransaction.TYPE2] =
     sql"""UPDATE master_compta
@@ -427,7 +420,7 @@ object FinancialsTransactionRepositorySQL:
     sql"""UPDATE details_compta
           SET account = $varchar, side = $bool, oaccount = $varchar, amount = $numeric, duedate = $timestamp, text=$varchar, currency = $varchar
           , account_name= $varchar, oaccount_name= $varchar
-          WHERE id=$int8 and company= $varchar""".command
+          WHERE id=$int8 and company= $varchar and modelid = $int4""".command
 
   val updatePosted: Command[Long *: Int *: String *: EmptyTuple] =
     sql"""UPDATE master_compta UPDATE SET posted = true
@@ -439,6 +432,6 @@ object FinancialsTransactionRepositorySQL:
   
   val DELETE_ALL: Command[Void] = sql"DELETE FROM master_compta WHERE  company ='-1000'".command
 
-  val DELETE_DETAILS: Command[(Long, String)] = sql"DELETE FROM details_compta WHERE id = $int8 AND company = $varchar".command
+  val DELETE_DETAILS: Command[(Long, String, Int)] = sql"DELETE FROM details_compta WHERE id = $int8 AND company = $varchar AND modelid = $int4".command
   val DELETE_ALL_DETAILS: Command[Void] = sql"DELETE FROM details_compta WHERE company = '-1000'".command
 

@@ -40,7 +40,7 @@ final case  class BankStatementRepositoryLive(postgres: Resource[Task, Session[T
 
   private def transact(session: Session[Task], models: List[FinancialsTransaction], oldmodels: List[BankStatement]): Task[Unit] =
       session.prepareR(FinancialsTransactionRepositorySQL.insert).use: pciMaster =>
-        session.prepareR(FinancialsTransactionRepositorySQL.insertDetails1).use: pciDetails =>
+        session.prepareR(FinancialsTransactionRepositorySQL.insertDetails).use: pciDetails =>
           session.prepareR(UPDATE).use: pcuMaster =>
             execZ (session, pciMaster, pciDetails, pcuMaster, fnSetMasterId, fnSetDetailsTransId, fnSetDetailsId
               , BankStatement.encodeIt2, models, oldmodels 

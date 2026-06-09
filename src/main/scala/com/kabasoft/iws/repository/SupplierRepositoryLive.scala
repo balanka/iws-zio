@@ -1,15 +1,16 @@
 package com.kabasoft.iws.repository
 
 import cats.effect.Resource
-import cats.syntax.all._
-import cats._
-import skunk._
-import skunk.codec.all._
-import skunk.implicits._
-import zio.interop.catz._
+import cats.syntax.all.*
+import cats.*
+import skunk.*
+import skunk.codec.all.*
+import skunk.implicits.*
+import zio.interop.catz.*
 import zio.{Task, ZIO, ZLayer}
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{BankAccount, Supplier}
+import com.kabasoft.iws.domain.{BankAccount, ModelId, Supplier}
+
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class SupplierRepositoryLive(postgres: Resource[Task, Session[Task]]
@@ -44,7 +45,7 @@ final case class SupplierRepositoryLive(postgres: Resource[Task, Session[Task]]
       .map(bankAccount =>bankAccount.copy(company = bankAccount.company.replace("-","")))
     val newLine2Insert = models.flatMap(_.bankaccounts).filter(bankAccount =>bankAccount.modelid === -1
         && bankAccount.company.contains("-") && bankAccount.id.nonEmpty)
-      .map(bankAccount => bankAccount.copy(modelid = BankAccount.MODEL_ID,
+      .map(bankAccount => bankAccount.copy(modelid = ModelId.BANK_ACCOUNT.modelid,
         company = bankAccount.company.replace("-", "")))
     val oldLine2Delete = models.flatMap(_.bankaccounts).filter(_.modelid === -2)
       .map(bankAccount => bankAccount.copy(company = bankAccount.company.replace("-", "")))
@@ -63,7 +64,7 @@ final case class SupplierRepositoryLive(postgres: Resource[Task, Session[Task]]
   override def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Supplier]] = 
     for 
       suppliers     <- list(Id).map(_.toList)
-      bankAccounts_ <- bankAccRepo.all(BankAccount.MODEL_ID, Id._2)
+      bankAccounts_ <- bankAccRepo.all(ModelId.BANK_ACCOUNT.modelid, Id._2)
     yield suppliers.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
 
   def list(p: (Int, String)): ZIO[Any, RepositoryError, List[Supplier]] = queryWithTx(postgres, p, ALL)

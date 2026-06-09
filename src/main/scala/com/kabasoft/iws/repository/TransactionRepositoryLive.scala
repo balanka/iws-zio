@@ -112,10 +112,10 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
     
   
   def list(p: (Int, String)): ZIO[Any, RepositoryError, List[Transaction]] = queryWithTx(postgres, p, ALL)
-  private def getDetails(p: (Long, String)): ZIO[Any, RepositoryError, List[TransactionDetails]] = queryWithTx(postgres, p, DETAILS1)
+  private def getDetails(p: (Long, String, Int)): ZIO[Any, RepositoryError, List[TransactionDetails]] = queryWithTx(postgres, p, DETAILS1)
 
   private def getByTransId1(trans: Transaction): ZIO[Any, RepositoryError, Transaction] = for {
-    lines_ <- getDetails(trans.id1, trans.company)
+    lines_ <- getDetails(trans.id1, trans.company, trans.modelid)
   } yield trans.copy(lines = lines_) 
 
   private def withLines(trans: Transaction): ZIO[Any, RepositoryError, Transaction] =
@@ -176,7 +176,7 @@ private[repository] object TransactionRepositorySQL:
 //  private val transactionCodec1 =
 //    int8 *: int8 *: varchar *: varchar *: timestamptz *: timestamptz *: timestamptz *: int4 *: bool *: int4 *: varchar *: varchar*: varchar
   private val transactionDetailsCodec =
-    int8 *: int8 *: varchar *: varchar *:  numeric(12,2) *: varchar *: numeric(12,2) *: varchar *: timestamp *: varchar *: numeric(12, 2) *: varchar *: varchar
+    int8 *: int8 *: varchar *: varchar *:  numeric(12,2) *: varchar *: numeric(12,2) *: varchar *: timestamp *: varchar *: numeric(12, 2) *: varchar *: varchar *: int4
 
 //  private val transactionDetailsCodec2 =
 //    int8 *: varchar *: varchar *: numeric(12, 2) *: varchar *: numeric(12, 2) *: varchar *: timestamp *: varchar *: numeric(12, 2) *: varchar *: varchar
@@ -190,8 +190,9 @@ private[repository] object TransactionRepositorySQL:
   val detailsEncoder: Encoder[TransactionDetails] = transactionDetailsCodec.values.contramap(TransactionDetails.encodeIt)
 
   val detailsDecoder: Decoder[TransactionDetails] = transactionDetailsCodec.map:
-      case (id, transid, article, articleName, quantity, unit, price, currency, duedate, vatCode, vat, text, company) =>
-        TransactionDetails(id, transid, article, articleName, quantity.bigDecimal, unit, price.bigDecimal, currency, toInstant(duedate), vatCode, vat.bigDecimal, text, company)
+      case (id, transid, article, articleName, quantity, unit, price, currency, duedate, vatCode, vat, text, company, modelid) =>
+        TransactionDetails(id, transid, article, articleName, quantity.bigDecimal, unit, price.bigDecimal, currency
+          , toInstant(duedate), vatCode, vat.bigDecimal, text, company, modelid)
 
   def base =
     sql""" SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
@@ -233,19 +234,12 @@ private[repository] object TransactionRepositorySQL:
            WHERE  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
-  val DETAILS1: Query[Long *: String *: EmptyTuple, TransactionDetails] =
-    sql"""SELECT id, transid, article, article_name, quantity, unit, price, currency, duedate, vat_code, vat, text, company
+  val DETAILS1: Query[Long *: String *: Int *:EmptyTuple, TransactionDetails] =
+    sql"""SELECT id, transid, article, article_name, quantity, unit, price, currency, duedate, vat_code, vat, text, company, modelid
            FROM   transaction_details
-           WHERE  transid = $int8  AND company = $varchar
+           WHERE  transid = $int8  AND company = $varchar AND modelid = $int4
            """.query(detailsDecoder)
-           
-//  val copy_insert: Command[Int *: Long *:  String *: EmptyTuple] =
-//    sql"""INSERT INTO transaction (oid, id1, store, account, enterdate, transdate, postingdate, period, posted, modelid
-//         , company, text) 
-//          SELECT (id, 0, store, account, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, period, false, $int2
-//         , company, text  FROM transaction 
-//         WHERE id = $int4  AND company = $varchar """.command
-         
+
   val insert: Command[Transaction] =
     sql"""INSERT INTO transaction (id, oid, id1, store, account, enterdate, transdate, postingdate, period, posted, modelid
          , company, text, foot_text) VALUES $mfEncoder""".command
@@ -256,15 +250,7 @@ private[repository] object TransactionRepositorySQL:
 
   val insertDetails: Command[TransactionDetails] =
     sql"""INSERT INTO transaction_details (id, transid, article, article_name, quantity, unit, price, currency, duedate, vat_code
-          , vat, text, company) VALUES $detailsEncoder """.command
-
-//  val insertDetails: Command[TransactionDetails.D_TYPE1] =
-//    sql"""INSERT INTO transaction_details (transid, article, article_name, quantity, unit, price, currency, duedate, vat_code
-//          , vat, text, company) VALUES ($transactionDetailsCodec2 )""".command
-    
-//  def insertAllDetails(n:Int): Command[List[TransactionDetails.D_TYPE1]] =
-//    sql"""INSERT INTO transaction_details (transid, article, article_name, quantity, unit, price, currency
-//          , duedate, vat_code, vat, text, company) VALUES ${transactionDetailsCodec.values.list(n)}""".stripMargin.command
+          , vat, text, company, modelid) VALUES $detailsEncoder """.command
 
   val updatePosted: Command[Long *: Int *:  String *: EmptyTuple] =
     sql"""UPDATE transaction UPDATE SET posted = true
@@ -280,13 +266,13 @@ private[repository] object TransactionRepositorySQL:
     sql"""UPDATE transaction_details
           SET transid=$int8, article = $varchar, quantity = $numeric, unit = $varchar, price = $numeric, currency = $varchar
           , duedate = $timestamp, text=$varchar, article_name = $varchar, vat_code = $varchar, vat = $numeric
-          WHERE id=$int8 and company= $varchar""".command
+          WHERE id=$int8 and company= $varchar  and modelid=$int4 """.command
 
   def DELETE: Command[(Long, Int, String)] =
     sql"DELETE FROM transaction WHERE id = $int8 AND modelid = $int4 AND company = $varchar".command
 
   def DELETE_All: Command[Void] = sql"DELETE FROM transaction WHERE  company = '-1000'".command
-  val DELETE_DETAILS : Command[(Long, String)] = sql"DELETE FROM transaction_details WHERE id = $int8 AND company = $varchar".command
+  val DELETE_DETAILS : Command[(Long, String, Int)] = sql"DELETE FROM transaction_details WHERE id = $int8 AND company = $varchar AND modelid = $int4 ".command
   val DELETE_ALL_DETAILS: Command[Void] = sql"DELETE FROM transaction_details WHERE  id=-2 and company = '-1000'".command
   val NEXT_ID:Query[Void, Long] = sql"SELECT NEXTVAL('master_compta_id_seq')".query(int8)
   //id  IN (${varchar.list(nr)})

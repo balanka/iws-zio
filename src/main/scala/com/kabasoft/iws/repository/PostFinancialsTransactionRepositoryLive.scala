@@ -17,31 +17,10 @@ import JournalRepositoryLive.{JOURNAL_SEQUENCE_PREF, sequenceName}
 
 final case class PostFinancialsTransactionRepositoryLive(postgres: Resource[Task, Session[Task]]) extends
                 PostFinancialsTransactionRepository, MasterfileCRUD:
-
-
-
   
   def delete(p:(Long, Int, String)): ZIO[Any, RepositoryError, Int] =
     executeWithTx(postgres, p, FinancialsTransactionRepositorySQL.DELETE, 1)
 
-
-
-//  def transact1(s: Session[Task], models2Insert: List[FinancialsTransaction]
-//               , models2Update: List[FinancialsTransaction], pac2Insert: List[PeriodicAccountBalance]
-//               , pac2update: List[PeriodicAccountBalance], journals: List[Journal]): Task[Unit] =
-//    s.transaction.use: xa =>
-//      s.prepareR(PacRepositorySQL.insert).use: pciPac =>
-//        s.prepareR(PacRepositorySQL.UPDATE).use: pcuPac =>
-//          s.prepareR(FinancialsTransactionRepositorySQL.insert1).use: pciFTr =>
-//            s.prepareR(FinancialsTransactionRepositorySQL.insertDetails1).use: pciLFTr =>
-//              s.prepareR(FinancialsTransactionRepositorySQL.updatePosted).use: pcuFTr =>
-//                s.prepareR(FinancialsTransactionRepositorySQL.UPDATE_DETAILS).use: pcuLFTr =>
-//                  s.prepareR(JournalRepositorySQL.insert).use: pciJour =>
-//                    tryExec4(xa, pciPac,  pcuPac, pciFTr, pciLFTr, pcuFTr, pcuLFTr, pciJour
-//                      , pac2Insert, pac2update.map(PeriodicAccountBalance.encodeIt2)
-//                      , models2Insert, models2Insert.flatMap(_.lines).map(FinancialsTransactionDetails.encodeIt)
-//                      , models2Update.map(FinancialsTransaction.encodeIt3), List.empty[FinancialsTransactionDetails.TYPE2]
-//                      , journals)
 
   private def transactModifyInternal(s: Session[Task], models: List[FinancialsTransaction]
                                      , models2Update: List[FinancialsTransaction]
@@ -62,7 +41,7 @@ final case class PostFinancialsTransactionRepositoryLive(postgres: Resource[Task
       pcuMaster <- s.prepareR(FinancialsTransactionRepositorySQL.updatePosted)
       pciPac <- s.prepareR(PacRepositorySQL.insert)
       pcuPac <- s.prepareR(PacRepositorySQL.UPDATE)
-      pciDetails <- s.prepareR(FinancialsTransactionRepositorySQL.insertDetails1)
+      pciDetails <- s.prepareR(FinancialsTransactionRepositorySQL.insertDetails)
       pcuDetails <- s.prepareR(FinancialsTransactionRepositorySQL.UPDATE_DETAILS)
       pcdDetails <- s.prepareR(FinancialsTransactionRepositorySQL.DELETE_DETAILS)
       pciJour <- s.prepareR(JournalRepositorySQL.insert)

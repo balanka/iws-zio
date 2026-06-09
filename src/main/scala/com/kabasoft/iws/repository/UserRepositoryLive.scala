@@ -1,13 +1,13 @@
 package com.kabasoft.iws.repository
 
 import cats.effect.Resource
-import cats.syntax.all._
-import cats._
-import skunk._
-import skunk.codec.all._
-import skunk.implicits._
+import cats.syntax.all.*
+import cats.*
+import skunk.*
+import skunk.codec.all.*
+import skunk.implicits.*
 import zio.{Task, ZIO, ZLayer}
-import com.kabasoft.iws.domain.{Role, User, UserRight, UserRole}
+import com.kabasoft.iws.domain.{ModelId, Role, User, UserRight, UserRole}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 
 import java.time.{Instant, LocalDateTime, ZoneId}
@@ -30,9 +30,9 @@ final case class UserRepositoryLive(postgres: Resource[Task, Session[Task]], rep
   } yield users
 
   private def setRoleAndRight(p: (String, List[User]) ):ZIO[Any, RepositoryError, List[User]] = for {
-    roles <- repo.all(Role.MODEL_ID, p._1)
-    user_rights <- repo.allRights(UserRight.MODEL_ID, p._1)
-    all_user_roles <- repo.allUserRoles(UserRole.MODEL_ID, p._1)
+    roles <- repo.all(ModelId.ROLE.modelid, p._1)
+    user_rights <- repo.allRights(ModelId.USER_RIGHT.modelid, p._1)
+    all_user_roles <- repo.allUserRoles(ModelId.USER_ROLE.modelid, p._1)
     users_ = p._2
     //_ <- ZIO.logInfo(s" roles ${roles}")
     //_ <- ZIO.logInfo(s" user_rights ${user_rights}")

@@ -7,7 +7,7 @@ import skunk.*
 import zio.interop.catz.asyncInstance
 import zio.{Task, ZIO, ZLayer}
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Apartment, Masterfile, Room}
+import com.kabasoft.iws.domain.{Apartment, Masterfile, ModelId, Room}
 
 
 final case class ApartmentRepositoryLive(postgres: Resource[Task, Session[Task]], mfRepo:MasterfileRepository
@@ -44,7 +44,7 @@ final case class ApartmentRepositoryLive(postgres: Resource[Task, Session[Task]]
         .map(bankAccount =>bankAccount.copy(company = bankAccount.company.replace("-","")))
       val newLine2Insert = models.flatMap(_.rooms).filter(bankAccount =>bankAccount.modelid === -1
                                 && bankAccount.company.contains("-") && bankAccount.id.nonEmpty)
-                                  .map(bankAccount => bankAccount.copy(modelid = Room.MODEL_ID,
+                                  .map(bankAccount => bankAccount.copy(modelid = ModelId.ROOM.modelid,
                                              company = bankAccount.company.replace("-", "")))
       val oldLine2Delete = models.flatMap(_.rooms).filter(_.modelid === -2)
         .map(bankAccount => bankAccount.copy(company = bankAccount.company.replace("-", "")))
@@ -62,12 +62,12 @@ final case class ApartmentRepositoryLive(postgres: Resource[Task, Session[Task]]
  
     override def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Apartment]] = for {
                   apartments <- mfRepo.all(Id)
-                  rooms_ <- roomRepo.all(Room.MODEL_ID, Id._2)
+                  rooms_ <- roomRepo.all(ModelId.ROOM.modelid, Id._2)
              } yield apartments.map(p => Apartment.apply(p).copy(rooms = rooms_.filter(_.parent == p.id)))
   
     override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, Apartment] = for {
       ap <- mfRepo.getById(p)
-      rooms_ <- roomRepo.getByParent(ap.id, Room.MODEL_ID, p._3)
+      rooms_ <- roomRepo.getByParent(ap.id, ModelId.ROOM.modelid, p._3)
     } yield Apartment.apply(ap).copy(rooms = rooms_.filter(_.parent == ap.id))
 
     override def getByParent(parent: String, modelid: Int, company: String): ZIO[Any, RepositoryError, List[Apartment]] =for {
@@ -76,7 +76,7 @@ final case class ApartmentRepositoryLive(postgres: Resource[Task, Session[Task]]
 
     override def getBy(ids: List[String], modelid: Int, company: String):ZIO[Any, RepositoryError, List[Apartment]] = for {
       apartments <- mfRepo.getBy(ids, modelid, company)
-      rooms_ <-roomRepo.all(Room.MODEL_ID, company)
+      rooms_ <-roomRepo.all(ModelId.ROOM.modelid, company)
     } yield apartments.map(p => Apartment.apply(p).copy(rooms = rooms_.filter(_.parent == p.id)))
   
     override def delete(p: (String, Int, String)):ZIO[Any, RepositoryError, Int] = mfRepo.delete(p)  
