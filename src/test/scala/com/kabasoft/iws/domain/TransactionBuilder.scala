@@ -11,12 +11,12 @@ object TransactionBuilder {
   val lineTransactionId1 = 1L
   val lineTransactionId2 = 2L
 
-  val modelid = TransactionModelId.GOODRECEIVING.id
-  val modelid2 = TransactionModelId.SUPPLIER_INVOICE.id
-  val modelid3 = TransactionModelId.BILL_OF_DELIVERY.id
-  val modelid4 = TransactionModelId.CUSTOMER_INVOICE.id
-  val modelid5 = TransactionModelId.PURCHASE_ORDER.id
-  val modelid6 = TransactionModelId.SALES_ORDER.id
+  val modelid = ModelId.GOODRECEIVING.id
+  val modelid2 = ModelId.SUPPLIER_INVOICE.id
+  val modelid3 = ModelId.BILL_OF_DELIVERY.id
+  val modelid4 = ModelId.CUSTOMER_INVOICE.id
+  val modelid5 = ModelId.PURCHASE_ORDER.id
+  val modelid6 = ModelId.SALES_ORDER.id
   val vtime = Instant.now()
   val period = common.getPeriod(vtime)
   val side = true
