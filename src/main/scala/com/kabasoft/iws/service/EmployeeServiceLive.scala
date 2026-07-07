@@ -18,7 +18,7 @@ final class EmployeeServiceLive(empRepo: EmployeeRepository
 
   override def generate(period: Int, company: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
     _<- ZIO.logDebug(s" Posting transaction for the company ${company}")
-    transactions <- build(period, company, TransactionModelId.PAYROLL.modelid).debug("transactions")
+    transactions <- build(period, company, ModelId.PAYROLL.modelid).debug("transactions")
     nr          <- ftrRepo.create(transactions) //ZIO.succeed(transactions).map(_.size)
   }yield nr
 
@@ -43,23 +43,9 @@ final class EmployeeServiceLive(empRepo: EmployeeRepository
     val date = Instant.now()
    // val period = common.getPeriod(date)
     FinancialsTransaction(
-      -1L,
-      -1L,
-      -1L,
-      "100",
-      emp.account,
-      date,
-      date,
-      date,
-      period,
-      posted = false,
-      TransactionModelId.PAYROLL.modelid,
-      emp.company,
-      "Salary "+period,
-      0,
-      0,
-      lines
-    )
+      -1L, "", "", "100", emp.account, date, date, date, period, posted = false,
+      ModelId.PAYROLL.modelid, emp.company,
+      "Salary "+period, "", 0, lines)
   }
 
 object EmployeeServiceLive:

@@ -2,7 +2,7 @@ package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.*
-import com.kabasoft.iws.domain.TransactionModelId.{BILL_OF_DELIVERY, CONSUMPTION, CUSTOMER_INVOICE, GOODRECEIVING
+import com.kabasoft.iws.domain.ModelId.{BILL_OF_DELIVERY, CONSUMPTION, CUSTOMER_INVOICE, GOODRECEIVING
   , PURCHASE_ORDER, SALES_ORDER, STOCK_TAKE, STOCK_TRANSFER, SUPPLIER_INVOICE}
 import com.kabasoft.iws.repository.{AccountRepository, ArticleRepository, CompanyRepository, JournalRepository
   , PacRepository, PostTransactionRepository, StockRepository, TransactionLogRepository, TransactionRepository}
@@ -24,7 +24,7 @@ final class TransactionServiceLive(trRepo: TransactionRepository
   override def postTransaction4Period(fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, Int] =
     for {
       models <- trRepo.find4Period(fromPeriod, toPeriod, false, company)
-      nr <- postAll(models.map(m=> (m.id1, m.modelid)), company)
+      nr <- postAll(models.map(m=> (m.id, m.modelid)), company)
     } yield nr
 
   override def postAll(ids:List[(Long, Int)], companyId: String): ZIO[Any, RepositoryError, Int] =

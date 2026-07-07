@@ -6,7 +6,6 @@ import com.kabasoft.iws.domain.common.{given, _}
 import com.kabasoft.iws.repository._
 import zio._
 import zio.prelude.FlipOps
-
 import java.math.RoundingMode
 
 final class PostGoodreceivingLive(accRepo: AccountRepository
@@ -45,7 +44,7 @@ final class PostGoodreceivingLive(accRepo: AccountRepository
     updatedArticle <- updateAvgPrice(transactions, stocks, articles)
     // build financials transaction
     newFtr = transactions.map(buildTransaction(_,  articles, accounts, suppliers, vats, company.purchasingClearingAcc
-      , TransactionModelId.PAYABLES.modelid))
+      , ModelId.PAYABLES.modelid))
     tupleOfLists <- ZIO.collectAll(newFtr).map(_.unzip)   // <- binds the effect
     (transactionsx, financials) = tupleOfLists
     _<- ZIO.logInfo(s"New Transactions ${transactionsx}")
@@ -59,15 +58,8 @@ final class PostGoodreceivingLive(accRepo: AccountRepository
     _<-ZIO.logInfo(s"new Pacs   from  bill of delivery  transaction with  of company ${newPacs}")
     _<-ZIO.logInfo(s"Oldoacs   from  bill of delivery  transaction with  of company ${oldPacs}")
     _<-ZIO.logInfo(s"Transaction log entries ${transLogEntries}")
-    //journalEntries <- makeJournal(transactions, newRecords, oldPacs, articles, company.purchasingClearingAcc)
 
   } yield ( transactionsx, models, newPacs, oldPacs, transLogEntries, journalEntries, stocks, newStock, updatedArticle)
-  //} yield (transactions,  oldPacs.flip,  newRecords, transLogEntries, journalEntries, stocks, newStock, updatedArticle)
-
-  private def updateStock(transactions: List[Transaction], oldStocks:List[Stock]): ZIO[Any, RepositoryError, List[Stock]] = 
-    for 
-      updatedStock <- updateOldStock(transactions, oldStocks).map(_.map(Stock.apply).flip).flatten
-    yield   updatedStock
 
   private def updateArticleAvgPrice(line: TransactionDetails, stocks:List[Stock], articles:List[Article]): ZIO[Any, Nothing, List[Article]] =
     articles.map ( article => {
@@ -85,20 +77,6 @@ final class PostGoodreceivingLive(accRepo: AccountRepository
     transactions.flatMap(tr => tr.lines.map(line => updateArticleAvgPrice( line,  stocks, articles.filter(_.id == line.article).distinct)))
     .flip.map(_.flatten)
 
-  private def buildNewStock(transactions: List[Transaction], stocks:List[Stock]) = for {
-    newRecords <-Stock.create(transactions).filterNot(stock=>stocks.map(_.id).contains(stock.id))
-  }yield ZIO.succeed(newRecords)
-  
-  private def updateOldStock(transactions: List[Transaction], oldStocks:List[Stock]): ZIO[Any, RepositoryError, List[TStock]] = for {
-    updatedStock <-groupByStock(Stock.create(transactions))
-      .flatMap(ts=> oldStocks.filter(st=>st.id==ts.id)
-      .map(st=>TStock.fromStockAndQuantity(st, ts.quantity))).flip
-  }yield updatedStock
-  
-  private def groupByStock(r: List[Stock]): List[Stock] =
-    (r.groupBy(_.article) map { case (_, v) =>
-      common.reduce(v, Stock.dummy)
-    }).filterNot(_.article == Stock.dummy.article).toList
 
 object PostGoodreceivingLive:
   val live: ZLayer[TransactionRepository& TransactionLogRepository& AccountRepository& VatRepository&

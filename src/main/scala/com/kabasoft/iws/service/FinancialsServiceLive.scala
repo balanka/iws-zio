@@ -1,15 +1,17 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.common.given
-import com.kabasoft.iws.domain.{Account, Company, CopyFromPayables2Bank, CopyFromReceavables2Bank, CopySelf, FinancialsTransaction, FinancialsTransactionDetails, Fmodule, Journal, ModelId, PeriodicAccountBalance, ReminderBalance, TPeriodicAccountBalance, TransactionModelId, common}
-import com.kabasoft.iws.repository.{AccountRepository, CompanyRepository, FModuleRepository, FinancialsTransactionRepository, JournalRepository, PacRepository, PostFinancialsTransactionRepository}
+import com.kabasoft.iws.domain.common.{zeroAmount, given}
+import com.kabasoft.iws.domain.{Account, CopyFromPayables2Bank, CopyFromReceavables2Bank, CopySelf, FinancialsTransaction
+  , FinancialsTransactionDetails, Journal, ModelId, PeriodicAccountBalance, ReminderBalance, TPeriodicAccountBalance, common}
+import com.kabasoft.iws.repository.{AccountRepository, CompanyRepository, FModuleRepository, FinancialsTransactionRepository
+  , JournalRepository, PacRepository, PostFinancialsTransactionRepository}
 import com.kabasoft.iws.service.FinancialsService.buildPacIds
 import zio.*
 
 import scala.collection.immutable.List
 import zio.prelude.FlipOps
-import TransactionModelId.*
+import ModelId._
 
 
 
@@ -21,19 +23,62 @@ final class FinancialsServiceLive( compRepo: CompanyRepository
                                   , journalRepo: JournalRepository
                                   , repository4PostingTransaction:PostFinancialsTransactionRepository)
              extends FinancialsService:
-  
+
+  /**
+   * Net positive and negative balances in ascending period order.
+   * - Negatives are summed into a single debit.
+   * - Positives are processed in period order; each is reduced by the remaining debit.
+   * - Positives that become zero are dropped.
+   * - All negatives are consumed and not returned.
+   */
+  private def netBalances(list: List[ReminderBalance]): List[ReminderBalance] = {
+    if (list.isEmpty) return list
+
+    val (pos, neg) = list.partition(_.balance.signum() >= 0)
+    if (neg.isEmpty) return pos.sortBy(_.period)
+    if (pos.isEmpty) return Nil
+
+    val sortedPos = pos.sortBy(_.period)
+    var remainingDebit = neg.map(_.balance.abs()).foldLeft(zeroAmount)(_.add(_))
+
+    val result = scala.collection.mutable.ListBuffer.empty[ReminderBalance]
+    for (p <- sortedPos) {
+      if (remainingDebit.compareTo(zeroAmount) > 0) {
+        // There is still debit to consume
+        val take = p.balance.min(remainingDebit)   // cannot take more than balance
+        val newBalance = p.balance.subtract(take)
+        remainingDebit = remainingDebit.subtract(take)
+        if (newBalance.compareTo(zeroAmount) != 0) {
+          result += p.copy(balance = newBalance)
+        }
+      } else {
+        // No more debit → keep the remaining positives as-is
+        result += p
+      }
+    }
+
+    // If you need to keep leftover debit (when positives are exhausted), uncomment:
+    // if (remainingDebit.compareTo(zeroAmount) > 0) {
+    //   result += ReminderBalance(id = "leftover", period = Int.MaxValue, balance = remainingDebit.negate())
+    // }
+
+    result.toList
+  }
   override def findBalance4paymentReminder (accountId:String, companyId:String):  ZIO[Any, RepositoryError, List[ReminderBalance]]=
      for
        _ <- ZIO.logInfo(s"Get balance 4  payment reminder 4  accountId $accountId and companyId ${companyId}")
        balance <- pacRepo.findBalance4paymentReminder(accountId, companyId)
-     yield balance
+       netted = netBalances(balance)
+       _ <- ZIO.logInfo(s"Netted balances: $netted")
+     yield netted
      
   override def copyFrom(id:Long, modelidFrom: Int, modelidTo: Int, companyId:String): ZIO[Any, RepositoryError, FinancialsTransaction] =
     for {
       company <- compRepo.getById(companyId, ModelId.COMPANY.modelid)
       fmodule <- fmoduleRepo.getById(modelidTo, ModelId.FMODULE.modelid, companyId)
+      mxid = fmodule.copyFrom.split(',').toList
       trans <- ftrRepo.getById(id, modelidFrom, companyId)
-      account <- if (fmodule.id == fmodule.copyFrom.toInt) ZIO.succeed(Account.dummy)
+      account <- if (mxid.size>1 || fmodule.id == fmodule.copyFrom.toInt) ZIO.succeed(Account.dummy)
                  else accRepo.getById(fmodule.account, ModelId.ACCOUNT.modelid, companyId)
       _ <- ZIO.logInfo(s" Company with id = $companyId ${company}")
 

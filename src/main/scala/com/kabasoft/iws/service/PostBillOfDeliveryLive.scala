@@ -48,8 +48,8 @@ final class PostBillOfDeliveryLive( accRepo: AccountRepository
     // build transaction's log entries
     transLogEntries <- buildTransactionLog(transactions, stocks, newStock, articles)
     // build financials transaction
-    newFtr = transactions.map(buildConsumption(_,  articles, accounts, TransactionModelId.RECEIVABLES.modelid))
-    newFtr1 = transactions.map(buildTransaction(_, articles, accounts, customers, vats, company.salesClearingAcc, TransactionModelId.RECEIVABLES.modelid))
+    newFtr = transactions.map(buildConsumption(_,  articles, accounts, ModelId.RECEIVABLES.modelid))
+    newFtr1 = transactions.map(buildTransaction(_, articles, accounts, customers, vats, company.salesClearingAcc, ModelId.RECEIVABLES.modelid))
     tupleOfLists <- ZIO.collectAll(newFtr).map(_.unzip)   // <- binds the effect
     tupleOfLists1 <- ZIO.collectAll(newFtr1).map(_.unzip)
     (transactionsx, financials) = tupleOfLists
@@ -83,20 +83,20 @@ final class PostBillOfDeliveryLive( accRepo: AccountRepository
 
     val details: List[FinancialsTransactionDetails] = netDetails.filterNot(_.account == FinancialsTransactionDetails.dummy.account)
       .groupBy(d => (d.account, d.oaccount)).map { case (_, v) => common.reduce(v, FinancialsTransactionDetails.dummy) }.toList
-    val financialsTransaction = FinancialsTransaction(-1, model.id, 0, model.store, partnerAccountId, model.transdate
-      , Instant.now(), Instant.now(), model.period, posted = false, modelid, model.company, model.text, -1, -1, details)
+    val financialsTransaction = FinancialsTransaction(-1, model.id.toString, model.contact, model.store, partnerAccountId, model.transdate
+      , Instant.now(), Instant.now(), model.period, posted = false, modelid, model.company, model.text, model.footText, -1, details)
     ZIO.succeed((model.copy(posted = true), financialsTransaction.copy(posted = true)))
   }
   
-  private def updateStock(transactions: List[Transaction], oldStocks:List[Stock]): ZIO[Any, RepositoryError, List[Stock]] = for{
-      updatedStock <- updateOldStock(Stock.create(transactions).map(stock =>stock.copy(quantity = stock.quantity.negate())), oldStocks)
-        .map(_.map(Stock.apply).flip).flatten
-    }yield   updatedStock
-
-  private def updateOldStock(stocksNew:List[Stock], oldStocks:List[Stock]): ZIO[Any, RepositoryError, List[TStock]]=
-    stocksNew
-    .flatMap(ts=> oldStocks.filter(_.id==ts.id)
-      .map(st=>TStock.fromStockAndQuantity(st, ts.quantity))).flip
+//  private def updateStock(transactions: List[Transaction], oldStocks:List[Stock]): ZIO[Any, RepositoryError, List[Stock]] = for{
+//      updatedStock <- updateOldStock(Stock.create(transactions).map(stock =>stock.copy(quantity = stock.quantity.negate())), oldStocks)
+//        .map(_.map(Stock.apply).flip).flatten
+//    }yield   updatedStock
+//
+//  private def updateOldStock(stocksNew:List[Stock], oldStocks:List[Stock]): ZIO[Any, RepositoryError, List[TStock]]=
+//    stocksNew
+//    .flatMap(ts=> oldStocks.filter(_.id==ts.id)
+//      .map(st=>TStock.fromStockAndQuantity(st, ts.quantity))).flip
 
 object PostBillOfDeliveryLive:
   val live: ZLayer[TransactionRepository& TransactionLogRepository& AccountRepository& ArticleRepository& VatRepository&

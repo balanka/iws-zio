@@ -1,7 +1,7 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Account, ModelId, PeriodicAccountBalance}
+import com.kabasoft.iws.domain.{ ModelId, PeriodicAccountBalance}
 import com.kabasoft.iws.repository.{AccountRepository, PacRepository}
 import zio.{ZIO, ZLayer}
 

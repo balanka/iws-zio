@@ -2,8 +2,8 @@ package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain._
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.common.{given, _}
-import com.kabasoft.iws.domain.TransactionModelId._
+import com.kabasoft.iws.domain.common.given
+import com.kabasoft.iws.domain.ModelId._
 import zio._
 import zio.prelude.FlipOps // still used for some prelude ops, but not misused
 import java.time.Instant
@@ -95,7 +95,7 @@ trait PostLogisticalTransaction:
       netDetails <- ZIO.foreach(model.lines) { line =>
         val netAmount = line.quantity.multiply(line.price)
         model.modelid match
-          case CONSUMPTION.modelid =>
+          case STOCK_TAKE.modelid | CONSUMPTION.modelid =>
             for
               article <- findObjectById[Article](articles, line.article)
               account <- findObjectById(accounts, model.account)
@@ -125,7 +125,7 @@ trait PostLogisticalTransaction:
               amount    = line.quantity.multiply(line.price)
             yield FinancialsTransactionDetails(-1, 0, debitAcc, side = true, creditAcc, amount , Instant.now()
               , model.text, currency, model.company, account.name, oaccount.name, modelid)
-          case TransactionModelId.SUPPLIER_INVOICE.modelid =>
+          case ModelId.SUPPLIER_INVOICE.modelid =>
             for
               account   <- findObjectById(accounts, oaccountId)
               oaccount  <- findObjectById(accounts, partnerAccountId)
@@ -155,9 +155,9 @@ trait PostLogisticalTransaction:
         .toList
 
       financials = FinancialsTransaction(
-        -1, model.id, 0, model.store, partnerAccountId, model.transdate,
+        -1, model.id.toString, model.contact, model.store, partnerAccountId, model.transdate,
         Instant.now(), Instant.now(), model.period, posted = false, modelid,
-        model.company, model.text, -1, -1, combinedDetails
+        model.company, model.text, model.footText, -1, combinedDetails
       )
     yield (model.copy(posted = true), financials.copy(posted = true))
 
@@ -193,7 +193,7 @@ trait PostLogisticalTransaction:
     for
       article <- findObjectById(articles, line.article)
       result <- model.modelid match
-        case TransactionModelId.BILL_OF_DELIVERY.modelid =>
+        case ModelId.BILL_OF_DELIVERY.modelid =>
           for
             account  <- findObjectById(accounts, oaccountId)
             oaccount <- findObjectById(accounts, article.account)
@@ -243,13 +243,33 @@ trait PostLogisticalTransaction:
           )
           article <- findObjectById(articles, stock.article)
         yield TransactionLog(
-          0L, tr.id, tr.id1, tr.oid, tr.store, tr.account, line.article, line.quantity,
+          0L,  tr.contact, tr.id, tr.oid, tr.store, tr.account, line.article, line.quantity,
           stock.quantity, zeroAmount, article.quantityUnit, line.price, article.avgPrice,
-          article.currency, line.duedate, line.text, tr.transdate, tr.postingdate, tr.enterdate,
+          article.currency, line.duedate, line.text, tr.footText, tr.transdate, tr.postingdate, tr.enterdate,
           tr.period, tr.company, tr.modelid
         )
       }
     }.map(_.flatten)
+
+
+  def updateStock(transactions: List[Transaction], oldStocks: List[Stock]): ZIO[Any, RepositoryError, List[Stock]] =
+    for
+      updatedStock <- updateOldStock(transactions, oldStocks).map(_.map(Stock.apply).flip).flatten
+    yield updatedStock
+
+  def buildNewStock(transactions: List[Transaction], stocks: List[Stock]): List[ZIO[Any, Nothing, Stock]] = for {
+    newRecords <- Stock.create(transactions).filterNot(stock => stocks.map(_.id).contains(stock.id))
+  } yield ZIO.succeed(newRecords)
+
+  def updateOldStock(transactions: List[Transaction], oldStocks: List[Stock]): ZIO[Any, RepositoryError, List[TStock]] = for {
+    updatedStock <- groupByStock(Stock.create(transactions))
+      .flatMap(ts => oldStocks.filter(st => st.id == ts.id)
+        .map(st => TStock.fromStockAndQuantity(st, ts.quantity))).flip
+  } yield updatedStock
+
+  def groupByStock(r: List[Stock]): List[Stock] =
+    (r.groupBy(_.article) map { case (_, v) => common.reduce(v, Stock.dummy) })
+      .filterNot(_.article == Stock.dummy.article).toList
 
   // --- assumed constants (replace with actual from domain) -------------------
   private val zeroAmount: BigDecimal = BigDecimal(0)

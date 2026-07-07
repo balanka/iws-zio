@@ -55,8 +55,8 @@ final class PostCustomerInvoiceLive(vatRepo: VatRepository
 
     val details: List[FinancialsTransactionDetails] = (netDetails ++ vatDetails).filterNot(_.account == FinancialsTransactionDetails.dummy.account)
       .groupBy(d => (d.account, d.oaccount)).map { case (_, v) => common.reduce(v, FinancialsTransactionDetails.dummy) }.toList
-    val financialsTransaction = FinancialsTransaction(-1, model.id, 0, model.store, partnerAccountId, model.transdate
-      , Instant.now(), Instant.now(), model.period, posted = false, modelid, model.company, model.text, -1, -1, details)
+    val financialsTransaction = FinancialsTransaction(-1, model.id.toString, model.contact, model.store, partnerAccountId, model.transdate
+      , Instant.now(), Instant.now(), model.period, posted = false, modelid, model.company, model.text, model.footText, -1, details)
     (model.copy(posted = true), financialsTransaction.copy(posted = true))
   }
 
@@ -68,7 +68,7 @@ final class PostCustomerInvoiceLive(vatRepo: VatRepository
     customers <- customerRepo.all(ModelId.CUSTOMER.modelid, company.id)
     vatIds = transactions.flatMap(_.lines.map(_.vatCode)).distinct
     vats <-  vatRepo.getBy(vatIds, ModelId.VAT.modelid, company.id)
-    newFtr = transactions.map(buildFinancials(_,  articles, accounts, customers, vats, TransactionModelId.RECEIVABLES.modelid))
+    newFtr = transactions.map(buildFinancials(_,  articles, accounts, customers, vats, ModelId.RECEIVABLES.modelid))
     (transactionsx:List[Transaction], financials:List[FinancialsTransaction]) = newFtr.unzip
     result <- postFinancials(financials, financialsService)
     models = result.map(_._1)

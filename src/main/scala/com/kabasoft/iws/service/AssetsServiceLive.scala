@@ -39,10 +39,10 @@ final class AssetsServiceLive(assetRepo: AssetRepository
   private def buildTransaction(assets:List[Asset],  accounts:List[Account], company: Company) = assets.map(asset=>
     val date = Instant.now()
     val period = common.getPeriod(date)
-    val modelid = TransactionModelId.GENERAL_LEDGER.modelid
+    val modelid = ModelId.GENERAL_LEDGER.modelid
     val line: FinancialsTransactionDetails = buildTransactionDetails (asset, accounts, company, modelid)
-    FinancialsTransaction(-1L, -1L, -1L, "100", asset.oaccount, date, date, date, period, posted = false, modelid,
-      asset.company, "Depreciation of asset "+period, 0, 0, List(line))
+    FinancialsTransaction(-1L, "", "", "100", asset.oaccount, date, date, date, period, posted = false, modelid,
+      asset.company, "Depreciation of asset "+period, "", 0, List(line))
   )//.mapBoth(e => RepositoryError(e.getMessage), a => a)
 
 object AssetsServiceLive:
