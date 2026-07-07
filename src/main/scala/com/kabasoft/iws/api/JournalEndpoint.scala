@@ -1,7 +1,7 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.AppError.*
-import com.kabasoft.iws.domain.{Account, AppError, Journal, ModelId}
+import com.kabasoft.iws.domain.{AppError, Journal, ModelId}
 import com.kabasoft.iws.repository.{AccountRepository, JournalRepository}
 import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, journalSchema, repositoryErrorSchema}
 import zio.*

@@ -18,7 +18,7 @@ import java.math.{BigDecimal, RoundingMode}
 object TransactionServiceLiveSpec extends ZIOSpecDefault {
   val DOUBLE =  new BigDecimal("2.00").setScale(2, RoundingMode.HALF_UP)
   def doublePrice (tr: Transaction): Transaction = tr.copy( lines = tr.lines.map(l=>l.copy(price = l.price.multiply(DOUBLE))))
-    .copy(id1= -1)
+    .copy(contact= -1)
   val testServiceLayer = ZLayer.make[AccountService& TransactionService& TransactionRepository & PostOrder
     & PostSalesOrder& ArticleRepository& AccountRepository& PacRepository& StockRepository & CustomerRepository
     &  SupplierRepository&  VatRepository& PostGoodreceiving& PostBillOfDelivery &  PostCustomerInvoice
@@ -83,7 +83,7 @@ object TransactionServiceLiveSpec extends ZIOSpecDefault {
       test("search, find  and post some logistical transaction meeting some criteria") {
         for 
           all        <-   TransactionRepository.all(ftr1.modelid, companyId)
-          transactionIds:List[(Long, Int)] = all.map(tr =>(tr.id1, tr.modelid))
+          transactionIds:List[(Long, Int)] = all.map(tr =>(tr.contact, tr.modelid))
           postedRows <- TransactionService.postAll(transactionIds, ftr1.company)
         yield assertTrue(postedRows == 3)
       },
@@ -123,7 +123,7 @@ object TransactionServiceLiveSpec extends ZIOSpecDefault {
         for
           oneRow     <- TransactionRepository.create(list2)
           all        <-   TransactionRepository.all(ftr1.modelid, companyId)
-          transactionIds:List[(Long, Int)] = all.map(tr =>(tr.id1, tr.modelid))
+          transactionIds:List[(Long, Int)] = all.map(tr =>(tr.contact, tr.modelid))
           postedRows <- TransactionService.postAll(transactionIds, ftr1.company)
           stocks <- StockRepository.getBy(createdStock.map(stock=>stock.id), Stock.MODELID, ftr1.company)
           stock0 <- StockRepository.getById (stock0, Stock.MODELID, ftr1.company)//.debug(s"stock02 >>> ${artId0}")

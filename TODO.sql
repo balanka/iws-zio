@@ -1,3 +1,100 @@
+update  fmodule set id=102 where id=111;
+insert into fmodule (id, name, description, account, is_debit, company, modelid, parent,copy_from,acc_filter,oacc_filter ) VALUES
+  (100, 'R.Q.F'               , 'Request 4 quotation', '', false, '1000', 151, '1301','','' ,''),
+  (100, 'Appel d''offre client', 'Appel d''offre client', '', false, '5000', 151, '1301','','' ,''),
+  (100, 'Appel d''offre client', 'Appel d''offre client', '', false, '5500', 151, '1301','','' ,''),
+  (100, 'Appel d''offre client', 'Appel d''offre client', '', false, '5600', 151, '1301','','' ,''),
+  (100, 'Appel d''offre client', 'Appel d''offre client', '', false, '5700', 151, '1301','','' ,''),
+
+  (101, 'P. Requisition', 'P. Requisition', '', false, '1000', 151, '1301','','' ,''),
+  (101, 'Demande d''appro', 'Demande d''appro', '', false, '5000', 151, '1301','','' ,''),
+  (101, 'Demande d''appro', 'Demande d''appro', '', false, '5500', 151, '1301','','' ,''),
+  (101, 'Demande d''appro', 'Demande d''appro', '', false, '5600', 151, '1301','','' ,''),
+  (101, 'Demande d''appro', 'Demande d''appro', '', false, '5700', 151, '1301','','' ,''),
+
+  (103, 'P. contract', 'P. contract', '', false, '1000', 151, '1301','','' ,''),
+  (103, 'Contrat d''appro', 'Contrat d''appro', '', false, '5000', 151, '1301','','' ,''),
+  (103, 'Contrat d''appro', 'Contrat d''appro', '', false, '5500', 151, '1301','','' ,''),
+  (103, 'Contrat d''appro', 'Contrat d''appro', '', false, '5600', 151, '1301','','' ,''),
+  (103, 'Contrat d''appro', 'Contrat d''appro', '', false, '5700', 151, '1301','','' ,''),
+
+  (126, 'Stock transfer', 'Stock transfer', '', false, '1000', 151, '1301','','' ,''),
+  (126, 'Transfer de stock', 'Transfer de stock', '', false, '5000', 151, '1301','','' ,''),
+  (126, 'Transfer de stock', 'Transfer de stock', '', false, '5500', 151, '1301','','' ,''),
+  (126, 'Transfer de stock', 'Transfer de stock', '', false, '5600', 151, '1301','','' ,''),
+  (126, 'Transfer de stock', 'Transfer de stock', '', false, '5700', 151, '1301','','' ,''),
+
+  (127, 'Consumption', 'Consumption', '', false, '1000', 151, '1301','','' ,''),
+  (127, 'Consommation', 'Consommation', '', false, '5000', 151, '1301','','' ,''),
+  (127, 'Consommation', 'Consommation', '', false, '5500', 151, '1301','','' ,''),
+  (127, 'Consommation', 'Consommation', '', false, '5600', 151, '1301','','' ,''),
+  (127, 'Consommation', 'Consommation', '', false, '5700', 151, '1301','','' ,''),
+
+  (128, 'Stocktake', 'Stocktake', '', false, '1000', 151, '1301','','' ,''),
+  (128, 'Inventaire', 'Inventaire', '', false, '5000', 151, '1301','','' ,''),
+  (128, 'Inventaire', 'Inventaire', '', false, '5500', 151, '1301','','' ,''),
+  (128, 'Inventaire', 'Inventaire', '', false, '5600', 151, '1301','','' ,''),
+  (128, 'Inventaire', 'Inventaire', '', false, '5700', 151, '1301','','' ,'');
+
+
+update periodic_account_balance set account =TRIM(account), id= TRIM(id);
+update details_compta set account =TRIM (account), oaccount=TRIM(oaccount);
+update journal set account =TRIM(account), oaccount=TRIM(oaccount);
+update master_compta  set account = TRIM (account) where LENGTH(TRIM(account))>0;
+
+insert into user_right (moduleid, roleid, short, company,modelid)
+select moduleid, roleid, short, '5700',modelid from user_right
+where company='1000' and moduleid=173;
+
+insert into module (id, name, description, company, modelid, path, parent)
+select id, name, description, '5700', modelid, path, parent from module
+                      where  company='1000' and id='173';
+
+
+
+alter table customer add column contact varchar;
+alter table customer alter column contact SET DEFAULT '';
+update customer set contact ='' where contact is null;
+alter table supplier add column contact varchar;
+alter table supplier alter column contact SET DEFAULT '';
+update supplier set contact ='' where contact is null;
+alter table employee add column contact varchar;
+alter table employee alter column contact SET DEFAULT '';
+update employee set contact ='' where contact is null;
+alter table company rename column partner to contact;
+alter table company alter column contact SET DEFAULT '';
+update company set contact ='' where contact is null;
+
+alter table company rename column partner to contact;
+alter table company alter column contact SET DEFAULT '';
+alter table master_compta rename column id1 to contact;
+alter table master_compta alter column contact TYPE varchar;
+alter table master_compta alter column contact SET DEFAULT '';
+alter table master_compta alter column oid TYPE varchar;
+alter table master_compta alter column oid SET DEFAULT '';
+alter table master_compta rename column type_journal to foot_text;
+alter table master_compta alter column foot_text TYPE varchar;
+alter table master_compta alter column foot_text SET DEFAULT '';
+
+alter table transaction rename column id1 to contact;
+alter table transaction alter column contact TYPE varchar;
+alter table transaction alter column contact SET DEFAULT '';
+alter table transaction alter column oid TYPE varchar;
+alter table transaction alter column oid SET DEFAULT '';
+alter table transaction rename column type_journal to foot_text;
+alter table transaction alter column foot_text TYPE varchar;
+alter table transaction alter column foot_text SET DEFAULT '';
+
+alter table transaction_log rename column id1 to contact;
+alter table transaction_log alter column contact TYPE varchar;
+alter table transaction_log alter column contact SET DEFAULT '';
+alter table transaction_log alter column oid TYPE varchar;
+
+alter table journal alter column oid TYPE varchar;
+alter table journal alter column oid SET DEFAULT '';
+
+
+
 update module set parent='80' where id in ('10', '171', '172', '39', '38', '41') and company='5600';
 update module set parent='30' where id in ('36', '37') and company='5600';
   insert into module (id, name, description,  company, modelid, path, parent)
@@ -80,6 +177,57 @@ alter sequence public.bankstatement_id_seq_1000 owner to postgres;
 7117,134
 6057,144
 7185,112
+create sequence public.transaction_id_seq_5000_100 start with 1;
+alter sequence public.transaction_id_seq_5000_100 owner to postgres;
+create sequence public.transaction_id_seq_5000_102 start with 1;
+alter sequence public.transaction_id_seq_5000_102 owner to postgres;
+create sequence public.transaction_id_seq_5000_103 start with 1;
+alter sequence public.transaction_id_seq_5000_103 owner to postgres;
+create sequence public.transaction_id_seq_5000_126 start with 1;
+alter sequence public.transaction_id_seq_5000_126 owner to postgres;
+create sequence public.transaction_id_seq_5000_127 start with 1;
+alter sequence public.transaction_id_seq_5000_127 owner to postgres;
+create sequence public.transaction_id_seq_5000_128 start with 1;
+alter sequence public.transaction_id_seq_5000_128 owner to postgres;
+
+create sequence public.transaction_id_seq_5500_100 start with 1;
+alter sequence public.transaction_id_seq_5500_100 owner to postgres;
+create sequence public.transaction_id_seq_5500_102 start with 1;
+alter sequence public.transaction_id_seq_5500_102 owner to postgres;
+create sequence public.transaction_id_seq_5500_103 start with 1;
+alter sequence public.transaction_id_seq_5500_103 owner to postgres;
+create sequence public.transaction_id_seq_5500_126 start with 1;
+alter sequence public.transaction_id_seq_5500_126 owner to postgres;
+create sequence public.transaction_id_seq_5500_127 start with 1;
+alter sequence public.transaction_id_seq_5500_127 owner to postgres;
+create sequence public.transaction_id_seq_5500_128 start with 1;
+alter sequence public.transaction_id_seq_5500_128 owner to postgres;
+
+create sequence public.transaction_id_seq_5600_100 start with 1;
+alter sequence public.transaction_id_seq_5600_100 owner to postgres;
+create sequence public.transaction_id_seq_5600_102 start with 1;
+alter sequence public.transaction_id_seq_5600_102 owner to postgres;
+create sequence public.transaction_id_seq_5600_103 start with 1;
+alter sequence public.transaction_id_seq_5600_103 owner to postgres;
+create sequence public.transaction_id_seq_5600_126 start with 1;
+alter sequence public.transaction_id_seq_5600_126 owner to postgres;
+create sequence public.transaction_id_seq_5600_127 start with 1;
+alter sequence public.transaction_id_seq_5600_127 owner to postgres;
+create sequence public.transaction_id_seq_5600_128 start with 1;
+alter sequence public.transaction_id_seq_5600_128 owner to postgres;
+
+create sequence public.transaction_id_seq_5700_100 start with 1;
+alter sequence public.transaction_id_seq_5700_100 owner to postgres;
+create sequence public.transaction_id_seq_5700_102 start with 1;
+alter sequence public.transaction_id_seq_5700_102 owner to postgres;
+create sequence public.transaction_id_seq_5700_103 start with 1;
+alter sequence public.transaction_id_seq_5700_103 owner to postgres;
+create sequence public.transaction_id_seq_5700_126 start with 1;
+alter sequence public.transaction_id_seq_5700_126 owner to postgres;
+create sequence public.transaction_id_seq_5700_127 start with 1;
+alter sequence public.transaction_id_seq_5700_127 owner to postgres;
+create sequence public.transaction_id_seq_5700_128 start with 1;
+alter sequence public.transaction_id_seq_5700_128 owner to postgres;
 
 create sequence master_compta_id_seq_5700_104 start with 1;
 alter sequence master_compta_id_seq_5700_104 owner to postgres;

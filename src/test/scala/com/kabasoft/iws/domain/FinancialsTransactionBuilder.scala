@@ -11,8 +11,8 @@ object FinancialsTransactionBuilder {
   val transactionId2 = -2L// 4711L
   val lineTransactionId1 = 1L
   val lineTransactionId2 = 2L
-  val modelid = TransactionModelId.PAYABLES.id
-  val modelid2 = TransactionModelId.PAYMENT.id
+  val modelid = ModelId.PAYABLES.id
+  val modelid2 = ModelId.PAYMENT.id
   val period = common.getPeriod(Instant.now())
   val side = true
   val amount = new BigDecimal("100.00").setScale(2, RoundingMode.HALF_UP)

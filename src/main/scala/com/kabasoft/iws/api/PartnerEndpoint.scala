@@ -1,7 +1,7 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.AppError.*
-import com.kabasoft.iws.domain.{AppError, Partner}
+import com.kabasoft.iws.domain.{AppError, Contact}
 import com.kabasoft.iws.repository.PartnerRepository
 import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, partnerSchema, repositoryErrorSchema}
 import zio.*
@@ -22,9 +22,9 @@ object PartnerEndpoint:
   val mDeleteAPIDoc = "Delete a  partner"
 
   private val mCreate = Endpoint(RoutePattern.POST / "partner")
-    .in[Partner]
+    .in[Contact]
     .header(HeaderCodec.authorization)
-    .out[Partner]
+    .out[Contact]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     )?? Doc.p(mCreateAPIFoc)
@@ -34,20 +34,20 @@ object PartnerEndpoint:
   )//.header(HeaderCodec.authorization)
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized),
-    ).out[List[Partner]] ?? Doc.p(mAllAPIDoc)
+    ).out[List[Contact]] ?? Doc.p(mAllAPIDoc)
 
   private val mById = Endpoint(RoutePattern.GET / "partner" / string("id") ?? Doc.p(idDoc) / int("modelid") ?? Doc.p(modelidDoc)
     / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
     .header(HeaderCodec.authorization)
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized),
-    ).out[Partner] ?? Doc.p(mByIdAPIDoc)
+    ).out[Contact] ?? Doc.p(mByIdAPIDoc)
 
   private val mModify = Endpoint(RoutePattern.PUT / "partner").header(HeaderCodec.authorization)
-    .in[Partner]
+    .in[Contact]
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
-    ).out[Partner] ?? Doc.p(mModifyAPIDoc)
+    ).out[Contact] ?? Doc.p(mModifyAPIDoc)
   
   private val mDelete = Endpoint(RoutePattern.DELETE / "partner" / string("id") ?? Doc.p(modelidDoc) /int("modelid")?? Doc.p(modelidDoc)
     / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
