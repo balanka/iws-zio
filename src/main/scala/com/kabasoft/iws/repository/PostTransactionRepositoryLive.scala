@@ -1,13 +1,18 @@
 package com.kabasoft.iws.repository
 import cats.effect.Resource
-import skunk.*
+import skunk._
 import zio.interop.catz.asyncInstance
 import zio.{Task, UIO, ZIO, ZLayer}
-import com.kabasoft.iws.domain.{Article, FinancialsTransaction, FinancialsTransactionDetails, Journal, PeriodicAccountBalance, Stock, Transaction, TransactionDetails, TransactionLog}
+import com.kabasoft.iws.domain.{Article, FinancialsTransaction, FinancialsTransactionDetails, Journal
+  , PeriodicAccountBalance, Stock, Transaction, TransactionDetails, TransactionLog}
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import FinancialsTransactionRepositoryLive.{Details2Details, FINANCIAL_DETAIL_SEQUENCE_PREF, FINANCIAL_SEQUENCE_PREF, details2DeleteFilter, details2UpdateFilter, master2Details, master2master, newDetailsFilter, newMasterFilter, oldMasterFilter, sequenceNames, setJournalId}
+import FinancialsTransactionRepositoryLive.{Details2Details, FINANCIAL_DETAIL_SEQUENCE_PREF, FINANCIAL_SEQUENCE_PREF
+  , details2UpdateFilter, master2Details, master2master, newDetailsFilter, newMasterFilter, oldMasterFilter
+  , sequenceNames, setJournalId}
 import JournalRepositoryLive.{JOURNAL_SEQUENCE_PREF, sequenceName}
-import TransactionRepositoryLive.{TRANSACTION_DETAIL_SEQUENCE_PREF, TRANSACTION_LOG_SEQUENCE_PREF, TRANSACTION_SEQUENCE_PREF, newTransactionDetailsFilter, newTransactionFilter, oldTransactionFilter, setDetailsId, setTransactionId, setTransactionLogId, transaction2Details, transactionDetails2DeleteFilter, transactionDetails2UpdateFilter}
+import TransactionRepositoryLive.{TRANSACTION_DETAIL_SEQUENCE_PREF, TRANSACTION_LOG_SEQUENCE_PREF
+  , TRANSACTION_SEQUENCE_PREF, newTransactionDetailsFilter, newTransactionFilter, setDetailsId, setTransactionId
+  , setTransactionLogId, transaction2Details, transactionDetails2UpdateFilter}
 
 
 
@@ -16,8 +21,8 @@ final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[
   private def getFinancialsSequenz(prefixMaster:String, prefixDetails: String, models:List[FinancialsTransaction]) = sequenceNames (prefixMaster, prefixDetails, models)
   private def getTransactionSequenz(prefixMaster:String, prefixDetails: String, models:List[Transaction]) =
     TransactionRepositoryLive.sequenceNames (prefixMaster, prefixDetails, models)
-  private def getJournalSequenz(prefix: String, journals:List[Journal])= sequenceName(JOURNAL_SEQUENCE_PREF, journals)
-  private def getTransactionLogSequenz(prefix: String, transLogs:List[TransactionLog])=
+  private def getJournalSequenz( journals:List[Journal])= sequenceName(JOURNAL_SEQUENCE_PREF, journals)
+  private def getTransactionLogSequenz(transLogs:List[TransactionLog])=
        TransactionRepositoryLive.sequenceName(TRANSACTION_LOG_SEQUENCE_PREF, transLogs)
 
 
@@ -25,8 +30,6 @@ final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[
   def exec[A](cmd: PreparedCommand[Task, A], value: A): Task[Unit] = cmd.execute(value).unit
   def withId[A](session:Session[Task], company: String, f: Long => A): Task[A] = nextId(session, company).map(f)
 
-  //s: Session[Task], models: List[Transaction], financials: List[FinancialsTransaction], transLogEntries: List[TransactionLog]
-  //               , stock2update: List[Stock], newStock: List[Stock], articles: List[Article]
   private def transactModifyInternal(s: Session[Task], models: List[Transaction]
                                      , financials: List[FinancialsTransaction]
                                      , transLogs: List[TransactionLog]
@@ -35,7 +38,7 @@ final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[
 
     val (seqMaster, seqDetail) = getFinancialsSequenz(FINANCIAL_SEQUENCE_PREF, FINANCIAL_DETAIL_SEQUENCE_PREF, financials)
     val (seqTransaction, seqTransactionDetail) = getTransactionSequenz(TRANSACTION_SEQUENCE_PREF, TRANSACTION_DETAIL_SEQUENCE_PREF, models)
-    val seqTransLog = getTransactionLogSequenz(TRANSACTION_LOG_SEQUENCE_PREF, transLogs)
+    val seqTransLog = getTransactionLogSequenz(transLogs)
     (for {
       pciTr <- s.prepareR(TransactionRepositorySQL.insert)
       pcuTr <- s.prepareR(TransactionRepositorySQL.updatePosted)
@@ -125,44 +128,6 @@ final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[
         } yield newFinancials.size + updatedMasters.size  + newTransactions.size + updatedTransaction.size+articles.size + transLogEntries.size
     }
   }
-//  def transact(s: Session[Task], models: List[Transaction], financials: List[FinancialsTransaction], transLogEntries: List[TransactionLog]
-//               , stock2update: List[Stock], newStock: List[Stock], articles: List[Article]): Task[Unit] =
-//    s.transaction.use: xa =>
-//      s.prepareR(FinancialsTransactionRepositorySQL.insert).use: pciFtr =>
-//        s.prepareR(FinancialsTransactionRepositorySQL.insertDetails1).use: pciFtrDetails =>
-//          s.prepareR(TransactionLogRepositorySQL.insert).use: pciTransLog =>
-//            s.prepareR(StockRepositorySQL.insert).use: pciStock =>
-//              s.prepareR(StockRepositorySQL.UPDATE).use: pcuStock =>
-//                s.prepareR(ArticleRepositorySQL.UPDATE).use: pcuArt =>
-//                  s.prepareR(TransactionRepositorySQL.updatePosted).use: pcuFTr =>
-//                    tryExec3(xa, pciFtr, pciFtrDetails, pciStock, pciTransLog, pcuStock, pcuArt, pcuFTr
-//                      , financials, financials.flatMap(_.lines).map(FinancialsTransactionDetails.encodeIt)
-//                      , newStock, transLogEntries, stock2update.map(Stock.encodeIt3), articles.map(Article.encodeIt2)
-//                      , models.map(Transaction.encodeIt3))
-                  
-//  def transact(s: Session[Task], models: List[Transaction], financials: List[FinancialsTransaction]
-//               , newPacs:List[PeriodicAccountBalance], pac2update: List[PeriodicAccountBalance], transLogEntries: List[TransactionLog]
-//               , journals:List[Journal], stock2update: List[Stock], newStock: List[Stock], articles: List[Article] ): Task[Unit] =
-//    s.transaction.use: xa =>
-//      s.prepareR(FinancialsTransactionRepositorySQL.insert).use: pciFtr =>
-//        s.prepareR(FinancialsTransactionRepositorySQL.insertDetails1).use: pciFtrDetails =>
-//          s.prepareR(TransactionRepositorySQL.updatePosted).use: pcuFtr =>
-//             s.prepareR(PacRepositorySQL.insert).use: pciPac =>
-//               s.prepareR(PacRepositorySQL.UPDATE).use: pcuPac =>
-//                 s.prepareR(StockRepositorySQL.insert).use: pciStock =>
-//                   s.prepareR(StockRepositorySQL.UPDATE).use: pcuStock =>
-//                     s.prepareR(TransactionLogRepositorySQL.insert).use: pciTransLog =>
-//                       s.prepareR(JournalRepositorySQL.insert).use: pciJournal =>
-//                         s.prepareR(ArticleRepositorySQL.UPDATE).use: pcuArt =>
-//                          tryExec2(xa, pciFtr, pciFtrDetails, pcuFtr, pciPac, pcuPac
-//                          , pciStock,  pcuStock, pciTransLog, pciJournal, pcuArt, financials
-//                           , financials.flatMap(_.lines).map(FinancialsTransactionDetails.encodeIt)
-//                           ,  models.map(Transaction.encodeIt3), newPacs, pac2update.map(PeriodicAccountBalance.encodeIt2), newStock
-//                           ,  stock2update.map(Stock.encodeIt3), transLogEntries, journals
-//                           , articles.map(Article.encodeIt2))
-
-  //transact(session, models, financials//.map(buildId)
-  //            ,   transLogEntries, stock2update, newStock, articles))
 
 
   private def transactModifyInternal(s: Session[Task], models: List[Transaction]
@@ -171,8 +136,8 @@ final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[
                                      , journals:List[Journal], stock2update: List[Stock], newStock: List[Stock], articles: List[Article] ): Task[Int] = {
     val (seqMaster, seqDetail) = getFinancialsSequenz(FINANCIAL_SEQUENCE_PREF, FINANCIAL_DETAIL_SEQUENCE_PREF, financials)
     val (seqTransaction, seqTransactionDetail) = getTransactionSequenz(TRANSACTION_SEQUENCE_PREF, TRANSACTION_DETAIL_SEQUENCE_PREF, models)
-    val seqTransLog = getTransactionLogSequenz(TRANSACTION_LOG_SEQUENCE_PREF, transLogs)
-    val seqJournal = getJournalSequenz(JOURNAL_SEQUENCE_PREF, journals)
+    val seqTransLog = getTransactionLogSequenz(transLogs)
+    val seqJournal = getJournalSequenz( journals)
     (for {
       pciTr <- s.prepareR(TransactionRepositorySQL.insert)
       pcuTr <- s.prepareR(TransactionRepositorySQL.updatePosted)

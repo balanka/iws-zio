@@ -95,10 +95,10 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
     details <- withLines(transaction)
   } yield details
   
-  override def getById1(p: (Long, Int, String)): ZIO[Any, RepositoryError, Transaction] = for {
-    transaction <- queryWithTxUnique(postgres, p, BY_ID1)
-    details <- withLines(transaction)
-  } yield details
+//  override def getById1(p: (Long, Int, String)): ZIO[Any, RepositoryError, Transaction] = for {
+//    transaction <- queryWithTxUnique(postgres, p, BY_ID1)
+//    details <- withLines(transaction)
+//  } yield details
     
   override def getByModelId( p: (Int, String)): ZIO[Any, RepositoryError, List[Transaction]] = for {
     transactions <- queryWithTx(postgres, p, BY_MODEL_ID)
@@ -115,7 +115,7 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
   private def getDetails(p: (Long, String, Int)): ZIO[Any, RepositoryError, List[TransactionDetails]] = queryWithTx(postgres, p, DETAILS1)
 
   private def getByTransId1(trans: Transaction): ZIO[Any, RepositoryError, Transaction] = for {
-    lines_ <- getDetails(trans.id1, trans.company, trans.modelid)
+    lines_ <- getDetails(trans.id, trans.company, trans.modelid)
   } yield trans.copy(lines = lines_) 
 
   private def withLines(trans: Transaction): ZIO[Any, RepositoryError, Transaction] =
@@ -158,7 +158,7 @@ object TransactionRepositoryLive:
 
    def newTransactionFilter(list: List[Transaction]) = list.filter(_.id === -1L)
    def oldTransactionFilter(list: List[Transaction]) = list.filter(_.id > 0)
-   def setTransactionId(m: Transaction, idx: Long) = m.copy(id = idx, id1 = idx)
+   def setTransactionId(m: Transaction, idx: Long) = m.copy(id = idx)
    def transaction2Details(m: Transaction, idx: Long) = m.lines.map(_.copy(transid = idx))
    def setDetailsId(m: TransactionDetails, idx: Long) = m.copy(id = idx)
    def newTransactionDetailsFilter(m: Transaction) = m.lines.filter(_.id === -1L).map(line => line.copy(transid = m.id))
@@ -171,7 +171,7 @@ private[repository] object TransactionRepositorySQL:
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
   private val transactionCodec =
-    int8 *: int8 *: int8 *: varchar *: varchar *: timestamptz *: timestamptz *: timestamptz *: int4 *: bool *: int4 *: varchar *: varchar*: varchar
+    int8 *: varchar *: varchar *: varchar *: varchar *: timestamptz *: timestamptz *: timestamptz *: int4 *: bool *: int4 *: varchar *: varchar*: varchar
 
 //  private val transactionCodec1 =
 //    int8 *: int8 *: varchar *: varchar *: timestamptz *: timestamptz *: timestamptz *: int4 *: bool *: int4 *: varchar *: varchar*: varchar
@@ -182,8 +182,8 @@ private[repository] object TransactionRepositorySQL:
 //    int8 *: varchar *: varchar *: numeric(12, 2) *: varchar *: numeric(12, 2) *: varchar *: timestamp *: varchar *: numeric(12, 2) *: varchar *: varchar
 
   val mfDecoder: Decoder[Transaction] = transactionCodec.map:
-    case (id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, footText) =>
-      Transaction(id, oid, id1, store, account, transdate.toInstant, enterdate.toInstant, postingdate.toInstant
+    case (id, oid, contact, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, footText) =>
+      Transaction(id, oid, contact, store, account, transdate.toInstant, enterdate.toInstant, postingdate.toInstant
         , period, posted, modelid, company, text, footText )
 
   val mfEncoder: Encoder[Transaction] = transactionCodec.values.contramap(Transaction.encodeIt)
@@ -195,41 +195,41 @@ private[repository] object TransactionRepositorySQL:
           , toInstant(duedate), vatCode, vat.bigDecimal, text, company, modelid)
 
   def base =
-    sql""" SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
+    sql""" SELECT id, oid, contact, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
            FROM   transaction """
 
   def ALL_BY_ID(nr: Int): Query[(List[Long], Int, String), Transaction] =
-    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
+    sql"""SELECT id, oid, contact, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
            FROM   transaction
            WHERE id  IN (${int8.list(nr)}) AND  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val BY_ID: Query[Long *: Int *: String *: EmptyTuple, Transaction] =
-    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
+    sql"""SELECT id, oid, contact, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
            FROM   transaction
            WHERE id = $int8 AND modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
            
-  val BY_ID1: Query[Long *: Int *: String *: EmptyTuple, Transaction] =
-    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
-           FROM   transaction
-           WHERE id1 = $int8 AND modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+//  val BY_ID1: Query[Long *: Int *: String *: EmptyTuple, Transaction] =
+//    sql"""SELECT id, oid, contact, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
+//           FROM   transaction
+//           WHERE contact = $int8 AND modelid = $int4 AND company = $varchar
+//           """.query(mfDecoder)
 
   val BY_MODEL_ID: Query[Int *: String *: EmptyTuple, Transaction] =
-    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
+    sql"""SELECT id, oid, contact, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
            FROM   transaction
            WHERE modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val BY_PERIOD: Query[Boolean *:Int *: Int *:  String *: EmptyTuple, Transaction] =
-    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
+    sql"""SELECT id, oid, contact, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
            FROM   transaction
            WHERE posted =$bool AND modelid between $int4 AND $int4  AND company = $varchar
            """.query(mfDecoder)  
 
   val ALL: Query[Int *: String *: EmptyTuple, Transaction] =
-    sql"""SELECT id, oid, id1, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
+    sql"""SELECT id, oid, contact, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
            FROM   transaction
            WHERE  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
@@ -241,7 +241,7 @@ private[repository] object TransactionRepositorySQL:
            """.query(detailsDecoder)
 
   val insert: Command[Transaction] =
-    sql"""INSERT INTO transaction (id, oid, id1, store, account, enterdate, transdate, postingdate, period, posted, modelid
+    sql"""INSERT INTO transaction (id, oid, contact, store, account, enterdate, transdate, postingdate, period, posted, modelid
          , company, text, foot_text) VALUES $mfEncoder""".command
 
 //  def insertAll(n:Int): Command[List[Transaction.TYPE]] = 
@@ -259,7 +259,7 @@ private[repository] object TransactionRepositorySQL:
 
   val UPDATE: Command[Transaction.TYPE2] =
     sql"""UPDATE transaction
-          SET oid = $int8, store = $varchar, account = $varchar, transdate = $timestamp, text=$varchar, foot_text=$varchar
+          SET oid = $varchar, contact = $varchar, store = $varchar, account = $varchar, transdate = $timestamp, text=$varchar, foot_text=$varchar
           WHERE id=$int8 and modelid=$int4 and company= $varchar""".command
 
   val UPDATE_DETAILS: Command[TransactionDetails.TYPE2] =
@@ -275,4 +275,3 @@ private[repository] object TransactionRepositorySQL:
   val DELETE_DETAILS : Command[(Long, String, Int)] = sql"DELETE FROM transaction_details WHERE id = $int8 AND company = $varchar AND modelid = $int4 ".command
   val DELETE_ALL_DETAILS: Command[Void] = sql"DELETE FROM transaction_details WHERE  id=-2 and company = '-1000'".command
   val NEXT_ID:Query[Void, Long] = sql"SELECT NEXTVAL('master_compta_id_seq')".query(int8)
-  //id  IN (${varchar.list(nr)})

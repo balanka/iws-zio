@@ -4,7 +4,7 @@ import cats.*
 import cats.effect.Resource
 import cats.syntax.all.*
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Article, ModelId, Stock}
+import com.kabasoft.iws.domain.{Article, ModelId}
 import skunk.*
 import skunk.codec.all.*
 import skunk.implicits.*

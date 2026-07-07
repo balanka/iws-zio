@@ -115,7 +115,7 @@ private[repository] object EmployeeRepositorySQL:
       localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 
     private val mfCodec =
-      (varchar *: varchar *: varchar *: varchar *:varchar *: varchar *: varchar *: varchar *: varchar *:varchar *: varchar *:
+      (varchar *: varchar *: varchar *: varchar *:varchar *: varchar *: varchar *: varchar *: varchar *: varchar *:varchar *: varchar *:
         varchar *: varchar *: varchar *: varchar *:varchar *: numeric(12, 2) *: int4 *:timestamp *: timestamp *: timestamp)
       
     private val salaryItemCodec = 
@@ -126,7 +126,7 @@ private[repository] object EmployeeRepositorySQL:
   
     val mfDecoder: Decoder[Employee] = mfCodec.map:
       case (id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-           , vatcode, currency, company, salary, modelid, enterdate, changedate, postingdate) =>
+           , vatcode, currency, contact, company, salary, modelid, enterdate, changedate, postingdate) =>
         Employee(
           id,
           name,
@@ -143,6 +143,7 @@ private[repository] object EmployeeRepositorySQL:
           tax_code,
           vatcode,
           currency,
+          contact,
           company,
           salary.bigDecimal,
           modelid,
@@ -192,11 +193,11 @@ private[repository] object EmployeeRepositorySQL:
           ORDER BY id ASC""".query(salaryItemDecoder)
 
     val insert: Command[Employee] = sql"""INSERT INTO employee (id, name, description, street
-          , zip, city, state, country, phone, email, account, oaccount, tax_code, vatcode, currency, company, salary
+          , zip, city, state, country, phone, email, account, oaccount, tax_code, vatcode, currency, contact,  company, salary
          , modelid, enterdate, changedate, postingdate) VALUES $mfEncoder""".stripMargin.command
 
     def insertAll(n: Int): Command[List[Employee.TYPE2]] = sql"""INSERT INTO employee (id, name, description, street
-          , zip, city, state, country, phone, email, account, oaccount, tax_code, vatcode, currency, company, salary
+          , zip, city, state, country, phone, email, account, oaccount, tax_code, vatcode, currency, contact, company, salary
           , modelid, enterdate, changedate, postingdate)  VALUES ${mfCodec.values.list(n)}""".stripMargin.command
 
     val insertSalaryItem: Command[EmployeeSalaryItem] = 
@@ -209,7 +210,7 @@ private[repository] object EmployeeRepositorySQL:
     val UPDATE: Command[Employee.TYPE3] =
        sql"""UPDATE employee SET name= $varchar, description= $varchar, street= $varchar, zip= $varchar, city= $varchar
                , state= $varchar, country= $varchar, phone= $varchar, email= $varchar, account= $varchar, oaccount= $varchar
-               , tax_code=$varchar, vatcode= $varchar, currency= $varchar, salary=$numeric
+               , tax_code=$varchar, vatcode= $varchar, currency= $varchar, contact= $varchar, salary=$numeric
                WHERE id=$varchar and modelid=$int4 and company= $varchar""".stripMargin.command
  
     val UPDATE_SALARY_ITEM: Command[EmployeeSalaryItem.TYPE] =

@@ -173,11 +173,11 @@ object PacRepositorySQL:
 
   val BALANCE_4_PAYMENT_REMINDER: Query[String *: String *: EmptyTuple, ReminderBalance] =
     sql"""
-      SELECT SUBSTRING(account, LENGTH(account) - 1, 2) AS id, period, SUM(idebit + debit - icredit - credit) AS balance, modelid
+      SELECT SUBSTRING(account, LENGTH(account) - 1, 2) AS id, period, (idebit + debit - icredit - credit) AS balance, modelid
       FROM periodic_account_balance
       WHERE account = $varchar AND company = $varchar
-      GROUP BY account, period, modelid
-      HAVING SUM(idebit + debit - icredit - credit) > 0
+      --GROUP BY account, period, modelid
+      --HAVING SUM(idebit + debit - icredit - credit) > 0
       ORDER BY period ASC
     """.query(balanceDecoder)
 

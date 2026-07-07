@@ -2,7 +2,7 @@ package com.kabasoft.iws.repository
 
 import cats.effect.Resource
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Apartment, Floor, Masterfile, ModelId, Room}
+import com.kabasoft.iws.domain.{Apartment, Floor, Masterfile, ModelId}
 import skunk.*
 import zio.{Task, ZIO, ZLayer}
 

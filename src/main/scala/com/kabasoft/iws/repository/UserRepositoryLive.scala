@@ -7,7 +7,7 @@ import skunk.*
 import skunk.codec.all.*
 import skunk.implicits.*
 import zio.{Task, ZIO, ZLayer}
-import com.kabasoft.iws.domain.{ModelId, Role, User, UserRight, UserRole}
+import com.kabasoft.iws.domain.{ModelId, Role, User}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 
 import java.time.{Instant, LocalDateTime, ZoneId}

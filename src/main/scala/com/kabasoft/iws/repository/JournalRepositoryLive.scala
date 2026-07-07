@@ -71,9 +71,9 @@ object JournalRepositoryLive:
 object JournalRepositorySQL:
   def toInstant(localDateTime: LocalDateTime): Instant = localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
   val      mfCodec =
-    (int8 *: int8 *: varchar *: varchar *: varchar *: varchar *:timestamp *: timestamp *: timestamp *:int4 *: numeric(12,2) *: numeric(12,2) *: numeric(12,2) *: numeric(12,2) *: numeric(12,2) *: varchar *: bool *: varchar *: int4 *: int4 *: varchar *: int4)
+    (int8 *: int8 *: varchar *: varchar *: varchar *: varchar  *: varchar*:timestamp *: timestamp *: timestamp *:int4 *: numeric(12,2) *: numeric(12,2) *: numeric(12,2) *: numeric(12,2) *: numeric(12,2) *: varchar *: bool *: varchar *: int4 *: int4 *: varchar *: int4)
   val mfCodec2 =
-    (int8 *: int8 *: int8 *: varchar *: varchar *: varchar *: varchar *:timestamp *: timestamp *: timestamp *: int4 *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: varchar *: bool *: varchar *: int4 *: int4 *: varchar *: int4)
+    (int8 *: int8 *: varchar *: varchar *: varchar *: varchar *: varchar *:timestamp *: timestamp *: timestamp *: int4 *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: varchar *: bool *: varchar *: int4 *: int4 *: varchar *: int4)
 
   val mfDecoder: Decoder[Journal] = mfCodec2.map :
     case (id, transid, oid, account, oaccount, parentAccount, parentOAccount, transdate, enterdate, postingdate, period, amount, idebit, debit
@@ -113,13 +113,13 @@ object JournalRepositorySQL:
 
   val insert: Command[Journal] =
     sql"""INSERT INTO journal (
-          transid, oid, account, oaccount, parent_account, parent_oaccount, transdate, enterdate, postingdate, period, amount, idebit, debit
+          id, transid, oid, account, oaccount, parent_account, parent_oaccount, transdate, enterdate, postingdate, period, amount, idebit, debit
           , icredit, credit,currency, side, text, month, year, company, modelid)
           VALUES $mfEncoder """.command
 
   def insertAll(n:Int): Command[List[Journal.TYPE]] =
     sql"""INSERT INTO journal (
-         transid, oid, account, oaccount, parent_account, parent_oaccount, transdate, enterdate, postingdate, period, amount, idebit, debit
+         id, transid, oid, account, oaccount, parent_account, parent_oaccount, transdate, enterdate, postingdate, period, amount, idebit, debit
          , icredit, credit,currency, side, text, month, year, company, modelid )
           VALUES ${mfCodec.values.list(n)}""".command
   

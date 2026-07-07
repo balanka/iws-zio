@@ -2,11 +2,7 @@ package com.kabasoft.iws.repository
 
 import cats.effect.Resource
 import skunk._
-import skunk.codec.all._
-import skunk.implicits._
-import zio.prelude.FlipOps
 import zio.interop.catz._
-import cats.syntax.all._
 import zio.{ZIO, _}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, Journal, PeriodicAccountBalance}

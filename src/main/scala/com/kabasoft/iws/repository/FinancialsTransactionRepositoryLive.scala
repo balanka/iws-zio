@@ -113,8 +113,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
       }//.map(_.flatten).mapError(e => RepositoryError(e.message))
 
     } yield detailed
-
-  // Version interne avec Task (pour .use)
+  
   private def transactModifyInternal(s: Session[Task], models: List[FinancialsTransaction]): Task[List[FinancialsTransaction]] = {
     val (seqMaster, seqDetail) = sequenceNames(
       FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF,
@@ -169,9 +168,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
         } yield (newMasters ++ updatedMasters).toList
     }
   }
-
-
-  // Dans votre méthode modify
+  
   override def modify(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =
     postgres.use { session =>
       transactModifyInternal(session, models) // Utilise la version Task
@@ -183,11 +180,7 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
       trans <- modify(List(model)).map(_.headOption.getOrElse(FinancialsTransaction.dummy))
       modified <- getById(trans.id, trans.modelid, trans.company)
     } yield modified
-
-//  override def modify(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =
-//    postgres.use { session =>
-//      transact(session, models).mapError(e => new Throwable(e.getMessage)) // RepositoryError -> Throwable
-//    }.mapError(e => RepositoryError(e.getMessage))
+  
   def listn(p: (List[Int], String)): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = queryWithTx(postgres, p, ALLn(p._1.size))
   def list(p: (Int, String)):ZIO[Any, RepositoryError, List[FinancialsTransaction]] = queryWithTx(postgres, p, ALL)
 
@@ -220,10 +213,10 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
    // _ <- ZIO.logInfo(s"transactions with Details: $details")
 } yield details
 
-  override def getById1(p: (Long, Int, String)): ZIO[Any, RepositoryError, FinancialsTransaction] = for {
-    transaction <- queryWithTxUnique(postgres, p, BY_ID1)
-    details <- withLines(transaction)
-  } yield details
+//  override def getById1(p: (Long, Int, String)): ZIO[Any, RepositoryError, FinancialsTransaction] = for {
+//    transaction <- queryWithTxUnique(postgres, p, BY_ID1)
+//    details <- withLines(transaction)
+//  } yield details
   
   override def getBy(ids: List[Long],  modelid: Int, company: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
     transactions <- queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
@@ -265,10 +258,10 @@ object FinancialsTransactionRepositoryLive:
 
    def newMasterFilter(list: List[FinancialsTransaction]): Seq[FinancialsTransaction] = list.filter(_.id === -1L)
    def oldMasterFilter(list: List[FinancialsTransaction]) = list.filter(_.id > 0)
-   def master2master(m: FinancialsTransaction, idx: Long) = m.copy(id = idx, id1 = idx)
+   def master2master(m: FinancialsTransaction, idx: Long) = m.copy(id = idx)
    def master2Details(m: FinancialsTransaction, idx: Long) = m.lines.map(mx => mx.copy(transid = idx))
    def Details2Details(m: FinancialsTransactionDetails, idx: Long) = m.copy(id = idx)
-   def newDetailsFilter(m: FinancialsTransaction) = m.lines.filter(line => line.id === -1L).map(line => line.copy(transid = m.id))
+   def newDetailsFilter(m: FinancialsTransaction) = m.lines.filter(line => line.id === -1L).map(line => line.copy(transid = m.id, modelid = m.modelid))
    def details2DeleteFilter(m: FinancialsTransaction) = m.lines.filter(line => line.transid === -2L)
    def details2UpdateFilter(m: FinancialsTransaction) = m.lines.filter(line => line.id > 0 && line.transid === -1L).map(line => line.copy(transid = m.id))
    def setJournalId(m: Journal, idx: Long) = m.copy(id = idx)
@@ -286,21 +279,19 @@ object FinancialsTransactionRepositorySQL:
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 
   private val financialsTransactionCodec =
-    (int8 *: int8 *: int8 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: int4 *: bool *: int4 *: varchar *: varchar *: int4 *: int4)
-  private val financialsTransactionCodec4 =
-    int8 *: int8 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: int4 *: bool *: int4 *: varchar *: varchar *: int4 *: int4
+    (int8 *: varchar *: varchar *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: int4 *: bool *: int4 *: varchar *: varchar *: varchar *: int4)
   private val financialsDetailsTransactionCodec =
     (int8 *: int8 *: varchar *: bool *: varchar *: numeric(12, 2) *: timestamp *: varchar *: varchar *: varchar *: varchar *: varchar*: int4)
   private val financialsDetailsTransactionCodec4 =
     (int8 *: varchar *: bool *: varchar *: numeric(12,2) *: timestamp *: varchar *: varchar *: varchar *: varchar *: varchar*: int4)
 
   val mfDecoder: Decoder[FinancialsTransaction] = financialsTransactionCodec.map:
-    case (id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content) =>
-      FinancialsTransaction(id, oid, id1, costcenter, account, toInstant(transdate), toInstant(enterdate)
-        , toInstant(postingdate), period, posted, modelid, company, text, type_journal, file_content)
+    case (id, oid, contact, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, footText, file_content) =>
+      FinancialsTransaction(id, oid, contact, costcenter, account, toInstant(transdate), toInstant(enterdate)
+        , toInstant(postingdate), period, posted, modelid, company, text, footText, file_content)
 
   val mfEncoder1: Encoder[FinancialsTransaction] = (financialsTransactionCodec.values.contramap(FinancialsTransaction.encodeIt))
-  val mfEncoder: Encoder[FinancialsTransaction] = financialsTransactionCodec4.values.contramap(FinancialsTransaction.encodeIt4)
+  //val mfEncoder: Encoder[FinancialsTransaction] = financialsTransactionCodec4.values.contramap(FinancialsTransaction.encodeIt4)
   val detailsEncoder: Encoder[FinancialsTransactionDetails] = financialsDetailsTransactionCodec.values.contramap(FinancialsTransactionDetails.encodeIt)
 
   def detailsDecoder: Decoder[FinancialsTransactionDetails] = financialsDetailsTransactionCodec.map:
@@ -309,54 +300,54 @@ object FinancialsTransactionRepositorySQL:
         , currency,  company, accountName, oaccountName, modelid)
 
   def base: Fragment[Void]  =
-    sql""" SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
+    sql""" SELECT id, oid, contact, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text, file_content
            FROM   master_compta """
 
   val TRANS_ID:Query[Void, Long] = sql"""SELECT NEXTVAL('master_compta_id_seq')""".query(int8)
   def ALL_BY_ID(nr: Int): Query[(List[Long], Int, String), FinancialsTransaction] =
-    sql"""SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
+    sql"""SELECT id, oid, contact, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text, file_content
            FROM   master_compta
            WHERE id  IN (${int8.list(nr)}) AND modelid= $int4 AND company = $varchar
            """.query(mfDecoder)
   def BY_IDS(nr: Int): Query[(List[Long], Int, String), FinancialsTransaction] =
-    sql"""SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
+    sql"""SELECT id, oid, contact, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text, file_content
            FROM   master_compta
            WHERE id IN (${int8.list(nr)}) AND modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   def BY_MODEL_ID: Query[(Int, String), FinancialsTransaction] =
-    sql"""SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
+    sql"""SELECT id, oid, contact, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text, file_content
            FROM   master_compta
            WHERE modelid= $int4 AND company = $varchar
            """.query(mfDecoder)
 
   def BY_MODEL_IDS(nr: Int): Query[(List[Int], String), FinancialsTransaction] =
-    sql"""SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
+    sql"""SELECT id, oid, contact, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text, file_content
            FROM   master_compta
            WHERE modelid IN (${int4.list(nr)}) AND company = $varchar
            """.query(mfDecoder)  
 
   val BY_ID: Query[Long *: Int *: String *: EmptyTuple, FinancialsTransaction] =
     sql"""
-           SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
+           SELECT id, oid, contact, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text, file_content
            FROM   master_compta
            WHERE id = $int8 AND modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
-  val BY_ID1: Query[Long *: Int *: String *: EmptyTuple, FinancialsTransaction] =
-    sql"""SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
-           FROM   master_compta
-           WHERE id1 = $int8 AND modelid = $int4 AND company = $varchar
-           """.query(mfDecoder)
+//  val BY_ID1: Query[Long *: Int *: String *: EmptyTuple, FinancialsTransaction] =
+//    sql"""SELECT id, oid, contact, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, footText, file_content
+//           FROM   master_compta
+//           WHERE id1 = $int8 AND modelid = $int4 AND company = $varchar
+//           """.query(mfDecoder)
            
   val ALL: Query[Int *: String *: EmptyTuple, FinancialsTransaction] =
-    sql"""SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
+    sql"""SELECT id, oid, contact, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text, file_content
            FROM   master_compta
            WHERE  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
            
   def ALLn (n: Int): Query[List[Int] *: String *: EmptyTuple, FinancialsTransaction] =
-    sql"""SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
+    sql"""SELECT id, oid, contact, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text, file_content
            FROM   master_compta
            WHERE  modelid IN  (${int4.list(n)}) AND company = $varchar
            """.query(mfDecoder)
@@ -383,23 +374,23 @@ object FinancialsTransactionRepositorySQL:
            """.query(detailsDecoder)
 
   val FIND_4_PERIOD: Query[Int *: String *: Boolean *: Int *: Int *: EmptyTuple, FinancialsTransaction] =
-    sql"""SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
+    sql"""SELECT id, oid, contact, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text, file_content
            FROM   master_compta
            WHERE modelid= $int4 AND company = $varchar AND posted =$bool AND period between $int4  AND $int4
            """.query(mfDecoder)
 
   val BY_TRANS_ID: Query[Long *: String *: EmptyTuple, FinancialsTransaction] =
-    sql"""SELECT id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content
+    sql"""SELECT id, oid, contact, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text, file_content
            FROM   master_compta
            WHERE id= $int8 AND company = $varchar 
            """.query(mfDecoder)
   val insert: Command[FinancialsTransaction] =
     sql"""INSERT INTO master_compta
-         (id, oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content) VALUES $mfEncoder1 """.command
+         (id, oid, contact, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text, file_content) VALUES $mfEncoder1 """.command
   
   def insertAll(n:Int): Command[List[FinancialsTransaction.TYPE]] =
     sql"""INSERT INTO master_compta 
-          (oid, id1, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, type_journal, file_content)
+          (oid, contact, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text, file_content)
          VALUES ${financialsTransactionCodec.values.list(n)}""".command
 
   val insertDetails: Command[FinancialsTransactionDetails] =
@@ -412,8 +403,8 @@ object FinancialsTransactionRepositorySQL:
 
   val UPDATE: Command[FinancialsTransaction.TYPE2] =
     sql"""UPDATE master_compta
-          SET oid = $int8, costcenter = $varchar, account = $varchar, text=$varchar, transdate =$timestamp
-          , period=$int4, type_journal = $int4, file_content = $int4
+          SET oid = $varchar,  contact = $varchar, costcenter = $varchar, account = $varchar, text=$varchar, transdate =$timestamp
+          , period=$int4, foot_text = $varchar, file_content = $int4
           WHERE id=$int8 and modelid=$int4 and company= $varchar""".command
 
   val UPDATE_DETAILS: Command[FinancialsTransactionDetails.TYPE2] =

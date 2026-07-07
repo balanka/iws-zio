@@ -3,7 +3,7 @@ import cats._
 import cats.effect.Resource
 import cats.syntax.all._
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{BankStatement, common, FinancialsTransaction, FinancialsTransactionDetails}
+import com.kabasoft.iws.domain.{BankStatement, FinancialsTransaction, FinancialsTransactionDetails}
 import skunk._
 import skunk.codec.all._
 import skunk.implicits._
@@ -19,7 +19,7 @@ final case  class BankStatementRepositoryLive(postgres: Resource[Task, Session[T
   val BANK_STATEMENT_SEQUENCE_PREF = "master_compta_id_seq"
 
   private def fnSetId(m: BankStatement, idx: Long) = m.copy(id = idx)
-  private def fnSetMasterId(m: FinancialsTransaction, idx: Long) = m.copy(id = idx, id1 = idx)
+  private def fnSetMasterId(m: FinancialsTransaction, idx: Long) = m.copy(id = idx)
   private def fnSetDetailsTransId(m: FinancialsTransaction, idx: Long): List[FinancialsTransactionDetails]= m.lines.map(_.copy(transid = idx))
   private def fnSetDetailsId(m: FinancialsTransactionDetails, idx: Long) = m.copy(id = idx)
 
@@ -27,11 +27,11 @@ final case  class BankStatementRepositoryLive(postgres: Resource[Task, Session[T
     val company: String = models.headOption.getOrElse(BankStatement.dummy).company
     s"${prefix}_$company"
   }
-  def buildId(transactions: List[FinancialsTransaction]): List[FinancialsTransaction] =
-    transactions.zipWithIndex.map { case (ftr, i) =>
-    val idx = Instant.now().getNano + i.toLong
-    ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
-  }
+//  def buildId(transactions: List[FinancialsTransaction]): List[FinancialsTransaction] =
+//    transactions.zipWithIndex.map { case (ftr, i) =>
+//    val idx = Instant.now().getNano + i.toLong
+//    ftr.copy(contact = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
+//  }
 
   def transact(session: Session[Task], models: List[BankStatement]): Task[Unit] =
     session.transaction.use: xa =>
@@ -73,7 +73,7 @@ final case  class BankStatementRepositoryLive(postgres: Resource[Task, Session[T
   override def post(bs: List[BankStatement], models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =
     postgres
       .use: session =>
-          transact(session, buildId(models), bs)
+          transact(session, models, bs)
       .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size )  
 
 object BankStatementRepositoryLive:

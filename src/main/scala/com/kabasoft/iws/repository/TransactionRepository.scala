@@ -11,7 +11,7 @@ trait TransactionRepository:
   def deleteAll(): ZIO[Any, RepositoryError, Int]
   def all(Id:(Int,  String)): ZIO[Any, RepositoryError, List[Transaction]]
   def getById(id: (Long, Int, String)): ZIO[Any, RepositoryError, Transaction]
-  def getById1(id1: (Long, Int, String)): ZIO[Any, RepositoryError, Transaction]
+  //def getById1(id1: (Long, Int, String)): ZIO[Any, RepositoryError, Transaction]
   def getByIds(ids: List[Long], modelid: Int, companyId: String): ZIO[Any, RepositoryError, List[Transaction]]
   def getByModelId(modelid: (Int, String)): ZIO[Any, RepositoryError, List[Transaction]]
   def find4Period(fromPeriod: Int, toPeriod: Int, posted:Boolean, company: String): ZIO[Any, RepositoryError, List[Transaction]]
@@ -42,8 +42,8 @@ object TransactionRepository:
   def getById(id: (Long, Int, String)): ZIO[TransactionRepository, RepositoryError, Transaction] =
     ZIO.serviceWithZIO[TransactionRepository](_.getById(id))
     
-  def getById1(id: (Long, Int, String)): ZIO[TransactionRepository, RepositoryError, Transaction] =
-    ZIO.serviceWithZIO[TransactionRepository](_.getById1(id))
+//  def getById1(id: (Long, Int, String)): ZIO[TransactionRepository, RepositoryError, Transaction] =
+//    ZIO.serviceWithZIO[TransactionRepository](_.getById1(id))
 
   def getByIds(ids: List[Long], modelid: Int, companyId: String): ZIO[TransactionRepository, RepositoryError, List[Transaction]] =
     ZIO.serviceWithZIO[TransactionRepository](_.getByIds(ids, modelid, companyId))

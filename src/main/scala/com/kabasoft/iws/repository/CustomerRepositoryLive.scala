@@ -85,13 +85,13 @@ private[repository] object CustomerRepositorySQL:
       localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 
     private val mfCodec =
-        (varchar *: varchar *: varchar *: varchar *: varchar*: varchar *: varchar *: varchar *:varchar *: varchar *:varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: int4 *:timestamp *: timestamp *: timestamp)
+        (varchar *: varchar *: varchar *: varchar *: varchar*: varchar *: varchar *: varchar *:varchar *: varchar *:varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: int4 *:timestamp *: timestamp *: timestamp)
 
     val mfDecoder: Decoder[Customer] = mfCodec.map:
-      case (id, name, description, street, zip, city, state, country, phone, email, account, oaccount, taxCode, vatCode, currency, company, modelid, enterdate, changedate, postingdate) =>
+      case (id, name, description, street, zip, city, state, country, phone, email, account, oaccount, taxCode, vatCode, currency, contact, company, modelid, enterdate, changedate, postingdate) =>
         Customer.apply(
           (id, name, description, street, zip, city, state, country, phone, email, account, oaccount, taxCode
-            , vatCode, currency, company, modelid, toInstant(enterdate), toInstant(changedate), toInstant(postingdate)))
+            , vatCode, currency, contact, company, modelid, toInstant(enterdate), toInstant(changedate), toInstant(postingdate)))
   
     val mfEncoder: Encoder[Customer] = mfCodec.values.contramap(Customer.encodeIt)
   
@@ -136,13 +136,13 @@ private[repository] object CustomerRepositorySQL:
 
     def insertAll(n: Int): Command[List[Customer.TYPE2]] =
       sql"""INSERT INTO customer (id, name, description, street, zip, city, state, country, phone, email, account
-            , oaccount, tax_code, vatCode, currency, company, modelid, enterdate, changedate, postingdate)
+            , oaccount, tax_code, vatCode, currency, contact, company, modelid, enterdate, changedate, postingdate)
            VALUES ${mfCodec.values.list(n)}""".command
 
     val UPDATE: Command[Customer.TYPE3] =
       sql"""UPDATE customer SET name= $varchar, description= $varchar, street= $varchar, zip= $varchar, city= $varchar
             , state= $varchar, country= $varchar, phone= $varchar, email= $varchar, account= $varchar, oaccount= $varchar
-            , tax_code= $varchar, vatcode= $varchar, currency=$varchar
+            , tax_code= $varchar, vatcode= $varchar, currency=$varchar, contact=$varchar
             WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
 
     def DELETE: Command[(String, Int, String)] =
