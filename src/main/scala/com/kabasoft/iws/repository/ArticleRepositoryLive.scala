@@ -26,12 +26,7 @@ final case class ArticleRepositoryLive(postgres: Resource[Task, Session[Task]], 
   private def list(p: (Int, String)): ZIO[Any, RepositoryError, List[Article]] = queryWithTx(postgres, p, ALL)
   override def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Article]] = for {
     articles <- list(Id)
-    //_ <- ZIO.logInfo(s" articles ${articles} $Id")
     stocks_ <- stockRepo.all(ModelId.STOCK.modelid, Id._2)
-    _ <- ZIO.logInfo(s" stocks ${stocks_}")
-    //articleIds = if stocks_.isEmpty then List("") else stocks_.map(_.article)
-    //articles <- articleRepo.getBy(articleIds, Article.MODELID, Id._2)
-   // stocks_ <- stockRepo.all(Stock.MODELID, Id._2)
   } yield articles.map(c => c.copy(stocks = stocks_.filter(_.article == c.id).map(_.copy (price=c.avgPrice))))
   
   

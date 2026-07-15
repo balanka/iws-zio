@@ -26,9 +26,7 @@ final case class StoreRepositoryLive(postgres: Resource[Task, Session[Task]], st
   override def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Store]] =
     for {
     stores <- list(Id)
-    _ <- ZIO.logInfo(s" all_stores ${stores}")
     stocks_ <- stockRepo.all(ModelId.STOCK.modelid, Id._2)
-    _ <- ZIO.logInfo(s" stocks ${stocks_}")
     articleIds = if stocks_.isEmpty then List("") else stocks_.map(_.article)
     articles <- articleRepo.getBy(articleIds, ModelId.ARTICLE.modelid, Id._2)
   } yield stores.map(c => c.copy(stocks = stocks_.filter(_.store == c.id)
