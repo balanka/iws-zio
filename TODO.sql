@@ -37,6 +37,14 @@ insert into fmodule (id, name, description, account, is_debit, company, modelid,
   (128, 'Inventaire', 'Inventaire', '', false, '5700', 151, '1301','','' ,'');
 
 
+insert into module (id,name,description,company,modelid,path,parent)
+select id,name,description,'5600',modelid,path,parent from module where id='173' and company='1000';
+insert into user_right (moduleid,roleid,short,company,modelid ) select moduleid,roleid,short,'5600',modelid from user_right where  moduleid ='173' and company='5700';
+
+insert into partner (id, name,description,street,zip,city,state,country ,phone,email, company,modelid ) select id, name,description,street,zip,city,state,country ,phone,email, '5700' ,modelid  from partner where id='4711';
+update partner set name='Touré Asmiou' where id='001';
+update partner set id='001' where id='4711' and company='5700';
+
 update periodic_account_balance set account =TRIM(account), id= TRIM(id);
 update details_compta set account =TRIM (account), oaccount=TRIM(oaccount);
 update journal set account =TRIM(account), oaccount=TRIM(oaccount);
@@ -89,6 +97,7 @@ alter table transaction_log rename column id1 to contact;
 alter table transaction_log alter column contact TYPE varchar;
 alter table transaction_log alter column contact SET DEFAULT '';
 alter table transaction_log alter column oid TYPE varchar;
+alter table transaction_log add column foot_text varchar default '';
 
 alter table journal alter column oid TYPE varchar;
 alter table journal alter column oid SET DEFAULT '';
@@ -205,6 +214,8 @@ alter sequence public.transaction_id_seq_5500_128 owner to postgres;
 
 create sequence public.transaction_id_seq_5600_100 start with 1;
 alter sequence public.transaction_id_seq_5600_100 owner to postgres;
+create sequence public.transaction_id_seq_5600_101 start with 1;
+alter sequence public.transaction_id_seq_5600_101 owner to postgres;
 create sequence public.transaction_id_seq_5600_102 start with 1;
 alter sequence public.transaction_id_seq_5600_102 owner to postgres;
 create sequence public.transaction_id_seq_5600_103 start with 1;

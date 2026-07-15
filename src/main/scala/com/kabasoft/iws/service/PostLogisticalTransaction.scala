@@ -30,8 +30,11 @@ trait PostLogisticalTransaction:
 
   private def findPartnerAccountId(suppliers: List[BusinessPartner], partnerId: String, accounts: List[Account]): IO[RepositoryError, String] =
     for
+      _<- ZIO.logInfo(s" suppliers ${suppliers}  partnerId ${partnerId}")
       partner <- ZIO.getOrFailWith(RepositoryError(s"Partner $partnerId not found"))(suppliers.find(_.id == partnerId))
+      _<- ZIO.logInfo(s"   partner ${partner}")
       account <- findObjectById(accounts, partner.account)
+      _<- ZIO.logInfo(s"   account ${account}")
     yield account.id
 
   // --- core business logic ---------------------------------------------------
@@ -70,7 +73,9 @@ trait PostLogisticalTransaction:
                         modelid: Int
                       ): ZIO[Any, RepositoryError, (Transaction, FinancialsTransaction)] =
     for
+      _<- ZIO.logInfo(s" model ${model}")
       partnerAccountId <- findPartnerAccountId(suppliers, model.account, accounts)
+      _<- ZIO.logInfo(s" partnerAccountId ${partnerAccountId}")
       firstLine        <- ZIO.getOrFailWith(RepositoryError("Transaction has no lines"))(model.lines.headOption)
       currency          = firstLine.currency
       vatDetails      <- ZIO.foreach(model.lines) { line =>
@@ -84,14 +89,16 @@ trait PostLogisticalTransaction:
           } yield FinancialsTransactionDetails(-1, 0, debitAcc, side = true, creditAcc, vatAmount, Instant.now(),
             line.text, currency, model.company, account.name, oaccount.name, modelid)    
         for
+          _<- ZIO.logInfo(s" line ${line}")
           vat <- findObjectById(vats, line.vatCode)
           detail <- model.modelid match
-            case SUPPLIER_INVOICE.modelid => buildDetails(accounts, vat.inputVatAccount, partnerAccountId, vat)
-            case CUSTOMER_INVOICE.modelid => buildDetails(accounts, partnerAccountId, vat.outputVatAccount, vat)
+            case SUPPLIER_INVOICE.modelid|GOODRECEIVING.modelid => buildDetails(accounts, vat.inputVatAccount, partnerAccountId, vat)
+            case CUSTOMER_INVOICE.modelid|BILL_OF_DELIVERY.modelid => buildDetails(accounts, partnerAccountId, vat.outputVatAccount, vat)
             case _ => ZIO.succeed(FinancialsTransactionDetails.dummy)
         yield detail
       }
       vatDetailsFiltered = vatDetails.filterNot(_.account == FinancialsTransactionDetails.dummy.account)
+      _<- ZIO.logInfo(s" vatDetailsFiltered ${vatDetailsFiltered}")
       netDetails <- ZIO.foreach(model.lines) { line =>
         val netAmount = line.quantity.multiply(line.price)
         model.modelid match
@@ -153,12 +160,13 @@ trait PostLogisticalTransaction:
         .mapValues(common.reduce(_, FinancialsTransactionDetails.dummy))
         .values
         .toList
-
+      _<- ZIO.logInfo(s" combinedDetails ${combinedDetails}")
       financials = FinancialsTransaction(
         -1, model.id.toString, model.contact, model.store, partnerAccountId, model.transdate,
         Instant.now(), Instant.now(), model.period, posted = false, modelid,
         model.company, model.text, model.footText, -1, combinedDetails
       )
+      _<- ZIO.logInfo(s" financials ${financials}")
     yield (model.copy(posted = true), financials.copy(posted = true))
 
   // --- periodic account balance helpers ---------------------------------------

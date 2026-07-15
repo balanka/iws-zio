@@ -61,10 +61,10 @@ object BankAccountRepositorySQL:
            WHERE id = $varchar AND modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
            
-  val BANK_ACCOUNT_4_ALL: Query[Int, BankAccount] =
+  val BANK_ACCOUNT_4_ALL: Query[Int,  BankAccount] =
     sql"""SELECT id, bic, owner, company, modelid
            FROM   bankaccount
-           WHERE  modelid = $int4
+           WHERE  modelid = $int4 
            """.query(mfDecoder)
              
   val BANK_ACCOUNT_BY_OWNER: Query[String *:Int *:String *: EmptyTuple, BankAccount] =

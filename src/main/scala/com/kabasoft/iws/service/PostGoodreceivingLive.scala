@@ -19,8 +19,8 @@ final class PostGoodreceivingLive(accRepo: AccountRepository
   override def postAll(transactions: List[Transaction], company:Company): ZIO[Any, RepositoryError, Int]  = 
     if (transactions.isEmpty || transactions.flatMap(_.lines).isEmpty) throw IllegalStateException(" Error: Empty transaction may not be posted!!!")
     for 
-      _ <- ZIO.foreachDiscard(transactions.map(_.id))(
-      id => ZIO.logDebug(s"Posting Goodreceiving transaction  with id ${id} of company ${transactions.head.company}"))
+      //_ <- ZIO.foreachDiscard(transactions.map(_.id))(
+      //id => ZIO.logInfo(s"Posting Goodreceiving transaction  with id ${id} of company ${transactions.head.company}"))
       stockIds = Stock.create(transactions).map(_.id).distinct
       oldStocks <- stockRepo.getBy(stockIds, ModelId.STOCK.modelid, company.id)
       newStock <- buildNewStock(transactions, oldStocks).flip
@@ -41,7 +41,9 @@ final class PostGoodreceivingLive(accRepo: AccountRepository
     vats <-  vatRepo.getBy(vatIds, ModelId.VAT.modelid, company.id)
     stocks <- updateStock(transactions, oldStocks)
     transLogEntries <- buildTransactionLog(transactions, stocks, newStock, articles)
+    _<- ZIO.logInfo(s" transLogEntries ${transLogEntries}")
     updatedArticle <- updateAvgPrice(transactions, stocks, articles)
+    _<- ZIO.logInfo(s" updatedArticle ${updatedArticle}")
     // build financials transaction
     newFtr = transactions.map(buildTransaction(_,  articles, accounts, suppliers, vats, company.purchasingClearingAcc
       , ModelId.PAYABLES.modelid))
@@ -57,6 +59,8 @@ final class PostGoodreceivingLive(accRepo: AccountRepository
     _<-ZIO.logInfo(s"result2   from  bill of delivery  transaction with  of company ${result}")
     _<-ZIO.logInfo(s"new Pacs   from  bill of delivery  transaction with  of company ${newPacs}")
     _<-ZIO.logInfo(s"Oldoacs   from  bill of delivery  transaction with  of company ${oldPacs}")
+    _<-ZIO.logInfo(s"stocks ${stocks}")
+    _<-ZIO.logInfo(s"newStock ${newStock}")
     _<-ZIO.logInfo(s"Transaction log entries ${transLogEntries}")
 
   } yield ( transactionsx, models, newPacs, oldPacs, transLogEntries, journalEntries, stocks, newStock, updatedArticle)

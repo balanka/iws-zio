@@ -47,7 +47,7 @@ final class PostStockTransferLive( artRepo: ArticleRepository
   private def updatePrice(articles: List[Article], line: TransactionDetails): ZIO[Any, RepositoryError, TransactionDetails] =
     ZIO.getOrFailWith(RepositoryError(s"Article ${line.article} not found"))(
       articles.find(_.id == line.article)
-    ).map(article => line.copy(price = article.avgPrice))
+    ).map(article => line.copy(price = article.avgPrice, transid = -1L))
 
   private def updateStock(stocks: List[Stock], oldStocks: List[Stock], articles: List[Article]): ZIO[Any, RepositoryError, List[Stock]] =
     for

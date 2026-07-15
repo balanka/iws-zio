@@ -140,10 +140,13 @@ final class FinancialsServiceLive( compRepo: CompanyRepository
   }
   
   private def postTransaction(transaction: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = {
-    val model = transaction.copy(period = common.getPeriod(transaction.transdate), posted = true)
+    val line = transaction.lines.headOption.getOrElse(FinancialsTransactionDetails.dummy)
+    val accountx = if( transaction.account==null || transaction.account.isEmpty) line.account else transaction.account
+    val model = transaction.copy(period = common.getPeriod(transaction.transdate), posted = true, account = accountx )
     val pacids = buildPacIds(model)
     val company = transaction.company
     for {
+      _       <- ZIO.logInfo(s"LineX transaction  ${line} ${transaction.lines.headOption}  model ${model}")
       pacs <- pacRepo.getBy(pacids, ModelId.PERIODIC_ACCOUNT_BALANCE.modelid, company).map(_.filterNot(_.id.equals(PeriodicAccountBalance.dummy.id)))
       newRecords = PeriodicAccountBalance.create(model).filterNot(pac => pacs.map(_.id).contains(pac.id))
         .groupBy(_.id) map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy)}

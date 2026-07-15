@@ -109,7 +109,8 @@ enum ModelId(val modelid: Int):
   case CREATE_DEPRECIATION_TRANSACTION extends ModelId (41)
   case CURRENCY extends ModelId (99)
   case RQF extends ModelId (100)
-  case PURCHASE_REUISITION extends ModelId (101)
+  case PURCHASE_REQUISITION extends ModelId (101)
+  case PURCHASE_QUOTATION extends ModelId (1018)
   case PURCHASE_CONTRACT extends ModelId (103) 
   case PURCHASE_ORDER extends ModelId (104)
   case GOODRECEIVING extends ModelId (105)
@@ -191,7 +192,7 @@ final case class Store(id: String,
                        stocks:List[Stock]=List.empty[Stock])
 object Store:
   type TYPE2 = (String, String, String, String, String, String, Int, String)
-  def encodeIt2(st: Store): TYPE2 = (st.name, st.description, st.costcenter,  st.costcenter, st.oaccount, st.id, st.modelid, st.company)
+  def encodeIt2(st: Store): TYPE2 = (st.name, st.description, st.costcenter,  st.account, st.oaccount, st.id, st.modelid, st.company)
 
 
 
@@ -1969,7 +1970,7 @@ object FinancialsTransaction:
 //      , st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime
 //      , st.period, st.posted, st.modelid, st.company, st.text, st.footText, st.file_content)
 
-  def encodeIt3(st: FinancialsTransaction): (Long, Int, String) = (st.id, st.modelid, st.company)
+  def encodeIt3(st: FinancialsTransaction): (String, Long, Int, String) = (st.account, st.id, st.modelid, st.company)
   def encodeIt2(st: FinancialsTransaction): TYPE2 =
     (st.oid, st.contact, st.costcenter, st.account, st.text, st.transdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime, st.period, st.footText, st.file_content, st.id, st.modelid, st.company)
 

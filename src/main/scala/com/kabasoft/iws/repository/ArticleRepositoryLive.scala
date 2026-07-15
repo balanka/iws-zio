@@ -28,7 +28,7 @@ final case class ArticleRepositoryLive(postgres: Resource[Task, Session[Task]], 
     articles <- list(Id)
     //_ <- ZIO.logInfo(s" articles ${articles} $Id")
     stocks_ <- stockRepo.all(ModelId.STOCK.modelid, Id._2)
-    //_ <- ZIO.logInfo(s" stocks ${stocks_}")
+    _ <- ZIO.logInfo(s" stocks ${stocks_}")
     //articleIds = if stocks_.isEmpty then List("") else stocks_.map(_.article)
     //articles <- articleRepo.getBy(articleIds, Article.MODELID, Id._2)
    // stocks_ <- stockRepo.all(Stock.MODELID, Id._2)

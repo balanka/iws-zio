@@ -156,16 +156,16 @@ object TransactionRepositoryLive:
     s"${prefix}_$company"
   }
 
-   def newTransactionFilter(list: List[Transaction]) = list.filter(_.id === -1L)
-   def oldTransactionFilter(list: List[Transaction]) = list.filter(_.id > 0)
-   def setTransactionId(m: Transaction, idx: Long) = m.copy(id = idx)
-   def transaction2Details(m: Transaction, idx: Long) = m.lines.map(_.copy(transid = idx))
-   def setDetailsId(m: TransactionDetails, idx: Long) = m.copy(id = idx)
-   def newTransactionDetailsFilter(m: Transaction) = m.lines.filter(_.id === -1L).map(line => line.copy(transid = m.id))
-   def transactionDetails2DeleteFilter(m: Transaction) = m.lines.filter(_.transid === -2L)
-   def transactionDetails2UpdateFilter(m: Transaction) = m.lines.filter(line => line.id > 0 && line.transid === -1L)
+   def newTransactionFilter(list: List[Transaction]): List[Transaction] = list.filter(_.id === -1L)
+   def oldTransactionFilter(list: List[Transaction]): List[Transaction] = list.filter(_.id > 0)
+   def setTransactionId(m: Transaction, idx: Long): Transaction = m.copy(id = idx)
+   def transaction2Details(m: Transaction, idx: Long): List[TransactionDetails] = m.lines.map(_.copy(transid = idx))
+   def setDetailsId(m: TransactionDetails, idx: Long): TransactionDetails = m.copy(id = idx)
+   def newTransactionDetailsFilter(m: Transaction): List[TransactionDetails] = m.lines.filter(_.id === -1L).map(line => line.copy(transid = m.id))
+   def transactionDetails2DeleteFilter(m: Transaction): List[TransactionDetails] = m.lines.filter(_.transid === -2L)
+   def transactionDetails2UpdateFilter(m: Transaction): List[TransactionDetails] = m.lines.filter(line => line.id > 0 && line.transid === -1L)
                                                           .map(line => line.copy(transid = m.id))
-  def setTransactionLogId(m: TransactionLog, idx: Long) = m.copy(id = idx)
+  def setTransactionLogId(m: TransactionLog, idx: Long): TransactionLog = m.copy(id = idx)
 
 private[repository] object TransactionRepositorySQL:
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
@@ -173,13 +173,8 @@ private[repository] object TransactionRepositorySQL:
   private val transactionCodec =
     int8 *: varchar *: varchar *: varchar *: varchar *: timestamptz *: timestamptz *: timestamptz *: int4 *: bool *: int4 *: varchar *: varchar*: varchar
 
-//  private val transactionCodec1 =
-//    int8 *: int8 *: varchar *: varchar *: timestamptz *: timestamptz *: timestamptz *: int4 *: bool *: int4 *: varchar *: varchar*: varchar
   private val transactionDetailsCodec =
     int8 *: int8 *: varchar *: varchar *:  numeric(12,2) *: varchar *: numeric(12,2) *: varchar *: timestamp *: varchar *: numeric(12, 2) *: varchar *: varchar *: int4
-
-//  private val transactionDetailsCodec2 =
-//    int8 *: varchar *: varchar *: numeric(12, 2) *: varchar *: numeric(12, 2) *: varchar *: timestamp *: varchar *: numeric(12, 2) *: varchar *: varchar
 
   val mfDecoder: Decoder[Transaction] = transactionCodec.map:
     case (id, oid, contact, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, footText) =>
@@ -209,12 +204,7 @@ private[repository] object TransactionRepositorySQL:
            FROM   transaction
            WHERE id = $int8 AND modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
-           
-//  val BY_ID1: Query[Long *: Int *: String *: EmptyTuple, Transaction] =
-//    sql"""SELECT id, oid, contact, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
-//           FROM   transaction
-//           WHERE contact = $int8 AND modelid = $int4 AND company = $varchar
-//           """.query(mfDecoder)
+
 
   val BY_MODEL_ID: Query[Int *: String *: EmptyTuple, Transaction] =
     sql"""SELECT id, oid, contact, store, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text
@@ -274,4 +264,4 @@ private[repository] object TransactionRepositorySQL:
   def DELETE_All: Command[Void] = sql"DELETE FROM transaction WHERE  company = '-1000'".command
   val DELETE_DETAILS : Command[(Long, String, Int)] = sql"DELETE FROM transaction_details WHERE id = $int8 AND company = $varchar AND modelid = $int4 ".command
   val DELETE_ALL_DETAILS: Command[Void] = sql"DELETE FROM transaction_details WHERE  id=-2 and company = '-1000'".command
-  val NEXT_ID:Query[Void, Long] = sql"SELECT NEXTVAL('master_compta_id_seq')".query(int8)
+

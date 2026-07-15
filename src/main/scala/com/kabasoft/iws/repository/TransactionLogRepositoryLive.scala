@@ -85,7 +85,7 @@ object TransactionLogRepositorySQL:
   
   val FIND_4_STORE_PERIOD_QUERY: Query[String  *: Int *: Int *: String *: EmptyTuple, TransactionLog] =
     sql"""SELECT id, contact, transid, oid, store, account, article, quantity, stock, whole_stock, unit, price, avg_price, currency
-    , duedate, text, footText, transdate, postingdate, enterdate, period, company, modelid
+    , duedate, text, foot_text, transdate, postingdate, enterdate, period, company, modelid
       FROM transaction_log
        WHERE store=$varchar AND period between  $int4 and  $int4 AND  company =$varchar
        .orderBy(article.descending, period.descending)
@@ -93,61 +93,61 @@ object TransactionLogRepositorySQL:
 
   val ALL: Query[Int *: String *: EmptyTuple, TransactionLog] =
     sql"""SELECT id, contact, transid, oid, store, account, article, quantity, stock, whole_stock, unit, price, avg_price, currency
-       , duedate, text, footText, transdate, postingdate, enterdate, period, company, modelid
+       , duedate, text, foot_text, transdate, postingdate, enterdate, period, company, modelid
          FROM transaction_log
            WHERE  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val BY_ID: Query[Long *: String *: EmptyTuple, TransactionLog] =
     sql"""SELECT id, contact, transid, oid, store, account, article, quantity, stock, whole_stock, unit, price, avg_price, currency
-       , duedate, text, footText, transdate, postingdate, enterdate, period, company, modelid
+       , duedate, text, foot_text, transdate, postingdate, enterdate, period, company, modelid
          FROM transaction_log
            WHERE id = $int8  AND company = $varchar
            """.query(mfDecoder)
 
   val BY_MODELID: Query[Int *: String *: EmptyTuple, TransactionLog] =
     sql"""SELECT id, contact, transid, oid, store, account, article, quantity, stock, whole_stock, unit, price, avg_price, currency
-       , duedate, text, footText, transdate, postingdate, enterdate, period, company, modelid
+       , duedate, text, foot_text, transdate, postingdate, enterdate, period, company, modelid
          FROM transaction_log
            WHERE modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val BY_PERIOD: Query[Int *: Int *:String *: EmptyTuple, TransactionLog] =
     sql"""SELECT id, contact, transid, oid, store, account, article, quantity, stock, whole_stock, unit, price, avg_price, currency
-       , duedate, text, footText, transdate, postingdate, enterdate, period, company, modelid
+       , duedate, text, foot_text, transdate, postingdate, enterdate, period, company, modelid
          FROM transaction_log
            WHERE  period between $int4 AND $int4 AND company = $varchar
            """.query(mfDecoder)
              
   val BY_STORE_PERIOD: Query[String *:Int *: Int *:String *: EmptyTuple, TransactionLog] =
     sql"""SELECT id, contact, transid, oid, store, account, article, quantity, stock, whole_stock, unit, price, avg_price, currency
-       , duedate, text, footText, transdate, postingdate, enterdate, period, company, modelid
+       , duedate, text, foot_text, transdate, postingdate, enterdate, period, company, modelid
          FROM transaction_log
            WHERE store =$varchar AND period between $int4 AND $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val BY_ARTICLE_PERIOD: Query[String *: Int *: Int *: String *: EmptyTuple, TransactionLog] =
     sql"""SELECT id, contact, transid, oid, store, account, article, quantity, stock, whole_stock, unit, price, avg_price, currency
-       , duedate, text, footText, transdate, postingdate, enterdate, period, company, modelid
+       , duedate, text, foot_text, transdate, postingdate, enterdate, period, company, modelid
          FROM transaction_log
            WHERE article =$varchar AND period between $int4 AND $int4 AND company = $varchar
            """.query(mfDecoder)
     
   val BY_STORE_ARTICLE_PERIOD: Query[String *: String *:Int *: Int *: String *: EmptyTuple, TransactionLog] =
     sql"""SELECT id, contact, transid, oid, store, account, article, quantity, stock, whole_stock, unit, price, avg_price, currency
-       , duedate, text, footText, transdate, postingdate, enterdate, period, company, modelid
+       , duedate, text, foot_text, transdate, postingdate, enterdate, period, company, modelid
          FROM transaction_log
            WHERE store =$varchar AND  article =$varchar AND period between $int4 AND $int4 AND company = $varchar
            """.query(mfDecoder)
     
   val insert: Command[TransactionLog] = 
-    sql"""INSERT INTO transaction_log (ud, contact, transid, oid, store, account, article, quantity, stock, whole_stock, unit
-                            ,  price, avg_price, currency, duedate, text,  footText, transdate, postingdate, enterdate
+    sql"""INSERT INTO transaction_log (id, contact, transid, oid, store, account, article, quantity, stock, whole_stock, unit
+                            ,  price, avg_price, currency, duedate, text,  foot_text, transdate, postingdate, enterdate
                             , period, company, modelid) VALUES $mfEncoder""".stripMargin.command
 
   def insertAll(n: Int): Command[List[TransactionLog.TYPE]] =
     sql"""INSERT INTO transaction_log (id, contact, transid, oid, store, account, article, quantity, stock, whole_stock, unit
-          ,  price, avg_price, currency, duedate, text, footText, transdate, postingdate, enterdate, period, company, modelid) 
+          ,  price, avg_price, currency, duedate, text, foot_text, transdate, postingdate, enterdate, period, company, modelid)
           VALUES ${mfCodec.values.list(n)}""".command
 
   def DELETE: Command[Void] =
