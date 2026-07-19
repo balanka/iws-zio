@@ -21,9 +21,11 @@ final class PostGoodreceivingLive(accRepo: AccountRepository
     for 
       //_ <- ZIO.foreachDiscard(transactions.map(_.id))(
       //id => ZIO.logInfo(s"Posting Goodreceiving transaction  with id ${id} of company ${transactions.head.company}"))
-      stockIds = Stock.create(transactions).map(_.id).distinct
+      
+      articles  <-  artRepo.all((ModelId.ARTICLE.modelid, company.id))
+      stockIds = Stock.create(transactions, articles).map(_.id).distinct
       oldStocks <- stockRepo.getBy(stockIds, ModelId.STOCK.modelid, company.id)
-      newStock <- buildNewStock(transactions, oldStocks).flip
+      newStock <- buildNewStock(transactions, articles, oldStocks).flip
       post <- postTransaction(transactions, company, newStock, oldStocks)
       nr <- repository4PostingTransaction.post(post._1, post._2, post._3, post._4, post._5, post._6, post._7, post._8, post._9)
     yield nr
@@ -33,13 +35,14 @@ final class PostGoodreceivingLive(accRepo: AccountRepository
   ZIO[Any, RepositoryError, (List[Transaction], List[FinancialsTransaction], List[PeriodicAccountBalance]
     , ZIO[Any, Nothing, List[PeriodicAccountBalance]], List[TransactionLog], List[Journal], List[Stock], List[Stock], List[Article])] = for {
     accounts <- accRepo.all(ModelId.ACCOUNT.modelid, company.id)
+    articleAll <- artRepo.all(ModelId.ARTICLE.modelid, company.id)
     articleIdsx = transactions.flatMap(m => m.lines.map(_.article))
     articleIds = articleIdsx.distinct
     articles <- artRepo.getBy(articleIds, ModelId.ARTICLE.modelid, company.id)
     suppliers <- supplierRepo.all(ModelId.SUPPLIER.modelid, company.id)
     vatIds = transactions.flatMap(_.lines.map(_.vatCode)).distinct
     vats <-  vatRepo.getBy(vatIds, ModelId.VAT.modelid, company.id)
-    stocks <- updateStock(transactions, oldStocks)
+    stocks <- updateStock(transactions, articleAll, oldStocks)
     transLogEntries <- buildTransactionLog(transactions, stocks, newStock, articles)
     _<- ZIO.logInfo(s" transLogEntries ${transLogEntries}")
     updatedArticle <- updateAvgPrice(transactions, stocks, articles)

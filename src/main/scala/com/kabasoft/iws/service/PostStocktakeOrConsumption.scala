@@ -15,9 +15,10 @@ trait PostStocktakeOrConsumption extends PostLogisticalTransaction:
     for 
       _ <- ZIO.foreachDiscard(transactions.map(_.id))(
       id => ZIO.logDebug(s"Posting the stock take transaction  with id $id of company ${transactions.head.company}"))
-      stockIds = Stock.create(transactions).map(_.id).distinct
+      articles  <-  artRepo.all((ModelId.ARTICLE.modelid, company.id))
+      stockIds = Stock.create(transactions, articles).map(_.id).distinct
       oldStocks <- stockRepo.getBy(stockIds, ModelId.STOCK.modelid, company.id)
-      newStock <- buildNewStock(transactions, oldStocks).flip
+      newStock <- buildNewStock(transactions, articles, oldStocks ).flip
       post <- postTransaction(transactions, company, newStock, oldStocks, accRepo, artRepo, financialsService)
       nr <- repository4PostingTransaction.post(post._1, post._2, post._3, post._4, post._5, post._6, post._7, post._8, post._9)
     yield nr
@@ -29,13 +30,14 @@ trait PostStocktakeOrConsumption extends PostLogisticalTransaction:
       ZIO[Any, RepositoryError, (List[Transaction], List[FinancialsTransaction], List[PeriodicAccountBalance]
       , ZIO[Any, Nothing, List[PeriodicAccountBalance]], List[TransactionLog], List[Journal], List[Stock], List[Stock], List[Article])] = for {
       accounts <- accRepo.all(ModelId.ACCOUNT.modelid, company.id)
+      articleAll <- artRepo.all(ModelId.ARTICLE.modelid, company.id)
       articleIdsx = transactions.flatMap(m => m.lines.map(_.article))
       articleIds = articleIdsx.distinct
       articles <- artRepo.getBy(articleIds, ModelId.ARTICLE.modelid, company.id)
       suppliers = List.empty
       vats = List.empty
     
-      stocks <- updateStock(transactions, oldStocks)
+      stocks <- updateStock(transactions, articleAll, oldStocks)
       transLogEntries <- buildTransactionLog(transactions, stocks, newStock, articles)
       updatedArticle = articles.map(_.copy(postingdate = Instant.now()))
       newFtr = transactions.map(tr =>buildTransaction(tr, articles, accounts, suppliers, vats,

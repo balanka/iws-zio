@@ -17,15 +17,16 @@ final class PostStockTransferLive( artRepo: ArticleRepository
     for 
       _ <- ZIO.foreachDiscard(transactions.map(_.id))(
       id => ZIO.logDebug(s"Posting the stock transfer transaction  with id ${id} of company ${transactions.head.company}"))
-      stockIds = Stock.create(transactions).map(_.id).distinct
+      articles_ <- artRepo.all(ModelId.ARTICLE.modelid, company.id)
+      stockIds = Stock.create(transactions, articles_ ).map(_.id).distinct
       oldStocks <- stockRepo.getBy(stockIds, ModelId.STOCK.modelid, company.id)
-      (sourceStocks, targetStocks) = Stock.create4Transfer(transactions)
+      (sourceStocks, targetStocks) = Stock.create4Transfer(transactions, articles_ )
       oldTargetStocks = targetStocks.filter(stock=>oldStocks.map(_.id).contains(stock.id))
       newStock = targetStocks.filterNot(stock=>oldStocks.map(_.id).contains(stock.id))
       articleIdsx = transactions.flatMap(m => m.lines.map(_.article))
       articleIds = articleIdsx.distinct
       articles <- artRepo.getBy(articleIds, ModelId.ARTICLE.modelid, company.id)
-      stocks <- updateStock(sourceStocks++oldTargetStocks, oldStocks, articles)
+      stocks <- updateStock_(sourceStocks++oldTargetStocks, articles, oldStocks)
       transLogEntries <- buildTransactionLog(transactions, stocks, newStock, articles)
       updatedArticle =  updateArticle(transactions, articles)
       updatedTrans <- ZIO.foreach(transactions)(tr => updateTransactions(tr, articles))
@@ -49,9 +50,9 @@ final class PostStockTransferLive( artRepo: ArticleRepository
       articles.find(_.id == line.article)
     ).map(article => line.copy(price = article.avgPrice, transid = -1L))
 
-  private def updateStock(stocks: List[Stock], oldStocks: List[Stock], articles: List[Article]): ZIO[Any, RepositoryError, List[Stock]] =
+  private def updateStock_(stocks: List[Stock], articles: List[Article], oldStocks: List[Stock]): ZIO[Any, RepositoryError, List[Stock]] =
     for
-      updatedStock <- updateOldStock(stocks, oldStocks, articles).map(_.map(Stock.apply).flip).flatten
+      updatedStock <- updateOldStock_(stocks, oldStocks, articles).map(_.map(Stock.apply).flip).flatten
     yield updatedStock
 
   
@@ -59,7 +60,7 @@ final class PostStockTransferLive( artRepo: ArticleRepository
     transactions.flatMap(tr => tr.lines.flatMap(line => articles.filter(_.id == line.article).distinct)
      .map(_.copy(postingdate = Instant.now())))
 
-  private def updateOldStock( stocks: List[Stock],
+  private def updateOldStock_( stocks: List[Stock],
                               oldStocks: List[Stock],
                               articles: List[Article]
                             ): ZIO[Any, RepositoryError, List[TStock]] =

@@ -53,7 +53,7 @@ object TransactionServiceLiveSpec extends ZIOSpecDefault {
     //PostgresContainer.createContainer
   )
   val list  = List(ftr1, ftr2, ftr3, ftr4, ftr5, ftr6)
-  val createdStock = Stock.create(list)
+  val createdStock = Stock.create(list, articleList)
   val stock0 = Stock.buildId(ftr1.store, artId0, "", ftr1.company)
   val stock1 = Stock.buildId(ftr1.store, artId1, "", ftr1.company)
   val ids = createdStock.map(_.id)

@@ -25,7 +25,8 @@ final class PostBillOfDeliveryLive( accRepo: AccountRepository
     for {
       _ <- ZIO.foreachDiscard(transactions.map(_.id))(
         id => ZIO.logDebug(s"Posting bill of delivery  transaction  with id ${id} of company ${transactions.head.company}"))
-      stockIds = Stock.create(transactions).map(_.id).distinct
+      articles  <-  artRepo.all((ModelId.ARTICLE.modelid, company.id))
+      stockIds = Stock.create(transactions, articles).map(_.id).distinct
       oldStocks <- stockRepo.getBy(stockIds, ModelId.STOCK.modelid, company.id)
         _       <- ZIO.logInfo(s"Stock  from  bill of delivery  transaction  ${oldStocks}")
         _       <-  ZIO.when(oldStocks.isEmpty)(ZIO.fail( RepositoryError(s"No Stock found for ${stockIds}")))
@@ -40,9 +41,10 @@ final class PostBillOfDeliveryLive( accRepo: AccountRepository
 
     accounts <- accRepo.all(ModelId.ACCOUNT.modelid, company.id)
     vats <- vatRepo.all(ModelId.VAT.modelid, company.id)
+    articleAll <- artRepo.all( ModelId.ARTICLE.modelid, company.id)
     articles <- artRepo.getBy(transactions.flatMap(m => m.lines.map(_.article)).distinct, ModelId.ARTICLE.modelid, company.id)
     //  uodate stock transactionaly using stm
-    stocks <- updateStock(transactions, oldStocks)
+    stocks <- updateStock(transactions, articleAll, oldStocks)
     _<-ZIO.logInfo(s"Stocks   from  bill of delivery  transaction with  of company ${stocks}")
     customers <- customerRepo.all(ModelId.CUSTOMER.modelid, company.id)
     // build transaction's log entries
