@@ -1242,16 +1242,19 @@ object Stock {
     quantity_  <- stock.quantity.get.commit
   } yield Stock(stock.id, stock.store, stock.article, quantity_, stock.price, stock.charge,  stock.company, ModelId.STOCK.modelid)
 
-  def create(model: Transaction): List[Stock] =
-    model.lines.map(line => Stock.make(model.store, line.article, line.quantity, line.price, "", model.company))
+//  def create(model: Transaction): List[Stock] =
+//    model.lines.map(line => Stock.make(model.store, line.article, line.quantity, line.price, "", model.company))
 
   def create(models: List[Transaction], articles: List[Article]): List[Stock] =
-    val x = models.flatMap(m=>m.lines.filterNot(l=> articles.find(_.id == l.article).fold(true)(_ =>false)).map(line => Stock.make(m.store, line.article, line.quantity, line.price, "", m.company)))
+    val x = models.flatMap(m=>m.lines.filter(l=> articles.find(_.id == l.article).fold(false)(_.stocked))
+      .map(line => Stock.make(m.store, line.article, line.quantity, line.price, "", m.company)))
     groupByStock( x)
 
-  def create4Transfer(models: List[Transaction]): (List[Stock], List[Stock]) =
-    val source = models.flatMap(m => m.lines.map(line => Stock.make(m.store, line.article, line.quantity.negate(), line.price, "", m.company)))
-    val target = models.flatMap(m => m.lines.map(line => Stock.make(m.account, line.article, line.quantity, line.price, "", m.company)))
+  def create4Transfer(models: List[Transaction], articles:List[Article]): (List[Stock], List[Stock]) =
+    val source = models.flatMap(m => m.lines.filter(l=> articles.find(_.id == l.article).fold(false)(_.stocked))
+      .map(line => Stock.make(m.store, line.article, line.quantity.negate(), line.price, "", m.company)))
+    val target = models.flatMap(m => m.lines.filter(l=> articles.find(_.id == l.article).fold(false)(_.stocked))
+      .map(line => Stock.make(m.account, line.article, line.quantity, line.price, "", m.company)))
     (groupByStock(source), groupByStock(target))
     
   private def groupByStock(r: List[Stock]) =
