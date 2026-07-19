@@ -1245,8 +1245,8 @@ object Stock {
   def create(model: Transaction): List[Stock] =
     model.lines.map(line => Stock.make(model.store, line.article, line.quantity, line.price, "", model.company))
 
-  def create(models: List[Transaction]): List[Stock] =
-    val x = models.flatMap(m=>m.lines.map(line => Stock.make(m.store, line.article, line.quantity, line.price, "", m.company)))
+  def create(models: List[Transaction], articles: List[Article]): List[Stock] =
+    val x = models.flatMap(m=>m.lines.filterNot(l=> articles.find(_.id == l.article).fold(true)(_ =>false)).map(line => Stock.make(m.store, line.article, line.quantity, line.price, "", m.company)))
     groupByStock( x)
 
   def create4Transfer(models: List[Transaction]): (List[Stock], List[Stock]) =
@@ -2104,12 +2104,15 @@ final case class  Fmodule (id:Int, name:String, description:String,
                            copyFrom:String="",
                            accFilter:String="",
                            oaccFilter:String="",
+                           template1:String="",
+                           template2:String="",
                            modelid:Int = ModelId.FMODULE.modelid,
                            company:String )
 object Fmodule:
-  type TYPE2 = (String, String, String, Boolean, String, String, String, String, Int, Int, String)
+  type TYPE2 = (String, String, String, Boolean, String, String, String, String, String, String, Int, Int, String)
   def encodeIt2(st: Fmodule): TYPE2 =
-    (st.name, st.description, st.account, st.isDebit, st.parent, st.copyFrom, st.accFilter, st.oaccFilter, st.id, st.modelid, st.company)
+    (st.name, st.description, st.account, st.isDebit, st.parent, st.copyFrom, st.accFilter, st.oaccFilter, st.template1
+      , st.template2, st.id, st.modelid, st.company)
 
 final case class Room (id:String, name:String, description:String,  parent:String, changedate: Instant, postingdate: Instant,
                              enterdate: Instant, kind:Int, area:BigDecimal, company:String, modelid:Int = ModelId.ROOM.modelid )

@@ -413,7 +413,7 @@ object FinancialsTransactionRepositorySQL:
           , account_name= $varchar, oaccount_name= $varchar
           WHERE id=$int8 and company= $varchar and modelid = $int4""".command
 
-  val updatePosted: Command[ String *:Long *: Int *: String*: EmptyTuple] =
+  val updatePosted: Command[ String *:Long *: Int *: String*: EmptyTuple] = 
     sql"""UPDATE master_compta UPDATE SET posted = true, account = $varchar
             WHERE id =$int8 AND modelid = $int4 AND  company =$varchar and posted=false
           """.command

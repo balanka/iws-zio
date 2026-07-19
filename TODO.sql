@@ -1,3 +1,6 @@
+alter table fmodule add column template1 varchar default '';
+alter table fmodule add column template2 varchar default '';
+
 update  fmodule set id=102 where id=111;
 insert into fmodule (id, name, description, account, is_debit, company, modelid, parent,copy_from,acc_filter,oacc_filter ) VALUES
   (100, 'R.Q.F'               , 'Request 4 quotation', '', false, '1000', 151, '1301','','' ,''),
@@ -96,6 +99,8 @@ alter table transaction alter column foot_text SET DEFAULT '';
 alter table transaction_log rename column id1 to contact;
 alter table transaction_log alter column contact TYPE varchar;
 alter table transaction_log alter column contact SET DEFAULT '';
+
+
 alter table transaction_log alter column oid TYPE varchar;
 alter table transaction_log add column foot_text varchar default '';
 
@@ -415,6 +420,11 @@ create sequence master_compta_id_seq_5600_1019 start with 1;
 alter sequence master_compta_id_seq_5600_1019 owner to postgres;
 create sequence public.transaction_id_seq_5600_1019 start with 1;
 alter sequence public.transaction_id_seq_5600_1019 owner to postgres;
+
+delete from transaction_details where article IS NULL OR article = '';
+ALTER TABLE transaction_details ALTER COLUMN article SET  NOT NULL ;
+
+ALTER TABLE transaction_details ADD CONSTRAINT article_not_empty CHECK (article <> '');
 
 select currval('transaction_log_id_seq');
 select nextval('transaction_log_id_seq'::regclass);

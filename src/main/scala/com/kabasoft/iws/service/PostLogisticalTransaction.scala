@@ -92,7 +92,7 @@ trait PostLogisticalTransaction:
           _<- ZIO.logInfo(s" line ${line}")
           vat <- findObjectById(vats, line.vatCode)
           detail <- model.modelid match
-            case SUPPLIER_INVOICE.modelid|GOODRECEIVING.modelid => buildDetails(accounts, vat.inputVatAccount, partnerAccountId, vat)
+            case SUPPLIER_INVOICE.modelid|GOODRECEIVING.modelid => buildDetails(accounts, vat.inputVatAccount, oaccountId, vat)
             case CUSTOMER_INVOICE.modelid|BILL_OF_DELIVERY.modelid => buildDetails(accounts, partnerAccountId, vat.outputVatAccount, vat)
             case _ => ZIO.succeed(FinancialsTransactionDetails.dummy)
         yield detail
@@ -260,17 +260,17 @@ trait PostLogisticalTransaction:
     }.map(_.flatten)
 
 
-  def updateStock(transactions: List[Transaction], oldStocks: List[Stock]): ZIO[Any, RepositoryError, List[Stock]] =
+  def updateStock(transactions: List[Transaction], articles:List[Article], oldStocks: List[Stock]): ZIO[Any, RepositoryError, List[Stock]] =
     for
-      updatedStock <- updateOldStock(transactions, oldStocks).map(_.map(Stock.apply).flip).flatten
+      updatedStock <- updateOldStock(transactions, articles, oldStocks).map(_.map(Stock.apply).flip).flatten
     yield updatedStock
 
-  def buildNewStock(transactions: List[Transaction], stocks: List[Stock]): List[ZIO[Any, Nothing, Stock]] = for {
-    newRecords <- Stock.create(transactions).filterNot(stock => stocks.map(_.id).contains(stock.id))
+  def buildNewStock(transactions: List[Transaction], articles:List[Article], stocks: List[Stock]): List[ZIO[Any, Nothing, Stock]] = for {
+    newRecords <- Stock.create(transactions, articles).filterNot(stock => stocks.map(_.id).contains(stock.id))
   } yield ZIO.succeed(newRecords)
 
-  def updateOldStock(transactions: List[Transaction], oldStocks: List[Stock]): ZIO[Any, RepositoryError, List[TStock]] = for {
-    updatedStock <- groupByStock(Stock.create(transactions))
+  def updateOldStock(transactions: List[Transaction], articles:List[Article], oldStocks: List[Stock]): ZIO[Any, RepositoryError, List[TStock]] = for {
+    updatedStock <- groupByStock(Stock.create(transactions, articles))
       .flatMap(ts => oldStocks.filter(st => st.id == ts.id)
         .map(st => TStock.fromStockAndQuantity(st, ts.quantity))).flip
   } yield updatedStock

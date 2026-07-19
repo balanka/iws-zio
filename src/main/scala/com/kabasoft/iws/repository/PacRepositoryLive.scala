@@ -155,9 +155,10 @@ object PacRepositorySQL:
       """.query(mfDecoder2)
 
   val BALANCE_4_ACCOUNT_PERIOD: Query[String *: Int *: Int *: String *: EmptyTuple, PeriodicAccountBalance] =
-    sql"""select id, account, period, idebit, icredit, debit, credit, b_debit, b_credit, currency, company, name, modelid
+    sql""" select id, account, period, idebit, icredit, debit, credit, b_debit, b_credit, currency, company, name, modelid
        FROM  periodic_account_balance
        WHERE  account = $varchar AND period BETWEEN $int4 AND  $int4 AND company = $varchar
+       AND ((idebit + debit - (icredit + credit)) > 0 OR (idebit + debit - (icredit + credit)) < 0)
        Order By id desc
        """.query(mfDecoder)
   
@@ -172,13 +173,12 @@ object PacRepositorySQL:
       """.query(mfDecoder2)
 
   val BALANCE_4_PAYMENT_REMINDER: Query[String *: String *: EmptyTuple, ReminderBalance] =
-    sql"""
-      SELECT SUBSTRING(account, LENGTH(account) - 1, 2) AS id, period, (idebit + debit - icredit - credit) AS balance, modelid
-      FROM periodic_account_balance
-      WHERE account = $varchar AND company = $varchar
-      --GROUP BY account, period, modelid
-      --HAVING SUM(idebit + debit - icredit - credit) > 0
-      ORDER BY period ASC
+    sql""" SELECT SUBSTRING(account, LENGTH(account) - 1, 2) AS id, period, (idebit + debit - icredit - credit) AS balance, modelid
+      FROM ( select id, account, period, idebit, icredit, debit, credit, b_debit, b_credit, currency, company, name, modelid
+       FROM  periodic_account_balance
+       WHERE  account = $varchar AND company = $varchar
+       AND ((idebit + debit - (icredit + credit)) > 0 OR (idebit + debit - (icredit + credit)) < 0))
+      ORDER BY period ASC;
     """.query(balanceDecoder)
 
   def DELETE: Command[(String, String)] =
