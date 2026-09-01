@@ -19,6 +19,7 @@ final class TransactionServiceLive(trRepo: TransactionRepository
                                    , postSupplierInvoice: PostSupplierInvoice
                                    , postCustomerInvoice: PostCustomerInvoice
                                    , companyRepository: CompanyRepository
+                                   , articleRepository:ArticleRepository
                                   ) extends TransactionService:
 
   override def postTransaction4Period(fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, Int] =
@@ -27,49 +28,65 @@ final class TransactionServiceLive(trRepo: TransactionRepository
       nr <- postAll(models.map(m=> (m.id, m.modelid)), company)
     } yield nr
 
-  override def postAll(ids:List[(Long, Int)], companyId: String): ZIO[Any, RepositoryError, Int] =
-    if (ids.isEmpty) throw IllegalStateException(" Error: Empty transaction ids may not be posted!!!")
+
+  override def postAll(
+                        ids: List[(Long, Int)],
+                        companyId: String
+                      ): ZIO[Any, RepositoryError, Int] =
     for {
-      queries <- ZIO.foreach(ids)(p => trRepo.getById((p._1, p._2, companyId))).map(_.filter(m => !m.posted))
+      // Validate input: fail with RepositoryError if ids is empty
+      _ <- if (ids.isEmpty)
+        ZIO.fail(RepositoryError("Error: Empty transaction ids may not be posted!!!"))
+      else ZIO.unit
+      articles <- articleRepository.all(ModelId.ARTICLE.modelid, companyId)
+
+      // Fetch only non‑posted transactions
+      base <- ZIO.foreach(ids)(p => trRepo.getById((p._1, p._2, companyId)))
+        .map(_.filter(!_.posted))
+
+      _ <- ZIO.logInfo(s"Posting base transactions: $base")
+
+      // Split into services (non‑stocked articles) and inventory (stocked)
+      services = base.map { tr =>tr.copy(lines =tr.lines.filter(l => articles.exists(art => art.id == l.article && !art.stocked)))}
+      inventory = base.map { tr =>tr.copy(lines =tr.lines.filter(l => articles.exists(art => art.id == l.article && art.stocked)))}
+
+      _ <- ZIO.logInfo(s"Posting services transactions: $services")
+      _ <- ZIO.logInfo(s"Posting inventory transactions: $inventory")
       company <- companyRepository.getById((companyId, ModelId.COMPANY.modelid))
-      models = queries.map(tr=>tr.copy(posted = true))
-      _<- ZIO.logInfo(s"Posting transactions  ${models}")
-      requisition = models.filter(_.modelid == PURCHASE_REQUISITION.modelid)
-      rqf = models.filter(_.modelid == RQF.modelid)
-      purchaseQuotation = models.filter(_.modelid == PURCHASE_QUOTATION.modelid)
-      purchaseContract = models.filter(_.modelid == PURCHASE_CONTRACT.modelid)
-      salesQuotation = models.filter(_.modelid == SALES_QUOTATION.modelid)
-      salesContract = models.filter(_.modelid == SALES_CONTRACT.modelid)
-      salesOrder = models.filter(_.modelid == SALES_ORDER.modelid)
-      goodreceiving = models.filter(_.modelid == GOODRECEIVING.modelid)
-      bilOfDelivery = models.filter(_.modelid == BILL_OF_DELIVERY.modelid)
-      purchaseOrder = models.filter(_.modelid == PURCHASE_ORDER.modelid)
-      supplierInvoice = models.filter(_.modelid == SUPPLIER_INVOICE.modelid)
-      customerInvoice = models.filter(_.modelid == CUSTOMER_INVOICE.modelid)
-      stocktransfer = models.filter(_.modelid == STOCK_TRANSFER.modelid)
-      consumption = models.filter(_.modelid == CONSUMPTION.modelid)
-      stocktake = models.filter(_.modelid == STOCK_TAKE.modelid)
-      _<- ZIO.logInfo(s"Posting stocktransfer transactions  ${consumption}")
-      postedRqf <- ZIO.when(salesOrder.nonEmpty)(salesOrderService.postAll(rqf, company))
-      postedPurchaseQuotation <- ZIO.when(salesOrder.nonEmpty)(salesOrderService.postAll(purchaseQuotation, company))
-      postedPurchaseContract <- ZIO.when(salesOrder.nonEmpty)(salesOrderService.postAll(purchaseContract, company))
-      postedRequisition <- ZIO.when(salesOrder.nonEmpty)(salesOrderService.postAll(requisition, company))
-      postedSalesQuotation <- ZIO.when(requisition.nonEmpty)(orderService.postAll(salesQuotation, company))
-      postedSalesContract <- ZIO.when(requisition.nonEmpty)(orderService.postAll(salesContract, company))
-      postedOrder <- ZIO.when(requisition.nonEmpty)(orderService.postAll(purchaseOrder, company))
-      postedSalesOrder <- ZIO.when(salesOrder.nonEmpty)( salesOrderService.postAll(salesOrder, company))
-      postedGoodreceiving <- ZIO.when(goodreceiving.nonEmpty)(postGoodreceiving.postAll(goodreceiving, company))
-      postedBillOfDelivery <- ZIO.when(bilOfDelivery.nonEmpty)(postBillOfDelivery.postAll(bilOfDelivery, company))
-      postedSupplierInvoice <- ZIO.when(supplierInvoice.nonEmpty)(postSupplierInvoice.postAll(supplierInvoice, company))
-      postedCustomerInvoice <- ZIO.when(customerInvoice.nonEmpty)(postCustomerInvoice.postAll(customerInvoice, company))
-      postedStocktransfer <- ZIO.when(stocktransfer.nonEmpty)(postStocktransferService.postAll(stocktransfer, company))
-      postedStocktake <- ZIO.when(stocktake.nonEmpty)(postStocktakeService.postAll(stocktake, company))
-      postedConsumption <- ZIO.when(consumption.nonEmpty)(postConsumptionService.postAll(consumption, company))
-    } yield postedOrder.getOrElse(0)+ postedSalesOrder.getOrElse(0)+postedGoodreceiving.getOrElse(0)
-    + postedBillOfDelivery.getOrElse(0)+postedSupplierInvoice.getOrElse(0)+postedCustomerInvoice.getOrElse(0)
-    + postedStocktransfer.getOrElse(0)+ postedConsumption.getOrElse(0)+postedStocktake.getOrElse(0)
-    + postedRqf.getOrElse(0) +postedRequisition.getOrElse(0)+postedPurchaseContract.getOrElse(0)+postedPurchaseQuotation.getOrElse(0)
-    + postedSalesQuotation.getOrElse(0)+ postedSalesContract.getOrElse(0)
+      // Mark inventory transactions as posted
+      models = inventory.map(_.copy(posted = true))
+      // Group models by modelid for efficient processing
+      grouped = models.groupBy(_.modelid)
+      // Process each group via pattern matching
+      postedInventories <- ZIO.foreach(grouped.toList) { case (modelId, transactions) =>
+        modelId match {
+          case PURCHASE_REQUISITION.modelid => salesOrderService.postAll(transactions, company)
+          case RQF.modelid => salesOrderService.postAll(transactions, company)
+          case PURCHASE_QUOTATION.modelid => salesOrderService.postAll(transactions, company)
+          case PURCHASE_CONTRACT.modelid => salesOrderService.postAll(transactions, company)
+          case SALES_QUOTATION.modelid => orderService.postAll(transactions, company)
+          case SALES_CONTRACT.modelid => orderService.postAll(transactions, company)
+          case SALES_ORDER.modelid => salesOrderService.postAll(transactions, company)
+          case GOODRECEIVING.modelid => postGoodreceiving.postAll(transactions, company)
+          case BILL_OF_DELIVERY.modelid => postBillOfDelivery.postAll(transactions, company)
+          case PURCHASE_ORDER.modelid => orderService.postAll(transactions, company)
+          case SUPPLIER_INVOICE.modelid => postSupplierInvoice.postAll(transactions, company)
+          case CUSTOMER_INVOICE.modelid => postCustomerInvoice.postAll(transactions, company)
+          case STOCK_TRANSFER.modelid => postStocktransferService.postAll(transactions, company)
+          case CONSUMPTION.modelid => postConsumptionService.postAll(transactions, company)
+          case STOCK_TAKE.modelid => postStocktakeService.postAll(transactions, company)
+          case _ => ZIO.succeed(0) // ignore unknown types
+        }
+      }
+
+      // Post services (non‑inventory transactions) separately
+      postedServices <- if (services.nonEmpty) postConsumptionService.postAll(services, company)
+      else ZIO.succeed(0)
+
+      // Sum all results
+      total = postedInventories.sum + postedServices
+
+    } yield total
   override def post(id: (Long, Int), company: String): ZIO[Any, RepositoryError, Int] = postAll(List(id), company)
 
   override def copyFrom(id: Long, modelidFrom: Int, modelidTo: Int, companyId: String): ZIO[Any, RepositoryError, Transaction] =
@@ -95,7 +112,8 @@ final class TransactionServiceLive(trRepo: TransactionRepository
 
 object TransactionServiceLive:
   val live: ZLayer[PacRepository& TransactionRepository& TransactionLogRepository& AccountRepository& PostOrder& PostSalesOrder&
-     PostGoodreceiving&  PostBillOfDelivery&  PostCustomerInvoice& PostSupplierInvoice &PostStockTransfer& PostStocktake& PostConsumption&
-    JournalRepository&  ArticleRepository&  StockRepository&  PostTransactionRepository &CompanyRepository, RepositoryError, TransactionService] =
-    ZLayer.fromFunction(new TransactionServiceLive(_, _, _, _, _, _, _,_, _, _, _))
+     PostGoodreceiving&  PostBillOfDelivery&  PostCustomerInvoice& PostSupplierInvoice &PostStockTransfer& PostStocktake&
+    PostConsumption& JournalRepository&  ArticleRepository&  StockRepository&  PostTransactionRepository
+    &CompanyRepository &ArticleRepository, RepositoryError, TransactionService] =
+    ZLayer.fromFunction(new TransactionServiceLive(_, _, _, _, _, _, _,_, _, _, _, _))
 

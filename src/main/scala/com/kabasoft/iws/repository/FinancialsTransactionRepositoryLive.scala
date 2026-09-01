@@ -13,7 +13,6 @@ import zio.interop.catz._
 import zio.{ZIO, _}
 import java.time.{Instant, LocalDateTime, ZoneId}
 
-
 final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, Session[Task]]
                    , accRepo: AccountRepository) extends FinancialsTransactionRepository, MasterfileCRUD:
 
@@ -89,31 +88,8 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
     trans2 <- getById(trans.id, trans.modelid, trans.company)
   } yield trans2
 
-  override def create(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = //modify(models)
-    for {
-      created <- postgres.use { session =>
-        (for {
-          xa <- session.transaction
-          pciMaster <- session.prepareR(insert)
-          pciDetails <- session.prepareR(insertDetails)
-          results <- Resource.eval(
-            exec(xa, pciMaster, pciDetails, master2master, master2Details, Details2Details,
-              models, session,
-              FinancialsTransactionRepositoryLive.sequenceNames(
-                FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF,
-                FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF,
-                models
-              )).mapError(e => new Throwable(e.message))
-          )
-        } yield results).use(ZIO.succeed)
-      }.mapError(e => RepositoryError(e.getMessage))
+  override def create(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = modify(models)
 
-      detailed <- ZIO.foreach(created) { result =>
-        getById(result.id, result.modelid, result.company)
-      }//.map(_.flatten).mapError(e => RepositoryError(e.message))
-
-    } yield detailed
-  
   private def transactModifyInternal(s: Session[Task], models: List[FinancialsTransaction]): Task[List[FinancialsTransaction]] = {
     val (seqMaster, seqDetail) = sequenceNames(
       FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF,
@@ -213,11 +189,6 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
    // _ <- ZIO.logInfo(s"transactions with Details: $details")
 } yield details
 
-//  override def getById1(p: (Long, Int, String)): ZIO[Any, RepositoryError, FinancialsTransaction] = for {
-//    transaction <- queryWithTxUnique(postgres, p, BY_ID1)
-//    details <- withLines(transaction)
-//  } yield details
-  
   override def getBy(ids: List[Long],  modelid: Int, company: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
     transactions <- queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
     details <- transactions.map(withLines).flip
@@ -334,11 +305,6 @@ object FinancialsTransactionRepositorySQL:
            WHERE id = $int8 AND modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
-//  val BY_ID1: Query[Long *: Int *: String *: EmptyTuple, FinancialsTransaction] =
-//    sql"""SELECT id, oid, contact, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, footText, file_content
-//           FROM   master_compta
-//           WHERE id1 = $int8 AND modelid = $int4 AND company = $varchar
-//           """.query(mfDecoder)
            
   val ALL: Query[Int *: String *: EmptyTuple, FinancialsTransaction] =
     sql"""SELECT id, oid, contact, costcenter, account, transdate, enterdate, postingdate, period, posted, modelid, company, text, foot_text, file_content
@@ -352,14 +318,6 @@ object FinancialsTransactionRepositorySQL:
            WHERE  modelid IN  (${int4.list(n)}) AND company = $varchar
            """.query(mfDecoder)
 
-//  def ALL_DETAILS_ID(lst: List[Long], company:String) = {
-//    val query: Fragment[Void] =
-//      sql"""SELECT id, transid, account, side, oaccount, amount,  duedate, text, currency,  company, account_name, oaccount_name, modelid
-//           FROM   details_compta"""
-//    query(Void) |+|
-//      AppliedFragment.apply[lst.type](sql" WHERE transid  IN (${int8.list(lst)})", lst) |+|
-//      sql""" AND company = $varchar""".apply(company)
-//  }
 
   def DETAILS(n: Int): Query[List[Long] *: String *: Int*:EmptyTuple, FinancialsTransactionDetails] =
     sql"""SELECT id, transid, account, side, oaccount, amount,  duedate, text, currency,  company, account_name, oaccount_name, modelid
@@ -425,4 +383,3 @@ object FinancialsTransactionRepositorySQL:
 
   val DELETE_DETAILS: Command[(Long, String, Int)] = sql"DELETE FROM details_compta WHERE id = $int8 AND company = $varchar AND modelid = $int4".command
   val DELETE_ALL_DETAILS: Command[Void] = sql"DELETE FROM details_compta WHERE company = '-1000'".command
-

@@ -1,5 +1,5 @@
 val zioVersion                 = "2.1.25"
-val zioHttpVersion             = "3.11.1"
+val zioHttpVersion             = "3.11.3"
 val zioJsonVersion             = "0.9.1"
 val zioConfigVersion           = "4.0.5"
 val logbackVersion             = "1.2.7"
@@ -16,7 +16,6 @@ val zioInteropCatsVersion = "23.1.0.13"
 val catsVersion           = "2.13.0"
 val catsEffectVersion     = "3.7.0"
 
-
 ThisBuild / resolvers +=
   "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 ThisBuild / scalacOptions ++= Seq("-Wunused:all","-Xmax-inlines",  "128")
@@ -27,10 +26,6 @@ dockerBaseImage := "eclipse-temurin:21-jre-alpine"
 jlinkIgnoreMissingDependency := JlinkIgnore.everything
 dockerEntrypoint := Seq("/opt/docker/jre/bin/java", "-jar", "/opt/docker/lib/iws-api.jar")
 
-//assemblyMergeStrategy in assembly := {
-//  case PathList("META-INF", xs @ _*) => MergeStrategy.discard
-//  case x => MergeStrategy.first
-//}
 dockerBuildCommand := {
   //if (sys.props("os.arch") == "amd64") {
   if (sys.props("os.arch") != "amd64") {
@@ -57,31 +52,31 @@ lazy val root = (project in file("."))
       List(
         name         := "iws-skunk",
         organization := "kabasoft",
-        version      := "2.6.3",
+        version      := "2.9.6",
          scalaVersion := "3.8.3"
       )
     ),
     name           := "iws-zio",
     libraryDependencies ++= Seq(
-      "dev.zio"           %% "zio"                           % zioVersion,
-      "dev.zio"           %% "zio-streams"                    % zioVersion,
-      "dev.zio"           %% "zio-http"                       % zioHttpVersion,
-      "dev.zio"           %% "zio-schema"                      % zioSchemaVersion,
-      "dev.zio"           %% "zio-config"                      % zioConfigVersion,
-      "dev.zio"           %% "zio-config-typesafe"             % zioConfigVersion,
-      "dev.zio"           %% "zio-config-magnolia"             % zioConfigVersion,
+      "dev.zio"           %% "zio"                 % zioVersion,
+      "dev.zio"           %% "zio-streams"         % zioVersion,
+      "dev.zio"           %% "zio-http"            % zioHttpVersion,
+      "dev.zio"           %% "zio-schema"          % zioSchemaVersion,
+      "dev.zio"           %% "zio-config"           % zioConfigVersion,
+      "dev.zio"           %% "zio-config-typesafe"   % zioConfigVersion,
+      "dev.zio"           %% "zio-config-magnolia"   % zioConfigVersion,
       //"dev.zio"           %% "zio-cache"                      % zioCacheVersion,
-      "dev.zio"           %% "zio-json"                        % zioJsonVersion,
-      "com.github.jwt-scala"   %% "jwt-core"                  % JwtCoreVersion,
-      "org.tpolecat"     %% "skunk-core"                     % skunkVersion,
-      "dev.zio"           %% "zio-prelude"                   % zioPreludeVersion,
-      "dev.zio"           %% "zio-interop-cats"              % zioInteropCatsVersion,
-      "org.typelevel"     %% "cats-core"                     % catsVersion,
-      "org.typelevel"     %% "cats-effect"                   % catsEffectVersion,
-      "dev.zio"           %% "zio-test"                        % zioVersion                 % Test,
-      "dev.zio"           %% "zio-test-sbt"                    % zioVersion                 % Test,
-      "dev.zio"           %% "zio-test-junit"                  % zioVersion                 % Test,
-      "org.postgresql"    % "postgresql"                      % postgresql,
+      "dev.zio"           %% "zio-json"              % zioJsonVersion,
+      "com.github.jwt-scala"   %% "jwt-core"          % JwtCoreVersion,
+      "org.tpolecat"     %% "skunk-core"              % skunkVersion,
+      "dev.zio"           %% "zio-prelude"             % zioPreludeVersion,
+      "dev.zio"           %% "zio-interop-cats"        % zioInteropCatsVersion,
+      "org.typelevel"     %% "cats-core"               % catsVersion,
+      "org.typelevel"     %% "cats-effect"             % catsEffectVersion,
+      "dev.zio"           %% "zio-test"                % zioVersion       % Test,
+      "dev.zio"           %% "zio-test-sbt"            % zioVersion       % Test,
+      "dev.zio"           %% "zio-test-junit"          % zioVersion       % Test,
+      "org.postgresql"    % "postgresql"                % postgresql,
       "com.dimafeng"      %% "testcontainers-scala-postgresql" % testcontainersScalaVersion % Test,
       "org.testcontainers" % "testcontainers"                  % testcontainersVersion      % Test,
       "org.testcontainers" % "database-commons"                % testcontainersVersion      % Test,

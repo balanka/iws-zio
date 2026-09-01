@@ -163,10 +163,10 @@ final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[
           newFinancials <- ZIO.collectAll(
             newMasterFilter(financials).map { master =>
               withId(s, seqMaster, id => master2master(master, id)).tap { m =>
-                ZIO.logInfo(s"Insert new master: $m  ") *>
+                ZIO.logInfo(s"Insert new financials: $m  ") *>
                   exec(pciFtr, m) *>
                   ZIO.foreachDiscard(master2Details(m, m.id)) { d =>
-                    ZIO.logInfo(s"Insert new details: $d") *>
+                    ZIO.logInfo(s"Insert new financials details: $d") *>
                       withId(s, seqDetail, id => Details2Details(d, id)).tap(exec(pciFtrDetails, _))
                   }
               }
@@ -195,7 +195,7 @@ final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[
                 ZIO.logInfo(s"Insert new transaction: $m  ") *>
                   exec(pciTr, m) *>
                   ZIO.foreachDiscard(transaction2Details(m, m.id)) { d =>
-                    ZIO.logInfo(s"Insert new details: $d") *>
+                    ZIO.logInfo(s"Insert new transaction details: $d") *>
                       withId(s, seqDetail, id => setDetailsId(d, id)).tap(exec(pciTrDetails, _))
                   }
               }
@@ -230,7 +230,7 @@ final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[
           transLogEntries <- ZIO.collectAll(
             transLogs.map { transLog =>
               withId(s, seqTransLog, id => setTransactionLogId(transLog, id)).tap { m =>
-                ZIO.logInfo(s"Insert new ransactionLog: $m  ") *> exec(pciTransLog, m)}
+                ZIO.logInfo(s"Insert new TransactionLog: $m  ") *> exec(pciTransLog, m)}
             }
           )
           _ <- ZIO.collectAll(newPacs.map { pac => ZIO.logInfo(s"Insert new master: $pac  ") *> exec(pciPac, pac) })
@@ -274,6 +274,7 @@ final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[
       _ <- ZIO.logInfo(s" Old stock  to update in DB ${stock2update}")
       _ <- ZIO.logInfo(s" Transaction log  ${transLogEntries}")
       _ <- ZIO.logInfo(s" Journal entries to insert into the DB  ${journals}")
+      _ <- ZIO.logInfo(s" financials posted  ${financials}")
       _ <- ZIO.logInfo(s" Transaction posted  ${models}")
       nr <- (postgres
         .use:

@@ -359,7 +359,7 @@ trait MasterfileCRUD:
        .use: session =>
          session
           .prepare(q)
-          .flatMap(ps => ps.unique(p)).debug("ZZZZZZZZZZZ")
+          .flatMap(ps => ps.unique(p))//.debug("ZZZZZZZZZZZ")
        .mapBoth(e => RepositoryError(e.getMessage), a => a).debug("Data/Error")
 
   def queryWithTxUnique[ A](postgres: Resource[Task, Session[Task]],  q: Query[Void, A]): ZIO[Any, RepositoryError, A] =

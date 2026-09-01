@@ -1233,7 +1233,6 @@ object Stock {
   type TYPE = (String, String, String, scala.math.BigDecimal, scala.math.BigDecimal, String, String, Int)
   private type STOCK_Type = (String, String, String,  BigDecimal, BigDecimal, String, String, Int)
   def buildId(store:String, article:String, charge:String, company:String): String =s"$store$article$company$charge"
-    //store.concat(article).concat(company).concat(charge)
   def make (store:String, article:String, quantity:BigDecimal, price:BigDecimal, charge:String, company:String): Stock =
     Stock( buildId(store, article,  charge, company), store, article, quantity, price, charge, company, ModelId.STOCK.modelid)
   def apply(stock: STOCK_Type): Stock = Stock(stock._1, stock._2, stock._3, stock._4, stock._5, stock._6, stock._7, stock._8)
@@ -1241,9 +1240,6 @@ object Stock {
   def apply(stock: TStock): ZIO[Any, Nothing, Stock] = for {
     quantity_  <- stock.quantity.get.commit
   } yield Stock(stock.id, stock.store, stock.article, quantity_, stock.price, stock.charge,  stock.company, ModelId.STOCK.modelid)
-
-//  def create(model: Transaction): List[Stock] =
-//    model.lines.map(line => Stock.make(model.store, line.article, line.quantity, line.price, "", model.company))
 
   def create(models: List[Transaction], articles: List[Article]): List[Stock] =
     val x = models.flatMap(m=>m.lines.filter(l=> articles.find(_.id == l.article).fold(false)(_.stocked))
@@ -1266,7 +1262,6 @@ object Stock {
     (st.id, st.store, st.article, st.quantity, scala.math.BigDecimal(0), st.charge, st.company, st.modelid)
 
   def encodeIt4(st: Stock): TYPE4 = (st.id, st.store, st.article, st.quantity,  st.charge, st.company, st.modelid)
-
   def encodeIt2(st: Stock): TYPE2 = (st.quantity, st.id)
   def encodeIt3(st: Stock): TYPE3 = (st.quantity, st.charge, st.id, st.modelid, st.company)
 
@@ -1404,15 +1399,13 @@ final case class PeriodicAccountBalance(
   override def equals(other: Any): Boolean = other match
     case pac: PeriodicAccountBalance => this.id == pac.id
     case _                           => false
-
-
 }
 
 object PeriodicAccountBalance:
   import com.kabasoft.iws.domain.common.given
   type TYPE2 = (scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, String, Int, String)
   type TYPE = (String, String, Int, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, scala.math.BigDecimal, String, String, String, Int)
-  def createId(period: Int, accountId: String) = period.toString.concat(accountId)
+  def createId(period: Int, accountId: String): String = period.toString.concat(accountId)
   val dummy                                    =
     PeriodicAccountBalance("-1", "", 0, zeroAmount, zeroAmount, zeroAmount, zeroAmount, zeroAmount, zeroAmount, "", "", "")
 

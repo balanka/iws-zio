@@ -42,6 +42,14 @@ object FinancialsEndpoint:
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     ) ?? Doc.p(mCreateAPIFoc)
 
+  private val mCreateL = Endpoint(RoutePattern.POST / "ftrL")
+    .in[List[FinancialsTransaction]]
+    .header(HeaderCodec.authorization)
+    .out[List[FinancialsTransaction]]
+    .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
+      HttpCodec.error[AuthenticationError](Status.Unauthorized)
+    ) ?? Doc.p(mCreateAPIFoc)
+
   private val mAll = Endpoint(RoutePattern.GET / "ftr" / int("modelid") ?? Doc.p(modelidDoc) / string("company") ??
     Doc.p(companyDoc)).header(HeaderCodec.authorization)
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
@@ -110,6 +118,11 @@ object FinancialsEndpoint:
       ZIO.logInfo(s"Insert financials transaction  ${transaction}") *>
       FinancialsTransactionRepository.create(transaction)
   }
+  val financialsCreateListRoute = mCreateL.implement { p =>
+    val transactions = p._1
+    ZIO.logInfo(s"Size of financials transactions to insert   ${transactions.size}") *>
+      FinancialsTransactionRepository.create(transactions)
+  }
   val financialsAllRoute =
     mAll.implement: p =>
       ZIO.logInfo(s"Get all financials transaction  for modelid: ${p._1}") *>
@@ -162,6 +175,6 @@ object FinancialsEndpoint:
 
   val financialsRoutes = Routes(financialsCreateRoute, financialsAllRoute, financialsPostAllRoute, financialsByIdRoute
     , financialsAllNRoute, financialsModifyRoute, financialsDuplicateRoute, financialsCancelnRoute, financialsDeleteRoute
-    , financialsCopyFromRoute, balanceByPaiementRemeinderRoute)
+    , financialsCopyFromRoute, balanceByPaiementRemeinderRoute, financialsCreateListRoute)
     @@ Middleware.debug
 

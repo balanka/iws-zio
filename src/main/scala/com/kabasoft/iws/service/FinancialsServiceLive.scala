@@ -142,7 +142,8 @@ final class FinancialsServiceLive( compRepo: CompanyRepository
   private def postTransaction(transaction: FinancialsTransaction): ZIO[Any, RepositoryError, Int] = {
     val line = transaction.lines.headOption.getOrElse(FinancialsTransactionDetails.dummy)
     val accountx = if( transaction.account==null || transaction.account.isEmpty) line.account else transaction.account
-    val model = transaction.copy(period = common.getPeriod(transaction.transdate), posted = true, account = accountx )
+    val oaccountx = if( transaction.costcenter==null || transaction.costcenter.isEmpty) line.oaccount else transaction.costcenter
+    val model = transaction.copy(period = common.getPeriod(transaction.transdate), posted = true, account = accountx, costcenter = oaccountx )
     val pacids = buildPacIds(model)
     val company = transaction.company
     for {
@@ -150,6 +151,7 @@ final class FinancialsServiceLive( compRepo: CompanyRepository
       pacs <- pacRepo.getBy(pacids, ModelId.PERIODIC_ACCOUNT_BALANCE.modelid, company).map(_.filterNot(_.id.equals(PeriodicAccountBalance.dummy.id)))
       newRecords = PeriodicAccountBalance.create(model).filterNot(pac => pacs.map(_.id).contains(pac.id))
         .groupBy(_.id) map { case (_, v) => common.reduce(v, PeriodicAccountBalance.dummy)}
+      _       <- ZIO.logInfo(s"newPacs ${newRecords}")
       tpacs <- pacs.map(TPeriodicAccountBalance.apply).flip
       oldPacs <- updatePac(model, tpacs).map(e=>e.map(PeriodicAccountBalance.applyT))
       accounts <- accRepo.getBy(model.lines.flatMap(line=>List(line.account, line.oaccount)), ModelId.ACCOUNT.modelid, model.company)

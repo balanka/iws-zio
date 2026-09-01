@@ -21,12 +21,16 @@ final class PostGoodreceivingLive(accRepo: AccountRepository
     for 
       //_ <- ZIO.foreachDiscard(transactions.map(_.id))(
       //id => ZIO.logInfo(s"Posting Goodreceiving transaction  with id ${id} of company ${transactions.head.company}"))
-      
       articles  <-  artRepo.all((ModelId.ARTICLE.modelid, company.id))
+      _        <- ZIO.logInfo(s"Posting Goodreceiving transaction  with id ${transactions.map(_.id)} of company ${transactions.head.company}")
       stockIds = Stock.create(transactions, articles).map(_.id).distinct
-      oldStocks <- stockRepo.getBy(stockIds, ModelId.STOCK.modelid, company.id)
+      _<- ZIO.logInfo(s" stockIds ${stockIds}")
+      oldStocks <- stockRepo.getBy(stockIds, ModelId.STOCK.modelid, company.id).debug("oldStocks")
+      _<- ZIO.logInfo(s" oldStocks ${oldStocks}")
       newStock <- buildNewStock(transactions, articles, oldStocks).flip
+      _<- ZIO.logInfo(s" newStock ${newStock}")
       post <- postTransaction(transactions, company, newStock, oldStocks)
+      _<- ZIO.logInfo(s" post ${post}")
       nr <- repository4PostingTransaction.post(post._1, post._2, post._3, post._4, post._5, post._6, post._7, post._8, post._9)
     yield nr
     
@@ -43,7 +47,7 @@ final class PostGoodreceivingLive(accRepo: AccountRepository
     vatIds = transactions.flatMap(_.lines.map(_.vatCode)).distinct
     vats <-  vatRepo.getBy(vatIds, ModelId.VAT.modelid, company.id)
     stocks <- updateStock(transactions, articleAll, oldStocks)
-    transLogEntries <- buildTransactionLog(transactions, stocks, newStock, articles)
+    transLogEntries <-buildTransactionLog(transactions, stocks, newStock, articles)
     _<- ZIO.logInfo(s" transLogEntries ${transLogEntries}")
     updatedArticle <- updateAvgPrice(transactions, stocks, articles)
     _<- ZIO.logInfo(s" updatedArticle ${updatedArticle}")

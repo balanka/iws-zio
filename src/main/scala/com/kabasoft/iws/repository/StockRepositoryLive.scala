@@ -31,9 +31,9 @@ final case class StockRepositoryLive(postgres: Resource[Task, Session[Task]]) ex
   override def getByStore(p: (String, Int, String)): ZIO[Any, RepositoryError, List[Stock]] = queryWithTx(postgres, p, BY_STORE)
   override def getByArticle(p: (String, Int, String)): ZIO[Any, RepositoryError, List[Stock]] = queryWithTx(postgres, p, BY_ARTICLE)
   
-  override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Stock]] =
-    queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
-  
+  override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Stock]] = 
+    if(ids.isEmpty) ZIO.succeed(List.empty[Stock]) else queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
+
   override def delete(p: (String, Int, String)):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, p, DELETE, 1)
 
   override def deleteAll(): ZIO[Any, RepositoryError, Int] =

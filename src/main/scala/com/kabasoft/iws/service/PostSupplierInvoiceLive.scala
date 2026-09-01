@@ -1,10 +1,12 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain._
+import com.kabasoft.iws.domain.*
 import com.kabasoft.iws.domain.ModelId
-import com.kabasoft.iws.repository._
-import zio._
+import com.kabasoft.iws.domain.common.zeroAmount
+import com.kabasoft.iws.repository.*
+import zio.*
+
 import scala.collection.immutable.{List, Nil}
 import java.time.Instant
 import zio.prelude.FlipOps
@@ -42,7 +44,7 @@ final class PostSupplierInvoiceLive(vatRepo: VatRepository
       FinancialsTransactionDetails(-1, 0, vat.inputVatAccount, side = true, partnerAccountId, l.quantity.multiply(l.price).multiply(vat.percent)
         , Instant.now(), l.text, currency, model.company, accountName, oaccountName, modelid)
     }.groupBy(line => (line.account, line.oaccount)).map { case (_, v) => common.reduce(v, FinancialsTransactionDetails.dummy)
-    }.toList
+    }.toList.filterNot(_.amount.compareTo(zeroAmount)==0)
     // build details for net amount
     val netDetails: List[FinancialsTransactionDetails] = model.lines.map { line =>
       val accountId = oaccountId

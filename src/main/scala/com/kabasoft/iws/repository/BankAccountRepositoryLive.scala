@@ -24,9 +24,7 @@ final case class BankAccountRepositoryLive(postgres: Resource[Task, Session[Task
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[BankAccount]] = queryWithTx(postgres, p, ALL)
   override def getByOwner(owner:String, modelid:Int, company:String): ZIO[Any, RepositoryError, List[BankAccount]] = queryWithTx(postgres, (owner, modelid, company), BANK_ACCOUNT_BY_OWNER)
   override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, BankAccount] = queryWithTxUnique(postgres, p, BY_ID)
-  override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[BankAccount]] =
-    queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
-
+  override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[BankAccount]] = queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
   override def delete(p: (String, Int, String)):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
   override def deleteAll(p: List[(String, Int, String)]): ZIO[Any, RepositoryError, Int] = p.map(l => executeWithTx(postgres, l, DELETE, 1)).flip.map(_.size)
 
@@ -48,15 +46,13 @@ object BankAccountRepositorySQL:
            FROM   bankaccount """
   
   def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), BankAccount] =
-    sql"""
-           SELECT id, bic, owner, company, modelid
+    sql""" SELECT id, bic, owner, company, modelid
            FROM   bankaccount
            WHERE id  IN ( ${varchar.list(nr)}) AND  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
   val BY_ID: Query[String *: Int *: String *: EmptyTuple, BankAccount] =
-    sql"""
-           SELECT id, bic, owner, company, modelid
+    sql"""SELECT id, bic, owner, company, modelid
            FROM   bankaccount
            WHERE id = $varchar AND modelid = $int4 AND company = $varchar
            """.query(mfDecoder)

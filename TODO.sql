@@ -1,5 +1,28 @@
+218
+318
+418
+518
+618 LANALA
+
+
+
+
+UPDATE master_compta m
+SET costcenter = (
+    SELECT d.oaccount
+    FROM details_compta d
+    WHERE d.transid = m.id
+      AND d.company = m.company
+    ORDER BY d.id DESC   -- or duedate DESC, etc.
+    LIMIT 1
+    )
+WHERE m.posted = true
+  AND m.modelid = 118
+  AND m.company = '5700';
+
 alter table fmodule add column template1 varchar default '';
 alter table fmodule add column template2 varchar default '';
+update fmodule set template1 =description;
 
 update  fmodule set id=102 where id=111;
 insert into fmodule (id, name, description, account, is_debit, company, modelid, parent,copy_from,acc_filter,oacc_filter ) VALUES
@@ -167,6 +190,11 @@ s   update fmodule set acc_filter='CL, 411, 52, 57, 58, 418', oacc_filter='701, 
                               ('155', 1, '+', 1000, 131), ('155', 1, 'r', 1000, 131), ('155', 1, 'w', 1000, 131),
                               ('155', 2, '+', 1000, 131),('155', 2, 'r', 1000, 131),('155', 2, 'w', 1000, 131);
 
+create sequence public.transaction_log_id_seq_1000 start with 400;
+alter sequence public.transaction_log_id_seq_1000 owner to postgres;
+create sequence public.bankstatement_id_seq_1000 start with 43952;
+alter sequence public.bankstatement_id_seq_1000 owner to postgres;
+
 create sequence master_compta_id_seq_1000 start with 5635;
 alter sequence master_compta_id_seq_1000 owner to postgres;
 create sequence public.details_compta_id_seq_1000 start with 7184;
@@ -176,10 +204,83 @@ alter sequence public.transaction_id_seq_1000 owner to postgres;
 create sequence public.transaction_details_id_seq_1000 start with 2726;
 alter sequence public.transaction_details_id_seq_1000 owner to postgres;
 
-create sequence public.transaction_log_id_seq_1000 start with 400;
-alter sequence public.transaction_log_id_seq_1000 owner to postgres;
-create sequence public.bankstatement_id_seq_1000 start with 43952;
-alter sequence public.bankstatement_id_seq_1000 owner to postgres;
+insert into fmodule (id, name, description,  account, is_debit, parent, company, modelid, copy_from, acc_filter, oacc_filter, template1, template2)
+values (218, 'BQ2', 'BQ2', '52112000', false, '1300', '5600', 151, 218, '', '', '', '' ),
+       (318, 'BQ6', 'BQ6', '55400000', false, '1300', '5600', 151, 318, '', '', '', '' ),
+       (418, 'BQ9', 'BQ9', '52113000', false, '1300', '5600', 151, 418, '', '', '', '' ),
+       (518, 'BQ12', 'BQ12', '52116000', false, '1300', '5600', 151, 518, '', '', '', '' ),
+       (618, 'LANALA', 'LANALA', '52115000', false, '1300', '5600', 151, 618, '', '', '', '' );
+
+insert into fmodule (id, name, description,  account, is_debit, parent, company, modelid, copy_from, acc_filter, oacc_filter, template1, template2)
+values (318, 'menu.bank', 'BQ6', '55400000', false, '1300', '5600', 151, 318, '', '', '', '' );
+insert into fmodule (id, name, description,  account, is_debit, parent, company, modelid, copy_from, acc_filter, oacc_filter, template1, template2)
+values (418, 'menu.bank', 'BQ9', '52113000', false, '1300', '5600', 151, 418, '', '', '', '' );
+insert into fmodule (id, name, description,  account, is_debit, parent, company, modelid, copy_from, acc_filter, oacc_filter, template1, template2)
+values (518, 'menu.bank', 'BQ12', '52116000', false, '1300', '5600', 151, 518, '', '', '', '' );
+insert into fmodule (id, name, description,  account, is_debit, parent, company, modelid, copy_from, acc_filter, oacc_filter, template1, template2)
+values (618, 'menu.bank', 'LANALA', '52115000', false, '1300', '5600', 151, 618, '', '', '', '' );
+
+
+create sequence master_compta_id_seq_5600_218 start with 1;
+alter sequence master_compta_id_seq_5600_218 owner to postgres;
+create sequence master_compta_id_seq_5600_318 start with 1;
+alter sequence master_compta_id_seq_5600_318 owner to postgres;
+create sequence master_compta_id_seq_5600_418 start with 1;
+alter sequence master_compta_id_seq_5600_418 owner to postgres;
+create sequence master_compta_id_seq_5600_518 start with 1;
+alter sequence master_compta_id_seq_5600_518 owner to postgres;
+create sequence master_compta_id_seq_5600_618 start with 1;
+alter sequence master_compta_id_seq_5600_618 owner to postgres;
+
+create sequence transaction_id_seq_5000_100 start with 1;
+alter sequence transaction_id_seq_5000_100 owner to postgres;
+create sequence transaction_id_seq_5000_101 start with 1;
+alter sequence transaction_id_seq_5000_101 owner to postgres;
+create sequence transaction_id_seq_5000_102 start with 1;
+alter sequence transaction_id_seq_5000_102 owner to postgres;
+create sequence transaction_id_seq_5000_103 start with 1;
+alter sequence transaction_id_seq_5000_103 owner to postgres;
+create sequence transaction_id_seq_5000_104 start with 1;
+alter sequence transaction_id_seq_5000_104 owner to postgres;
+create sequence transaction_id_seq_5000_105 start with 1;
+alter sequence transaction_id_seq_5000_105 owner to postgres;
+create sequence transaction_id_seq_5000_109 start with 1;
+alter sequence transaction_id_seq_5000_109 owner to postgres;
+create sequence transaction_id_seq_5000_110 start with 1;
+alter sequence transaction_id_seq_5000_110 owner to postgres;
+
+create sequence transaction_id_seq_5000_126 start with 1;
+alter sequence transaction_id_seq_5000_126 owner to postgres;
+create sequence transaction_id_seq_5000_127 start with 1;
+alter sequence transaction_id_seq_5000_127 owner to postgres;
+create sequence transaction_id_seq_5000_128 start with 1;
+alter sequence transaction_id_seq_5000_128 owner to postgres;
+
+
+create sequence master_compta_id_seq_5000_112 start with 1;
+alter sequence master_compta_id_seq_5000_112 owner to postgres;
+create sequence journal_id_seq_5000 start with 1;
+alter sequence journal_id_seq_5000 owner to postgres;
+
+
+create sequence public.details_compta_id_seq_5000 start with 1;
+alter sequence public.details_compta_id_seq_5000 owner to postgres;
+create sequence public.transaction_log_id_seq_5000 start with 1;
+create sequence public.journal_id_seq_5000 start with 1;
+
+
+ALTER SEQUENCE transaction_id_seq_5600_112 START WITH 1;
+ALTER SEQUENCE transaction_id_seq_5600_114 START WITH 1;
+ALTER SEQUENCE transaction_id_seq_5600_122 START WITH 1;
+ALTER SEQUENCE transaction_id_seq_5600_134 START WITH 1;
+ALTER SEQUENCE transaction_id_seq_5600_136 START WITH 1;
+ALTER SEQUENCE transaction_id_seq_5600_144 START WITH 1;
+
+
+
+
+
+
 
 7299,118
 7145,-1
