@@ -2,25 +2,35 @@ package com.kabasoft.iws.repository
 
 import cats.effect.Resource
 import cats.syntax.all.*
-import cats._
-import skunk._
-import skunk.codec.all._
-import skunk.implicits._
-import zio.interop.catz._
-import zio.{Task, ZIO, ZLayer }
+import cats.*
+import skunk.*
+import skunk.codec.all.*
+import skunk.implicits.*
+import zio.interop.catz.*
+import zio.{Task, ZIO, ZLayer}
 import com.kabasoft.iws.domain.Journal
 import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.repository.JournalRepositoryLive.{JOURNAL_SEQUENCE_PREF, sequenceName}
 
-
-import java.time.{ Instant, LocalDateTime, ZoneId }
+import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class JournalRepositoryLive(postgres: Resource[Task, Session[Task]]) extends JournalRepository, MasterfileCRUD:
 
   import JournalRepositorySQL._
-  
+  private def master2master(m: Journal, idx: Long) = m.copy(id = idx)
+
+  def transact(session: Session[Task], models: List[Journal], sequenceName: String): Task[Unit] =
+    session.transaction.use: xa =>
+      session.prepareR(insert).use: pci =>
+        tryExec(xa, session, pci, master2master, models, sequenceName)
   override def create(c: Journal):ZIO[Any, RepositoryError, Int]=executeWithTx(postgres, c, insert, 1)
-  override def create(list: List[Journal]):ZIO[Any, RepositoryError, Int] =
-    executeWithTx(postgres, list.map(Journal.encodeIt), insertAll(list.size), list.size)
+  override def create(models: List[Journal]):ZIO[Any, RepositoryError, Int] =
+    postgres
+      .use:
+          session =>
+            transact(session, models, sequenceName(JOURNAL_SEQUENCE_PREF, models))
+      .mapBoth(e => RepositoryError(e.getMessage), _ => models.size)
+  
   override def all(p: (Int, String)):ZIO[Any, RepositoryError, List[Journal]] = queryWithTx(postgres, p, ALL)
   override def getById(p: (Long,  String)):ZIO[Any, RepositoryError, Journal] = queryWithTxUnique(postgres, p, BY_ID)
   override def getByPeriod(period: Int,  company: String): ZIO[Any, RepositoryError, List[Journal]] = { 
@@ -53,12 +63,17 @@ object JournalRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]], RepositoryError, JournalRepository] =
     ZLayer.fromFunction(new JournalRepositoryLive(_))
 
+  def sequenceName(prefix: String, models: List[Journal]) =
+    val company: String = models.headOption.getOrElse(Journal.dummy).company
+    s"${prefix}_$company"
+  val JOURNAL_SEQUENCE_PREF = "journal_id_seq"
+
 object JournalRepositorySQL:
   def toInstant(localDateTime: LocalDateTime): Instant = localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
   val      mfCodec =
-    (int8 *: int8 *: varchar *: varchar *: varchar *: varchar *:timestamp *: timestamp *: timestamp *:int4 *: numeric(12,2) *: numeric(12,2) *: numeric(12,2) *: numeric(12,2) *: numeric(12,2) *: varchar *: bool *: varchar *: int4 *: int4 *: varchar *: int4)
+    (int8 *: int8 *: varchar *: varchar *: varchar *: varchar  *: varchar*:timestamp *: timestamp *: timestamp *:int4 *: numeric(12,2) *: numeric(12,2) *: numeric(12,2) *: numeric(12,2) *: numeric(12,2) *: varchar *: bool *: varchar *: int4 *: int4 *: varchar *: int4)
   val mfCodec2 =
-    (int8 *: int8 *: int8 *: varchar *: varchar *: varchar *: varchar *:timestamp *: timestamp *: timestamp *: int4 *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: varchar *: bool *: varchar *: int4 *: int4 *: varchar *: int4)
+    (int8 *: int8 *: varchar *: varchar *: varchar *: varchar *: varchar *:timestamp *: timestamp *: timestamp *: int4 *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: varchar *: bool *: varchar *: int4 *: int4 *: varchar *: int4)
 
   val mfDecoder: Decoder[Journal] = mfCodec2.map :
     case (id, transid, oid, account, oaccount, parentAccount, parentOAccount, transdate, enterdate, postingdate, period, amount, idebit, debit
@@ -98,13 +113,13 @@ object JournalRepositorySQL:
 
   val insert: Command[Journal] =
     sql"""INSERT INTO journal (
-          transid, oid, account, oaccount, parent_account, parent_oaccount, transdate, enterdate, postingdate, period, amount, idebit, debit
+          id, transid, oid, account, oaccount, parent_account, parent_oaccount, transdate, enterdate, postingdate, period, amount, idebit, debit
           , icredit, credit,currency, side, text, month, year, company, modelid)
           VALUES $mfEncoder """.command
 
   def insertAll(n:Int): Command[List[Journal.TYPE]] =
     sql"""INSERT INTO journal (
-         transid, oid, account, oaccount, parent_account, parent_oaccount, transdate, enterdate, postingdate, period, amount, idebit, debit
+         id, transid, oid, account, oaccount, parent_account, parent_oaccount, transdate, enterdate, postingdate, period, amount, idebit, debit
          , icredit, credit,currency, side, text, month, year, company, modelid )
           VALUES ${mfCodec.values.list(n)}""".command
   

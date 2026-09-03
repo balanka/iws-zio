@@ -107,32 +107,7 @@ object UserEndpoint:
       UserRepository.delete((id, modelid, company))
 
 
-  val userRoutes = Routes(createUserRoute, allUserRoute, userByIdRoute, userByNameRoute,
+  val userRoutes = Routes(createUserRoute, allUserRoute,  userByIdRoute, userByNameRoute,
                            modifyUserRoute, modifyUserPwdRoute, deleteUserRoute) @@ Middleware.debug
-  
-//  val userCreateAPI      = Endpoint.post("user").in[User].out[User].outError[RepositoryError](Status.InternalServerError)
-//  val userAllAPI         = Endpoint.get("user"/ int("modelid")/string("company")).out[List[User]].outError[RepositoryError](Status.InternalServerError)
-// // val userByIdAPI        = Endpoint.get("user" / int("id")).out[User].outError[RepositoryError](Status.InternalServerError)
-// val userModifyAPI     = Endpoint.put("user").in[User].out[User].outError[RepositoryError](Status.InternalServerError)
-//  val userModifyPwdAPI     = Endpoint.put("userpwd").in[User].out[User].outError[RepositoryError](Status.InternalServerError)
-//  val userByUserNameAPI  = Endpoint.get("user" / string("userName")/ string("company")).out[User].outError[RepositoryError](Status.InternalServerError)
-//  private val deleteAPI  = Endpoint.delete("user" / string("userName")/ int("modelid")/string("company")).out[Int].outError[RepositoryError](Status.InternalServerError)
-//
-//  val userCreateEndpoint     = userCreateAPI.implement(user => UserRepository.create(user, true).mapError(e => RepositoryError(e.getMessage)))
-//  val userAllEndpoint        = userAllAPI.implement(p => UserRepository.all(p).mapError(e => RepositoryError(e.getMessage)))
-//  //val userByIdEndpoint       = userByIdAPI.implement(id => UserRepository.getById(id, "1000").mapError(e => RepositoryError(e.getMessage)))
-//  val userModifyEndpoint = userModifyAPI.implement(p => ZIO.logInfo(s"Modify user  ${p}") *>
-//    UserRepository.modify(p).mapError(e => RepositoryError(e.getMessage)) *>
-//    UserRepository.getById(p.userName, p.modelid, p.company).mapError(e => RepositoryError(e.getMessage)))
-//  val userModifyPwdEndpoint = userModifyPwdAPI.implement(p => ZIO.logInfo(s"Modify pwd  ${p}") *>
-//    UserRepository.modifyPwd(p).mapError(e => RepositoryError(e.getMessage)) *>
-//    UserRepository.getById(p.userName, p.modelid, p.company).mapError(e => RepositoryError(e.getMessage)))
-//  val userByUserNameEndpoint = userByUserNameAPI.implement(p => UserRepository.getByUserName(p._1, User.MODELID, p._2).mapError(e => RepositoryError(e.getMessage)))
-//   val userDeleteEndpoint = deleteAPI.implement(p => UserRepository.delete(p).mapError(e => RepositoryError(e.getMessage)))
-//
-//   val routesUser = userAllEndpoint  ++ userByUserNameEndpoint ++ userCreateEndpoint ++userDeleteEndpoint++
-//     userModifyEndpoint++userModifyPwdEndpoint
-//
-//  val appUser = routesUser
 
 

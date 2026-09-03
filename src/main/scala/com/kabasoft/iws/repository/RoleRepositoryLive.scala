@@ -1,13 +1,13 @@
 package com.kabasoft.iws.repository
 
 import cats.effect.Resource
-import cats.syntax.all._
-import cats._
-import skunk._
-import skunk.codec.all._
-import skunk.implicits._
+import cats.syntax.all.*
+import cats.*
+import skunk.*
+import skunk.codec.all.*
+import skunk.implicits.*
 import zio.{Task, ZIO, ZLayer}
-import com.kabasoft.iws.domain.{Role, UserRight, UserRole}
+import com.kabasoft.iws.domain.{ModelId, Role, UserRight, UserRole}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 
 import java.time.{Instant, LocalDateTime, ZoneId}
@@ -26,7 +26,7 @@ final case class RoleRepositoryLive(postgres: Resource[Task, Session[Task]]) ext
   
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Role]] = for {
     roles_ <- list(p)
-    user_rights <- allRights(UserRight.MODEL_ID, p._2)
+    user_rights <- allRights(ModelId.USER_RIGHT.modelid, p._2)
   } yield {
    val roles:List[Role] = roles_.map(r => r.copy(rights = r.rights.:::(user_rights.filter(rt => rt.roleid == r.id))))
     roles

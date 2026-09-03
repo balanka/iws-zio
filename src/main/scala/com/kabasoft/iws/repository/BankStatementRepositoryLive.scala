@@ -3,7 +3,7 @@ import cats._
 import cats.effect.Resource
 import cats.syntax.all._
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{BankStatement, common, FinancialsTransaction, FinancialsTransactionDetails}
+import com.kabasoft.iws.domain.{BankStatement, FinancialsTransaction, FinancialsTransactionDetails}
 import skunk._
 import skunk.codec.all._
 import skunk.implicits._
@@ -16,26 +16,45 @@ final case  class BankStatementRepositoryLive(postgres: Resource[Task, Session[T
   extends BankStatementRepository, MasterfileCRUD:
 
   import BankStatementRepositorySQL.*
+  val BANK_STATEMENT_SEQUENCE_PREF = "master_compta_id_seq"
 
-  def buildId(transactions: List[FinancialsTransaction]): List[FinancialsTransaction] =
-    transactions.zipWithIndex.map { case (ftr, i) =>
-    val idx = Instant.now().getNano + i.toLong
-    ftr.copy(id1 = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
+  private def fnSetId(m: BankStatement, idx: Long) = m.copy(id = idx)
+  private def fnSetMasterId(m: FinancialsTransaction, idx: Long) = m.copy(id = idx)
+  private def fnSetDetailsTransId(m: FinancialsTransaction, idx: Long): List[FinancialsTransactionDetails]= m.lines.map(_.copy(transid = idx))
+  private def fnSetDetailsId(m: FinancialsTransactionDetails, idx: Long) = m.copy(id = idx)
+
+  def sequenceName(prefix: String, models: List[BankStatement]): String = {
+    val company: String = models.headOption.getOrElse(BankStatement.dummy).company
+    s"${prefix}_$company"
   }
-    
-  private def transact(s: Session[Task], models: List[FinancialsTransaction], oldmodels: List[BankStatement]): Task[Unit] =
-    s.transaction.use: xa =>
-      s.prepareR(FinancialsTransactionRepositorySQL.insert).use: pciMaster =>
-        s.prepareR(UPDATE).use: pcuMaster =>
-          s.prepareR(FinancialsTransactionRepositorySQL.insertDetails).use: pciDetails =>
-            s.prepareR(FinancialsTransactionRepositorySQL.UPDATE_DETAILS).use: pcuDetails =>
-              tryExec(xa, pciMaster, pciDetails, pcuMaster, pcuDetails
-                , models, models.flatMap(_.lines).map(FinancialsTransactionDetails.encodeIt4)
-                , oldmodels.map(BankStatement.encodeIt2), List.empty)
-              
+//  def buildId(transactions: List[FinancialsTransaction]): List[FinancialsTransaction] =
+//    transactions.zipWithIndex.map { case (ftr, i) =>
+//    val idx = Instant.now().getNano + i.toLong
+//    ftr.copy(contact = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
+//  }
+
+  def transact(session: Session[Task], models: List[BankStatement]): Task[Unit] =
+    session.transaction.use: xa =>
+      session.prepareR(insert).use: pci =>
+        tryExec(xa, session, pci, fnSetId, models, sequenceName(BANK_STATEMENT_SEQUENCE_PREF, models))
+
+  private def transact(session: Session[Task], models: List[FinancialsTransaction], oldmodels: List[BankStatement]): Task[Unit] =
+      session.prepareR(FinancialsTransactionRepositorySQL.insert).use: pciMaster =>
+        session.prepareR(FinancialsTransactionRepositorySQL.insertDetails).use: pciDetails =>
+          session.prepareR(UPDATE).use: pcuMaster =>
+            execZ (session, pciMaster, pciDetails, pcuMaster, fnSetMasterId, fnSetDetailsTransId, fnSetDetailsId
+              , BankStatement.encodeIt2, models, oldmodels 
+              , FinancialsTransactionRepositoryLive.sequenceNames(FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF
+                , FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF, models))
+
   override def create(c: BankStatement):ZIO[Any, RepositoryError, Int] = create(List(c))
-  override def create(list: List[BankStatement]):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, 
-    list.map(BankStatement.encodeIt4), insertAll(list.size), list.size)
+  override def create(models: List[BankStatement]):ZIO[Any, RepositoryError, Int]=
+    (postgres
+      .use:
+        session =>
+          transact(session, models)
+      .mapBoth(e => RepositoryError(e.getMessage), _ => models.size))
+  
   override def modify(model: BankStatement):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, BankStatement.encodeIt2, UPDATE, 1)
   override def modify(models: List[BankStatement]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, BankStatement.encodeIt2)
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[BankStatement]] = queryWithTx(postgres, p, ALL)
@@ -54,7 +73,7 @@ final case  class BankStatementRepositoryLive(postgres: Resource[Task, Session[T
   override def post(bs: List[BankStatement], models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =
     postgres
       .use: session =>
-          transact(session, buildId(models), bs)
+          transact(session, models, bs)
       .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size )  
 
 object BankStatementRepositoryLive:

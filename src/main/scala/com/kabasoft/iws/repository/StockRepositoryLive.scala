@@ -31,9 +31,9 @@ final case class StockRepositoryLive(postgres: Resource[Task, Session[Task]]) ex
   override def getByStore(p: (String, Int, String)): ZIO[Any, RepositoryError, List[Stock]] = queryWithTx(postgres, p, BY_STORE)
   override def getByArticle(p: (String, Int, String)): ZIO[Any, RepositoryError, List[Stock]] = queryWithTx(postgres, p, BY_ARTICLE)
   
-  override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Stock]] =
-    queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
-  
+  override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Stock]] = 
+    if(ids.isEmpty) ZIO.succeed(List.empty[Stock]) else queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
+
   override def delete(p: (String, Int, String)):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, p, DELETE, 1)
 
   override def deleteAll(): ZIO[Any, RepositoryError, Int] =
@@ -54,7 +54,7 @@ private[repository] object StockRepositorySQL:
   
   val mfDecoder: Decoder[Stock] = mfCodec.map:
     case (_, store, article, quantity, price, charge, company, _) =>
-      Stock.make(store, article, quantity.bigDecimal, charge, company)
+      Stock.make(store, article, quantity.bigDecimal, price.bigDecimal, charge, company)
 
   val mfEncoder: Encoder[Stock] = mfCodec_.values.contramap(Stock.encodeIt4)
   //val mfEncoder: Encoder[Stock] = mfCodec.values.contramap(Stock.encodeIt)

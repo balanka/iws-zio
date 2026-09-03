@@ -1,7 +1,7 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.config.appConfig
-import com.kabasoft.iws.domain.User
+import com.kabasoft.iws.domain.{ModelId, User}
 import com.kabasoft.iws.repository.container.PostgresContainer
 import com.kabasoft.iws.repository.container.PostgresContainer.appResourcesL
 import zio.ZLayer
@@ -37,12 +37,12 @@ object UserRepositoryLiveSpec extends ZIOSpecDefault {
       test("insert two new users and select them") {
         for {
           oneRow <- UserRepository.create(users)
-          count <- UserRepository.all((User.MODELID, company)).map(_.size)
+          count <- UserRepository.all((ModelId.USER.modelid, company)).map(_.size)
         } yield assertTrue(count == 4L)  && assertTrue(oneRow == 2)
       },
       test("get a User by  userName") {
         for {
-          stmt <- UserRepository.getByUserName(userName, User.MODELID, company)
+          stmt <- UserRepository.getByUserName(userName, ModelId.USER.modelid, company)
         } yield   assertTrue(stmt.userName==userName)
       }
     ).provideLayerShared(testLayer) @@ sequential

@@ -27,7 +27,7 @@ object CompanyEndpoint:
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
     )?? Doc.p(mCreateAPIFoc)
 
-  private val mAll = Endpoint(RoutePattern.GET / "comp" / int("modelid") ?? Doc.p(modelidDoc) 
+  private val mAll = Endpoint(RoutePattern.GET / "comp" / int("modelid") ?? Doc.p(modelidDoc)
   ).header(HeaderCodec.authorization)
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized),
@@ -52,7 +52,7 @@ object CompanyEndpoint:
 
   val createCompanyRoute =
     mCreate.implement: (m,_) =>
-      ZIO.logInfo(s"Insert company  ${m}") 
+      ZIO.logInfo(s"Insert company  ${m}")
         *> CompanyRepository.create(m)
         *> CompanyRepository.getById(m.id, m.modelid)
 
