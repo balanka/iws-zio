@@ -131,6 +131,7 @@ enum ModelId(val modelid: Int):
   case STOCK_TRANSFER extends ModelId(126)
   case CONSUMPTION extends ModelId(127)
   case STOCK_TAKE extends ModelId(128)
+  case CONSUMPTION_FINANCIALS extends ModelId(129)
   case USER_RIGHT extends ModelId(131)
   case GENERAL_LEDGER extends ModelId(134)
   case PAYROLL extends ModelId(136)
@@ -1273,14 +1274,21 @@ object TStock:
   def apply(stock: Stock): UIO[TStock] = for {
     quantity  <- TRef.makeCommit(stock.quantity)
   } yield TStock(stock.id, stock.store, stock.article, quantity, stock.price, stock.charge,  stock.company, stock.modelid)
-
-  def fromStockAndQuantity(stock: Stock, quantity:BigDecimal): ZIO[Any, RepositoryError, TStock] =
-    TRef.makeCommit(stock.quantity.add(quantity)).flatMap( quantity_ =>
-      if (quantity.add(stock.quantity).compareTo (zeroAmount) >= 0.00)
-        ZIO.succeed(TStock(stock.id, stock.store, stock.article, quantity_, stock.price, stock.charge,  stock.company, stock.modelid))
-      else ZIO.fail(RepositoryError(s"Negative stock ${quantity.add(stock.quantity)}"))
-    )
-
+  
+    def fromStockAndQuantity(stock: Stock, quantity: BigDecimal, articles:List[Article]): ZIO[Any, RepositoryError, TStock] = {
+      val newQuantity = quantity.add(stock.quantity)
+      val article = articles.find(_.id === stock.article)
+      for {
+        _ <- ZIO.logInfo(s"Computing stock: current=${stock.quantity}, add=$quantity, result=$newQuantity")
+        // Validate before creating the TRef
+        _ <- if (newQuantity.compareTo(zeroAmount) < 0)
+              ZIO.fail(RepositoryError(s"Negative stock would result: $newQuantity"))
+             else ZIO.unit
+          // Now create the TRef (safe, never fails)
+          quantityRef <- TRef.makeCommit(newQuantity)
+        } yield TStock(stock.id, stock.store, stock.article, quantityRef, article.fold(stock.price)(_.avgPrice)
+                  , stock.charge, stock.company, stock.modelid)
+}
 
 final case class TPeriodicAccountBalance(
                                           id: String,

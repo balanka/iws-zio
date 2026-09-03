@@ -8,6 +8,7 @@ import zio._
 import zio.prelude.FlipOps // still used for some prelude ops, but not misused
 import java.time.Instant
 import java.math.BigDecimal
+import com.kabasoft.iws.domain.common.zeroAmount
 
 trait PostLogisticalTransaction:
 
@@ -93,7 +94,7 @@ trait PostLogisticalTransaction:
           } yield FinancialsTransactionDetails(-1, 0, debitAcc, side = true, creditAcc, vatAmount, Instant.now(),
             line.text, currency, model.company, account.name, oaccount.name, modelid)    
         for
-          _<- ZIO.logInfo(s" line ${line}")
+         // _<- ZIO.logInfo(s" line ${line}")
           vat <- findObjectById(vats, line.vatCode)
           detail <- model.modelid match
             case SUPPLIER_INVOICE.modelid => buildDetails(accounts, vat.inputVatAccount, oaccountId, vat)
@@ -106,20 +107,10 @@ trait PostLogisticalTransaction:
       vatDetailsFiltered = vatDetails.filter(d=>d.account != FinancialsTransactionDetails.dummy.account && d.amount.compareTo(zeroAmount) !=0)
       _<- ZIO.logInfo(s" vatDetails ${vatDetails}")
       _<- ZIO.logInfo(s" vatDetailsFiltered ${vatDetailsFiltered}")
-      _<- ZIO.logInfo(s" vatDetailsFiltered amount ${vatDetailsFiltered.map(_.amount).foldLeft(BigDecimal.ZERO)(_ add _)}")
+      _<- ZIO.logInfo(s" vatDetailsFiltered amount ${vatDetailsFiltered.map(_.amount).foldLeft(BigDecimal.ZERO)((acc, amt) => acc.add(amt))}")
       netDetails <- ZIO.foreach(model.lines) { line =>
         val netAmount = line.quantity.multiply(line.price)
         model.modelid match
-          case STOCK_TAKE.modelid | CONSUMPTION.modelid =>
-            for
-              article <- findObjectById[Article](articles, line.article)
-              account <- findObjectById(accounts, model.account)
-              oaccount <- articleId2AccountIO(line.article, articles, accounts, flag = false)
-              debitAcc = account.id
-              creditAcc = oaccount.id
-              amount    = line.quantity.multiply(article.avgPrice)
-            yield FinancialsTransactionDetails(-1, 0, debitAcc, side = true, creditAcc, amount, Instant.now()
-              , line.text, currency, model.company, account.name, oaccount.name, modelid)
           case GOODRECEIVING.modelid =>
             for
               account <- articleId2AccountIO(line.article, articles, accounts, flag = true)
@@ -160,7 +151,7 @@ trait PostLogisticalTransaction:
 
       netDetailsFiltered = netDetails.filterNot(_.account == FinancialsTransactionDetails.dummy.account)
       _<- ZIO.logInfo(s" netDetails  ${netDetails}")
-      _<- ZIO.logInfo(s" netDetailsFiltered amount ${netDetailsFiltered.map(_.amount).foldLeft(BigDecimal.ZERO)(_ add _)}")
+      _<- ZIO.logInfo(s" netDetailsFiltered amount ${netDetailsFiltered.map(_.amount).foldLeft(BigDecimal.ZERO)((acc, amt) => acc.add(amt))}")
       combinedDetails = (netDetailsFiltered ++ vatDetailsFiltered)
         .groupBy(d => (d.account, d.oaccount))
         .view
@@ -175,6 +166,53 @@ trait PostLogisticalTransaction:
       )
       _<- ZIO.logInfo(s" financials ${financials}")
     yield (model.copy(posted = true), financials.copy(posted = true))
+
+  def buildTransaction2(model: Transaction,
+                         articles: List[Article],
+                         accounts: List[Account],
+                         modelid: Int
+                        ): ZIO[Any, RepositoryError, (Transaction, FinancialsTransaction)] = {
+
+      for
+        _ <- ZIO.logInfo(s" model ${model}")
+        firstLine <- ZIO.getOrFailWith(RepositoryError("Transaction has no lines"))(model.lines.headOption)
+        currency = firstLine.currency
+        netDetails <- ZIO.foreach(model.lines) { line =>
+          val article = articles.find(_.id == line.article).fold(Article.dummy)(article=>article)
+          val amount = line.quantity.multiply(article.avgPrice)
+          model.modelid match
+            case STOCK_TAKE.modelid | CONSUMPTION.modelid =>
+              for
+                account <- findObjectById(accounts, model.account)
+                oaccount <- articleId2AccountIO(line.article, articles, accounts, flag = true)
+                debitAcc = account.id
+                creditAcc = oaccount.id
+              yield FinancialsTransactionDetails(-1, 0, debitAcc, side = true, creditAcc, amount, Instant.now()
+                , line.text, currency, model.company, account.name, oaccount.name, modelid)
+            case _ => ZIO.succeed(FinancialsTransactionDetails.dummy)
+        }.map(list => list.groupBy(line => (line.account, line.oaccount)).map {
+          case (_, v) => common.reduce(v, FinancialsTransactionDetails.dummy)
+        }.toList)
+
+        netDetailsFiltered = netDetails.filterNot(_.account == FinancialsTransactionDetails.dummy.account)
+        _ <- ZIO.logInfo(s" netDetails  ${netDetails}")
+        _ <- ZIO.logInfo(s" netDetailsFiltered amount ${netDetailsFiltered.map(_.amount).foldLeft(BigDecimal.ZERO)((acc, amt) => acc.add(amt))}")
+        combinedDetails:List[FinancialsTransactionDetails] = netDetailsFiltered
+          .groupBy(d => (d.account, d.oaccount))
+          .view
+          .mapValues(common.reduce(_, FinancialsTransactionDetails.dummy))
+          .values
+          .toList
+        _ <- ZIO.logInfo(s" combinedDetails ${combinedDetails}")
+        head = combinedDetails.headOption.getOrElse(FinancialsTransactionDetails.dummy)
+        financials = FinancialsTransaction(
+          -1, model.id.toString, model.contact, model.account, model.account, model.transdate,
+          Instant.now(), Instant.now(), model.period, posted = false, modelid,
+          model.company, model.text, model.footText, -1, combinedDetails
+        ).copy(account = head.account)
+        _ <- ZIO.logInfo(s" financials ${financials}")
+      yield (model.copy(posted = true), financials.copy(posted = true))
+  }
 
   // --- periodic account balance helpers ---------------------------------------
   def groupById(r: List[PeriodicAccountBalance]): List[PeriodicAccountBalance] =
@@ -266,6 +304,26 @@ trait PostLogisticalTransaction:
       }
     }.map(_.flatten)
 
+  def updateStock_(stocks: List[Stock], articles: List[Article], oldStocks: List[Stock]): ZIO[Any, RepositoryError, List[Stock]] =
+    for
+      updatedStock <- updateOldStock_(stocks, oldStocks, articles).map(_.map(Stock.apply).flip).flatten
+      _ <- ZIO.logInfo(s" updatedStock ${updatedStock}")
+    yield updatedStock
+
+  def updateOldStock_(stocks: List[Stock], oldStocks: List[Stock], articles: List[Article]
+                             ): ZIO[Any, RepositoryError, List[TStock]] =
+    ZIO.foreach(stocks) { stock =>
+      for {
+        article <- ZIO.getOrFailWith(RepositoryError(s"Article ${stock.article} not found"))(
+          articles.find(_.id == stock.article))
+        _ <- ZIO.logInfo(s" article $article stock $stock  oldStocks=>> $oldStocks")
+        oldStock <- ZIO.getOrFailWith(RepositoryError(s"Old stock with id ${stock.id} not found"))(
+          oldStocks.find(_.id == stock.id))
+        _ <- ZIO.logInfo(s" stock->$stock  oldStock-> ${oldStock}")
+        tstock <- TStock.fromStockAndQuantity(oldStock, stock.quantity, articles).tapError(e => ZIO.logError(s"Stock error: $e"))
+        _ <- ZIO.logInfo(s" tstock ${tstock}")
+      } yield tstock
+    }
 
   def updateStock(transactions: List[Transaction], articles:List[Article], oldStocks: List[Stock]): ZIO[Any, RepositoryError, List[Stock]] =
     for
@@ -273,20 +331,20 @@ trait PostLogisticalTransaction:
       _<- ZIO.logInfo(s" updatedStock ${updatedStock}")
     yield updatedStock
 
-  def buildNewStock(transactions: List[Transaction], articles:List[Article], stocks: List[Stock]): List[ZIO[Any, Nothing, Stock]] = for {
-    newRecords <- Stock.create(transactions, articles).filterNot(stock => stocks.map(_.id).contains(stock.id))
-  } yield ZIO.succeed(newRecords)
+  def buildNewStock(transactions: List[Transaction], articles:List[Article], stocks: List[Stock]): List[ZIO[Any, Nothing, Stock]] =
+    for
+      newRecords <- Stock.create(transactions, articles).filterNot(stock => stocks.map(_.id).contains(stock.id))
+    yield ZIO.succeed(newRecords)
 
-  def updateOldStock(transactions: List[Transaction], articles:List[Article], oldStocks: List[Stock]): ZIO[Any, RepositoryError, List[TStock]] = for {
+  def updateOldStock(transactions: List[Transaction], articles:List[Article], oldStocks: List[Stock]): ZIO[Any, RepositoryError, List[TStock]] =
+    for
     updatedStock <- groupByStock(Stock.create(transactions, articles))
       .flatMap(ts => oldStocks.filter(st => st.id == ts.id)
-        .map(st => TStock.fromStockAndQuantity(st, ts.quantity))).flip
-  } yield updatedStock
+        .map(st => TStock.fromStockAndQuantity(st, ts.quantity, articles))).flip
+   yield updatedStock
 
   def groupByStock(r: List[Stock]): List[Stock] =
     (r.groupBy(_.article) map { case (_, v) => common.reduce(v, Stock.dummy) })
       .filterNot(_.article == Stock.dummy.article).toList
-  // --- assumed constants (replace with actual from domain) -------------------
-  private val zeroAmount: BigDecimal = BigDecimal(0)
 
 end PostLogisticalTransaction

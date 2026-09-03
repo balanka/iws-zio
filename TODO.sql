@@ -221,6 +221,13 @@ insert into fmodule (id, name, description,  account, is_debit, parent, company,
 values (618, 'menu.bank', 'LANALA', '52115000', false, '1300', '5600', 151, 618, '', '', '', '' );
 
 
+insert into fmodule (id, name, description,  account, is_debit, parent, company, modelid, copy_from, acc_filter, oacc_filter, template1, template2)
+values (129, 'Consumption', 'Consumption', '', false, '1300', '5000', 151, 129, '', '', '', '' );
+
+
+create sequence master_compta_id_seq_5000_129 start with 1;
+alter sequence master_compta_id_seq_5000_129 owner to postgres;
+
 create sequence master_compta_id_seq_5600_218 start with 1;
 alter sequence master_compta_id_seq_5600_218 owner to postgres;
 create sequence master_compta_id_seq_5600_318 start with 1;

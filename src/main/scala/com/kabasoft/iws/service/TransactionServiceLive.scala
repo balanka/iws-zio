@@ -47,8 +47,8 @@ final class TransactionServiceLive(trRepo: TransactionRepository
       _ <- ZIO.logInfo(s"Posting base transactions: $base")
 
       // Split into services (non‑stocked articles) and inventory (stocked)
-      services = base.map { tr =>tr.copy(lines =tr.lines.filter(l => articles.exists(art => art.id == l.article && !art.stocked)))}
-      inventory = base.map { tr =>tr.copy(lines =tr.lines.filter(l => articles.exists(art => art.id == l.article && art.stocked)))}
+      services = base.map { tr =>tr.copy(lines =tr.lines.filter(l => articles.exists(art => art.id == l.article && !art.stocked)))}.filter(_.lines.nonEmpty)
+      inventory = base.map { tr =>tr.copy(lines =tr.lines.filter(l => articles.exists(art => art.id == l.article && art.stocked)))}.filter(_.lines.nonEmpty)
 
       _ <- ZIO.logInfo(s"Posting services transactions: $services")
       _ <- ZIO.logInfo(s"Posting inventory transactions: $inventory")

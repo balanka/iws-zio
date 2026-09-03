@@ -1,6 +1,6 @@
-val zioVersion                 = "2.1.25"
-val zioHttpVersion             = "3.11.3"
-val zioJsonVersion             = "0.9.1"
+val zioVersion                 = "2.1.26"
+val zioHttpVersion             = "3.11.4"
+val zioJsonVersion             = "0.10.0"
 val zioConfigVersion           = "4.0.5"
 val logbackVersion             = "1.2.7"
 val testcontainersVersion      = "1.21.3"
@@ -8,10 +8,10 @@ val testcontainersVersion      = "1.21.3"
 val testcontainersScalaVersion = "0.43.0"
 val postgresql                 = "42.7.7"
 val JwtCoreVersion             = "9.1.1"
-val zioSchemaVersion           = "1.8.5"
+val zioSchemaVersion           = "1.8.6"
 val skunkVersion              = "0.6.5"
 //val skunkVersion              = "1.0.0"
-val zioPreludeVersion         = "1.0.0-RC47"
+val zioPreludeVersion         = "1.0.0-RC48"
 val zioInteropCatsVersion = "23.1.0.13"
 val catsVersion           = "2.13.0"
 val catsEffectVersion     = "3.7.0"
@@ -21,8 +21,9 @@ ThisBuild / resolvers +=
 ThisBuild / scalacOptions ++= Seq("-Wunused:all","-Xmax-inlines",  "128")
 maintainer := "batexy@gmail.com"
 //dockerBaseImage := "openjdk:26-rc-slim"//"openjdk:26-ea-slim"
-//dockerBaseImage := "eclipse-temurin:17-jdk-alpine"
-dockerBaseImage := "eclipse-temurin:21-jre-alpine"
+dockerBaseImage := "eclipse-temurin:25.0.2_10-jre-alpine-3.21"
+//dockerBaseImage := "eclipse-temurin:24-jre-alpine"
+//Docker / dockerBaseImage := "eclipse-temurin:24-jre-alpine"
 jlinkIgnoreMissingDependency := JlinkIgnore.everything
 dockerEntrypoint := Seq("/opt/docker/jre/bin/java", "-jar", "/opt/docker/lib/iws-api.jar")
 
@@ -51,9 +52,9 @@ lazy val root = (project in file("."))
     inThisBuild(
       List(
         name         := "iws-skunk",
-        organization := "kabasoft",
-        version      := "2.9.6",
-         scalaVersion := "3.8.3"
+        organization := "KABA Soft GmbH",
+        version      := "3.0.8",
+         scalaVersion := "3.9.0"
       )
     ),
     name           := "iws-zio",
