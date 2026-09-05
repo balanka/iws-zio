@@ -95,11 +95,6 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
     details <- withLines(transaction)
   } yield details
   
-//  override def getById1(p: (Long, Int, String)): ZIO[Any, RepositoryError, Transaction] = for {
-//    transaction <- queryWithTxUnique(postgres, p, BY_ID1)
-//    details <- withLines(transaction)
-//  } yield details
-    
   override def getByModelId( p: (Int, String)): ZIO[Any, RepositoryError, List[Transaction]] = for {
     transactions <- queryWithTx(postgres, p, BY_MODEL_ID)
     details <- transactions.map(withLines).flip
@@ -233,11 +228,7 @@ private[repository] object TransactionRepositorySQL:
   val insert: Command[Transaction] =
     sql"""INSERT INTO transaction (id, oid, contact, store, account, enterdate, transdate, postingdate, period, posted, modelid
          , company, text, foot_text) VALUES $mfEncoder""".command
-
-//  def insertAll(n:Int): Command[List[Transaction.TYPE]] = 
-//    sql"""INSERT INTO transaction (oid, id1, store, account, enterdate, transdate, postingdate, period, posted, modelid
-//         , company, text, foot_text) VALUES ${transactionCodec1.values.list(n)}""".command
-
+  
   val insertDetails: Command[TransactionDetails] =
     sql"""INSERT INTO transaction_details (id, transid, article, article_name, quantity, unit, price, currency, duedate, vat_code
           , vat, text, company, modelid) VALUES $detailsEncoder """.command

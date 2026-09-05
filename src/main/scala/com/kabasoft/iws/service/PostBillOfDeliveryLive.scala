@@ -1,9 +1,11 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain._
-import com.kabasoft.iws.repository._
-import zio._
+import com.kabasoft.iws.domain.*
+import com.kabasoft.iws.domain.common.zeroAmount
+import com.kabasoft.iws.repository.*
+import zio.*
+
 import scala.collection.immutable.{List, Nil}
 import zio.prelude.FlipOps
 import java.time.Instant
@@ -55,12 +57,14 @@ final class PostBillOfDeliveryLive( accRepo: AccountRepository
     transLogEntries <- buildTransactionLog(transactions, stocks, newStock, articles)
     updatedArticle = articles.map(_.copy(postingdate = Instant.now()))
     // build financials transaction
-    newFtr = transactions.map(buildConsumption(_,  articles, accounts, ModelId.RECEIVABLES.modelid))
+    newFtr = transactions.map(buildConsumption(_,  articles, accounts, ModelId.CONSUMPTION_FINANCIALS.modelid))
     newFtr1 = transactions.map(buildTransaction(_, articles, accounts, customers, vats, company.salesClearingAcc, ModelId.RECEIVABLES.modelid))
     tupleOfLists <- ZIO.collectAll(newFtr).map(_.unzip)   // <- binds the effect
     tupleOfLists1 <- ZIO.collectAll(newFtr1).map(_.unzip)
     (transactionsx, financials) = tupleOfLists
     (transactionsx1, financials1) = tupleOfLists1
+    _<-ZIO.logInfo(s"Consumption ${financials}")
+    _<-ZIO.logInfo(s"Bill of delivery ${financials1}")
     result <- postFinancials(financials++financials1, financialsService)
     models = result.map(_._1)
     newPacs = result.flatMap(_._2)
@@ -85,7 +89,8 @@ final class PostBillOfDeliveryLive( accRepo: AccountRepository
       FinancialsTransactionDetails(-1, 0, account.id, side = true, oaccount.id, line.quantity.multiply(article.avgPrice), Instant.now()
         , model.text, currency, model.company, account.name, oaccount.name, modelid)
     }.groupBy(line => (line.account, line.oaccount)).map { case (_, v) => common.reduce(v, FinancialsTransactionDetails.dummy)
-    }.toList
+    }.toList.filter(d=>d.account != FinancialsTransactionDetails.dummy.account && d.amount.compareTo(zeroAmount) !=0)
+
     val head = netDetails.headOption.getOrElse(FinancialsTransactionDetails.dummy)
     val details: List[FinancialsTransactionDetails] = netDetails.filterNot(_.account == FinancialsTransactionDetails.dummy.account)
       .groupBy(d => (d.account, d.oaccount)).map { case (_, v) => common.reduce(v, FinancialsTransactionDetails.dummy) }.toList

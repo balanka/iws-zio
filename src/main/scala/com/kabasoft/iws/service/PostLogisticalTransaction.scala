@@ -15,18 +15,19 @@ trait PostLogisticalTransaction:
   // --- safe helpers ----------------------------------------------------------
   def filterIWS[A <: IWS](list: List[A], param: String): List[A] = list.filter(_.id == param)
 
-  def findObjectById [A<:IWS](accounts: List[A], id: String): ZIO[Any, RepositoryError, A] =
-    ZIO.getOrFailWith(RepositoryError(s"Object with id $id not found"))(accounts.find(_.id == id))
-
+//  def findObjectById [A<:IWS](accounts: List[A], id: String): ZIO[Any, RepositoryError, A] =
+//    ZIO.getOrFailWith(RepositoryError(s"Object with id $id not found"))(accounts.find(_.id == id))
+  def findObjectById[A <: IWS](accounts: List[A], id: String): ZIO[Any, RepositoryError, A] =
+      ZIO.logInfo(s"Searching for object with id: $id") *>
+      ZIO.getOrFailWith(RepositoryError(s"Object with id $id not found"))(accounts.find(_.id == id))
+        .tap(found => ZIO.logInfo(s"Found object: $found"))
+        .tapError(err => ZIO.logWarning(s"Failed to find object with id $id: $err"))
 
   def articleId2Account(articleId: String, articles: List[Article], accounts: List[Account], flag:Boolean): Account = {
-    filterIWS(articles, articleId).flatMap(article =>{
-    if (flag) {
-      filterIWS(accounts, article.account)
-    } else {
-      filterIWS(accounts, article.oaccount)
-    }
-    })
+    filterIWS(articles, articleId).flatMap(article =>
+      if (flag) {filterIWS(accounts, article.account)
+      } else {filterIWS(accounts, article.oaccount)}
+      )
   }.headOption.getOrElse(Account.dummy)
 
   private def findPartnerAccountId(suppliers: List[BusinessPartner], partnerId: String, accounts: List[Account]): IO[RepositoryError, String] =
@@ -94,7 +95,6 @@ trait PostLogisticalTransaction:
           } yield FinancialsTransactionDetails(-1, 0, debitAcc, side = true, creditAcc, vatAmount, Instant.now(),
             line.text, currency, model.company, account.name, oaccount.name, modelid)    
         for
-         // _<- ZIO.logInfo(s" line ${line}")
           vat <- findObjectById(vats, line.vatCode)
           detail <- model.modelid match
             case SUPPLIER_INVOICE.modelid => buildDetails(accounts, vat.inputVatAccount, oaccountId, vat)
@@ -158,7 +158,7 @@ trait PostLogisticalTransaction:
         .mapValues(common.reduce(_, FinancialsTransactionDetails.dummy))
         .values
         .toList
-      _<- ZIO.logInfo(s" combinedDetails ${combinedDetails}")
+      _<- ZIO.logInfo(s" combined details ${combinedDetails}")
       financials = FinancialsTransaction(
         -1, model.id.toString, model.contact, model.store, partnerAccountId, model.transdate,
         Instant.now(), Instant.now(), model.period, posted = false, modelid,

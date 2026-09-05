@@ -1,10 +1,9 @@
 package com.kabasoft.iws.service
 
-import com.kabasoft.iws.domain.*
+import com.kabasoft.iws.domain._
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.repository.*
-import zio.*
-import zio.prelude.FlipOps
+import com.kabasoft.iws.repository._
+import zio._
 import java.time.Instant
 
 final class PostStockTransferLive( artRepo: ArticleRepository
@@ -58,8 +57,7 @@ final class PostStockTransferLive( artRepo: ArticleRepository
       nr <- repository4PostingTransaction.post(updatedTrans, models, newPacs, oldPacs, transLogEntries, journalEntries
         , stocks, newStock, updatedArticle)
     yield nr
-    
-
+  
   private def updateTransactions(tr: Transaction, articles: List[Article]): ZIO[Any, RepositoryError, Transaction] =
     for
       newLines <- ZIO.foreach(tr.lines)(line => updatePrice(articles, line))
@@ -69,35 +67,10 @@ final class PostStockTransferLive( artRepo: ArticleRepository
     ZIO.getOrFailWith(RepositoryError(s"Article ${line.article} not found"))(
       articles.find(_.id == line.article)
     ).map(article => line.copy(price = article.avgPrice, transid = -1L))
-
-//  private def updateStock_(stocks: List[Stock], articles: List[Article], oldStocks: List[Stock]): ZIO[Any, RepositoryError, List[Stock]] =
-//    for
-//      updatedStock <- updateOldStock_(stocks, oldStocks, articles).map(_.map(Stock.apply).flip).flatten
-//      _ <- ZIO.logInfo(s" updatedStock ${updatedStock}")
-//    yield updatedStock
-
   
   private def updateArticle(transactions: List[Transaction], articles:List[Article]): List[Article] =
     transactions.flatMap(tr => tr.lines.flatMap(line => articles.filter(_.id == line.article).distinct)
      .map(_.copy(postingdate = Instant.now())))
-
-//  private def updateOldStock_( stocks: List[Stock], oldStocks: List[Stock], articles: List[Article]
-//                            ): ZIO[Any, RepositoryError, List[TStock]] =
-//    ZIO.foreach(stocks) { stock =>
-//      for {
-//        article <- ZIO.getOrFailWith(RepositoryError(s"Article ${stock.article} not found"))(
-//          articles.find(_.id == stock.article)
-//        )
-//        _ <- ZIO.logInfo(s" article $article stock $stock  oldStocks=>> $oldStocks")
-//        oldStock <- ZIO.getOrFailWith(RepositoryError(s"Old stock with id ${stock.id} not found"))(
-//          oldStocks.find(_.id == stock.id)
-//        )
-//        _ <- ZIO.logInfo(s" stock->$stock  oldStock-> ${oldStock}")
-//        tstock <- TStock.fromStockAndQuantity(oldStock, stock.quantity, articles).tapError(e => ZIO.logError(s"Stock error: $e"))
-//        _ <- ZIO.logInfo(s" tstock ${tstock}")
-//      } yield tstock
-//    }
-  
 
 object PostStockTransferLive:
   val live: ZLayer[TransactionRepository& TransactionLogRepository& ArticleRepository& 

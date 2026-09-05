@@ -230,17 +230,17 @@ final case class PostTransactionRepositoryLive(postgres: Resource[Task, Session[
           transLogEntries <- ZIO.collectAll(
             transLogs.map { transLog =>
               withId(s, seqTransLog, id => setTransactionLogId(transLog, id)).tap { m =>
-                ZIO.logInfo(s"Insert new TransactionLog: $m  ") *> exec(pciTransLog, m)}
+                ZIO.logDebug(s"Insert new TransactionLog: $m  ") *> exec(pciTransLog, m)}
             }
           )
-          _ <- ZIO.collectAll(newPacs.map { pac => ZIO.logInfo(s"Insert new master: $pac  ") *> exec(pciPac, pac) })
+          _ <- ZIO.collectAll(newPacs.map { pac => ZIO.logDebug(s"Insert new master: $pac  ") *> exec(pciPac, pac) })
           _ <- ZIO.collectAll(pac2update.map(PeriodicAccountBalance.encodeIt2)
-                  .map { pac => ZIO.logInfo(s"Updating old pacs : $pac  ") *> exec(pcuPac, pac) })
-          _ <- ZIO.collectAll(newStock.map { stock => ZIO.logInfo(s"Insert new stock: $stock  ") *> exec(pciStock, stock) })
+                  .map { pac => ZIO.logDebug(s"Updating old pacs : $pac  ") *> exec(pcuPac, pac) })
+          _ <- ZIO.collectAll(newStock.map { stock => ZIO.logDebug(s"Insert new stock: $stock  ") *> exec(pciStock, stock) })
           _ <- ZIO.collectAll(stock2update.map(Stock.encodeIt3)
-               .map { stock => ZIO.logInfo(s"Updating old stock : $stock  ") *> exec(pcuStock, stock) })
+               .map { stock => ZIO.logDebug(s"Updating old stock : $stock  ") *> exec(pcuStock, stock) })
           _ <- ZIO.collectAll(articles.map(Article.encodeIt2)
-                  .map { article => ZIO.logInfo(s"Updating  article : $article  ") *> exec(pcuArt, article) })
+                  .map { article => ZIO.logDebug(s"Updating  article : $article  ") *> exec(pcuArt, article) })
         } yield newFinancials.size + updatedMasters.size + newPacs.size + pac2update.size + articles.size
           + journalEntries.size+transLogEntries.size+newTransactions.size+updatedTransaction.size
     }

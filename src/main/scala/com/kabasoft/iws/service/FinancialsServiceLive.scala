@@ -57,11 +57,6 @@ final class FinancialsServiceLive( compRepo: CompanyRepository
       }
     }
 
-    // If you need to keep leftover debit (when positives are exhausted), uncomment:
-    // if (remainingDebit.compareTo(zeroAmount) > 0) {
-    //   result += ReminderBalance(id = "leftover", period = Int.MaxValue, balance = remainingDebit.negate())
-    // }
-
     result.toList
   }
   override def findBalance4paymentReminder (accountId:String, companyId:String):  ZIO[Any, RepositoryError, List[ReminderBalance]]=
@@ -81,13 +76,11 @@ final class FinancialsServiceLive( compRepo: CompanyRepository
       account <- if (mxid.size>1 || fmodule.id == fmodule.copyFrom.toInt) ZIO.succeed(Account.dummy)
                  else accRepo.getById(fmodule.account, ModelId.ACCOUNT.modelid, companyId)
       _ <- ZIO.logInfo(s" Company with id = $companyId ${company}")
-
       _ <- ZIO.logInfo(s"Financials transaction with id = $id to copy from  ${trans}")
-      transaction =  (trans.modelid, modelidTo)  match {
+      transaction =  (trans.modelid, modelidTo)  match 
         case (RECEIVABLES.modelid, BANK.modelid) => CopyFromReceavables2Bank.copy(trans, account, modelidTo, company)
         case (PAYABLES.modelid, BANK.modelid) => CopyFromPayables2Bank.copy(trans, account, modelidTo, company)
         case                          _ =>  CopySelf.copy(trans, account, modelidTo, company)
-      }
       _ <- ZIO.logInfo(s"newly Created financials transaction  from one with id = $id ${transaction}")
       trans2 <- ftrRepo.create(transaction)
     }yield trans2

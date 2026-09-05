@@ -12,7 +12,7 @@ echo "Building version ${VERSION} for platform ${PLATFORM}"
 sbt "set version := \"${VERSION}\"" assembly
 
 # Copy the JAR to the project root as app.jar
-cp "target/scala-3.8.3/${JAR_NAME}" app.jar
+cp "target/scala-3.9.0/${JAR_NAME}" app.jar
 
 # Build Docker image with platform support
 docker buildx build --platform "${PLATFORM}" -t "iws-api:${VERSION}" --load .
