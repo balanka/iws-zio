@@ -31,8 +31,8 @@ object BankAccountRepository:
   def modify(models: List[BankAccount]): ZIO[BankAccountRepository, RepositoryError, Int]=
     ZIO.serviceWithZIO[BankAccountRepository](_.modify(models))
     
-  def bankAccout4All(modelId:Int): ZIO[BankAccountRepository, RepositoryError, List[BankAccount]] =
-    ZIO.serviceWithZIO[BankAccountRepository](_.bankAccout4All(modelId))
+  def bankAccout4All(p:Int): ZIO[BankAccountRepository, RepositoryError, List[BankAccount]] =
+    ZIO.serviceWithZIO[BankAccountRepository](_.bankAccout4All(p))
     
   def all(Id: (Int, String)): ZIO[BankAccountRepository, RepositoryError, List[BankAccount]] =
     ZIO.serviceWithZIO[BankAccountRepository](_.all(Id))

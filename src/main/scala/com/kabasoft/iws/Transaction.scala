@@ -67,7 +67,7 @@ object PetService {
                 } yield ()
               }
             }
-        
+
         def selectAll: IO[List[Pet]] =  s.execute(all)
 
 //        def updateOne(age:Short, name:String):IO[Unit] = for {

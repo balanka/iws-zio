@@ -1,14 +1,13 @@
 package com.kabasoft.iws.repository
 
 import cats.effect.Resource
-import cats.syntax.all._
-import cats._
-import skunk._
-import skunk.codec.all._
-import skunk.implicits._
-//import zio.stream.interop.fs2z.*
+import cats.syntax.all.*
+import cats.*
+import skunk.*
+import skunk.codec.all.*
+import skunk.implicits.*
 import zio.{Task, ZIO, ZLayer}
-import com.kabasoft.iws.domain.{Role, User, UserRight, UserRole}
+import com.kabasoft.iws.domain.{ModelId, Role, User}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 
 import java.time.{Instant, LocalDateTime, ZoneId}
@@ -31,13 +30,13 @@ final case class UserRepositoryLive(postgres: Resource[Task, Session[Task]], rep
   } yield users
 
   private def setRoleAndRight(p: (String, List[User]) ):ZIO[Any, RepositoryError, List[User]] = for {
-    roles <- repo.all(Role.MODEL_ID, p._1)
-    user_rights <- repo.allRights(UserRight.MODEL_ID, p._1)
-    all_user_roles <- repo.allUserRoles(UserRole.MODEL_ID, p._1)
+    roles <- repo.all(ModelId.ROLE.modelid, p._1)
+    user_rights <- repo.allRights(ModelId.USER_RIGHT.modelid, p._1)
+    all_user_roles <- repo.allUserRoles(ModelId.USER_ROLE.modelid, p._1)
     users_ = p._2
-    _ <- ZIO.logInfo(s" roles ${roles}")
-    _ <- ZIO.logInfo(s" user_rights ${user_rights}")
-    _ <- ZIO.logInfo(s" all_user_roles ${all_user_roles}")
+    //_ <- ZIO.logInfo(s" roles ${roles}")
+    //_ <- ZIO.logInfo(s" user_rights ${user_rights}")
+    //_ <- ZIO.logInfo(s" all_user_roles ${all_user_roles}")
   }yield {
     val  rolesx: List[Role] = roles.map( r=>r.copy(rights = r.rights.:::(user_rights.filter(rt => rt.roleid == r.id))))
     val user_role = rolesx.filter(r=> all_user_roles.map(_.roleid).contains(r.id))
@@ -49,8 +48,8 @@ final case class UserRepositoryLive(postgres: Resource[Task, Session[Task]], rep
   }
 
   override def getById(p: (Int, Int, String)):ZIO[Any, RepositoryError, User] = for {
-    users_ <- queryWithTxUnique(postgres, p, BY_ID)
-    users <- setRoleAndRight(p._3, List(users_))
+    user <- queryWithTxUnique(postgres, p, BY_ID)
+    users <- setRoleAndRight(p._3, List(user))
   } yield users.headOption.getOrElse(User.dummy)
 
   override def getBy(ids: List[Int], modelid: Int, company: String):ZIO[Any, RepositoryError, List[User]] =
@@ -58,7 +57,9 @@ final case class UserRepositoryLive(postgres: Resource[Task, Session[Task]], rep
 
   override def getByUserName(p: (String, Int, String)):ZIO[Any, RepositoryError, User]= for {
       users_ <- queryWithTxUnique(postgres, p, BY_NAME)
+      //_<- ZIO.logInfo(s"users_ =>> ${users_}")
       users <- setRoleAndRight(p._3, List(users_))
+      //_<- ZIO.logInfo(s"users =>> ${users}")
   } yield users.headOption.getOrElse(User.dummy)
 
 

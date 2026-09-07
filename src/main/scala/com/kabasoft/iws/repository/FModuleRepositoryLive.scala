@@ -8,13 +8,23 @@ import skunk.implicits._
 import zio.{Task, ZIO, ZLayer }
 import com.kabasoft.iws.domain.Fmodule
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import java.time.{ Instant, LocalDateTime, ZoneId }
+import com.kabasoft.iws.repository.FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF
+import com.kabasoft.iws.repository.TransactionRepositoryLive.TRANSACTION_SEQUENCE_PREF
+import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class FModuleRepositoryLive(postgres: Resource[Task, Session[Task]]) extends FModuleRepository, MasterfileCRUD:
 
   import FModuleRepositorySQL.*
 
-  override def create(c: Fmodule):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
+  override def create(c: Fmodule):ZIO[Any, RepositoryError, Int]= {
+    if (c.parent === "1300") {
+      val command = createSequence(FINANCIAL_SEQUENCE_PREF, c.company, c.id)
+      executeWithTx(postgres, command, 1) *>  executeWithTx(postgres, c, insert, 1)
+    } else if (c.parent === "1301") {
+      val command = createSequence(TRANSACTION_SEQUENCE_PREF, c.company, c.id)
+      executeWithTx(postgres, command, 1 ) *> executeWithTx(postgres, c, insert, 1)
+    } else executeWithTx(postgres, c, insert, 1)
+  }
   override def create(list: List[Fmodule]):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, list.map(encodeIt), insertAll(list.size), list.size)
   override def modify(model: Fmodule):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, Fmodule.encodeIt2, UPDATE, 1)
   override def modify(models: List[Fmodule]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, Fmodule.encodeIt2)
@@ -30,12 +40,13 @@ object FModuleRepositoryLive:
     ZLayer.fromFunction(new FModuleRepositoryLive(_))
 
 private[repository] object FModuleRepositorySQL:
-  type TYPE = (Int, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Boolean, String, Int, Int, String)
+  type TYPE = (Int, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Boolean, String, String, String
+    , String, String, String,Int, String)
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 
   private val mfCodec =
-    (int4 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: varchar  *:bool  *: varchar *: int4 *:int4 *: varchar)
+    (int4 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: varchar  *:bool  *: varchar *:varchar *: varchar *:varchar *: varchar *:varchar *:int4 *: varchar)
   private[repository] def encodeIt(st: Fmodule): TYPE =
     (st.id,
       st.name,
@@ -47,11 +58,16 @@ private[repository] object FModuleRepositorySQL:
       st.isDebit,
       st.parent,
       st.copyFrom,
+      st.accFilter,
+      st.oaccFilter,
+      st.template1,
+      st.template2,
       st.modelid,
       st.company
     )
   val mfDecoder: Decoder[Fmodule] = mfCodec.map :
-    case (id, name, description, enterdate, changedate, postingdate, account, isDebit,  parent, copyFrom, modelid, company) =>
+    case (id, name, description, enterdate, changedate, postingdate, account, isDebit,  parent, copyFrom, accFilter
+     , oaccFilter, template1, template2,modelid, company) =>
       Fmodule(
         id,
         name,
@@ -63,6 +79,10 @@ private[repository] object FModuleRepositorySQL:
         isDebit,
         parent,
         copyFrom,
+        accFilter,
+        oaccFilter,
+        template1,
+        template2,
         modelid,
         company)
 
@@ -77,42 +97,59 @@ private[repository] object FModuleRepositorySQL:
       st.isDebit, 
       st.parent,
       st.copyFrom,
+      st.accFilter,
+      st.oaccFilter,
+      st.template1,
+      st.template2,
       st.modelid,
       st.company)
   )
 
   def base =
-    sql""" SELECT id, name, description, enterdate, changedate,postingdate, account, is_debit, parent, copy_from, modelid, company
+    sql""" SELECT id, name, description, enterdate, changedate,postingdate, account, is_debit, parent, copy_from, acc_filter,
+      oacc_filter, template1, template2, modelid, company
            FROM   fmodule ORDER BY id ASC"""
 
   def ALL_BY_ID(nr: Int): Query[(List[Int], Int, String), Fmodule] =
-    sql"""SELECT id, name, description, enterdate, changedate,postingdate, account, is_debit, parent,  copy_from, modelid, company
+    sql"""SELECT id, name, description, enterdate, changedate,postingdate, account, is_debit, parent,  copy_from, acc_filter,
+      oacc_filter,  template1, template2, modelid, company
            FROM   fmodule
            WHERE id  IN ${int4.list(nr)} AND  modelid = $int4 AND company = $varchar
            ORDER BY id ASC""".query(mfDecoder)
 
   val BY_ID: Query[Int *: Int *: String *: EmptyTuple, Fmodule] =
-    sql"""SELECT id, name, description, enterdate, changedate,postingdate, account, is_debit, parent, copy_from, modelid, company
+    sql"""SELECT id, name, description, enterdate, changedate,postingdate, account, is_debit, parent, copy_from, acc_filter,
+      oacc_filter, template1, template2, modelid, company
            FROM   fmodule
            WHERE id = $int4 AND modelid = $int4 AND company = $varchar
            ORDER BY id ASC""".query(mfDecoder)
 
   val ALL: Query[Int *: String *: EmptyTuple, Fmodule] =
-    sql"""SELECT id, name, description, enterdate, changedate, postingdate, account, is_debit, parent, copy_from, modelid, company
+    sql"""SELECT id, name, description, enterdate, changedate, postingdate, account, is_debit, parent, copy_from, acc_filter,
+      oacc_filter, template1, template2, modelid, company
            FROM   fmodule
            WHERE  modelid = $int4 AND company = $varchar
            ORDER BY id ASC""".query(mfDecoder)
 
   val insert: Command[Fmodule] =
     sql"""INSERT INTO fmodule (id, name, description, enterdate,changedate, postingdate,  account, is_debit, parent
-         , copy_from, modelid, company ) VALUES $mfEncoder """.command
+         , copy_from, acc_filter, oacc_filter,  template1, template2, modelid, company ) VALUES $mfEncoder """.command
 
   def insertAll(n:Int): Command[List[TYPE]]= sql"INSERT INTO fmodule VALUES ${mfCodec.values.list(n)}".command
 
   val UPDATE: Command[Fmodule.TYPE2] =
     sql"""UPDATE fmodule
-          SET name = $varchar, description = $varchar, account = $varchar, is_debit=$bool, parent=$varchar, copy_from=$int4
+          SET name = $varchar, description = $varchar, account = $varchar, is_debit=$bool, parent=$varchar, copy_from=$varchar
+          , acc_filter= $varchar, oacc_filter= $varchar, template1= $varchar, template2= $varchar
           WHERE id=$int4 and modelid=$int4 and company= $varchar""".command
   
   def DELETE: Command[(Int, Int, String)] =
     sql"DELETE FROM fmodule WHERE id = $int4 AND modelid = $int4 AND company = $varchar".command
+
+  def createSequence(name: String, companyId: String, modelid: Int) = {
+    val sequenceName_ = sequenceName(name, companyId, modelid)
+    sql"""create sequence #$sequenceName_ start with 1""".command
+  }
+
+  def sequenceName(sequenceName: String, companyId:String,  modelid:Int): String=
+    s"${sequenceName}_${companyId}_${modelid}"

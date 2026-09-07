@@ -1,0 +1,76 @@
+services:
+  iws-db:
+    image: postgres:16.10-alpine3.22
+    restart: always
+    tty: true
+    networks:
+      - node-network
+    volumes:
+      - ./iws-data-vol:/var/lib/postgresql/data:z
+      - ./sql:/tmp/sql
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - ${POSTGRES_DB_PORT_FROM}:${POSTGRES_DB_PORT_TO}
+    container_name: ${IWS_DB_CONTAINER}
+
+  iws-api:
+    image: ${IWS_API_IMAGE}:${IWS_API_IMAGE_VERSION}
+    restart: always
+    tty: true
+    networks:
+      - node-network
+    ports:
+      - ${IWS_API_PORT_FROM}:${IWS_API_PORT_TO}
+    container_name: ${IWS_API_CONTAINER}
+    environment:
+      - IWS_API_HOST=${IWS_API_HOST}
+      - IWS_API_PORT=${IWS_API_PORT_TO}
+      - IWS_WEB_HOST=https://${IWS_WEB_HOST}
+      - IWS_WEB_URL=https://${IWS_WEB_HOST}/${IWS_WEB_PORT_TO}
+    depends_on:
+      - iws-db
+
+  iws-ui:
+    image: ${IWS_WEB_IMAGE}:${IWS_WEB_IMAGE_VERSION}
+    restart: always
+    tty: true
+    networks:
+      - node-network
+    ports:
+      - "0.0.0.0:443:443"  # Force IPv4 binding
+      - "${IWS_WEB_PORT_FROM}:80"  # HTTP (redirects to HTTPS)
+      #- "443:443"                   # HTTPS
+    container_name: ${IWS_WEB_CONTAINER}
+    volumes:
+      - ./working.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+      - ./iws-template:/var/lib/template
+      - ./env-config.js.template:/etc/nginx/templates/env-config.js.template
+    env_file:
+      - IWS_DEV.env
+    environment:
+      - NODE_ENV=production
+      - NGINX_PORT=80
+      - SERVER_NAME=${IWS_WEB_HOST:-192.168.178.102}  # Fixed: only once
+      - NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
+      - REACT_APP_HOST_IP_ADDRESS=${IWS_API_HOST}
+      - REACT_APP_PORT=${IWS_API_PORT_FROM}
+      - REACT_WEB_HOST_IP_ADDRESS=${IWS_WEB_HOST}
+      - HOST=${IWS_WEB_HOST}
+      - PORT=${IWS_WEB_PORT_TO}
+      - REACT_WEB_PORT=${IWS_WEB_PORT_TO}
+      - REACT_APP_API_BASE=${REACT_APP_API_BASE}
+      - API_URL=${IWS_WEB_HOST}
+      - API_PORT=${IWS_API_PORT_TO}
+      - SCHEME=${SCHEME}
+      - REACT_APP_VERSION=${REACT_APP_VERSION}
+    command: >
+      sh -c "envsubst < /etc/nginx/templates/env-config.js.template > /usr/share/nginx/html/env-config.js && nginx -g 'daemon off;'"
+    depends_on:
+      - iws-api
+
+networks:
+  node-network:
+    driver: bridge
+

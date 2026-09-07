@@ -3,7 +3,6 @@ package com.kabasoft.iws.repository
 import com.kabasoft.iws.config.appConfig
 import com.kabasoft.iws.domain.AccountBuilder.companyId
 import com.kabasoft.iws.domain.FinancialsTransactionBuilder.{ftr1, ftr2, modelid2}
-import com.kabasoft.iws.repository.container.PostgresContainer
 import com.kabasoft.iws.repository.container.PostgresContainer.appResourcesL
 import zio.ZLayer
 import zio.test.TestAspect.*
@@ -39,7 +38,7 @@ object FinancialsTransactionRepositoryLiveSpec extends ZIOSpecDefault {
           nrUpdated <- FinancialsTransactionRepository.modify(ftr.copy(text=terms))
           ftr2 <- FinancialsTransactionRepository.getByTransId((ftr.id, companyId))
           ftrByModelIdCount <- FinancialsTransactionRepository.getByModelId((modelid2, companyId)).map(_.size)
-        } yield assertTrue(oneRow == 5,  count == 1, ftrByModelIdCount == 1 , nrUpdatedLines == 3, nrUpdated == 3, ftr2.text == terms)
+        } yield assertTrue(oneRow.size == 5,  count == 1, ftrByModelIdCount == 1 , nrUpdatedLines.id == ftr.id, nrUpdated.id == ftr.id, ftr2.text == terms)
       }
     ).provideLayerShared(testLayer) @@ sequential
 }

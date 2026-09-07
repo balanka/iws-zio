@@ -1,12 +1,12 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.domain.AppError
-import com.kabasoft.iws.domain.AppError._
-import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, repositoryErrorSchema}
+import com.kabasoft.iws.domain.{AppError, FinancialsTransaction}
+import com.kabasoft.iws.domain.AppError.*
+import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, repositoryErrorSchema, ftransactionSchema}
 import com.kabasoft.iws.service.EmployeeService
-import zio._
-import zio.http._
-import zio.http.codec._
+import zio.*
+import zio.http.*
+import zio.http.codec.*
 import zio.http.codec.PathCodec.{int, path, string}
 import zio.http.endpoint.Endpoint
 import zio.schema.Schema
@@ -22,7 +22,7 @@ object PayrollEndpoint:
     ).header(HeaderCodec.authorization)
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized),
-    ).out[Int] ?? Doc.p(generatePayrollDoc)
+    ).out[List[FinancialsTransaction]] ?? Doc.p(generatePayrollDoc)
 
   val generatePayrollRoute = generatePayroll.implement(p =>
     ZIO.logInfo(s"Create payroll transaction from salary item ${p}") *>

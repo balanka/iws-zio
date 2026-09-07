@@ -1,8 +1,7 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.config.appConfig
-import com.kabasoft.iws.domain.Company
-import com.kabasoft.iws.repository.container.PostgresContainer
+import com.kabasoft.iws.domain.{Company, ModelId}
 import com.kabasoft.iws.repository.container.PostgresContainer.appResourcesL
 import zio.ZLayer
 import zio.test.TestAspect.*
@@ -53,7 +52,7 @@ val company = Company("-1000", "ABC GmbH", "Word stree1 0", "55555", "FF", "Hess
       },
       test("get a company by its id") {
         for {
-          stmt <- CompanyRepository.getById(company.id, Company.MODEL_ID)
+          stmt <- CompanyRepository.getById(company.id, ModelId.COMPANY.modelid)
         } yield assertTrue(stmt.name == company.name) && assertTrue(stmt.id==company.id)
       }
     ).provideLayerShared(testLayer) @@ sequential
