@@ -63,7 +63,7 @@ object JournalRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]], RepositoryError, JournalRepository] =
     ZLayer.fromFunction(new JournalRepositoryLive(_))
 
-  def sequenceName(prefix: String, models: List[Journal]) =
+  def sequenceName(prefix: String, models: List[Journal]): String =
     val company: String = models.headOption.getOrElse(Journal.dummy).company
     s"${prefix}_$company"
   val JOURNAL_SEQUENCE_PREF = "journal_id_seq"

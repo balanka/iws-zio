@@ -4,6 +4,10 @@ import cats.effect.Resource
 import cats.syntax.all.*
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{BankAccount, Company, ModelId}
+import com.kabasoft.iws.repository.BankStatementRepositorySQL.BANK_STATEMENT_SEQUENCE_PREF
+import com.kabasoft.iws.repository.FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF
+import com.kabasoft.iws.repository.JournalRepositoryLive.JOURNAL_SEQUENCE_PREF
+import com.kabasoft.iws.repository.TransactionRepositoryLive.{TRANSACTION_DETAIL_SEQUENCE_PREF, TRANSACTION_LOG_SEQUENCE_PREF, TRANSACTION_SEQUENCE_PREF}
 import skunk.*
 import skunk.codec.all.*
 import skunk.implicits.*
@@ -30,8 +34,17 @@ final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
       , insert, BankAccountRepositorySQL.insert, CompanyRepositorySQL.UPDATE, BankAccountRepositorySQL.UPDATE_BANK_ACCOUNT
       , BankAccountRepositorySQL.DELETE_BANK_ACCOUNT)
 
-
-  override def create(c: Company): ZIO[Any, RepositoryError, Int] = create(List(c))
+  override def create(c: Company): ZIO[Any, RepositoryError, Int] = {
+      val details_compta_seq_command = createSequence(FINANCIAL_DETAIL_SEQUENCE_PREF, c.id)
+      val transaction_details_seq_command = createSequence(TRANSACTION_DETAIL_SEQUENCE_PREF, c.id)
+      val transaction_log_seq_command = createSequence(TRANSACTION_LOG_SEQUENCE_PREF, c.id)
+       val journal_seq_command = createSequence(JOURNAL_SEQUENCE_PREF, c.id)
+      val bankStmt_seq_command = createSequence(BANK_STATEMENT_SEQUENCE_PREF, c.id)
+       val commands = List(details_compta_seq_command, transaction_details_seq_command, transaction_log_seq_command
+         , journal_seq_command, bankStmt_seq_command )
+      executeWithTx(postgres, commands) *> executeWithTx(postgres, c, insert, 1)
+  }
+  //override def create(c: Company): ZIO[Any, RepositoryError, Int] = create(List(c))
   override def create(models: List[Company]): ZIO[Any, RepositoryError, Int] =
     (postgres
       .use:
@@ -163,3 +176,11 @@ private[repository] object CompanyRepositorySQL:
           WHERE id=$varchar and modelid=$int4""".command
   
   def DELETE: Command[(String, Int)] = sql"DELETE FROM Company WHERE id = $varchar AND modelid = $int4".command
+
+  def createSequence(name: String, companyId: String) = {
+    val sequenceName_ = sequenceName(name, companyId)
+    sql"""create sequence #$sequenceName_ start with 1""".command
+  }
+
+  def sequenceName(sequenceName: String, companyId: String): String =
+    s"${sequenceName}_${companyId}}"

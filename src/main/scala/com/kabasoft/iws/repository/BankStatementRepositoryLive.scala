@@ -16,7 +16,7 @@ final case  class BankStatementRepositoryLive(postgres: Resource[Task, Session[T
   extends BankStatementRepository, MasterfileCRUD:
 
   import BankStatementRepositorySQL.*
-  val BANK_STATEMENT_SEQUENCE_PREF = "master_compta_id_seq"
+ 
 
   private def fnSetId(m: BankStatement, idx: Long) = m.copy(id = idx)
   private def fnSetMasterId(m: FinancialsTransaction, idx: Long) = m.copy(id = idx)
@@ -82,6 +82,7 @@ object BankStatementRepositoryLive:
 
 private[repository] object BankStatementRepositorySQL:
 
+  val BANK_STATEMENT_SEQUENCE_PREF = "bankstatement_id_seq_"
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 

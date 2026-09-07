@@ -10,7 +10,6 @@ import com.kabasoft.iws.domain.Fmodule
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.repository.FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF
 import com.kabasoft.iws.repository.TransactionRepositoryLive.TRANSACTION_SEQUENCE_PREF
-import skunk.Fragment
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class FModuleRepositoryLive(postgres: Resource[Task, Session[Task]]) extends FModuleRepository, MasterfileCRUD:
