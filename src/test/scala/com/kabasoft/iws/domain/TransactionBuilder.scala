@@ -11,12 +11,12 @@ object TransactionBuilder {
   val lineTransactionId1 = 1L
   val lineTransactionId2 = 2L
 
-  val modelid = ModelId.GOODRECEIVING.id
-  val modelid2 = ModelId.SUPPLIER_INVOICE.id
-  val modelid3 = ModelId.BILL_OF_DELIVERY.id
-  val modelid4 = ModelId.CUSTOMER_INVOICE.id
-  val modelid5 = ModelId.PURCHASE_ORDER.id
-  val modelid6 = ModelId.SALES_ORDER.id
+  val modelid = ModelId.GOODRECEIVING.modelid
+  val modelid2 = ModelId.SUPPLIER_INVOICE.modelid
+  val modelid3 = ModelId.BILL_OF_DELIVERY.modelid
+  val modelid4 = ModelId.CUSTOMER_INVOICE.modelid
+  val modelid5 = ModelId.PURCHASE_ORDER.modelid
+  val modelid6 = ModelId.SALES_ORDER.modelid
   val vtime = Instant.now()
   val period = common.getPeriod(vtime)
   val side = true
@@ -35,12 +35,29 @@ object TransactionBuilder {
   val store = "001"
   val qttyUnit = "stk"
   val vatCode = "v5"
+  val contact = "contact"
+  //                             id: Long,
+  //                             oid: String,
+  //                             contact: String,
+  //                             store: String,
+  //                             account: String,
+  //                             transdate: Instant = Instant.now(),
+  //                             enterdate: Instant = Instant.now(),
+  //                             postingdate: Instant = Instant.now(),
+  //                             period: Int = common.getPeriod(Instant.now()),
+  //                             posted: Boolean = false,
+  //                             modelid: Int,
+  //                             company: String,
+  //                             text: String = "",
+  //                             footText: String = "",
+  
+  val line1=  TransactionDetails(-1L, 0L,  artId0, artName0 , quantity0, qttyUnit, pprice0, currency, vtime, vatCode
+    , quantity0.multiply(pprice0).multiply(BigDecimal("0.19")), text1, company, modelid2 )
+  val line2=  TransactionDetails(-1L, 0L,  artId1, artName1 , quantity1, qttyUnit, pprice1, currency,  vtime, vatCode
+    , quantity1.multiply(pprice1).multiply(BigDecimal("0.19")), text1, company, modelid2 )
 
-  val line1=  TransactionDetails(-1L, 0L,  artId0, artName0 , quantity0, qttyUnit, pprice0, currency, vtime, vatCode, quantity0.multiply(pprice0).multiply(BigDecimal("0.19")), text1, company )
-  val line2=  TransactionDetails(-1L, 0L,  artId1, artName1 , quantity1, qttyUnit, pprice1, currency,  vtime, vatCode, quantity1.multiply(pprice1).multiply(BigDecimal("0.19")), text1, company )
-
-  val ftr1 = Transaction(0,-1, -1,  store, accountId, vtime, vtime, vtime, period, posted = false, modelid, company, text1, footText1
-          ,  List(line1, line2))
+  val ftr1 = Transaction(-1, "-1", contact, store, accountId, vtime, vtime, vtime, period, posted = false, modelid
+    , company, text1, footText1,  List(line1, line2))
   val ftr2 = ftr1.copy(modelid = modelid2, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = text2)
   val ftr3 = ftr1.copy(modelid = modelid3, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = text3)
   val ftr4 = ftr1.copy(modelid = modelid4, lines = ftr1.lines.map(l=>TransactionDetails(l)), text = text4)
