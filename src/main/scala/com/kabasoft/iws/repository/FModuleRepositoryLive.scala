@@ -16,8 +16,7 @@ import java.time.{Instant, LocalDateTime, ZoneId}
 final case class FModuleRepositoryLive(postgres: Resource[Task, Session[Task]]) extends FModuleRepository, MasterfileCRUD:
 
   import FModuleRepositorySQL.*
-  //  def executeWithTx(postgres: Resource[Task, Session[Task]],  cmd: Command[Void], size: Int)
-  //override def create(c: Fmodule):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
+
   override def create(c: Fmodule):ZIO[Any, RepositoryError, Int]= {
     if (c.parent === "1300") {
       val command = createSequence(FINANCIAL_SEQUENCE_PREF, c.company, c.id)

@@ -383,26 +383,7 @@ trait MasterfileCRUD:
                   ZIO.logInfo(s"Error: ${ex.getMessage} rolling back...!!!!") *>
                     xa.rollback
       .mapBoth(e => RepositoryError(e.getMessage), _ => size)
-
-//  def executeWithTx[A, B](postgres: Resource[Task, Session[Task]],  commands: List[(Command[A], A) |Command[Void])]): ZIO[Any, RepositoryError, Int] =
-//    commands.traverse { command =>
-//      postgres
-//        .use: session =>
-//          session.transaction.use: xa =>
-//            session
-//              .prepare(command._1).debug(s"ZZZZZZZZZ ${command._2}")
-//              .flatMap: cmd =>
-//                xa.savepoint
-//                cmd.execute(command._2).debug("vcbvcbvcbvcbvcbvcvb").recoverWith:
-//                  case SqlState.UniqueViolation(ex) =>
-//                    ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
-//                      xa.rollback
-//                  case ex =>
-//                    ZIO.logInfo(s"Error: ${ex.getMessage} rolling back...!!!!") *>
-//                      xa.rollback
-//        .mapBoth(e => RepositoryError(e.getMessage), _ => 1)
-//     }.map(_.sum)
-      
+    
   def executeWithTx(postgres: Resource[Task, Session[Task]],  cmd: Command[Void], size: Int): ZIO[Any, RepositoryError, Int] =
     postgres
       .use: session =>
