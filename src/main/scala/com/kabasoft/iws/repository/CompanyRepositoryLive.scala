@@ -7,7 +7,7 @@ import com.kabasoft.iws.domain.{BankAccount, Company, ModelId}
 import com.kabasoft.iws.repository.BankStatementRepositorySQL.BANK_STATEMENT_SEQUENCE_PREF
 import com.kabasoft.iws.repository.FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF
 import com.kabasoft.iws.repository.JournalRepositoryLive.JOURNAL_SEQUENCE_PREF
-import com.kabasoft.iws.repository.TransactionRepositoryLive.{TRANSACTION_DETAIL_SEQUENCE_PREF, TRANSACTION_LOG_SEQUENCE_PREF, TRANSACTION_SEQUENCE_PREF}
+import com.kabasoft.iws.repository.TransactionRepositoryLive.{TRANSACTION_DETAIL_SEQUENCE_PREF, TRANSACTION_LOG_SEQUENCE_PREF}
 import skunk.*
 import skunk.codec.all.*
 import skunk.implicits.*
