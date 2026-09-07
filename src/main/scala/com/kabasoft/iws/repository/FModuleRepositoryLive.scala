@@ -8,15 +8,25 @@ import skunk.implicits._
 import zio.{Task, ZIO, ZLayer }
 import com.kabasoft.iws.domain.Fmodule
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import java.time.{ Instant, LocalDateTime, ZoneId }
+import com.kabasoft.iws.repository.FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF
+import com.kabasoft.iws.repository.TransactionRepositoryLive.TRANSACTION_SEQUENCE_PREF
+import skunk.Fragment
+import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class FModuleRepositoryLive(postgres: Resource[Task, Session[Task]]) extends FModuleRepository, MasterfileCRUD:
 
   import FModuleRepositorySQL.*
+  //  def executeWithTx(postgres: Resource[Task, Session[Task]],  cmd: Command[Void], size: Int)
   //override def create(c: Fmodule):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
-  override def create(c: Fmodule):ZIO[Any, RepositoryError, Int]= if (c.parent === "1300" || c.parent === "1301"){
-    executeWithTx(postgres, List((insert, c)))
-  } else executeWithTx(postgres, c, insert, 1)
+  override def create(c: Fmodule):ZIO[Any, RepositoryError, Int]= {
+    if (c.parent === "1300") {
+      val command = createSequence(FINANCIAL_SEQUENCE_PREF, c.company, c.id)
+      executeWithTx(postgres, command, 1) *>  executeWithTx(postgres, c, insert, 1)
+    } else if (c.parent === "1301") {
+      val command = createSequence(TRANSACTION_SEQUENCE_PREF, c.company, c.id)
+      executeWithTx(postgres, command, 1 ) *> executeWithTx(postgres, c, insert, 1)
+    } else executeWithTx(postgres, c, insert, 1)
+  }
   override def create(list: List[Fmodule]):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, list.map(encodeIt), insertAll(list.size), list.size)
   override def modify(model: Fmodule):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, Fmodule.encodeIt2, UPDATE, 1)
   override def modify(models: List[Fmodule]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, Fmodule.encodeIt2)
@@ -137,5 +147,11 @@ private[repository] object FModuleRepositorySQL:
   
   def DELETE: Command[(Int, Int, String)] =
     sql"DELETE FROM fmodule WHERE id = $int4 AND modelid = $int4 AND company = $varchar".command
-    
-  val CREATE_SEQUEBCE=sql"""create sequence master_compta_id_seq_1000 start with 1 """.command 
+
+  def createSequence(name: String, companyId: String, modelid: Int) = {
+    val sequenceName_ = sequenceName(name, companyId, modelid)
+    sql"""create sequence #$sequenceName_ start with 1""".command
+  }
+
+  def sequenceName(sequenceName: String, companyId:String,  modelid:Int): String=
+    s"${sequenceName}_${companyId}_${modelid}"
