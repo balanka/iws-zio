@@ -13,7 +13,7 @@ object BankStatementBuilder:
   val posted = false
   val amount = new BigDecimal("2000.00").setScale(2, RoundingMode.HALF_UP)
   val amount1 = new BigDecimal("-3000.00").setScale(2, RoundingMode.HALF_UP)
-  val modelid = BankStatement.MODELID
+  val modelid = ModelId.BANK_STATEMENT.modelid
   val period = common.getPeriod(Instant.now())
 
   val bs1 = BankStatement(3, "B Mady",Instant.now(), Instant.now(),"TEST POSTING","TEST PURPOSE","B Mady"

@@ -68,7 +68,7 @@ final case class EmployeeRepositoryLive(postgres: Resource[Task, Session[Task]]
     override def modify(model: Employee): ZIO[Any, RepositoryError, Int] = modify(List(model))
 
     override def modify(modelsx: List[Employee]): ZIO[Any, RepositoryError, Int] =
-      val newBankaccounts = modelsx.flatMap(_.bankaccounts).filter(m => m.id.nonEmpty && m.modelid == - 1)
+      val newBankaccounts = modelsx.flatMap(_.bankaccounts).filter(m => m.id.nonEmpty && m.modelid == -1)
         .map(m => m.copy(modelid = ModelId.BANK_ACCOUNT.modelid))
       val oldBankaccounts = modelsx.flatMap(_.bankaccounts).filter(m => m.id.nonEmpty && m.modelid == -2)
                                  .map(m => m.copy(modelid = ModelId.BANK_ACCOUNT.modelid))

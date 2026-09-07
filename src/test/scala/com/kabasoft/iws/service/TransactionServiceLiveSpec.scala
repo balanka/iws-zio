@@ -4,12 +4,10 @@ import com.kabasoft.iws.config.appConfig
 import com.kabasoft.iws.domain.AccountBuilder.companyId
 import com.kabasoft.iws.domain.ArticleBuilder.{artId0, artId1, articleList}
 import com.kabasoft.iws.domain.TransactionBuilder.{ftr1, ftr2, ftr3, ftr4, ftr5, ftr6}
-import com.kabasoft.iws.domain.{Article, Stock, Transaction}
-import com.kabasoft.iws.repository.container.PostgresContainer
+import com.kabasoft.iws.domain.{Article, ModelId, Stock, Transaction}
 import com.kabasoft.iws.repository.*
 import com.kabasoft.iws.repository.container.PostgresContainer.appResourcesL
 import zio.ZLayer
-import zio.prelude.FlipOps
 import zio.test.TestAspect.*
 import zio.test.*
 
@@ -18,16 +16,18 @@ import java.math.{BigDecimal, RoundingMode}
 object TransactionServiceLiveSpec extends ZIOSpecDefault {
   val DOUBLE =  new BigDecimal("2.00").setScale(2, RoundingMode.HALF_UP)
   def doublePrice (tr: Transaction): Transaction = tr.copy( lines = tr.lines.map(l=>l.copy(price = l.price.multiply(DOUBLE))))
-    .copy(contact= -1)
+    .copy(contact= "-1")
   val testServiceLayer = ZLayer.make[AccountService& TransactionService& TransactionRepository & PostOrder
     & PostSalesOrder& ArticleRepository& AccountRepository& PacRepository& StockRepository & CustomerRepository
     &  SupplierRepository&  VatRepository& PostGoodreceiving& PostBillOfDelivery &  PostCustomerInvoice
-    & TransactionLogRepository &  PostSupplierInvoice& PostFinancialsTransactionRepository &FinancialsService](
+    & TransactionLogRepository &  PostSupplierInvoice& PostFinancialsTransactionRepository &FinancialsService
+  &PostStockTransfer &PostConsumption &PostStocktake &FModuleRepository](
     appResourcesL.project(_.postgres),
     appConfig,
     AccountRepositoryLive.live,
     AccountServiceLive.live,
     BankAccountRepositoryLive.live,
+    FModuleRepositoryLive.live,
     //MasterfileRepositoryLive.live,
     ArticleRepositoryLive.live,
     CustomerRepositoryLive.live,
@@ -48,6 +48,9 @@ object TransactionServiceLiveSpec extends ZIOSpecDefault {
     PostBillOfDeliveryLive.live,
     PostCustomerInvoiceLive.live,
     PostSupplierInvoiceLive.live,
+    PostStockTransferLive.live,
+    PostConsumptionLive.live,
+    PostStocktakeLive.live,
     FinancialsTransactionRepositoryLive.live,
     FinancialsServiceLive.live,
     //PostgresContainer.createContainer
@@ -65,7 +68,7 @@ object TransactionServiceLiveSpec extends ZIOSpecDefault {
           deletedTransactions <- TransactionRepository.deleteAll()
           deletedPac <- PacRepository.deleteAll()
           deletedStock <- StockRepository.deleteAll()
-          deletedArticle <- ArticleRepository.deleteAll(articleids, Article.MODELID, companyId)
+          deletedArticle <- ArticleRepository.deleteAll(articleids, ModelId.ARTICLE.modelid, companyId)
           deletedTransactionLog <- TransactionLogRepository.deleteAll()
         yield assertTrue(deletedTransactions == 1) &&
           assertTrue(deletedPac ==1) &&
@@ -77,13 +80,13 @@ object TransactionServiceLiveSpec extends ZIOSpecDefault {
         for 
           oneRow     <- TransactionRepository.create(list)
           createdArticle     <- ArticleRepository.create(articleList)
-         yield assertTrue(oneRow ==  list.size+list.flatMap(_.lines).size ) &&
+         yield assertTrue(oneRow.size ==  list.size+list.flatMap(_.lines).size ) &&
            assertTrue(createdArticle ==  articleList.size)
       },
       test("search, find  and post some logistical transaction meeting some criteria") {
         for 
           all        <-   TransactionRepository.all(ftr1.modelid, companyId)
-          transactionIds:List[(Long, Int)] = all.map(tr =>(tr.contact, tr.modelid))
+          transactionIds:List[(Long, Int)] = all.map(tr =>(tr.id, tr.modelid))
           postedRows <- TransactionService.postAll(transactionIds, ftr1.company)
         yield assertTrue(postedRows == 3)
       },
@@ -96,12 +99,13 @@ object TransactionServiceLiveSpec extends ZIOSpecDefault {
         val  quantityStock1=  new BigDecimal("100.00").setScale(2, RoundingMode.HALF_UP)
         val stock0 = Stock.buildId(ftr1.store, artId0, "", ftr1.company)
         val stock1 = Stock.buildId(ftr1.store, artId1, "", ftr1.company)
+        val modelid= ModelId.STOCK.modelid 
         for 
-          stocks <- StockRepository.getBy(createdStock.map(stock=>stock.id), Stock.MODELID, ftr1.company)
-          stock0 <- StockRepository.getById (stock0, Stock.MODELID, ftr1.company)//.debug(s"stock0 >>> ${artId0}")
-          stock1 <- StockRepository.getById (stock1, Stock.MODELID, ftr1.company)//.debug(s"stock1 >>> ${artId1}")
-          article0 <- ArticleRepository.getById ( artId0, Article.MODELID, ftr1.company)//.debug(s"article0 >>> ${artId0}")
-          article1 <- ArticleRepository.getById ( artId1, Article.MODELID, ftr1.company)//.debug(s"article1 >>> ${artId1}")
+          stocks <- StockRepository.getBy(createdStock.map(stock=>stock.id), modelid, ftr1.company)
+          stock0 <- StockRepository.getById (stock0, modelid, ftr1.company)//.debug(s"stock0 >>> ${artId0}")
+          stock1 <- StockRepository.getById (stock1, modelid, ftr1.company)//.debug(s"stock1 >>> ${artId1}")
+          article0 <- ArticleRepository.getById ( artId0, modelid, ftr1.company)//.debug(s"article0 >>> ${artId0}")
+          article1 <- ArticleRepository.getById ( artId1, modelid, ftr1.company)//.debug(s"article1 >>> ${artId1}")
         yield assertTrue(stocks.size == 2, stock0.quantity.compareTo(quantityStock0)==0
             ,  stock1.quantity.compareTo(quantityStock1)==0
             , article0.avgPrice.compareTo(avgPrice0)==0
@@ -120,17 +124,18 @@ object TransactionServiceLiveSpec extends ZIOSpecDefault {
         val stock0 = Stock.buildId(ftr1.store, artId0, "", ftr1.company)
         val stock1 = Stock.buildId(ftr1.store, artId1, "", ftr1.company)
         val list2 = list.map(doublePrice)
+        val modelid = ModelId.STOCK.modelid
         for
           oneRow     <- TransactionRepository.create(list2)
           all        <-   TransactionRepository.all(ftr1.modelid, companyId)
-          transactionIds:List[(Long, Int)] = all.map(tr =>(tr.contact, tr.modelid))
+          transactionIds:List[(Long, Int)] = all.map(tr =>(tr.id, tr.modelid))
           postedRows <- TransactionService.postAll(transactionIds, ftr1.company)
-          stocks <- StockRepository.getBy(createdStock.map(stock=>stock.id), Stock.MODELID, ftr1.company)
-          stock0 <- StockRepository.getById (stock0, Stock.MODELID, ftr1.company)//.debug(s"stock02 >>> ${artId0}")
-          stock1 <- StockRepository.getById (stock1, Stock.MODELID, ftr1.company)//.debug(s"stock12 >>> ${artId1}")
-          article0 <- ArticleRepository.getById ( artId0, Article.MODELID, ftr1.company)//.debug(s"article02 >>> ${artId0}")
-          article1 <- ArticleRepository.getById ( artId1, Article.MODELID, ftr1.company)//.debug(s"article12 >>> ${artId1}")
-        yield assertTrue(oneRow ==  list.size+list.flatMap(_.lines).size ) &&
+          stocks <- StockRepository.getBy(createdStock.map(stock=>stock.id), modelid, ftr1.company)
+          stock0 <- StockRepository.getById (stock0, modelid, ftr1.company)//.debug(s"stock02 >>> ${artId0}")
+          stock1 <- StockRepository.getById (stock1, modelid, ftr1.company)//.debug(s"stock12 >>> ${artId1}")
+          article0 <- ArticleRepository.getById ( artId0, ModelId.ARTICLE.modelid, ftr1.company)//.debug(s"article02 >>> ${artId0}")
+          article1 <- ArticleRepository.getById ( artId1, ModelId.ARTICLE.modelid, ftr1.company)//.debug(s"article12 >>> ${artId1}")
+        yield assertTrue(oneRow.size ==  list.size+list.flatMap(_.lines).size ) &&
           assertTrue(postedRows == 3) &&
            assertTrue(stocks.size == 2, stock0.quantity.compareTo(quantityStock0)==0
           ,  stock1.quantity.compareTo(quantityStock1)==0

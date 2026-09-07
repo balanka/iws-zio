@@ -2,7 +2,6 @@ package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.config.appConfig
 import com.kabasoft.iws.domain.{ModelId, User}
-import com.kabasoft.iws.repository.container.PostgresContainer
 import com.kabasoft.iws.repository.container.PostgresContainer.appResourcesL
 import zio.ZLayer
 import zio.test.TestAspect.*

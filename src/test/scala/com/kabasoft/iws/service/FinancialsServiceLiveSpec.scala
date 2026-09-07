@@ -1,29 +1,33 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.config.appConfig
-import com.kabasoft.iws.domain.{Balance, PeriodicAccountBalance, common}
-import com.kabasoft.iws.domain.common.given 
-import com.kabasoft.iws.domain.AccountBuilder.{companyId, paccountId0, zero}
+import com.kabasoft.iws.domain.{Balance, common}
+import com.kabasoft.iws.domain.common.given
+import com.kabasoft.iws.domain.AccountBuilder.{companyId, paccountId0}
 import com.kabasoft.iws.domain.FinancialsTransactionBuilder.{ftr1, ftr2, line1, line2}
-import com.kabasoft.iws.repository.container.PostgresContainer
 import com.kabasoft.iws.repository.container.PostgresContainer.appResourcesL
-import com.kabasoft.iws.repository.{AccountRepository, AccountRepositoryLive, FinancialsTransactionRepository
-  , FinancialsTransactionRepositoryLive, JournalRepository, JournalRepositoryLive, PacRepository, PacRepositoryLive
-  , PostFinancialsTransactionRepositoryLive, PostTransactionRepositoryLive}
+import com.kabasoft.iws.repository.{AccountRepository, AccountRepositoryLive, BankAccountRepository
+  , BankAccountRepositoryLive, CompanyRepository, CompanyRepositoryLive, FModuleRepository, FModuleRepositoryLive
+  , FinancialsTransactionRepository, FinancialsTransactionRepositoryLive
+  , JournalRepository, JournalRepositoryLive, PacRepository, PacRepositoryLive, PostFinancialsTransactionRepositoryLive}
 import zio.ZLayer
 import zio.test.TestAspect.*
 import zio.test.*
+
 import java.math.{BigDecimal, RoundingMode}
-import java.time.{Instant, LocalDateTime, ZoneOffset}
+import java.time.Instant
 
 
 object FinancialsServiceLiveSpec extends ZIOSpecDefault {
   
   val testServiceLayer = ZLayer.make[AccountService & FinancialsService & FinancialsTransactionRepository & 
-    AccountRepository & PacRepository & JournalRepository](
+    AccountRepository & PacRepository & JournalRepository &CompanyRepository & FModuleRepository &BankAccountRepository](
     appResourcesL.project(_.postgres),
     appConfig,
+    CompanyRepositoryLive.live,
+    FModuleRepositoryLive.live,
     AccountRepositoryLive.live,
+    BankAccountRepositoryLive.live,
     AccountServiceLive.live,
     PacRepositoryLive.live,
     JournalRepositoryLive.live,
@@ -49,7 +53,7 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
       test("create  2 transaction") {
         for 
           oneRow     <- FinancialsTransactionRepository.create(list)
-         yield assertTrue(oneRow+list.size == 7 ) 
+         yield assertTrue(oneRow.size+list.size == 7 )
       },
       test("create and post 1 transaction") {
 
@@ -59,7 +63,7 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
         val toPeriod = currentYear.toString.concat("01").toInt
         val fromPeriod = currentYear.toString.concat("00").toInt
         //val toPPeriod = previousYear.toString.concat("12").toInt
-        val amount = new BigDecimal("200.00").setScale(2, RoundingMode.HALF_UP)
+        //val amount = new BigDecimal("200.00").setScale(2, RoundingMode.HALF_UP)
         //val amount2 = new BigDecimal("769.00").setScale(2, RoundingMode.HALF_UP)
         //val creditAmount = new BigDecimal("200.00").setScale(2, RoundingMode.HALF_UP)
 

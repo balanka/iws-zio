@@ -13,8 +13,10 @@ import java.time.{ Instant, LocalDateTime, ZoneId }
 final case class FModuleRepositoryLive(postgres: Resource[Task, Session[Task]]) extends FModuleRepository, MasterfileCRUD:
 
   import FModuleRepositorySQL.*
-
-  override def create(c: Fmodule):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
+  //override def create(c: Fmodule):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
+  override def create(c: Fmodule):ZIO[Any, RepositoryError, Int]= if (c.parent === "1300" || c.parent === "1301"){
+    executeWithTx(postgres, List((insert, c)))
+  } else executeWithTx(postgres, c, insert, 1)
   override def create(list: List[Fmodule]):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, list.map(encodeIt), insertAll(list.size), list.size)
   override def modify(model: Fmodule):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, Fmodule.encodeIt2, UPDATE, 1)
   override def modify(models: List[Fmodule]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, Fmodule.encodeIt2)
@@ -135,3 +137,5 @@ private[repository] object FModuleRepositorySQL:
   
   def DELETE: Command[(Int, Int, String)] =
     sql"DELETE FROM fmodule WHERE id = $int4 AND modelid = $int4 AND company = $varchar".command
+    
+  val CREATE_SEQUEBCE=sql"""create sequence master_compta_id_seq_1000 start with 1 """.command 

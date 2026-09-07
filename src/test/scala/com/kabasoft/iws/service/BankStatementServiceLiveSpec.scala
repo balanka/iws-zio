@@ -1,11 +1,7 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.config.appConfig
-import com.kabasoft.iws.domain.AccountBuilder.companyId
-
-import com.kabasoft.iws.domain.BankStatementBuilder.{bs, bs1} 
-import com.kabasoft.iws.domain.{BankStatement, BankStatementBuilder}
-import com.kabasoft.iws.repository.container.PostgresContainer
+import com.kabasoft.iws.domain.BankStatementBuilder.{bs, bs1}
 import com.kabasoft.iws.repository.container.PostgresContainer.appResourcesL
 import com.kabasoft.iws.repository.{AccountRepositoryLive, BankAccountRepositoryLive, BankStatementRepository, BankStatementRepositoryLive, CompanyRepository, CompanyRepositoryLive, CustomerRepository, CustomerRepositoryLive, FinancialsTransactionRepository, FinancialsTransactionRepositoryLive, SupplierRepository, SupplierRepositoryLive, VatRepositoryLive}
 import zio.ZLayer

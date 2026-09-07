@@ -10,7 +10,7 @@ import zio.prelude.FlipOps
 import zio.interop.catz.*
 import zio.*
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{Transaction, TransactionDetails, TransactionLog, common}
+import com.kabasoft.iws.domain.{Transaction, TransactionDetails, TransactionLog}
 import com.kabasoft.iws.repository.TransactionRepositoryLive.{ newTransactionDetailsFilter, newTransactionFilter
   , oldTransactionFilter, sequenceNames, setDetailsId, setTransactionId, transaction2Details
   , transactionDetails2DeleteFilter, transactionDetails2UpdateFilter}
