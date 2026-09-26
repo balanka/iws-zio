@@ -6,15 +6,12 @@ import com.kabasoft.iws.domain.common.given
 import com.kabasoft.iws.domain.AccountBuilder.{companyId, paccountId0}
 import com.kabasoft.iws.domain.FinancialsTransactionBuilder.{ftr1, ftr2, line1, line2}
 import com.kabasoft.iws.repository.container.PostgresContainer.appResourcesL
-import com.kabasoft.iws.repository.{AccountRepository, AccountRepositoryLive, BankAccountRepository
-  , BankAccountRepositoryLive, CompanyRepository, CompanyRepositoryLive, FModuleRepository, FModuleRepositoryLive
-  , FinancialsTransactionRepository, FinancialsTransactionRepositoryLive
-  , JournalRepository, JournalRepositoryLive, PacRepository, PacRepositoryLive, PostFinancialsTransactionRepositoryLive}
+import com.kabasoft.iws.repository.{AccountRepository, AccountRepositoryLive, BankAccountRepository, BankAccountRepositoryLive, CompanyRepository, CompanyRepositoryLive, FModuleRepository, FModuleRepositoryLive, FinancialsTransactionRepository, FinancialsTransactionRepositoryLive, JournalRepository, JournalRepositoryLive, ModuleRepositoryLive, PacRepository, PacRepositoryLive, PermissionRepositoryLive, PostFinancialsTransactionRepositoryLive, RoleRepositoryLive, UserRepositoryLive}
 import zio.ZLayer
 import zio.test.TestAspect.*
 import zio.test.*
 
-import java.math.{BigDecimal, RoundingMode}
+import java.math.BigDecimal
 import java.time.Instant
 
 
@@ -34,6 +31,10 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
     FinancialsTransactionRepositoryLive.live,
     FinancialsServiceLive.live,
     PostFinancialsTransactionRepositoryLive.live,
+    ModuleRepositoryLive.live,
+    UserRepositoryLive.live,
+    RoleRepositoryLive.live,
+    PermissionRepositoryLive.live,
     //PostgresContainer.createContainer
   )
   val list = List(ftr1, ftr2)

@@ -1913,7 +1913,6 @@ final case class FinancialsTransaction(
   def duplicate: FinancialsTransaction = copy(oid = id.toString, id = 0, posted = false)
 
 }
-//account = $int8, side = $bool, oaccount = $varchar, amount = $numeric, duedate = $timestamp, text=$varchar, currency = $varchar
 object FinancialsTransactionDetails:
   val FAKE_COMAPNY=0
   val dummy  = FinancialsTransactionDetails(0, 0, "", true, "", zeroAmount, Instant.now(), "", "EUR", "", "", "", -1)
@@ -2079,7 +2078,13 @@ object Role:
   def encodeIt2(st: Role): TYPE3 = (st.name, st.description, st.id, st.modelid, st.company)
 
 final case class  UserRight (moduleid:Int,  roleid:Int, short:String, company:String, modelid:Int = ModelId.USER_RIGHT.modelid)
+object UserRight:
+  type TYPE = (Int, Int, String, String, Int)
+  def encodeIt(st: UserRight): TYPE =   (st.moduleid, st.roleid, st.short, st.company,  st.moduleid)
 final case class  UserRole (userid:Int,  roleid:Int, company:String, modelid:Int = ModelId.USER_ROLE.modelid)
+object UserRole:
+  type TYPE = (Int, Int, String, Int)
+  def encodeIt(st: UserRole): TYPE =   (st.userid, st.roleid, st.company,  st.modelid)
 final case class  Permission (id:Int, name:String, description:String, short:String,
                               changedate: Instant,
                               postingdate: Instant,
@@ -2113,7 +2118,27 @@ final case class  Fmodule (id:Int, name:String, description:String,
                            modelid:Int = ModelId.FMODULE.modelid,
                            company:String )
 object Fmodule:
+  type TYPE = (Int, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Boolean, String, String, String
+    , String, String, String, Int, String)
   type TYPE2 = (String, String, String, Boolean, String, String, String, String, String, String, Int, Int, String)
+  def encodeIt (st: Fmodule): TYPE =
+  (st.id,
+    st.name,
+    st.description,
+    st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
+    st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
+    st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
+    st.account,
+    st.isDebit,
+    st.parent,
+    st.copyFrom,
+    st.accFilter,
+    st.oaccFilter,
+    st.template1,
+    st.template2,
+    st.modelid,
+    st.company
+  )
   def encodeIt2(st: Fmodule): TYPE2 =
     (st.name, st.description, st.account, st.isDebit, st.parent, st.copyFrom, st.accFilter, st.oaccFilter, st.template1
       , st.template2, st.id, st.modelid, st.company)

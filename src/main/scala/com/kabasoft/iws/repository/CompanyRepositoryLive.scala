@@ -3,7 +3,7 @@ import cats.*
 import cats.effect.Resource
 import cats.syntax.all.*
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{BankAccount, Company, ModelId}
+import com.kabasoft.iws.domain.{BankAccount, Company, Fmodule, ModelId, Module, Permission, Role, User, UserRight, UserRole}
 import com.kabasoft.iws.repository.BankStatementRepositorySQL.BANK_STATEMENT_SEQUENCE_PREF
 import com.kabasoft.iws.repository.FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF
 import com.kabasoft.iws.repository.JournalRepositoryLive.JOURNAL_SEQUENCE_PREF
@@ -18,6 +18,8 @@ import zio.{Task, ZIO, ZLayer}
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
+                                        , moduleRepo: ModuleRepository, fmoduleRepo:FModuleRepository
+                                        , userRepo:UserRepository, roleRepo:RoleRepository, permissionRepo:PermissionRepository
                                        , bankAccRepo:BankAccountRepository) extends CompanyRepository, MasterfileCRUD:
 
   import CompanyRepositorySQL._
@@ -34,16 +36,37 @@ final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
       , insert, BankAccountRepositorySQL.insert, CompanyRepositorySQL.UPDATE, BankAccountRepositorySQL.UPDATE_BANK_ACCOUNT
       , BankAccountRepositorySQL.DELETE_BANK_ACCOUNT)
 
-  override def create(c: Company): ZIO[Any, RepositoryError, Int] = {
-      val details_compta_seq_command = createSequence(FINANCIAL_DETAIL_SEQUENCE_PREF, c.id)
-      val transaction_details_seq_command = createSequence(TRANSACTION_DETAIL_SEQUENCE_PREF, c.id)
-      val transaction_log_seq_command = createSequence(TRANSACTION_LOG_SEQUENCE_PREF, c.id)
-       val journal_seq_command = createSequence(JOURNAL_SEQUENCE_PREF, c.id)
-      val bankStmt_seq_command = createSequence(BANK_STATEMENT_SEQUENCE_PREF, c.id)
-       val commands = List(details_compta_seq_command, transaction_details_seq_command, transaction_log_seq_command
-         , journal_seq_command, bankStmt_seq_command )
-      executeWithTx(postgres, commands) *> executeWithTx(postgres, c, insert, 1)
-  }
+  override def create(c: Company): ZIO[Any, RepositoryError, Int] = for {
+      modules <- moduleRepo.all(ModelId.MODULE.modelid, "5700")
+      fmodules <- fmoduleRepo.all(ModelId.FMODULE.modelid, "5700")
+      users <- userRepo.all(ModelId.USER.modelid, "5700")
+      roles <- roleRepo.all(ModelId.ROLE.modelid, "5700")
+      permissions <- permissionRepo.all(ModelId.PERMISSION.modelid, "5700")
+      userRoles <- roleRepo.allUserRoles(ModelId.USER_ROLE.modelid, "5700")
+      userRights <- roleRepo.allRights(ModelId.USER_RIGHT.modelid, "5700")
+      details_compta_seq_command = createSequence(FINANCIAL_DETAIL_SEQUENCE_PREF, c.id)
+      transaction_details_seq_command = createSequence(TRANSACTION_DETAIL_SEQUENCE_PREF, c.id)
+      transaction_log_seq_command = createSequence(TRANSACTION_LOG_SEQUENCE_PREF, c.id)
+      journal_seq_command = createSequence(JOURNAL_SEQUENCE_PREF, c.id)
+      bankStmt_seq_command = createSequence(BANK_STATEMENT_SEQUENCE_PREF, c.id)
+      commands: List[(Command[Any], Any)] = List(
+        cmdWithArg(insert, c),
+        cmdWithArg(ModuleRepositorySQL.insertAll(modules.size), modules.map(_.copy(company = c.id)).map(Module.encodeIt)),
+        cmdWithArg(FModuleRepositorySQL.insertAll(fmodules.size), fmodules.map(_.copy(company = c.id)).map(Fmodule.encodeIt)),
+        cmdWithArg(UserRepositorySQL.insertAll(users.size), users.map(_.copy(company = c.id)).map(User.encodeIt)),
+        cmdWithArg(PermissionRepositorySQL.insertAll(permissions.size), permissions.map(_.copy(company = c.id)).map(Permission.encodeIt)),
+        cmdWithArg(RoleRepositorySQL.insertAll(roles.size), roles.map(_.copy(company = c.id)).map(Role.encodeIt)),
+        cmdWithArg(RoleRepositorySQL.insertUserRole(userRoles.size), userRoles.map(_.copy(company = c.id)).map(UserRole.encodeIt)),
+        cmdWithArg(RoleRepositorySQL.insertUserRight(userRights.size), userRights.map(_.copy(company = c.id)).map(UserRight.encodeIt)),
+        cmdWithArg(details_compta_seq_command, skunk.Void),
+        cmdWithArg(transaction_details_seq_command, skunk.Void),
+        cmdWithArg(transaction_log_seq_command, skunk.Void),
+        cmdWithArg(journal_seq_command, skunk.Void),
+        cmdWithArg(bankStmt_seq_command, skunk.Void)
+      )
+      result <- executeWithTx(postgres, commands).mapError(t => RepositoryError(t.getMessage))
+    } yield result
+
   //override def create(c: Company): ZIO[Any, RepositoryError, Int] = create(List(c))
   override def create(models: List[Company]): ZIO[Any, RepositoryError, Int] =
     (postgres
@@ -98,8 +121,9 @@ final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
 
 object CompanyRepositoryLive:
 
-  val live: ZLayer[Resource[Task, Session[Task]] & BankAccountRepository, RepositoryError, CompanyRepository] =
-    ZLayer.fromFunction(new CompanyRepositoryLive(_, _))
+  val live: ZLayer[Resource[Task, Session[Task]] & BankAccountRepository & ModuleRepository & FModuleRepository
+    &UserRepository & RoleRepository & PermissionRepository, RepositoryError, CompanyRepository] =
+    ZLayer.fromFunction(new CompanyRepositoryLive(_, _, _, _, _, _, _))
 
 private[repository] object CompanyRepositorySQL:
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
@@ -137,7 +161,7 @@ private[repository] object CompanyRepositorySQL:
            FROM   company
            WHERE id  IN ${varchar.list(nr)} AND  modelid = $int4
            ORDER BY id ASC""".query(mfDecoder)
-
+//WHERE id = $varchar AND modelid = $int4 AND company = $varchar
   val BY_ID: Query[String *: Int *: EmptyTuple, Company] =
     sql"""SELECT id, name, street, zip, city, state, country, email, contact, phone, bank_acc, iban, tax_code, vat_code
           , currency, locale, account, oaccount, balance_sheet_acc, income_stmt_acc, purchasing_clearing_acc
@@ -174,7 +198,7 @@ private[repository] object CompanyRepositorySQL:
           , income_stmt_acc =$varchar, purchasing_clearing_acc =$varchar, sales_clearing_acc =$varchar,  cash_acc=$varchar
           , account=$varchar, oaccount=$varchar 
           WHERE id=$varchar and modelid=$int4""".command
-  
+
   def DELETE: Command[(String, Int)] = sql"DELETE FROM Company WHERE id = $varchar AND modelid = $int4".command
 
   def createSequence(name: String, companyId: String) = {
@@ -184,3 +208,6 @@ private[repository] object CompanyRepositorySQL:
 
   def sequenceName(sequenceName: String, companyId: String): String =
     s"${sequenceName}_${companyId}}"
+
+  def cmdWithArg[A](cmd: Command[A], arg: A): (Command[Any], Any) =
+    (cmd.asInstanceOf[Command[Any]], arg)

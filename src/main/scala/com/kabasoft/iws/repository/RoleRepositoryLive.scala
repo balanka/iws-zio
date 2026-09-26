@@ -74,6 +74,7 @@ private[repository] object RoleRepositorySQL:
      case (moduleId, roleId, short,  company, modelId) =>UserRight(moduleId,  roleId, short, company, modelId)
 
   val mfEncoder: Encoder[Role] = mfCodec.values.contramap(Role.encodeIt)
+  //val rightEncoder: Encoder[UserRight] = rightCodec.values.contramap(UserRight.encodeIt)
 
   def base =
     sql""" SELECT id, name, description, enterdate, changedate, postingdate, company, modelid
@@ -120,9 +121,12 @@ private[repository] object RoleRepositorySQL:
            FROM   user_role
            WHERE  modelid = $int4 AND company = $varchar
            """.query(userRoleDecoder)
-  
 
   val insert: Command[Role] = sql"""INSERT INTO role VALUES $mfEncoder """.command
+
+  def insertUserRight(n: Int): Command[List[UserRight.TYPE]] = sql"INSERT INTO user_right VALUES ${rightCodec.values.list(n)}".command
+  def insertUserRole(n: Int): Command[List[UserRole.TYPE]] = sql"INSERT INTO user_role VALUES ${userRoleCodec.values.list(n)}".command
+  
   def insertAll(n:Int): Command[List[Role.TYPE2]] = sql"INSERT INTO role VALUES ${mfCodec.values.list(n)}".command
 
   val UPDATE: Command[Role.TYPE3] =

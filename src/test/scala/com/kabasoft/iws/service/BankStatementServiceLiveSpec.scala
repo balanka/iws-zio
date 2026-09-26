@@ -3,7 +3,10 @@ package com.kabasoft.iws.service
 import com.kabasoft.iws.config.appConfig
 import com.kabasoft.iws.domain.BankStatementBuilder.{bs, bs1}
 import com.kabasoft.iws.repository.container.PostgresContainer.appResourcesL
-import com.kabasoft.iws.repository.{AccountRepositoryLive, BankAccountRepositoryLive, BankStatementRepository, BankStatementRepositoryLive, CompanyRepository, CompanyRepositoryLive, CustomerRepository, CustomerRepositoryLive, FinancialsTransactionRepository, FinancialsTransactionRepositoryLive, SupplierRepository, SupplierRepositoryLive, VatRepositoryLive}
+import com.kabasoft.iws.repository.{AccountRepositoryLive, BankAccountRepositoryLive, BankStatementRepository
+  , BankStatementRepositoryLive, CompanyRepository, CompanyRepositoryLive, CustomerRepository, CustomerRepositoryLive
+  , FinancialsTransactionRepository, FinancialsTransactionRepositoryLive, ModuleRepositoryLive, RoleRepositoryLive
+  , SupplierRepository, SupplierRepositoryLive, VatRepositoryLive, FModuleRepositoryLive, UserRepositoryLive, PermissionRepositoryLive }
 import zio.ZLayer
 import zio.test.TestAspect.*
 import zio.test.*
@@ -23,6 +26,12 @@ object BankStatementServiceLiveSpec extends ZIOSpecDefault {
     BankAccountRepositoryLive.live,
     BankStatementRepositoryLive.live,
     BankStatementServiceLive.live,
+    //CompanyRepositoryLive.live,
+    ModuleRepositoryLive.live,
+    FModuleRepositoryLive.live,
+    UserRepositoryLive.live,
+    RoleRepositoryLive.live,
+    PermissionRepositoryLive.live,
     //PostgresContainer.createContainer
   )
 

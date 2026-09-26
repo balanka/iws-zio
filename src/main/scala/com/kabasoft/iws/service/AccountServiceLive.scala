@@ -13,6 +13,7 @@ final class AccountServiceLive(accRepo: AccountRepository, pacRepo: PacRepositor
       accounts <- accRepo.all((ModelId.ACCOUNT.modelid, companyId))
       period00 = toPeriod.toString.slice(0, 4).concat("00").toInt
       pacBalances <- pacRepo.findBalance4Period(period00, toPeriod, companyId)
+     // _<- ZIO.logInfo(s" >>>>>>>> pacBalances 4 period00: $period00 pacBalances: $pacBalances" )
       allPacs = pacBalances.groupBy(_.account).map { case (_, v) => reduce(v, PeriodicAccountBalance.dummy) }
       .toList
        accountsWithBalances = allPacs.flatMap(pac =>
@@ -35,6 +36,7 @@ final class AccountServiceLive(accRepo: AccountRepository, pacRepo: PacRepositor
     val fromPeriod = currentYear.toString.concat("01").toInt
     val nr = for {
       pacs         <- pacRepo.findBalance4Period(fromPeriod, toPeriod, company)
+      _<- ZIO.logInfo(s"pacs 4 fromPeriod:$fromPeriod, toPeriod:$toPeriod pacs>>> ${pacs}")
       allAccounts  <- accRepo.all(ModelId.ACCOUNT.modelid, company)
       currentPeriod = currentYear.toString.concat("00").toInt
       nextPeriod    = (currentYear + 1).toString.concat("00").toInt

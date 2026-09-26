@@ -53,6 +53,10 @@ object TransactionServiceLiveSpec extends ZIOSpecDefault {
     PostStocktakeLive.live,
     FinancialsTransactionRepositoryLive.live,
     FinancialsServiceLive.live,
+    ModuleRepositoryLive.live,
+    UserRepositoryLive.live,
+    RoleRepositoryLive.live,
+    PermissionRepositoryLive.live,
     //PostgresContainer.createContainer
   )
   val list  = List(ftr1, ftr2, ftr3, ftr4, ftr5, ftr6)

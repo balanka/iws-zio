@@ -34,6 +34,11 @@ val company = Company("-1000", "ABC GmbH", "Word stree1 0", "55555", "FF", "Hess
     appConfig,
     BankAccountRepositoryLive.live,
     CompanyRepositoryLive.live,
+    ModuleRepositoryLive.live,
+    FModuleRepositoryLive.live,
+    UserRepositoryLive.live,
+    RoleRepositoryLive.live,
+   PermissionRepositoryLive.live,
     //PostgresContainer.createContainer
   )
   val ids = companies.map(m => (m.id, m.modelid))

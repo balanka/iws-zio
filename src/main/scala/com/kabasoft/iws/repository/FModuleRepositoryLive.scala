@@ -25,7 +25,7 @@ final case class FModuleRepositoryLive(postgres: Resource[Task, Session[Task]]) 
       executeWithTx(postgres, command, 1 ) *> executeWithTx(postgres, c, insert, 1)
     } else executeWithTx(postgres, c, insert, 1)
   }
-  override def create(list: List[Fmodule]):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, list.map(encodeIt), insertAll(list.size), list.size)
+  override def create(list: List[Fmodule]):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, list.map(Fmodule.encodeIt), insertAll(list.size), list.size)
   override def modify(model: Fmodule):ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, model, Fmodule.encodeIt2, UPDATE, 1)
   override def modify(models: List[Fmodule]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, Fmodule.encodeIt2)
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Fmodule]] = queryWithTx(postgres, p, ALL)
@@ -40,31 +40,30 @@ object FModuleRepositoryLive:
     ZLayer.fromFunction(new FModuleRepositoryLive(_))
 
 private[repository] object FModuleRepositorySQL:
-  type TYPE = (Int, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Boolean, String, String, String
-    , String, String, String,Int, String)
+
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 
   private val mfCodec =
     (int4 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: varchar  *:bool  *: varchar *:varchar *: varchar *:varchar *: varchar *:varchar *:int4 *: varchar)
-  private[repository] def encodeIt(st: Fmodule): TYPE =
-    (st.id,
-      st.name,
-      st.description,
-      st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
-      st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
-      st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
-      st.account,
-      st.isDebit,
-      st.parent,
-      st.copyFrom,
-      st.accFilter,
-      st.oaccFilter,
-      st.template1,
-      st.template2,
-      st.modelid,
-      st.company
-    )
+//  private[repository] def encodeIt(st: Fmodule): TYPE =
+//    (st.id,
+//      st.name,
+//      st.description,
+//      st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
+//      st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
+//      st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
+//      st.account,
+//      st.isDebit,
+//      st.parent,
+//      st.copyFrom,
+//      st.accFilter,
+//      st.oaccFilter,
+//      st.template1,
+//      st.template2,
+//      st.modelid,
+//      st.company
+//    )
   val mfDecoder: Decoder[Fmodule] = mfCodec.map :
     case (id, name, description, enterdate, changedate, postingdate, account, isDebit,  parent, copyFrom, accFilter
      , oaccFilter, template1, template2,modelid, company) =>
@@ -135,7 +134,7 @@ private[repository] object FModuleRepositorySQL:
     sql"""INSERT INTO fmodule (id, name, description, enterdate,changedate, postingdate,  account, is_debit, parent
          , copy_from, acc_filter, oacc_filter,  template1, template2, modelid, company ) VALUES $mfEncoder """.command
 
-  def insertAll(n:Int): Command[List[TYPE]]= sql"INSERT INTO fmodule VALUES ${mfCodec.values.list(n)}".command
+  def insertAll(n:Int): Command[List[Fmodule.TYPE]]= sql"INSERT INTO fmodule VALUES ${mfCodec.values.list(n)}".command
 
   val UPDATE: Command[Fmodule.TYPE2] =
     sql"""UPDATE fmodule

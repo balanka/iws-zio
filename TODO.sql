@@ -190,6 +190,9 @@ s   update fmodule set acc_filter='CL, 411, 52, 57, 58, 418', oacc_filter='701, 
                               ('155', 1, '+', 1000, 131), ('155', 1, 'r', 1000, 131), ('155', 1, 'w', 1000, 131),
                               ('155', 2, '+', 1000, 131),('155', 2, 'r', 1000, 131),('155', 2, 'w', 1000, 131);
 
+create sequence public.journal_id_seq_1000 start with 22302;
+alter sequence public.journal_id_seq_1000 owner to postgres;
+
 create sequence public.transaction_log_id_seq_1000 start with 400;
 alter sequence public.transaction_log_id_seq_1000 owner to postgres;
 create sequence public.bankstatement_id_seq_1000 start with 43952;

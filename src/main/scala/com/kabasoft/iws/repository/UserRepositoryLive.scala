@@ -71,7 +71,7 @@ object UserRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]] & RoleRepository, RepositoryError, UserRepository] =
     ZLayer.fromFunction(new UserRepositoryLive(_, _))
 
-private[repository] object UserRepositorySQL:
+object UserRepositorySQL:
   type TYPE = (Int, String, String, String, String, String, String, String, String, String, Int)
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
