@@ -1,0 +1,52 @@
+# ---- Builder stage ----
+FROM ghcr.io/graalvm/native-image-community:24 AS builder
+
+# BuildKit sets this automatically from --platform
+ARG TARGETARCH
+
+WORKDIR /app
+
+COPY target/scala-3.9.0/iws-api-assembly-*.jar ./iws-api.jar
+COPY graal/ ./graal/
+
+RUN native-image \
+    --no-fallback \
+    -H:+ReportExceptionStackTraces \
+    -H:+UnlockExperimentalVMOptions \
+    -H:ConfigurationFileDirectories=graal/ \
+    -H:IncludeResources=application.conf \
+    -H:IncludeResources=reference.conf \
+    --enable-url-protocols=http,https \
+    --initialize-at-run-time=io.netty.channel.DefaultFileRegion \
+    --initialize-at-run-time=io.netty.channel.epoll.Native \
+    --initialize-at-run-time=io.netty.channel.epoll.Epoll \
+    --initialize-at-run-time=io.netty.channel.epoll.EpollEventLoop \
+    --initialize-at-run-time=io.netty.channel.epoll.EpollEventArray \
+    --initialize-at-run-time=io.netty.channel.kqueue.KQueue \
+    --initialize-at-run-time=io.netty.channel.kqueue.KQueueEventLoop \
+    --initialize-at-run-time=io.netty.channel.kqueue.KQueueEventArray \
+    --initialize-at-run-time=io.netty.channel.kqueue.Native \
+    --initialize-at-run-time=io.netty.channel.unix.Limits \
+    --initialize-at-run-time=io.netty.channel.unix.Errors \
+    --initialize-at-run-time=io.netty.channel.unix.IovArray \
+    --initialize-at-run-time=io.netty.handler.ssl.BouncyCastleAlpnSslUtils \
+    -o /app/iws-api \
+    -jar ./iws-api.jar
+
+# Stage libz at the correct multiarch path for the target arch.
+# Debian's triples differ from Docker's arch names, so we map them here.
+RUN case "$TARGETARCH" in \
+      amd64) TRIPLE=x86_64-linux-gnu ;; \
+      arm64) TRIPLE=aarch64-linux-gnu ;; \
+      *) echo "unsupported TARGETARCH: $TARGETARCH" >&2; exit 1 ;; \
+    esac && \
+    mkdir -p /out/lib/$TRIPLE && \
+    cp /usr/lib64/libz.so.1 /out/lib/$TRIPLE/libz.so.1
+
+# ---- Runtime stage ----
+FROM gcr.io/distroless/base-debian12
+
+COPY --from=builder /app/iws-api /app/iws-api
+COPY --from=builder /out/ /
+
+ENTRYPOINT ["/app/iws-api"]
