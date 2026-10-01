@@ -43,38 +43,38 @@ final class PostCustomerInvoiceLive(vatRepo: VatRepository
         val accountName = accounts.find(_.id == partnerAccountId).fold("")(acc => acc.name)
         val oaccountName = accounts.find(_.id == vat.outputVatAccount).fold("")(acc => acc.name)
         FinancialsTransactionDetails(-1, 0, partnerAccountId, side = true, vat.outputVatAccount, l.quantity.multiply(l.price).multiply(vat.percent)
-          , Instant.now(), l.text, currency, model.company, accountName, oaccountName)
+          , Instant.now(), l.text, currency, model.company, accountName, oaccountName, modelid)
     }.groupBy(line => (line.account, line.oaccount)).map { case (_, v) => common.reduce(v, FinancialsTransactionDetails.dummy)}.toList
     // build details for net amount
     val netDetails: List[FinancialsTransactionDetails] = model.lines.map { line =>
         val oaccount =  articleId2RevenueAccount(line.article, articles, accounts)
         val accountName = accounts.find(_.id == partnerAccountId).fold("")(acc => acc.name)
         FinancialsTransactionDetails(-1, 0, partnerAccountId, side = true, oaccount.id, line.quantity.multiply(line.price), Instant.now()
-          , model.text, currency, model.company, accountName, oaccount.name)
+          , model.text, currency, model.company, accountName, oaccount.name, modelid)
     }.groupBy(line => (line.account, line.oaccount)).map { case (_, v) => common.reduce(v, FinancialsTransactionDetails.dummy)}.toList
 
     val details: List[FinancialsTransactionDetails] = (netDetails ++ vatDetails).filterNot(_.account == FinancialsTransactionDetails.dummy.account)
       .groupBy(d => (d.account, d.oaccount)).map { case (_, v) => common.reduce(v, FinancialsTransactionDetails.dummy) }.toList
-    val financialsTransaction = FinancialsTransaction(-1, model.id, 0, model.store, partnerAccountId, model.transdate
-      , Instant.now(), Instant.now(), model.period, posted = false, modelid, model.company, model.text, -1, -1, details)
+    val financialsTransaction = FinancialsTransaction(-1, model.id.toString, model.contact, model.store, partnerAccountId, model.transdate
+      , Instant.now(), Instant.now(), model.period, posted = false, modelid, model.company, model.text, model.footText, -1, details)
     (model.copy(posted = true), financialsTransaction.copy(posted = true))
   }
 
   private def postTransaction(transactions: List[Transaction], company: Company):
   ZIO[Any, RepositoryError, (List[Transaction], List[FinancialsTransaction], List[PeriodicAccountBalance]
     , ZIO[Any, Nothing, List[PeriodicAccountBalance]], List[TransactionLog], List[Journal], List[Stock], List[Stock], List[Article])] = for {
-    accounts <- accRepo.all(Account.MODELID, company.id)
-    articles <- artRepo.all(Article.MODELID, company.id)
-    customers <- customerRepo.all(Customer.MODELID, company.id)
+    accounts <- accRepo.all(ModelId.ACCOUNT.modelid, company.id)
+    articles <- artRepo.all(ModelId.ARTICLE.modelid, company.id)
+    customers <- customerRepo.all(ModelId.CUSTOMER.modelid, company.id)
     vatIds = transactions.flatMap(_.lines.map(_.vatCode)).distinct
-    vats <-  vatRepo.getBy(vatIds, Vat.MODEL_ID, company.id)
-    newFtr = transactions.map(buildFinancials(_,  articles, accounts, customers, vats, TransactionModelId.RECEIVABLES.id))
+    vats <-  vatRepo.getBy(vatIds, ModelId.VAT.modelid, company.id)
+    newFtr = transactions.map(buildFinancials(_,  articles, accounts, customers, vats, ModelId.RECEIVABLES.modelid))
     (transactionsx:List[Transaction], financials:List[FinancialsTransaction]) = newFtr.unzip
     result <- postFinancials(financials, financialsService)
     models = result.map(_._1)
-    newPacs = result.map(_._2).flatten
+    newPacs = result.flatMap(_._2)
     oldPacs = result.map(_._3).flip.map(_.flatten)
-    journalEntries = result.map(_._4).flatten
+    journalEntries = result.flatMap(_._4)
     _<-ZIO.logInfo(s"result2   from  bill of delivery  transaction with  of company ${result}")
     _<-ZIO.logInfo(s"new Pacs   from  bill of delivery  transaction with  of company ${newPacs}")
     _<-ZIO.logInfo(s"Oldoacs   from  bill of delivery  transaction with  of company ${oldPacs}")

@@ -62,7 +62,7 @@ object FModuleEndpoint:
 
   val fmoduleAllRoute =
     mAll.implement : p =>
-      ZIO.logInfo(s"Insert fmodule  ${p}") *>
+      ZIO.logInfo(s"Get all fmodule  ${p}") *>
         FModuleRepository.all((p._1, p._2))
 
   val fmoduleByIdRoute =

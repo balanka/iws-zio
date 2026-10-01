@@ -1,13 +1,13 @@
 package com.kabasoft.iws.repository
 
 import cats.effect.Resource
-import cats.syntax.all._
-import cats._
-import skunk._
-import skunk.codec.all._
-import skunk.implicits._
+import cats.syntax.all.*
+import cats.*
+import skunk.*
+import skunk.codec.all.*
+import skunk.implicits.*
 import zio.{Task, ZIO, ZLayer}
-import com.kabasoft.iws.domain.{Role, UserRight, UserRole}
+import com.kabasoft.iws.domain.{ModelId, Role, UserRight, UserRole}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 
 import java.time.{Instant, LocalDateTime, ZoneId}
@@ -26,7 +26,7 @@ final case class RoleRepositoryLive(postgres: Resource[Task, Session[Task]]) ext
   
   override def all(p: (Int, String)): ZIO[Any, RepositoryError, List[Role]] = for {
     roles_ <- list(p)
-    user_rights <- allRights(UserRight.MODEL_ID, p._2)
+    user_rights <- allRights(ModelId.USER_RIGHT.modelid, p._2)
   } yield {
    val roles:List[Role] = roles_.map(r => r.copy(rights = r.rights.:::(user_rights.filter(rt => rt.roleid == r.id))))
     roles
@@ -74,6 +74,7 @@ private[repository] object RoleRepositorySQL:
      case (moduleId, roleId, short,  company, modelId) =>UserRight(moduleId,  roleId, short, company, modelId)
 
   val mfEncoder: Encoder[Role] = mfCodec.values.contramap(Role.encodeIt)
+  //val rightEncoder: Encoder[UserRight] = rightCodec.values.contramap(UserRight.encodeIt)
 
   def base =
     sql""" SELECT id, name, description, enterdate, changedate, postingdate, company, modelid
@@ -120,9 +121,12 @@ private[repository] object RoleRepositorySQL:
            FROM   user_role
            WHERE  modelid = $int4 AND company = $varchar
            """.query(userRoleDecoder)
-  
 
   val insert: Command[Role] = sql"""INSERT INTO role VALUES $mfEncoder """.command
+
+  def insertUserRight(n: Int): Command[List[UserRight.TYPE]] = sql"INSERT INTO user_right VALUES ${rightCodec.values.list(n)}".command
+  def insertUserRole(n: Int): Command[List[UserRole.TYPE]] = sql"INSERT INTO user_role VALUES ${userRoleCodec.values.list(n)}".command
+  
   def insertAll(n:Int): Command[List[Role.TYPE2]] = sql"INSERT INTO role VALUES ${mfCodec.values.list(n)}".command
 
   val UPDATE: Command[Role.TYPE3] =

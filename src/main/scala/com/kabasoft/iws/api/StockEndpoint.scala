@@ -1,13 +1,13 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.AppError.*
-import com.kabasoft.iws.domain.{AppError, Stock}
+import com.kabasoft.iws.domain.{AppError, ModelId, Stock}
 import com.kabasoft.iws.repository.StockRepository
-import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, stockSchema, repositoryErrorSchema}
+import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, repositoryErrorSchema, stockSchema}
 import zio.schema.Schema
 import zio.*
 import zio.http.*
-import zio.http.codec.PathCodec.{path, int, string}
+import zio.http.codec.PathCodec.{int, path, string}
 import zio.http.codec.*
 import zio.http.endpoint.Endpoint
 
@@ -42,6 +42,6 @@ object StockEndpoint:
   val stockByStoreAndArticleRoute =
     stockByStoreAndArticle.implement: p =>
       ZIO.logInfo(s"get all  stock for store ${p._1}  and article ${p._2} and company ${p._3}") *>
-        StockRepository.getByStoreArticle(p._1, p._2, Stock.MODELID, p._3)
+        StockRepository.getByStoreArticle(p._1, p._2, ModelId.STOCK.modelid, p._3)
   
   val stockRoutes = Routes(stockByStoreAndArticleRoute, stockAllRoute) @@ Middleware.debug

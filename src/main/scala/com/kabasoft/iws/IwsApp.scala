@@ -3,7 +3,7 @@ import com.kabasoft.iws.healthcheck.expose
 import com.kabasoft.iws.api.LoginRoutes.loginRoutes
 import com.kabasoft.iws.config.AppConfig
 import com.kabasoft.iws.resources.AppResources
-import zio.interop.catz._
+import zio.interop.catz.*
 import cats.effect.std.Console
 import natchez.Trace.Implicits.noop
 import com.kabasoft.iws.config.appConfig
@@ -19,10 +19,12 @@ import com.kabasoft.iws.api.EmployeeEndpoint.employeeRoutes
 import com.kabasoft.iws.api.FModuleEndpoint.fmoduleRoutes
 import com.kabasoft.iws.api.FinancialsEndpoint.financialsRoutes
 import com.kabasoft.iws.api.ImportFileEndpoint.importFileRoutes
+import com.kabasoft.iws.api.InventoryJournalEndpoint.inventoryJournalRoutes
 import com.kabasoft.iws.api.MasterfileEndpoint.masterfileRoutes
 import com.kabasoft.iws.api.ModuleEndpoint.moduleRoutes
 import com.kabasoft.iws.api.PayrollEndpoint.payrollRoutes
 import com.kabasoft.iws.api.PermissionEndpoint.permissionRoutes
+import com.kabasoft.iws.api.PartnerEndpoint.partnerRoutes
 import com.kabasoft.iws.api.RoleEndpoint.roleRoutes
 import com.kabasoft.iws.api.SalaryItemEndpoint.salaryItemRoutes
 import com.kabasoft.iws.api.PayrollTaxRangeEndpoint.payrollTaxRoutes
@@ -31,55 +33,63 @@ import com.kabasoft.iws.api.StoreEndpoint.storeRoutes
 import com.kabasoft.iws.api.SupplierEndpoint.supplierRoutes
 import com.kabasoft.iws.api.TransactionEndpoint.transactionRoutes
 import com.kabasoft.iws.api.UserEndpoint.userRoutes
-import com.kabasoft.iws.api.Utils.bearerAuthWithContext
+import com.kabasoft.iws.api.Utils.bearerAuthWithContext2
+import com.kabasoft.iws.api.ApartmentEndpoint.apartmentRoutes
+import com.kabasoft.iws.api.RoomEndpoint.roomRoutes
+import com.kabasoft.iws.api.RealEstateEndpoint.realEstateRoutes
+import com.kabasoft.iws.api.FloorEndpoint.floorRoutes
 import com.kabasoft.iws.api.VatEndpoint.vatRoutes
 import com.kabasoft.iws.repository._
 import com.kabasoft.iws.service._
-import zio._
-import zio.http.Header.{AccessControlAllowMethods, AccessControlAllowOrigin, Origin}
-import zio.http.Middleware.{CorsConfig, cors}
+import zio.*
 import zio.http.Server.Config
-import zio.http.{Method, Server}
+import zio.http.Server
+
 import java.lang.System
 import java.time.Clock
 import java.util
 import scala.annotation.nowarn
 import scala.language.postfixOps
-import java.net.InetAddress
 
 object IwsApp extends ZIOAppDefault {
 
   implicit val clock: Clock = Clock.systemUTC
   val env: util.Map[String, String] = System.getenv()
-  val hostName_env: String = env.get("IWS_API_HOST")
-  val port_env: String = env.get("IWS_API_PORT")
-  val hostName_prop: String = System.getProperty("IWS_API_HOST")  
-  val port_prop: String = System.getProperty("IWS_API_PORT")
-  val hostName: String = if (hostName_env == null || hostName_env.isEmpty ) hostName_prop else  hostName_env
-  val port: Int = if (port_env == null || port_env.isEmpty) port_prop.toInt else port_env.toInt 
+  val api_hostName_env: String = env.get("IWS_API_HOST")
+  val web_hostName_env: String = env.get("IWS_WEB_HOST")
+  val api_port_env: String = env.get("IWS_API_PORT")
+  val api_hostName_prop: String = System.getProperty("IWS_API_HOST")
+  val web_hostName_prop: String = System.getProperty("IWS_WEB_HOST")
+  val api_port_prop: String = System.getProperty("IWS_API_PORT")
+  val api_hostName: String = if (api_hostName_env == null || api_hostName_env.isEmpty ) api_hostName_prop else  api_hostName_env
+  val web_hostName: String = if (web_hostName_env == null || web_hostName_env.isEmpty ) web_hostName_prop else  web_hostName_env
+  val api_port: Int = if (api_port_env == null || api_port_env.isEmpty) api_port_prop.toInt else api_port_env.toInt
 
-  println("hostName>>> " + hostName + " hostport >>>" + port)
+
+  println("api-hostName>>> " + api_hostName + " api_host Port >>>" + api_port)
+  println("web-hostName>>> " + web_hostName )
   private val serverLayer: ZLayer[Any, Throwable, Server] = {
     implicit val trace: Trace = Trace.empty
     ZLayer.succeed(
-      Config.default.binding(hostName, port)
+      Config.default.binding(api_hostName, api_port)
     ) >>> Server.live
   }
 
-  val config: CorsConfig =
-    CorsConfig(
-      allowedOrigin = {
-        case origin @ Origin.Value(_, host, _) if (host == hostName ||
-          host == "localhost" || host == "127.0.0.1" ) => Some(AccessControlAllowOrigin.Specific(origin))
-        case _ => None
-      },
-      allowedMethods = AccessControlAllowMethods(Method.GET, Method.POST, Method.PUT, Method.PATCH, Method.DELETE)
-    )
+//  val config: CorsConfig =
+//    CorsConfig(
+//      allowedOrigin = {
+//        case origin @ Origin.Value(_, host, _) if (host == web_hostName ||
+//          host == "localhost" || host == "127.0.0.1" ) => Some(AccessControlAllowOrigin.Specific(origin))
+//        case _ => None
+//      },
+//      allowedMethods = AccessControlAllowMethods(Method.GET, Method.POST, Method.PUT, Method.PATCH, Method.DELETE)
+//    )
 
-  private val httpApp = (AccountRoutes++assetRoutes ++ supplierRoutes++ customerRoutes ++ moduleRoutes ++ companyRoutes 
+  private val httpApp = (AccountRoutes++assetRoutes ++ supplierRoutes++ customerRoutes ++ moduleRoutes ++ companyRoutes
    ++ bankStmtRoutes++transactionRoutes ++fmoduleRoutes++employeeRoutes++articleRoutes++salaryItemRoutes
    ++ importFileRoutes++payrollRoutes++pacRoutes++journalRoutes++payrollRoutes++masterfileRoutes++stockRoutes
-   ++ userRoutes++permissionRoutes++payrollTaxRoutes++ financialsRoutes++roleRoutes++vatRoutes++storeRoutes)
+   ++ userRoutes++permissionRoutes++payrollTaxRoutes++ financialsRoutes++roleRoutes++vatRoutes++storeRoutes
+   ++ inventoryJournalRoutes++partnerRoutes++apartmentRoutes++roomRoutes++realEstateRoutes++floorRoutes)
   
   @nowarn val run: ZIO[Any & ZIOAppArgs & Scope, Any, Any] =
     given Console[Task] = Console.make[Task]
@@ -91,7 +101,7 @@ object IwsApp extends ZIOAppDefault {
     )
     ZIO.logInfo(s"Starting http server") *>
       Server
-        .serve((loginRoutes++expose++httpApp@@bearerAuthWithContext)@@cors(config))
+        .serve((loginRoutes++expose++httpApp@@bearerAuthWithContext2))//@@cors(config))
         .provide(
           serverLayer,
           appResourcesL.project(_.postgres),
@@ -104,6 +114,7 @@ object IwsApp extends ZIOAppDefault {
           AccountServiceLive.live,
           AccountRepositoryLive.live,
           BankAccountRepositoryLive.live,
+          PartnerRepositoryLive.live,
           CompanyRepositoryLive.live,
           CustomerRepositoryLive.live,
           PayrollTaxRangeRepositoryLive.live,
@@ -137,6 +148,13 @@ object IwsApp extends ZIOAppDefault {
           PostGoodreceivingLive.live,
           PostBillOfDeliveryLive.live,
           PostCustomerInvoiceLive.live,
-          PostSupplierInvoiceLive.live
+          PostSupplierInvoiceLive.live,
+          PostStockTransferLive.live,
+          PostStocktakeLive.live,
+          PostConsumptionLive.live,
+          ApartmentRepositoryLive.live,
+          RoomRepositoryLive.live,
+          FloorRepositoryLive.live,
+          RealEstateRepositoryLive.live,
         ).<*( ZIO.logInfo(s"http server started successfully!!!!"))
 }

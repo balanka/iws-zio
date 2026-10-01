@@ -1,7 +1,7 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.AppError.*
-import com.kabasoft.iws.domain.{Account, AppError, Journal}
+import com.kabasoft.iws.domain.{AppError, Journal, ModelId}
 import com.kabasoft.iws.repository.{AccountRepository, JournalRepository}
 import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, journalSchema, repositoryErrorSchema}
 import zio.*
@@ -58,7 +58,7 @@ object JournalEndpoint:
     mByAccount4Period.implement (p =>  for {
     _<- ZIO.logInfo(s"Get entries 4 account  ${p._2}, from ${p._3}, to ${p._4} and  company ${p._1}")
     journalEntries4Account <- JournalRepository.find4Period(p._2, p._3, p._4, p._1)
-    accounts <- AccountRepository.getByParentId(p._2, Account.MODELID, p._1)
+    accounts <- AccountRepository.getByParentId(p._2, ModelId.ACCOUNT.modelid, p._1)
     journalEntries4Parent <-  if (journalEntries4Account.isEmpty) 
       JournalRepository.find4Period(accounts.map(_.id), p._3, p._4, p._1).map(_.toList)
       else ZIO.succeed(List.empty)

@@ -1,6 +1,11 @@
 .git
-.DS_Store
+.gitignore
 .idea
-.github
+.vscode
 node_modules
-target
+*.log
+.env*
+Dockerfile*
+docker-compose*
+target/*
+!target/scala-3.9.0/iws-api-assembly-*.jar
