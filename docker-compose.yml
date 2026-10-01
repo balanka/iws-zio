@@ -74,15 +74,14 @@ services:
       - REACT_APP_PORT=${IWS_API_PORT_FROM}
       - REACT_WEB_HOST_IP_ADDRESS=${IWS_WEB_HOST}
       - HOST=${IWS_WEB_HOST}
-      #- PORT=${IWS_WEB_PORT_TO}
-      #- REACT_WEB_PORT=${IWS_WEB_PORT_TO}
       - REACT_APP_API_BASE=${REACT_APP_API_BASE}
       - API_URL=${IWS_WEB_HOST}
       - API_PORT=${IWS_API_PORT_TO}
       - SCHEME=${SCHEME}
       - REACT_APP_VERSION=${REACT_APP_VERSION}
+      #- NGINX_ENVSUBST_OUTPUT_DIR=/usr/share/nginx/html
     command: >
-      sh -c "envsubst < /etc/nginx/templates/env-config.js.template > /usr/share/nginx/html/env-config.js && nginx -g 'daemon off;'"
+      sh -c "envsubst < /etc/nginx/templates/env-config.js.template > /usr/share/nginx/html/env-config.js && exec nginx -g 'daemon off;'"
     depends_on:
       - iws-api
 
