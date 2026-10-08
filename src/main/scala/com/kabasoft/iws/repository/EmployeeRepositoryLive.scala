@@ -123,6 +123,7 @@ private[repository] object EmployeeRepositorySQL:
 
     private[repository]   def encodeSalaryItem(st: EmployeeSalaryItem): S_TYPE =
           (st.id, st.owner, st.account, st.amount, st.percentage, st.text, st.company)
+
   
     val mfDecoder: Decoder[Employee] = mfCodec.map:
       case (id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
@@ -156,31 +157,32 @@ private[repository] object EmployeeRepositorySQL:
     private val salaryItemDecoder: Decoder[EmployeeSalaryItem] = salaryItemCodec.map:
       case (id, owner, account, amount, percentage, text, company) =>
         EmployeeSalaryItem(id, owner, account, amount.bigDecimal, percentage.bigDecimal, text, company)
-  
-    private val salaryItemEncoder: Encoder[EmployeeSalaryItem] = salaryItemCodec.values.contramap(encodeSalaryItem)
+
+    val salaryItemEncoder: Encoder[EmployeeSalaryItem] = salaryItemCodec.values.contramap { d =>
+        (d.id, d.owner, d.account, d.amount, d.percentage, d.text, d.company)}
 
     val base =
       sql""" SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-             , vatcode, currency, company, salary, modelid, enterdate, changedate, postingdate
+             , vatcode, currency, contact, company, salary, modelid, enterdate, changedate, postingdate
              FROM   employee ORDER BY id ASC"""
 
     def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Employee] =
       sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-            , vatcode, currency, company, salary, modelid, enterdate, changedate, postingdate
+            , vatcode, currency, contact, company, salary, modelid, enterdate, changedate, postingdate
              FROM   employee
              WHERE id  IN ${varchar.list(nr)} AND  modelid = $int4 AND company = $varchar
              ORDER BY id ASC""".query(mfDecoder)
 
     val BY_ID: Query[String *: Int *: String *: EmptyTuple, Employee] =
       sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-            , vatcode, currency, company, salary, modelid, enterdate, changedate, postingdate
+            , vatcode, currency, contact, company, salary, modelid, enterdate, changedate, postingdate
              FROM   employee
              WHERE id = $varchar AND modelid = $int4 AND company = $varchar
              ORDER BY id ASC""".query(mfDecoder)
 
     val ALL: Query[Int *: String *: EmptyTuple, Employee] =
       sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-            , vatcode, currency, company, salary, modelid, enterdate, changedate, postingdate
+            , vatcode, currency, contact, company, salary, modelid, enterdate, changedate, postingdate
              FROM   employee
              WHERE  modelid = $int4 AND company = $varchar
              ORDER BY id ASC""".query(mfDecoder)
@@ -200,12 +202,13 @@ private[repository] object EmployeeRepositorySQL:
           , zip, city, state, country, phone, email, account, oaccount, tax_code, vatcode, currency, contact, company, salary
           , modelid, enterdate, changedate, postingdate)  VALUES ${mfCodec.values.list(n)}""".stripMargin.command
 
-    val insertSalaryItem: Command[EmployeeSalaryItem] = 
-      sql"""INSERT INTO employee_salary_item (id, owner, account, amount, text, company, percentage ) 
+    val insertSalaryItem: Command[EmployeeSalaryItem] =
+         sql"""INSERT INTO employee_salary_item (id, owner, account, amount, percentage, text, company)
             VALUES $salaryItemEncoder""".command
-      
-    def insertAllSalaryItem(n: Int): Command[List[S_TYPE]] = 
-      sql"INSERT INTO employee_salary_item VALUES ${salaryItemCodec.values.list(n)}".stripMargin.command
+
+    def insertAllSalaryItem(n: Int): Command[List[S_TYPE]] =
+          sql"""INSERT INTO employee_salary_item (id, owner, account, amount, percentage, text, company)
+              VALUES ${salaryItemCodec.values.list(n)}""".stripMargin.command
 
     val UPDATE: Command[Employee.TYPE3] =
        sql"""UPDATE employee SET name= $varchar, description= $varchar, street= $varchar, zip= $varchar, city= $varchar

@@ -40,7 +40,7 @@ final case class JournalRepositoryLive(postgres: Resource[Task, Session[Task]]) 
   override def getFromPeriod2Period(fromPeriod:Int,  toPeriod:Int,  company: String): ZIO[Any, RepositoryError, List[Journal]] =
     queryWithTx(postgres, (fromPeriod,  toPeriod, company), FIND_4_PERIOD_FROM_TO_QUERY)
 
-  override def find4Period(account: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[Journal]] =
+  override def find4AccountPeriod(account: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[Journal]] =
     queryWithTx(postgres, (account, fromPeriod, toPeriod, company), FIND_4_PERIOD_QUERY)
     
   override def find4Period( accountids:List[String], fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[Journal]] =

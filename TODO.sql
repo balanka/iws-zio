@@ -125,10 +125,43 @@ alter table transaction_log alter column contact SET DEFAULT '';
 
 
 alter table transaction_log alter column oid TYPE varchar;
+alter table transaction_log alter column oid SET DEFAULT '';
+
 alter table transaction_log add column foot_text varchar default '';
+alter table transaction_log alter column foot_text SET DEFAULT '';
+update transaction_details set vat=0 where vat<>0 and company='5000';
+create sequence public.transaction_details_id_seq_5000 start with 943 ;--(select max(id) from transaction_details where  company='5000');
+alter sequence public.transaction_details_id_seq_5000 owner to postgres;
+
+create sequence public.details_compta_id_seq_5000 start with 1 ;--(select max(id) from details_compta where  company='5000');
+alter sequence public.details_compta_id_seq_5000 owner to postgres;
+alter table details_compta drop constraint detailcompta_pkey;
+alter table details_compta add primary key (id, modelid, company);
+drop index  details_compta_idx;
+alter table details_compta alter column id DROP DEFAULT ;
+alter table details_compta alter column transid DROP DEFAULT ;
+create sequence public.journal_id_seq_5000 start with 1 ;--(select max(id) from journal where  company='5000');
+alter sequence public.journal_id_seq_5000 owner to postgres;
+
+create sequence public.transaction_log_id_seq_5000 start with 1 ;
+alter sequence public.transaction_log_id_seq_5000 owner to postgres;
+
+
 
 alter table journal alter column oid TYPE varchar;
 alter table journal alter column oid SET DEFAULT '';
+alter table journal drop constraint journal_pkey;
+alter table journal add primary key (id, company);
+alter table journal alter column id DROP DEFAULT ;
+
+
+delete  from periodic_account_balance  where company ='5000';
+delete  from journal where company ='5000';
+delete  from transaction_log where company ='5000';
+delete  from master_compta where company ='5000' and  modelid=112;
+delete  from details_compta where company ='5000' and  modelid=112;
+update transaction  set posted=false where id=1 and  company ='5000' and modelid=105;
+
 
 
 

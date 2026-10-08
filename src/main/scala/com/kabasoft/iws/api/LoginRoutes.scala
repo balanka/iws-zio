@@ -11,7 +11,7 @@ import zio.json.{DecoderOps, EncoderOps}
 
 
 object LoginRoutes:
-  //private val defaultLifeSpan =  3*365*24*60*60L // 3 years
+
   def loginRoutes: Routes[UserRepository, Response] =
     Routes(
       Method.POST / "users" / "login" ->
@@ -20,41 +20,43 @@ object LoginRoutes:
         },
     ) @@ Middleware.debug
 
+  private def sessionCookie(token: String): Cookie.Response =
+    Cookie.Response(
+      name = "iws_session",
+      content = token,
+      isHttpOnly = true,
+      isSecure = true,
+      sameSite = Some(Cookie.SameSite.Strict),
+      path = Some(Path.root),
+      maxAge = Some(8.hours)
+    )
+
   private def call(req: Request) = {
     for {
       loginRequest <- req.body.asString
-        .flatMap(request => //ZIO.logInfo(s"RequestX >>>>>>n ${request}")*>
+        .flatMap(request =>
           ZIO.fromEither(request.fromJson[LoginRequest])
         ).catchAll(e => ZIO.logInfo(s"Unparseable body: ${e.toString}") *> ZIO.succeed(LoginRequest.dummy))
       user <- UserRepository.getByUserName((loginRequest.userName, ModelId.USER.modelid, loginRequest.company))
     } yield checkLogin(user, loginRequest)
   }
 
-  private def checkLogin(user: User, loginRequest:LoginRequest): Response =
-    
-    println(s"checkLogin >>>>>> ${loginRequest.password}")
-    val X= Utils.jwtEncode(loginRequest.password)
-    println(s"pwd >>>>>> ${X}")
-    println(s"user decoded >>>>>> $Utils.jwtDecode($X).get.subject.getOrElse(\"Subject\")")
+  private def checkLogin(user: User, loginRequest: LoginRequest): Response =
+    //val X = Utils.jwtEncode(loginRequest.password)
     val pwd = Utils.jwtDecode(user.hash).get.subject.getOrElse("Subject")
     val pwdR = loginRequest.password
     val usernameR = loginRequest.userName
     val username = user.userName
     val check = (usernameR == username) & (pwdR == pwd)
-    println(s"pwd >>>>>> $pwd")
-    val iwsWeb =scala.util.Properties.envOrElse("IWS_WEB_HOST", "http://127.0.0.1")
-    println(s" IWS_WEB_HOST >>>>>> ${iwsWeb}")
-    val webUrl = scala.util.Properties.envOrElse("IWS_WEB_HOST", "http://192.168.64.1")
-    println(s" Effective webUrl >>>>>> $webUrl")
+    //val iwsWeb = scala.util.Properties.envOrElse("IWS_WEB_HOST", "http://127.0.0.1")
+    //val webUrl = scala.util.Properties.envOrElse("IWS_WEB_HOST", "http://192.168.64.1")
+
     if (check) {
-      //val json = s""""$loginRequest.password""""
-      val token = user.hash//Utils.jwtEncode(json, defaultLifeSpan)
-      println(s"token >>>>>> $token")
-       Response.json(user.toJson).addHeader(Custom("authorization", token))
-        //.addHeader(Custom("Access-Control-Allow-Origin", webUrl))
+      val token = user.hash
+      Response
+        .json(user.toJson)
+        .addHeader(Custom("authorization", token))
+        .addCookie(sessionCookie(token))
     } else {
       Response.unauthorized("Invalid username or password.")
     }
-
-
-

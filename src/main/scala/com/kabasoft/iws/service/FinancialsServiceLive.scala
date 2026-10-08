@@ -86,7 +86,7 @@ final class FinancialsServiceLive( compRepo: CompanyRepository
     }yield trans2
     
   override def journal(accountId: String, fromPeriod: Int, toPeriod: Int, company: String): ZIO[Any, RepositoryError, List[Journal]] =
-     journalRepo.find4Period(accountId, fromPeriod, toPeriod, company).map(_.toList)
+     journalRepo.find4AccountPeriod(accountId, fromPeriod, toPeriod, company).map(_.toList)
   
   def getBy(id: String, company: String): ZIO[Any, RepositoryError, PeriodicAccountBalance] =
     pacRepo.getById(id, ModelId.PERIODIC_ACCOUNT_BALANCE.modelid, company)

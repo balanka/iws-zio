@@ -39,8 +39,8 @@ import com.kabasoft.iws.api.RoomEndpoint.roomRoutes
 import com.kabasoft.iws.api.RealEstateEndpoint.realEstateRoutes
 import com.kabasoft.iws.api.FloorEndpoint.floorRoutes
 import com.kabasoft.iws.api.VatEndpoint.vatRoutes
-import com.kabasoft.iws.repository._
-import com.kabasoft.iws.service._
+import com.kabasoft.iws.repository.*
+import com.kabasoft.iws.service.*
 import zio.*
 import zio.http.Server.Config
 import zio.http.Server
@@ -50,7 +50,12 @@ import java.time.Clock
 import java.util
 import scala.annotation.nowarn
 import scala.language.postfixOps
-
+import com.kabasoft.iws.api.{AccountCombinedPage, AccountHtmlEndpoint, AccountListPage, AccountPage, ArticleCombinedPage,
+  ArticleHtmlEndpoint, ArticlePage, AssetCombinedPage, AssetHtmlEndpoint, BusinessPartnerCombinedPage
+  , BusinessPartnerHtmlEndpoint, ContactCombinedPage, ContactHtmlEndpoint, FmoduleCombinedPage, FmoduleHtmlEndpoint
+  , PartnerHtmlEndpoint, PartnerPage, PermissionCombinedPage, PermissionHtmlEndpoint
+  , StoreCombinedPage, StoreHtmlEndpoint, UserCombinedPage, UserHtmlEndpoint, VatCombinedPage, VatHtmlEndpoint
+  , MasterfileCombinedPage, MasterfileHtmlEndpoint, VatPage}
 object IwsApp extends ZIOAppDefault {
 
   implicit val clock: Clock = Clock.systemUTC
@@ -75,16 +80,6 @@ object IwsApp extends ZIOAppDefault {
     ) >>> Server.live
   }
 
-//  val config: CorsConfig =
-//    CorsConfig(
-//      allowedOrigin = {
-//        case origin @ Origin.Value(_, host, _) if (host == web_hostName ||
-//          host == "localhost" || host == "127.0.0.1" ) => Some(AccessControlAllowOrigin.Specific(origin))
-//        case _ => None
-//      },
-//      allowedMethods = AccessControlAllowMethods(Method.GET, Method.POST, Method.PUT, Method.PATCH, Method.DELETE)
-//    )
-
   private val httpApp = (AccountRoutes++assetRoutes ++ supplierRoutes++ customerRoutes ++ moduleRoutes ++ companyRoutes
    ++ bankStmtRoutes++transactionRoutes ++fmoduleRoutes++employeeRoutes++articleRoutes++salaryItemRoutes
    ++ importFileRoutes++payrollRoutes++pacRoutes++journalRoutes++payrollRoutes++masterfileRoutes++stockRoutes
@@ -101,7 +96,28 @@ object IwsApp extends ZIOAppDefault {
     )
     ZIO.logInfo(s"Starting http server") *>
       Server
-        .serve((loginRoutes++expose++httpApp@@bearerAuthWithContext2))//@@cors(config))
+        .serve(
+        loginRoutes
+        ++ expose
+          ++ BusinessPartnerHtmlEndpoint.routes ++ BusinessPartnerCombinedPage.routes
+          ++ PartnerPage.routes ++ PartnerHtmlEndpoint.routes
+          ++ AccountPage.routes ++ AccountListPage.routes ++ AccountHtmlEndpoint.routes++ AccountCombinedPage.routes
+          ++ ArticlePage.routes ++ ArticleHtmlEndpoint.routes ++ ArticleCombinedPage.routes
+          ++ VatCombinedPage.routes ++ VatHtmlEndpoint.routes
+          ++ ContactCombinedPage.routes ++ ContactHtmlEndpoint.routes
+          ++ StoreCombinedPage.routes ++ StoreHtmlEndpoint.routes
+          ++ VatCombinedPage.routes ++ VatHtmlEndpoint.routes
+          ++ ContactCombinedPage.routes ++ ContactHtmlEndpoint.routes
+          ++ StoreCombinedPage.routes ++ StoreHtmlEndpoint.routes
+          ++ PermissionCombinedPage.routes ++ PermissionHtmlEndpoint.routes
+          ++ AssetCombinedPage.routes ++ AssetHtmlEndpoint.routes
+          ++ UserCombinedPage.routes ++ UserHtmlEndpoint.routes
+          ++ AssetCombinedPage.routes ++ AssetHtmlEndpoint.routes
+          ++ FmoduleCombinedPage.routes ++ FmoduleHtmlEndpoint.routes
+          ++ MasterfileHtmlEndpoint.routes ++ MasterfileCombinedPage.routes
+          ++ (httpApp @@ bearerAuthWithContext2)
+        )
+//        .serve(loginRoutes++expose ++ VatPage.routes ++ VatHtmlEndpoint.routes ++ httpApp@@bearerAuthWithContext2)
         .provide(
           serverLayer,
           appResourcesL.project(_.postgres),

@@ -432,7 +432,7 @@ final case class Company(
                           contact: String,
                           phone: String,
                           bankAcc: String,
-                          iban: String,
+                          description: String,
                           taxCode: String,
                           vatCode: String,
                           currency: String,
@@ -486,11 +486,11 @@ object Company:
 
   def encodeIt(st: Company): TYPE2 =
     (st.id, st.name,  st.street, st.zip, st.city, st.state, st.country, st.email, st.contact, st.phone, st.bankAcc,
-      st.iban, st.taxCode, st.vatCode, st.currency, st.locale, st.balanceSheetAcc, st.incomeStmtAcc, st.purchasingClearingAcc,
+      st.description, st.taxCode, st.vatCode, st.currency, st.locale, st.balanceSheetAcc, st.incomeStmtAcc, st.purchasingClearingAcc,
       st.salesClearingAcc, st.cashAcc, st.account, st.oaccount, st.modelid)
 
   def encodeIt2(st: Company): TYPE2 =
-    (st.name,  st.street, st.zip, st.city, st.state, st.country, st.email, st.contact, st.phone, st.bankAcc, st.iban
+    (st.name,  st.street, st.zip, st.city, st.state, st.country, st.email, st.contact, st.phone, st.bankAcc, st.description
       , st.taxCode, st.vatCode, st.currency, st.locale, st.balanceSheetAcc, st.incomeStmtAcc, st.purchasingClearingAcc
       , st.salesClearingAcc, st.cashAcc, st.account, st.oaccount, st.id, st.modelid)
 
@@ -2086,9 +2086,9 @@ object UserRole:
   type TYPE = (Int, Int, String, Int)
   def encodeIt(st: UserRole): TYPE =   (st.userid, st.roleid, st.company,  st.modelid)
 final case class  Permission (id:Int, name:String, description:String, short:String,
-                              changedate: Instant,
-                              postingdate: Instant,
-                              enterdate: Instant,
+                              changedate: Instant = Instant.now(),
+                              postingdate: Instant = Instant.now(),
+                              enterdate: Instant = Instant.now(),
                               modelid:Int = ModelId.PERMISSION.modelid,
                               company:String )
 object Permission:
@@ -2104,9 +2104,9 @@ object Permission:
   def encodeIt2(st: Permission): TYPE2 = (st.name, st.description, st.short, st.id, st.modelid, st.company)
 
 final case class  Fmodule (id:Int, name:String, description:String,
-                           changedate: Instant,
-                           postingdate: Instant,
-                           enterdate: Instant,
+                           changedate: Instant = Instant.now(),
+                           postingdate: Instant = Instant.now(),
+                           enterdate: Instant = Instant.now(),
                            account:String,
                            isDebit:Boolean,
                            parent:String,

@@ -65,7 +65,7 @@ object ArticleEndpoint:
   val allArtRoute =
     mAll.implement: p =>
       ZIO.logInfo(s"get all article  ${p}") *>
-        ArticleRepository.all((p._1, p._2)).debug("Article>>>>")
+        ArticleRepository.all((p._1, p._2))//.debug("Article>>>>")
 
   val artByIdRoute =
     mById.implement: p =>
