@@ -4,7 +4,13 @@ import Html.esc
 
 object HtmxSubGrid:
 
-  case class Column(field: String, label: String, cssClass: String = "")
+  case class Column(
+                     field:    String,
+                     label:    String,
+                     cssClass: String = "",
+                     options:  List[(String, String)] = Nil,
+                     readonly: Boolean = false
+                   )
 
   case class Row(
                   cells:  List[String],
@@ -12,19 +18,58 @@ object HtmxSubGrid:
                 )
 
   def render(
-              id:      String,
-              prefix:  String,
-              fkField: String,
-              fkValue: String,
-              columns: List[Column],
-              rows:    List[Row]
+              id:       String,
+              prefix:   String,
+              fkField:  String,
+              fkValue:  String,
+              columns:  List[Column],
+              rows:     List[Row],
+              readonly: Boolean = false
             ): String =
+    if readonly then renderReadonly(prefix, columns, rows)
+    else            renderEditable(id, prefix, fkField, fkValue, columns, rows)
 
-    // ---- header ----
-    val headerCells: String =
-      columns.map(c => s"<th>${esc(c.label)}</th>").mkString
+  // ── read-only (whole grid) ──────────────────────────────────────────────
 
-    // ---- one row's hidden inputs (fk + any extra) ----
+  private def renderReadonly(
+                              prefix:  String,
+                              columns: List[Column],
+                              rows:    List[Row]
+                            ): String =
+    val headerCells = columns.map(c => s"<th>${esc(c.label)}</th>").mkString
+    val bodyRows =
+      if rows.isEmpty then
+        s"""<tr><td colspan="${columns.size}" class="subgrid-empty">— none —</td></tr>"""
+      else
+        rows.map { row =>
+          val cells = columns.zipAll(row.cells, null, "").map { case (col, value) =>
+            val v = if value == null then "" else value
+            s"""<td class="${esc(col.cssClass)}">${esc(v)}</td>"""
+          }.mkString
+          s"<tr>$cells</tr>"
+        }.mkString
+
+    s"""
+       |<div class="htmx-subgrid htmx-subgrid-readonly" data-prefix="$prefix">
+       |  <table class="table table-xs table-zebra">
+       |    <thead><tr>$headerCells</tr></thead>
+       |    <tbody>$bodyRows</tbody>
+       |  </table>
+       |</div>
+       |""".stripMargin
+
+  // ── editable (grid has inputs + fk hidden fields) ───────────────────────
+
+  private def renderEditable(
+                              id:      String,
+                              prefix:  String,
+                              fkField: String,
+                              fkValue: String,
+                              columns: List[Column],
+                              rows:    List[Row]
+                            ): String =
+    val headerCells = columns.map(c => s"<th>${esc(c.label)}</th>").mkString
+
     def hiddenFor(idx: Int, extra: Map[String, String]): String =
       val fk = s"""<input type="hidden" name="$prefix.$idx.${esc(fkField)}" value="${esc(fkValue)}" />"""
       val rest = extra.map { case (k, v) =>
@@ -32,15 +77,32 @@ object HtmxSubGrid:
       }.mkString
       fk + rest
 
-    // ---- one body row ----
+    def cellInput(col: Column, idx: String, value: String): String =
+      if col.options.nonEmpty then
+        // Dropdown
+        val opts = col.options.map { case (v, label) =>
+          val sel = if v == value then " selected" else ""
+          s"""<option value="${esc(v)}"$sel>${esc(label)}</option>"""
+        }.mkString
+        s"""<select class="select select-xs ${esc(col.cssClass)}"
+           |        name="$prefix.$idx.${esc(col.field)}">
+           |  $opts
+           |</select>""".stripMargin
+      else if col.readonly then
+        // Read-only text input — visible, not editable, still submitted
+        s"""<input class="input input-xs ${esc(col.cssClass)} fk-cell"
+           |       name="$prefix.$idx.${esc(col.field)}"
+           |       value="${esc(value)}" readonly />""".stripMargin
+      else
+        // Normal editable text input
+        s"""<input class="input input-xs ${esc(col.cssClass)}"
+           |       name="$prefix.$idx.${esc(col.field)}"
+           |       value="${esc(value)}" />""".stripMargin
+
     def renderRow(row: Row, idx: Int): String =
       val cells = columns.zipAll(row.cells, null, "").map { case (col, value) =>
         val v = if value == null then "" else value
-        s"""<td class="${esc(col.cssClass)}">
-           |  <input class="input input-xs ${esc(col.cssClass)}"
-           |         name="$prefix.$idx.${esc(col.field)}"
-           |         value="${esc(v)}" />
-           |</td>""".stripMargin
+        s"""<td class="${esc(col.cssClass)}">${cellInput(col, idx.toString, v)}</td>"""
       }.mkString
 
       s"""<tr>
@@ -52,19 +114,13 @@ object HtmxSubGrid:
          |  </td>
          |</tr>""".stripMargin
 
-    val bodyRows: String =
-      rows.zipWithIndex.map { case (row, idx) => renderRow(row, idx) }.mkString
+    val bodyRows = rows.zipWithIndex.map { case (row, idx) => renderRow(row, idx) }.mkString
 
-    // ---- the template row (index placeholder __INDEX__) ----
-    val templateCells: String =
-      columns.map { col =>
-        s"""<td class="${esc(col.cssClass)}">
-           |  <input class="input input-xs ${esc(col.cssClass)}"
-           |         name="$prefix.__INDEX__.${esc(col.field)}" value="" />
-           |</td>""".stripMargin
-      }.mkString
+    val templateCells = columns.map { col =>
+      s"""<td class="${esc(col.cssClass)}">${cellInput(col, "__INDEX__", "")}</td>"""
+    }.mkString
 
-    val templateRow: String =
+    val templateRow =
       s"""<tr>
          |  $templateCells
          |  <td class="subgrid-actions">
@@ -74,22 +130,15 @@ object HtmxSubGrid:
          |  </td>
          |</tr>""".stripMargin
 
-    // ---- outer shell ----
     s"""
-       |<div class="htmx-subgrid" data-prefix="$prefix">
+       |<div class="htmx-subgrid" data-prefix="$prefix" data-fk-field="$fkField">
        |  <table class="table table-xs table-zebra">
-       |    <thead>
-       |      <tr>$headerCells<th></th></tr>
-       |    </thead>
-       |    <tbody id="$id-body">
-       |      $bodyRows
-       |    </tbody>
+       |    <thead><tr>$headerCells<th></th></tr></thead>
+       |    <tbody id="$id-body">$bodyRows</tbody>
        |  </table>
        |  <button type="button" class="btn btn-xs btn-outline mt-1"
        |          onclick="addSubRow('$id', '$prefix')">+ Add</button>
        |
-       |  <template id="$id-template">
-       |    $templateRow
-       |  </template>
+       |  <template id="$id-template">$templateRow</template>
        |</div>
        |""".stripMargin

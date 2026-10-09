@@ -1,13 +1,19 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.ModelId
-import com.kabasoft.iws.repository.{AccountRepository, PartnerRepository, VatRepository}
+import com.kabasoft.iws.repository.{
+  AccountRepository,
+  MasterfileRepository,
+  PartnerRepository,
+  VatRepository
+}
 import zio._
 import zio.http._
 
 object BusinessPartnerCombinedPage:
 
-  type Repos = PartnerKind.Env & AccountRepository & VatRepository & PartnerRepository
+  type Repos = PartnerKind.Env & AccountRepository & VatRepository &
+    PartnerRepository & MasterfileRepository
 
   private def render(kind: PartnerKind, company: String)
   : ZIO[Repos, Nothing, Response] =
@@ -17,6 +23,7 @@ object BusinessPartnerCombinedPage:
       accs     <- AccountRepository.all((ModelId.ACCOUNT.modelid, company))
       vats     <- VatRepository.all((ModelId.VAT.modelid, company))
       contacts <- PartnerRepository.all((ModelId.CONTACT.modelid, company))
+      banks    <- MasterfileRepository.all((ModelId.BANK.modelid, company))
     } yield {
       val sorted      = all.sortBy(_.id)
       val initialSize = 20
@@ -25,7 +32,7 @@ object BusinessPartnerCombinedPage:
 
       // Default form is read-only view mode.
       val formHtml = BusinessPartnerFormView.render(
-        PartnerKind.blank(kind, company), accs, vats, contacts, kind, mode = "view")
+        PartnerKind.blank(kind, company), accs, vats, contacts, banks, kind, mode = "view")
       val listHtml = BusinessPartnerListView.render(page, company, "", kind)
 
       val bodyHtml =
@@ -39,11 +46,9 @@ object BusinessPartnerCombinedPage:
            |      <div class="card-body compact">
            |        <div class="card-header-row">
            |          <h2 class="card-title">${kind.title}</h2>
-           |          <button type="button"
-           |                  class="btn btn-ghost btn-xs"
+           |          <button type="button" class="btn btn-ghost btn-xs"
            |                  data-toggle="#$prefix-form-card"
-           |                  data-label-show="Show"
-           |                  data-label-hide="Hide">
+           |                  data-label-show="Show" data-label-hide="Hide">
            |            <span class="toggle-arrow">▾</span>
            |            <span class="toggle-label">Hide</span>
            |          </button>

@@ -1,10 +1,12 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.domain.{BusinessPartner, ModelId}
+import com.kabasoft.iws.domain.{BankAccount, BusinessPartner, Customer, Employee, ModelId, Supplier}
 import com.kabasoft.iws.repository.{
   AccountRepository,
+  BankAccountRepository,
   CustomerRepository,
   EmployeeRepository,
+  MasterfileRepository,
   PartnerRepository,
   SupplierRepository,
   VatRepository
@@ -15,8 +17,70 @@ import zio.http._
 object BusinessPartnerHtmlEndpoint:
 
   // All three partner repositories plus the masterfile lists the form needs.
-  type FormEnv = AccountRepository & VatRepository & PartnerRepository
+  type FormEnv = AccountRepository & VatRepository & PartnerRepository &
+    BankAccountRepository & MasterfileRepository
   type Repos   = PartnerKind.Env & FormEnv
+
+  // ── Params → entity ─────────────────────────────────────────────────────
+
+  private def applyParams(existing: BusinessPartner, kind: PartnerKind, params: Map[String, String]): BusinessPartner =
+    val parentId = params.getOrElse("id_display", existing.id)
+
+    val name        = params.getOrElse("name",        existing.name)
+    val description = params.getOrElse("description", existing.description)
+    val street      = params.getOrElse("street",      existing.street)
+    val zip         = params.getOrElse("zip",         existing.zip)
+    val city        = params.getOrElse("city",        existing.city)
+    val state       = params.getOrElse("state",       existing.state)
+    val country     = params.getOrElse("country",     existing.country)
+    val phone       = params.getOrElse("phone",       existing.phone)
+    val email       = params.getOrElse("email",       existing.email)
+    val account     = params.getOrElse("account",     existing.account)
+    val oaccount    = params.getOrElse("oaccount",    existing.oaccount)
+    val taxCode     = params.getOrElse("taxCode",     existing.taxCode)
+    val vatCode     = params.getOrElse("vatCode",     existing.vatCode)
+    val currency    = params.getOrElse("currency",    existing.currency)
+    val contact     = params.getOrElse("contact",     existing.contact)
+
+    // The owner is always the parent's id — the row's hidden `owner`
+    // input carries the same value, but the server is authoritative.
+    val bankAccounts: List[BankAccount] =
+      HtmxFormIndex.parseIndexed(params, "bankaccounts").map { m =>
+        BankAccount(
+          id      = m.getOrElse("id", ""),
+          bic     = m.getOrElse("bic", ""),
+          owner   = parentId,
+          company = existing.company,
+          modelid = ModelId.BANK_ACCOUNT.modelid)
+      }
+
+    (kind, existing) match
+      case (Customer, c: Customer) =>
+        c.copy(id = parentId, name = name, description = description,
+          street = street, zip = zip, city = city, state = state,
+          country = country, phone = phone, email = email,
+          account = account, oaccount = oaccount,
+          taxCode = taxCode, vatCode = vatCode, currency = currency,
+          contact = contact, bankaccounts = bankAccounts)
+
+      case (Supplier, s: Supplier) =>
+        s.copy(id = parentId, name = name, description = description,
+          street = street, zip = zip, city = city, state = state,
+          country = country, phone = phone, email = email,
+          account = account, oaccount = oaccount,
+          taxCode = taxCode, vatCode = vatCode, currency = currency,
+          contact = contact, bankaccounts = bankAccounts)
+
+      case (Employee, e: Employee) =>
+        val salary = java.math.BigDecimal(params.getOrElse("salary", e.salary.toString))
+        e.copy(id = parentId, name = name, description = description,
+          street = street, zip = zip, city = city, state = state,
+          country = country, phone = phone, email = email,
+          account = account, oaccount = oaccount,
+          taxCode = taxCode, vatCode = vatCode, currency = currency,
+          contact = contact, bankaccounts = bankAccounts, salary = salary)
+
+      case _ => existing
 
   // ── Form renderer ───────────────────────────────────────────────────────
 
@@ -26,7 +90,20 @@ object BusinessPartnerHtmlEndpoint:
       accs     <- AccountRepository.all((ModelId.ACCOUNT.modelid, p.company))
       vats     <- VatRepository.all((ModelId.VAT.modelid, p.company))
       contacts <- PartnerRepository.all((ModelId.CONTACT.modelid, p.company))
-    } yield BusinessPartnerFormView.render(p, accs, vats, contacts, kind, mode)
+      bankAccs <- BankAccountRepository.getByOwner(
+        p.id,
+        ModelId.BANK_ACCOUNT.modelid,
+        p.company)
+      bankMf   <- MasterfileRepository.all((ModelId.BANK.modelid, p.company))
+      // BusinessPartner is a sealed trait — copy exists only on the
+      // concrete case classes, so match and rebuild.
+      withBanks = p match
+        case c: Customer => c.copy(bankaccounts = bankAccs)
+        case s: Supplier => s.copy(bankaccounts = bankAccs)
+        case e: Employee => e.copy(bankaccounts = bankAccs)
+        case _           => p
+    } yield BusinessPartnerFormView.render(
+      withBanks, accs, vats, contacts, bankMf, kind, mode)
 
   // ── List handler ────────────────────────────────────────────────────────
 
@@ -80,7 +157,8 @@ object BusinessPartnerHtmlEndpoint:
 
   // ── New (blank form in create mode) ─────────────────────────────────────
 
-  private val formNew: Route[FormEnv, Response] =
+  private val formNew
+  : Route[AccountRepository & VatRepository & PartnerRepository & MasterfileRepository, Response] =
     Method.GET / "html" / string("prefix") / "new" / int("modelid") / string("company") ->
       handler { (prefix: String, modelid: Int, company: String, _: Request) =>
         PartnerKind.fromPrefix(prefix) match
@@ -89,9 +167,10 @@ object BusinessPartnerHtmlEndpoint:
               accs     <- AccountRepository.all((ModelId.ACCOUNT.modelid, company))
               vats     <- VatRepository.all((ModelId.VAT.modelid, company))
               contacts <- PartnerRepository.all((ModelId.CONTACT.modelid, company))
+              bankMf   <- MasterfileRepository.all((ModelId.BANK.modelid, company))
             } yield HtmxResponse.html(
               BusinessPartnerFormView.render(
-                PartnerKind.blank(kind, company), accs, vats, contacts, kind,
+                PartnerKind.blank(kind, company), accs, vats, contacts, bankMf, kind,
                 mode = "create")))
               .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
           case None =>

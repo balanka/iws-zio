@@ -145,7 +145,7 @@ object HtmxPage:
       |    });
       |    syncLabel();
       |  })();
-      |  
+      |
       |    /* Sub-grid add / remove */
       |  (function () {
       |    var nextIdx = {};
@@ -167,6 +167,33 @@ object HtmxPage:
       |      var tr = btn.closest('tr');
       |      if (tr) tr.remove();
       |    };
+      |  })();
+      |    /* ==================================================
+      |     Sub-grid foreign keys: keep the fk column in every
+      |     row equal to the main form's id_display value.
+      |     Applies while the user types the id in create mode,
+      |     and covers any case where the id changes during edit.
+      |     ================================================== */
+      |  (function () {
+      |    function syncGrid(grid, newId) {
+      |      var fk = grid.dataset.fkField;
+      |      if (!fk) return;
+      |      // Update both the visible fk input and the hidden one
+      |      grid.querySelectorAll('input[name$=".' + fk + '"]').forEach(function (el) {
+      |        el.value = newId;
+      |      });
+      |    }
+      |
+      |    document.body.addEventListener('input', function (e) {
+      |      var el = e.target;
+      |      if (!el || el.name !== 'id_display') return;
+      |      var form = el.closest('form');
+      |      if (!form) return;
+      |      var newId = el.value;
+      |      form.querySelectorAll('.htmx-subgrid').forEach(function (grid) {
+      |        syncGrid(grid, newId);
+      |      });
+      |    });
       |  })();
       |</script>
       |""".stripMargin
@@ -218,4 +245,3 @@ object HtmxPage:
        |</body>
        |</html>""".stripMargin
 
- 

@@ -7,7 +7,7 @@ object HtmxCss:
       |    /* ==========================================
       |       Density variables
       |       Every rule below reads var(--...) so the
-      |       four blocks below fully control spacing.
+      |       four blocks fully control spacing.
       |       :root is the default (compact).
       |       ========================================== */
       |    :root {
@@ -95,8 +95,7 @@ object HtmxCss:
       |    }
       |
       |    /* ==========================================
-      |       Page wrapper — replaces Tailwind's
-      |       p-x / space-y-x utilities on the shell.
+      |       Page wrapper
       |       ========================================== */
       |    .htmx-page-wrapper {
       |      display: flex;
@@ -106,19 +105,19 @@ object HtmxCss:
       |    }
       |
       |    /* ==========================================
-      |             Form grid — 4 columns
-      |             [ label | value | label | value ]
-      |             ========================================== */
-      |     .htmx-grid {
-      |         display: grid;
-      |         grid-template-columns: max-content 1fr max-content 1fr;
-      |         column-gap: var(--grid-col-gap);
-      |         row-gap:    var(--grid-row-gap);
-      |         align-items: center;
-      |         background: #fafafa;
-      |         padding: 8px;
-      |         border-radius: 6px;
-      |     }
+      |       Form grid — 4 columns
+      |       [ label | value | label | value ]
+      |       ========================================== */
+      |    .htmx-grid {
+      |      display: grid;
+      |      grid-template-columns: max-content 1fr max-content 1fr;
+      |      column-gap: var(--grid-col-gap);
+      |      row-gap:    var(--grid-row-gap);
+      |      align-items: center;
+      |      background: #fafafa;
+      |      padding: 8px;
+      |      border-radius: 6px;
+      |    }
       |    .htmx-grid > input[type="hidden"] { display: none; }
       |    .htmx-grid > .label {
       |      white-space: nowrap;
@@ -275,7 +274,7 @@ object HtmxCss:
       |
       |    /* ==========================================
       |       Sub-grid (editable rows inside a form)
-      |       Density-aware — every size comes from a var.
+      |       Every size comes from a density var.
       |       ========================================== */
       |    .htmx-subgrid { width: 100%; }
       |    .htmx-subgrid table { margin: 0; }
@@ -300,6 +299,18 @@ object HtmxCss:
       |      font-size: var(--grid-label-size);
       |    }
       |
+      |    /* Read-only cells inside an editable sub-grid
+      |       (e.g. the parent-id field, kept in sync by JS). */
+      |    .htmx-subgrid input.fk-cell {
+      |      background: #f0f0f0;
+      |      color: #666;
+      |      cursor: not-allowed;
+      |    }
+      |    .htmx-subgrid input.fk-cell:focus {
+      |      outline: none;
+      |      box-shadow: none;
+      |    }
+      |
       |    .htmx-subgrid .subgrid-actions {
       |      width: calc(var(--btn-height) + 8px);
       |      text-align: center;
@@ -322,6 +333,17 @@ object HtmxCss:
       |
       |    .htmx-subgrid .num {
       |      text-align: right;
+      |    }
+      |
+      |    /* Entirely read-only sub-grid (e.g. Article/Store stocks) */
+      |    .htmx-subgrid-readonly td {
+      |      color: #444;
+      |      background: transparent;
+      |    }
+      |    .htmx-subgrid-readonly .subgrid-empty {
+      |      text-align: center;
+      |      color: #999;
+      |      font-style: italic;
       |    }
       |
       |    /* ==========================================
@@ -402,8 +424,4 @@ object HtmxCss:
       |    .combo-item.opt-even { background-color: #eef4fb; }
       |    .combo-item:hover    { background-color: #e3f2fd; }
       |    .combo-item.opt-selected { font-weight: 600; color: #1976d2; }
-      |
-      |    background: #fafafa;
-      |    padding: 8px;
-      |    border-radius: 6px;
       |""".stripMargin

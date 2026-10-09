@@ -1,15 +1,15 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.domain.{Account, BankAccount, Company}
-import Html.esc
+import com.kabasoft.iws.domain.{Account, Company, Masterfile}
 
 object CompanyFormView:
 
-  private val bankColumns = List(
-    HtmxSubGrid.Column("id",    "Id",    "w-24"),
-    HtmxSubGrid.Column("bic",   "BIC",   "w-28"),
-    HtmxSubGrid.Column("owner", "Owner", "w-40")
-  )
+  private def bankColumns(banks: List[Masterfile]): List[HtmxSubGrid.Column] =
+    val bicOptions = banks.map(m => m.id -> s"${m.id} ${m.name}")
+    List(
+      HtmxSubGrid.Column("id",    "Id",    "w-24"),
+      HtmxSubGrid.Column("bic",   "BIC",   "w-40", options = bicOptions),
+      HtmxSubGrid.Column("owner", "Owner", "w-40", readonly = true))
 
   private def bankRows(c: Company): List[HtmxSubGrid.Row] =
     c.bankaccounts.map(b => HtmxSubGrid.Row(
@@ -18,6 +18,7 @@ object CompanyFormView:
   def render(
               c:        Company,
               accounts: List[Account],
+              banks:    List[Masterfile],
               mode:     String = "view"
             ): String =
     val isCreate  = mode == "create"
@@ -29,7 +30,7 @@ object CompanyFormView:
       prefix   = "bankaccounts",
       fkField  = "owner",
       fkValue  = c.id,
-      columns  = bankColumns,
+      columns  = bankColumns(banks),
       rows     = bankRows(c))
 
     s"""

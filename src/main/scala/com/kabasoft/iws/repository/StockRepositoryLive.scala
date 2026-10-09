@@ -87,7 +87,7 @@ private[repository] object StockRepositorySQL:
            WHERE article = $varchar AND modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
     
-  val BY_STORE: Query[String *: Int *: String *: EmptyTuple, Stock] =
+  val   BY_STORE: Query[String *: Int *: String *: EmptyTuple, Stock] =
     sql"""SELECT id, store, article, quantity, 0.0 as price, charge, company, modelid
            FROM   stock
            WHERE store = $varchar AND modelid = $int4 AND company = $varchar

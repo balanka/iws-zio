@@ -32,12 +32,13 @@ object StoreFormView:
     val formId    = "store-form"
 
     val stockGrid = HtmxSubGrid.render(
-      id       = s"$formId-stocks",
-      prefix   = "stocks",
-      fkField  = "store",
-      fkValue  = s.id,
-      columns  = stockColumns,
-      rows     = stockRows(s))
+      id = s"$formId-stocks",
+      prefix = "stocks",
+      fkField = "store",
+      fkValue = s.id,
+      columns = stockColumns,
+      rows = stockRows(s),
+      readonly = true)
 
     s"""
        |<form id="$formId" class="$formClass"

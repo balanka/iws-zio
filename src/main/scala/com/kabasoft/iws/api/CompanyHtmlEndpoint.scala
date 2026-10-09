@@ -1,16 +1,23 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.{BankAccount, Company, ModelId}
-import com.kabasoft.iws.repository.{AccountRepository, CompanyRepository}
+import com.kabasoft.iws.repository.{
+  AccountRepository,
+  BankAccountRepository,
+  CompanyRepository,
+  MasterfileRepository
+}
 import zio._
 import zio.http._
 
 object CompanyHtmlEndpoint:
 
-  type Repos = CompanyRepository & AccountRepository
+  type FormEnv = AccountRepository & BankAccountRepository & MasterfileRepository
+  type Repos   = CompanyRepository & FormEnv
 
   private def blank(company: String): Company =
-    Company(id = "", name = "", street = "", zip = "", city = "", state = "",
+    Company(
+      id = "", name = "", street = "", zip = "", city = "", state = "",
       country = "", email = "", contact = "", phone = "", bankAcc = "",
       description = "", taxCode = "-1", vatCode = "-1", currency = "EUR",
       locale = "en-US", account = "-1", oaccount = "-1",
@@ -18,9 +25,12 @@ object CompanyHtmlEndpoint:
       purchasingClearingAcc = "-1", salesClearingAcc = "-1", cashAcc = "-1")
 
   private def renderCompany(c: Company, mode: String = "view")
-  : ZIO[AccountRepository, com.kabasoft.iws.domain.AppError.RepositoryError, String] =
-    AccountRepository.all((ModelId.ACCOUNT.modelid, c.id))
-      .map(accounts => CompanyFormView.render(c, accounts, mode))
+  : ZIO[FormEnv, com.kabasoft.iws.domain.AppError.RepositoryError, String] =
+    for {
+      accs     <- AccountRepository.all((ModelId.ACCOUNT.modelid, c.id))
+      bankAccs <- BankAccountRepository.getByOwner(c.id, ModelId.BANK_ACCOUNT.modelid, c.id)
+      banks    <- MasterfileRepository.all((ModelId.BANK.modelid, c.id))
+    } yield CompanyFormView.render(c.copy(bankaccounts = bankAccs), accs, banks, mode)
 
   private def applyParams(existing: Company, params: Map[String, String]): Company =
     val parentId = params.getOrElse("id_display", existing.id)
@@ -95,12 +105,14 @@ object CompanyHtmlEndpoint:
         }.catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 
-  private val formNew: Route[AccountRepository, Response] =
+  private val formNew: Route[AccountRepository & MasterfileRepository, Response] =
     Method.GET / "html" / "company" / "new" / int("modelid") / string("company") ->
       handler { (modelid: Int, company: String, _: Request) =>
-        AccountRepository.all((ModelId.ACCOUNT.modelid, company))
-          .map(accs => HtmxResponse.html(
-            CompanyFormView.render(blank(company), accs, mode = "create")))
+        (for {
+          accs  <- AccountRepository.all((ModelId.ACCOUNT.modelid, company))
+          banks <- MasterfileRepository.all((ModelId.BANK.modelid, company))
+        } yield HtmxResponse.html(
+          CompanyFormView.render(blank(company), accs, banks, mode = "create")))
           .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 

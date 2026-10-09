@@ -1,25 +1,25 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.domain.{Account, BankAccount, BusinessPartner, Contact, Employee, Vat}
-import Html.esc
+import com.kabasoft.iws.domain.{Account, BusinessPartner, Contact, Employee, Masterfile, Vat}
 
 object BusinessPartnerFormView:
 
-  private val bankColumns = List(
-    HtmxSubGrid.Column("id",    "Id",    "w-24"),
-    HtmxSubGrid.Column("bic",   "BIC",   "w-28"),
-    HtmxSubGrid.Column("owner", "Owner", "w-40")
-  )
+  private def bankColumns(banks: List[Masterfile]): List[HtmxSubGrid.Column] =
+    val bicOptions = banks.map(m => m.id -> s"${m.id} ${m.name}")
+    List(
+      HtmxSubGrid.Column("id",    "Id",    "w-24"),
+      HtmxSubGrid.Column("bic",   "BIC",   "w-40", options = bicOptions),
+      HtmxSubGrid.Column("owner", "Owner", "w-40"))
 
   private def bankRows(p: BusinessPartner): List[HtmxSubGrid.Row] =
-    p.bankaccounts.map(b => HtmxSubGrid.Row(
-      cells = List(b.id, b.bic, b.owner)))
+    p.bankaccounts.map(b => HtmxSubGrid.Row(cells = List(b.id, b.bic, b.owner)))
 
   def render(
               p:        BusinessPartner,
               accounts: List[Account],
               vats:     List[Vat],
               contacts: List[Contact],
+              banks:    List[Masterfile],
               kind:     PartnerKind,
               mode:     String = "view"
             ): String =
@@ -41,7 +41,7 @@ object BusinessPartnerFormView:
       prefix   = "bankaccounts",
       fkField  = "owner",
       fkValue  = p.id,
-      columns  = bankColumns,
+      columns  = bankColumns(banks),
       rows     = bankRows(p))
 
     s"""
