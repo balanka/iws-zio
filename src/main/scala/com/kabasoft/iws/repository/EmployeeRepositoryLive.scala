@@ -1,14 +1,14 @@
 package com.kabasoft.iws.repository
 
 import cats.effect.Resource
-import cats.syntax.all._
-import cats._
-import skunk._
-import skunk.codec.all._
-import skunk.implicits._
-import zio.interop.catz._
+import cats.syntax.all.*
+import cats.*
+import skunk.*
+import skunk.codec.all.*
+import skunk.implicits.*
+import zio.interop.catz.*
 import zio.{Task, ZIO, ZLayer}
-import com.kabasoft.iws.domain.{Account, BankAccount, Employee, EmployeeSalaryItem, EmployeeSalaryItemDTO}
+import com.kabasoft.iws.domain.{Account, BankAccount, Employee, EmployeeSalaryItem, EmployeeSalaryItemDTO, ModelId}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 
 import java.time.{Instant, LocalDateTime, ZoneId}
@@ -68,10 +68,10 @@ final case class EmployeeRepositoryLive(postgres: Resource[Task, Session[Task]]
     override def modify(model: Employee): ZIO[Any, RepositoryError, Int] = modify(List(model))
 
     override def modify(modelsx: List[Employee]): ZIO[Any, RepositoryError, Int] =
-      val newBankaccounts = modelsx.flatMap(_.bankaccounts).filter(m => m.id.nonEmpty && m.modelid == - 1)
-        .map(m => m.copy(modelid = BankAccount.MODEL_ID))
+      val newBankaccounts = modelsx.flatMap(_.bankaccounts).filter(m => m.id.nonEmpty && m.modelid == -1)
+        .map(m => m.copy(modelid = ModelId.BANK_ACCOUNT.modelid))
       val oldBankaccounts = modelsx.flatMap(_.bankaccounts).filter(m => m.id.nonEmpty && m.modelid == -2)
-                                 .map(m => m.copy(modelid = BankAccount.MODEL_ID))
+                                 .map(m => m.copy(modelid = ModelId.BANK_ACCOUNT.modelid))
       val newSalaryItems = modelsx.flatMap(_.salaryItems.filter(m => m.id.nonEmpty && m.owner.equals("-1")))
       val oldSalaryItems = modelsx.flatMap(_.salaryItems.filter(m => m.id.nonEmpty && m.owner.equals("-2")))
       val models: List[Employee] = modelsx.map(e=>e.copy(bankaccounts = newBankaccounts++oldBankaccounts
@@ -90,8 +90,8 @@ final case class EmployeeRepositoryLive(postgres: Resource[Task, Session[Task]]
     
     override def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Employee]] = for {
       employee <- list(Id)
-      bankAccounts_ <- bankAccRepo.all(BankAccount.MODEL_ID, Id._2)
-      accounts <- accRepo.all((BankAccount.MODEL_ID, Id._2))
+      bankAccounts_ <- bankAccRepo.all(ModelId.BANK_ACCOUNT.modelid, Id._2)
+      accounts <- accRepo.all((ModelId.ACCOUNT.modelid, Id._2))
       salaryItems_ <- listSalaryItem(Id._2)
     } yield employee.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id),
       salaryItems = salaryItems_.filter(_.id == c.id).map(EmployeeSalaryItemDTO.apply)
@@ -115,7 +115,7 @@ private[repository] object EmployeeRepositorySQL:
       localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 
     private val mfCodec =
-      (varchar *: varchar *: varchar *: varchar *:varchar *: varchar *: varchar *: varchar *: varchar *:varchar *: varchar *:
+      (varchar *: varchar *: varchar *: varchar *:varchar *: varchar *: varchar *: varchar *: varchar *: varchar *:varchar *: varchar *:
         varchar *: varchar *: varchar *: varchar *:varchar *: numeric(12, 2) *: int4 *:timestamp *: timestamp *: timestamp)
       
     private val salaryItemCodec = 
@@ -123,10 +123,11 @@ private[repository] object EmployeeRepositorySQL:
 
     private[repository]   def encodeSalaryItem(st: EmployeeSalaryItem): S_TYPE =
           (st.id, st.owner, st.account, st.amount, st.percentage, st.text, st.company)
+
   
     val mfDecoder: Decoder[Employee] = mfCodec.map:
       case (id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-           , vatcode, currency, company, salary, modelid, enterdate, changedate, postingdate) =>
+           , vatcode, currency, contact, company, salary, modelid, enterdate, changedate, postingdate) =>
         Employee(
           id,
           name,
@@ -143,6 +144,7 @@ private[repository] object EmployeeRepositorySQL:
           tax_code,
           vatcode,
           currency,
+          contact,
           company,
           salary.bigDecimal,
           modelid,
@@ -155,31 +157,32 @@ private[repository] object EmployeeRepositorySQL:
     private val salaryItemDecoder: Decoder[EmployeeSalaryItem] = salaryItemCodec.map:
       case (id, owner, account, amount, percentage, text, company) =>
         EmployeeSalaryItem(id, owner, account, amount.bigDecimal, percentage.bigDecimal, text, company)
-  
-    private val salaryItemEncoder: Encoder[EmployeeSalaryItem] = salaryItemCodec.values.contramap(encodeSalaryItem)
+
+    val salaryItemEncoder: Encoder[EmployeeSalaryItem] = salaryItemCodec.values.contramap { d =>
+        (d.id, d.owner, d.account, d.amount, d.percentage, d.text, d.company)}
 
     val base =
       sql""" SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-             , vatcode, currency, company, salary, modelid, enterdate, changedate, postingdate
+             , vatcode, currency, contact, company, salary, modelid, enterdate, changedate, postingdate
              FROM   employee ORDER BY id ASC"""
 
     def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Employee] =
       sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-            , vatcode, currency, company, salary, modelid, enterdate, changedate, postingdate
+            , vatcode, currency, contact, company, salary, modelid, enterdate, changedate, postingdate
              FROM   employee
              WHERE id  IN ${varchar.list(nr)} AND  modelid = $int4 AND company = $varchar
              ORDER BY id ASC""".query(mfDecoder)
 
     val BY_ID: Query[String *: Int *: String *: EmptyTuple, Employee] =
       sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-            , vatcode, currency, company, salary, modelid, enterdate, changedate, postingdate
+            , vatcode, currency, contact, company, salary, modelid, enterdate, changedate, postingdate
              FROM   employee
              WHERE id = $varchar AND modelid = $int4 AND company = $varchar
              ORDER BY id ASC""".query(mfDecoder)
 
     val ALL: Query[Int *: String *: EmptyTuple, Employee] =
       sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-            , vatcode, currency, company, salary, modelid, enterdate, changedate, postingdate
+            , vatcode, currency, contact, company, salary, modelid, enterdate, changedate, postingdate
              FROM   employee
              WHERE  modelid = $int4 AND company = $varchar
              ORDER BY id ASC""".query(mfDecoder)
@@ -192,24 +195,25 @@ private[repository] object EmployeeRepositorySQL:
           ORDER BY id ASC""".query(salaryItemDecoder)
 
     val insert: Command[Employee] = sql"""INSERT INTO employee (id, name, description, street
-          , zip, city, state, country, phone, email, account, oaccount, tax_code, vatcode, currency, company, salary
+          , zip, city, state, country, phone, email, account, oaccount, tax_code, vatcode, currency, contact,  company, salary
          , modelid, enterdate, changedate, postingdate) VALUES $mfEncoder""".stripMargin.command
 
     def insertAll(n: Int): Command[List[Employee.TYPE2]] = sql"""INSERT INTO employee (id, name, description, street
-          , zip, city, state, country, phone, email, account, oaccount, tax_code, vatcode, currency, company, salary
+          , zip, city, state, country, phone, email, account, oaccount, tax_code, vatcode, currency, contact, company, salary
           , modelid, enterdate, changedate, postingdate)  VALUES ${mfCodec.values.list(n)}""".stripMargin.command
 
-    val insertSalaryItem: Command[EmployeeSalaryItem] = 
-      sql"""INSERT INTO employee_salary_item (id, owner, account, amount, text, company, percentage ) 
+    val insertSalaryItem: Command[EmployeeSalaryItem] =
+         sql"""INSERT INTO employee_salary_item (id, owner, account, amount, percentage, text, company)
             VALUES $salaryItemEncoder""".command
-      
-    def insertAllSalaryItem(n: Int): Command[List[S_TYPE]] = 
-      sql"INSERT INTO employee_salary_item VALUES ${salaryItemCodec.values.list(n)}".stripMargin.command
+
+    def insertAllSalaryItem(n: Int): Command[List[S_TYPE]] =
+          sql"""INSERT INTO employee_salary_item (id, owner, account, amount, percentage, text, company)
+              VALUES ${salaryItemCodec.values.list(n)}""".stripMargin.command
 
     val UPDATE: Command[Employee.TYPE3] =
        sql"""UPDATE employee SET name= $varchar, description= $varchar, street= $varchar, zip= $varchar, city= $varchar
                , state= $varchar, country= $varchar, phone= $varchar, email= $varchar, account= $varchar, oaccount= $varchar
-               , tax_code=$varchar, vatcode= $varchar, currency= $varchar, salary=$numeric
+               , tax_code=$varchar, vatcode= $varchar, currency= $varchar, contact= $varchar, salary=$numeric
                WHERE id=$varchar and modelid=$int4 and company= $varchar""".stripMargin.command
  
     val UPDATE_SALARY_ITEM: Command[EmployeeSalaryItem.TYPE] =

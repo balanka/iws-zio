@@ -8,8 +8,6 @@ import skunk.codec.all._
 import skunk.implicits._
 import zio.prelude.FlipOps
 import zio.{Task, ZIO, ZLayer}
-
-//import com.kabasoft.iws.repository.Schema.{payrollTaxRangeSchema, repositoryErrorSchema}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.PayrollTaxRange
 final case  class PayrollTaxRangeRepositoryLive(postgres: Resource[Task, Session[Task]]) extends PayrollTaxRangeRepository, MasterfileCRUD:

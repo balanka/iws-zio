@@ -1,16 +1,17 @@
 package com.kabasoft.iws.repository
 
 import cats.effect.Resource
-import cats.syntax.all._
-import cats._
-import skunk._
-import skunk.codec.all._
-import skunk.implicits._
+import cats.syntax.all.*
+import cats.*
+import skunk.*
+import skunk.codec.all.*
+import skunk.implicits.*
 import zio.interop.catz.asyncInstance
 import zio.prelude.FlipOps
 import zio.{Task, ZIO, ZLayer}
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{BankAccount, Customer}
+import com.kabasoft.iws.domain.{BankAccount, Customer, ModelId}
+
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class CustomerRepositoryLive(postgres: Resource[Task, Session[Task]]
@@ -18,42 +19,16 @@ final case class CustomerRepositoryLive(postgres: Resource[Task, Session[Task]]
     import CustomerRepositorySQL._
 
     def transact(s: Session[Task], newCustomers: List[Customer]): Task[Unit] =
-        s.transaction.use: xa =>
-          s.prepareR(insert).use: pciCustomer =>
-            s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
-              tryExec(xa, pciCustomer, pciBankAcc, newCustomers,  newCustomers.flatMap(_.bankaccounts).filterNot(_.id.isEmpty))
-
-    def transactM(s: Session[Task], models: List[Customer], bankAccounts: List[BankAccount]): Task[Unit] =
-      s.transaction.use: xa =>
-        s.prepareR(insert).use: pciCustomer =>
-          s.prepareR(CustomerRepositorySQL.UPDATE).use: pcuCustomer =>
-            s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
-              s.prepareR(BankAccountRepositorySQL.UPDATE_BANK_ACCOUNT).use: pcuBankAcc =>
-                tryExec(xa, pciCustomer, pciBankAcc, pcuCustomer, pcuBankAcc, List.empty
-                 , bankAccounts, models.map(Customer.encodeIt2), List.empty)
+        transact(s, newCustomers, newCustomers.flatMap(_.bankaccounts).filterNot(_.id.isEmpty)
+          , insert, BankAccountRepositorySQL.insert)
+  
 
     def transact(s: Session[Task], newCustomers: List[Customer], newbankAccount: List[BankAccount], oldCustomers: List[Customer]
                  , oldbankAcc2Update: List[BankAccount], bankAcc2Delete: List[BankAccount]): Task[Unit] =
-      s.transaction.use: xa =>
-       s.prepareR(insert).use: pciCustomer =>
-         s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
-           s.prepareR(CustomerRepositorySQL.UPDATE).use: pcuCustomer =>
-            s.prepareR(BankAccountRepositorySQL.UPDATE_BANK_ACCOUNT).use: pcuBankAcc =>
-              s.prepareR(BankAccountRepositorySQL.DELETE_BANK_ACCOUNT).use: pcdBankAcc =>
-               tryExec(xa, pciCustomer, pciBankAcc, pcuCustomer, pcuBankAcc, pcdBankAcc
-                 , newCustomers, newbankAccount
-                 , oldCustomers.map(Customer.encodeIt2), oldbankAcc2Update.map(BankAccount.encodeIt2)
-                , bankAcc2Delete.map(BankAccount.encodeIt3))
-            
-    def transact(s: Session[Task], newCustomers: List[Customer], oldCustomers: List[Customer]): Task[Unit] =
-       s.transaction.use: xa =>
-         s.prepareR(insert).use: pciCustomer =>
-           s.prepareR(CustomerRepositorySQL.UPDATE).use: pcuCustomer =>
-             s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
-               s.prepareR(BankAccountRepositorySQL.UPDATE_BANK_ACCOUNT).use: pcuBankAcc =>
-                 tryExec(xa, pciCustomer, pciBankAcc, pcuCustomer, pcuBankAcc, newCustomers
-                   , newCustomers.flatMap(_.bankaccounts), oldCustomers.map(Customer.encodeIt2)
-                   , oldCustomers.flatMap(_.bankaccounts).map(BankAccount.encodeIt2))
+      transact(s, newCustomers, newbankAccount, oldCustomers.map(Customer.encodeIt2)
+         ,  oldbankAcc2Update.map(BankAccount.encodeIt2),  bankAcc2Delete.map(BankAccount.encodeIt3)
+         , insert, BankAccountRepositorySQL.insert, CustomerRepositorySQL.UPDATE, BankAccountRepositorySQL.UPDATE_BANK_ACCOUNT
+         , BankAccountRepositorySQL.DELETE_BANK_ACCOUNT)
   
     override def create(c: Customer): ZIO[Any, RepositoryError, Int] = create(List(c))
     override def create(models: List[Customer]):ZIO[Any, RepositoryError, Int] =
@@ -71,7 +46,7 @@ final case class CustomerRepositoryLive(postgres: Resource[Task, Session[Task]]
         .map(bankAccount =>bankAccount.copy(company = bankAccount.company.replace("-","")))
       val newLine2Insert = models.flatMap(_.bankaccounts).filter(bankAccount =>bankAccount.modelid === -1
                                 && bankAccount.company.contains("-") && bankAccount.id.nonEmpty)
-                                  .map(bankAccount => bankAccount.copy(modelid = BankAccount.MODEL_ID,
+                                  .map(bankAccount => bankAccount.copy(modelid = ModelId.BANK_ACCOUNT.modelid,
                                              company = bankAccount.company.replace("-", "")))
       val oldLine2Delete = models.flatMap(_.bankaccounts).filter(_.modelid === -2)
         .map(bankAccount => bankAccount.copy(company = bankAccount.company.replace("-", "")))
@@ -89,7 +64,7 @@ final case class CustomerRepositoryLive(postgres: Resource[Task, Session[Task]]
  
     override def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Customer]] = for {
                   customer <- list(Id)
-                  bankAccounts_ <- bankAccRepo.all(BankAccount.MODEL_ID, Id._2)
+                  bankAccounts_ <- bankAccRepo.all(ModelId.BANK_ACCOUNT.modelid, Id._2)
              } yield customer.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
     
     private def list(p: (Int, String)): ZIO[Any, RepositoryError, List[Customer]] =  queryWithTx(postgres, p, ALL)
@@ -110,31 +85,31 @@ private[repository] object CustomerRepositorySQL:
       localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 
     private val mfCodec =
-        (varchar *: varchar *: varchar *: varchar *: varchar*: varchar *: varchar *: varchar *:varchar *: varchar *:varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: int4 *:timestamp *: timestamp *: timestamp)
+        (varchar *: varchar *: varchar *: varchar *: varchar*: varchar *: varchar *: varchar *:varchar *: varchar *:varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: int4 *:timestamp *: timestamp *: timestamp)
 
     val mfDecoder: Decoder[Customer] = mfCodec.map:
-      case (id, name, description, street, zip, city, state, country, phone, email, account, oaccount, taxCode, vatCode, currency, company, modelid, enterdate, changedate, postingdate) =>
+      case (id, name, description, street, zip, city, state, country, phone, email, account, oaccount, taxCode, vatCode, currency, contact, company, modelid, enterdate, changedate, postingdate) =>
         Customer.apply(
           (id, name, description, street, zip, city, state, country, phone, email, account, oaccount, taxCode
-            , vatCode, currency, company, modelid, toInstant(enterdate), toInstant(changedate), toInstant(postingdate)))
+            , vatCode, currency, contact, company, modelid, toInstant(enterdate), toInstant(changedate), toInstant(postingdate)))
   
     val mfEncoder: Encoder[Customer] = mfCodec.values.contramap(Customer.encodeIt)
   
     def base =
       sql""" SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-             , vatCode, currency, company, modelid, enterdate, changedate, postingdate
+             , vatCode, currency, contact, company, modelid, enterdate, changedate, postingdate
              FROM   customer ORDER BY id ASC"""
 
     def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Customer] =
       sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-            , vatCode, currency, company, modelid, enterdate, changedate, postingdate
+            , vatCode, currency, contact, company, modelid, enterdate, changedate, postingdate
              FROM   customer
              WHERE id  IN (${varchar.list(nr)} ) AND  modelid = $int4 AND company = $varchar
              ORDER BY id ASC""".query(mfDecoder)
 
     val BY_IBAN: Query[String *: Int *: String *: EmptyTuple, Customer] =
       sql"""SELECT cu.id, cu.name, cu.description, cu.street, cu.zip, cu.city, cu.state, cu.country, cu.phone
-            , cu.email, cu.account, cu.oaccount, cu.vatcode, cu.tax_code, cu.currency, cu.company
+            , cu.email, cu.account, cu.oaccount, cu.vatcode, cu.tax_code, cu.currency, cu.contact, cu.company
              , cu.modelid, cu.enterdate, cu.changedate, cu.postingdate
                  FROM   customer cu, bankaccount bankAcc
                  WHERE cu.id = bankAcc.owner AND bankAcc.id = $varchar AND
@@ -142,32 +117,32 @@ private[repository] object CustomerRepositorySQL:
   
     val BY_ID: Query[String *: Int *: String *: EmptyTuple, Customer] =
       sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-            , vatCode, currency, company, modelid, enterdate, changedate, postingdate
+            , vatCode, currency, contact, company, modelid, enterdate, changedate, postingdate
              FROM   customer
              WHERE id = $varchar AND modelid = $int4 AND company = $varchar
              ORDER BY id ASC""".query(mfDecoder)
 
     val ALL: Query[Int *: String *: EmptyTuple, Customer] =
       sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-            , vatCode, currency, company, modelid, enterdate, changedate, postingdate
+            , vatCode, currency, contact, company, modelid, enterdate, changedate, postingdate
              FROM   customer
              WHERE  modelid = $int4 AND company = $varchar
              ORDER BY id ASC""".query(mfDecoder)
 
     val insert: Command[Customer] =
       sql"""INSERT INTO customer (id, name, description, street, zip, city, state, country, phone, email, account
-            , oaccount, tax_code, vatCode, currency, company, modelid, enterdate, changedate, postingdate)
+            , oaccount, tax_code, vatCode, currency, contact, company, modelid, enterdate, changedate, postingdate)
             VALUES $mfEncoder """.command
 
     def insertAll(n: Int): Command[List[Customer.TYPE2]] =
       sql"""INSERT INTO customer (id, name, description, street, zip, city, state, country, phone, email, account
-            , oaccount, tax_code, vatCode, currency, company, modelid, enterdate, changedate, postingdate)
+            , oaccount, tax_code, vatCode, currency, contact, company, modelid, enterdate, changedate, postingdate)
            VALUES ${mfCodec.values.list(n)}""".command
 
     val UPDATE: Command[Customer.TYPE3] =
       sql"""UPDATE customer SET name= $varchar, description= $varchar, street= $varchar, zip= $varchar, city= $varchar
             , state= $varchar, country= $varchar, phone= $varchar, email= $varchar, account= $varchar, oaccount= $varchar
-            , tax_code= $varchar, vatcode= $varchar, currency=$varchar
+            , tax_code= $varchar, vatcode= $varchar, currency=$varchar, contact=$varchar
             WHERE id=$varchar and modelid=$int4 and company= $varchar""".command
 
     def DELETE: Command[(String, Int, String)] =

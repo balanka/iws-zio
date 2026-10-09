@@ -7,21 +7,13 @@ import zio._
 trait CustomerRepository:
 
   def create(item: Customer):ZIO[Any, RepositoryError, Int]
-
   def create(models: List[Customer]):ZIO[Any, RepositoryError, Int]
-
   def modify(model: Customer):ZIO[Any, RepositoryError, Int]
-
   def modify(models: List[Customer]):ZIO[Any, RepositoryError, Int]
-
   def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Customer]]
-
   def getById(Id: (String, Int, String)):ZIO[Any, RepositoryError, Customer]
-
   def getByIban(Id: (String, Int, String)):ZIO[Any, RepositoryError, Customer]
-
   def getBy(ids: List[String], modelid: Int, company: String):ZIO[Any, RepositoryError, List[Customer]]
-
   def delete(p: (String, Int, String)):ZIO[Any, RepositoryError, Int]
   def deleteAll(p: List[(String, Int, String)]): ZIO[Any, RepositoryError, Int] 
   

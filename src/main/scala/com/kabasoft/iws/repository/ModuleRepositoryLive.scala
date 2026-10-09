@@ -30,7 +30,7 @@ object ModuleRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]], RepositoryError, ModuleRepository] =
     ZLayer.fromFunction(new ModuleRepositoryLive(_))
 
-private[repository] object ModuleRepositorySQL:
+object ModuleRepositorySQL:
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 

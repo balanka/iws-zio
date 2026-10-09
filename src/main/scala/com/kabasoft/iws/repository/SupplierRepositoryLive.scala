@@ -1,15 +1,16 @@
 package com.kabasoft.iws.repository
 
 import cats.effect.Resource
-import cats.syntax.all._
-import cats._
-import skunk._
-import skunk.codec.all._
-import skunk.implicits._
-import zio.interop.catz._
+import cats.syntax.all.*
+import cats.*
+import skunk.*
+import skunk.codec.all.*
+import skunk.implicits.*
+import zio.interop.catz.*
 import zio.{Task, ZIO, ZLayer}
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{BankAccount, Supplier}
+import com.kabasoft.iws.domain.{BankAccount, ModelId, Supplier}
+
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case class SupplierRepositoryLive(postgres: Resource[Task, Session[Task]]
@@ -17,44 +18,17 @@ final case class SupplierRepositoryLive(postgres: Resource[Task, Session[Task]]
   import SupplierRepositorySQL._
 
   def transact(s: Session[Task], newCustomers: List[Supplier]): Task[Unit] =
-    s.transaction.use: xa =>
-      s.prepareR(insert).use: pciCustomer =>
-        s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
-          tryExec(xa, pciCustomer, pciBankAcc, newCustomers, newCustomers.flatMap(_.bankaccounts).filter(_.id.nonEmpty))
+    transact(s, newCustomers, newCustomers.flatMap(_.bankaccounts).filterNot(_.id.isEmpty)
+      , insert, BankAccountRepositorySQL.insert)
 
-  def transactM(s: Session[Task], models: List[Supplier], bankAccounts: List[BankAccount]): Task[Unit] =
-    s.transaction.use: xa =>
-      s.prepareR(insert).use: pciCustomer =>
-        s.prepareR(SupplierRepositorySQL.UPDATE).use: pcuCustomer =>
-          s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
-            s.prepareR(BankAccountRepositorySQL.UPDATE_BANK_ACCOUNT).use: pcuBankAcc =>
-              tryExec(xa, pciCustomer, pciBankAcc, pcuCustomer, pcuBankAcc, List.empty
-                , bankAccounts, models.map(Supplier.encodeIt2)
-                , List.empty)
 
   def transact(s: Session[Task], newCustomers: List[Supplier], newbankAccount: List[BankAccount], oldCustomers: List[Supplier]
                , oldbankAcc2Update: List[BankAccount], bankAcc2Delete: List[BankAccount]): Task[Unit] =
-    s.transaction.use: xa =>
-      s.prepareR(insert).use: pciCustomer =>
-        s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
-          s.prepareR(SupplierRepositorySQL.UPDATE).use: pcuCustomer =>
-            s.prepareR(BankAccountRepositorySQL.UPDATE_BANK_ACCOUNT).use: pcuBankAcc =>
-              s.prepareR(BankAccountRepositorySQL.DELETE_BANK_ACCOUNT).use: pcdBankAcc =>
-                tryExec(xa, pciCustomer, pciBankAcc, pcuCustomer, pcuBankAcc, pcdBankAcc
-                  , newCustomers, newbankAccount
-                  , oldCustomers.map(Supplier.encodeIt2), oldbankAcc2Update.map(BankAccount.encodeIt2)
-                  , bankAcc2Delete.map(BankAccount.encodeIt3))
-
-  def transact(s: Session[Task], newCustomers: List[Supplier], oldCustomers: List[Supplier]): Task[Unit] =
-    s.transaction.use: xa =>
-      s.prepareR(insert).use: pciCustomer =>
-        s.prepareR(SupplierRepositorySQL.UPDATE).use: pcuCustomer =>
-          s.prepareR(BankAccountRepositorySQL.insert).use: pciBankAcc =>
-            s.prepareR(BankAccountRepositorySQL.UPDATE_BANK_ACCOUNT).use: pcuBankAcc =>
-              tryExec(xa, pciCustomer, pciBankAcc, pcuCustomer, pcuBankAcc, newCustomers
-                , newCustomers.flatMap(_.bankaccounts), oldCustomers.map(Supplier.encodeIt2)
-                , oldCustomers.flatMap(_.bankaccounts).map(BankAccount.encodeIt2))
-
+    transact(s, newCustomers, newbankAccount, oldCustomers.map(Supplier.encodeIt2)
+      , oldbankAcc2Update.map(BankAccount.encodeIt2), bankAcc2Delete.map(BankAccount.encodeIt3)
+      , insert, BankAccountRepositorySQL.insert, SupplierRepositorySQL.UPDATE, BankAccountRepositorySQL.UPDATE_BANK_ACCOUNT
+      , BankAccountRepositorySQL.DELETE_BANK_ACCOUNT)
+  
   override def create(c: Supplier): ZIO[Any, RepositoryError, Int] = create(List(c))
   override def create(models: List[Supplier]): ZIO[Any, RepositoryError, Int] =
     (postgres
@@ -71,7 +45,7 @@ final case class SupplierRepositoryLive(postgres: Resource[Task, Session[Task]]
       .map(bankAccount =>bankAccount.copy(company = bankAccount.company.replace("-","")))
     val newLine2Insert = models.flatMap(_.bankaccounts).filter(bankAccount =>bankAccount.modelid === -1
         && bankAccount.company.contains("-") && bankAccount.id.nonEmpty)
-      .map(bankAccount => bankAccount.copy(modelid = BankAccount.MODEL_ID,
+      .map(bankAccount => bankAccount.copy(modelid = ModelId.BANK_ACCOUNT.modelid,
         company = bankAccount.company.replace("-", "")))
     val oldLine2Delete = models.flatMap(_.bankaccounts).filter(_.modelid === -2)
       .map(bankAccount => bankAccount.copy(company = bankAccount.company.replace("-", "")))
@@ -90,7 +64,7 @@ final case class SupplierRepositoryLive(postgres: Resource[Task, Session[Task]]
   override def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Supplier]] = 
     for 
       suppliers     <- list(Id).map(_.toList)
-      bankAccounts_ <- bankAccRepo.all(BankAccount.MODEL_ID, Id._2)
+      bankAccounts_ <- bankAccRepo.all(ModelId.BANK_ACCOUNT.modelid, Id._2)
     yield suppliers.map(c => c.copy(bankaccounts = bankAccounts_.filter(_.owner == c.id)))
 
   def list(p: (Int, String)): ZIO[Any, RepositoryError, List[Supplier]] = queryWithTx(postgres, p, ALL)
@@ -114,31 +88,31 @@ private[repository] object SupplierRepositorySQL:
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 
   private val mfCodec =
-    (varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar *:varchar *: varchar *: varchar *: varchar *: varchar *: varchar *:varchar *:varchar *: int4 *:timestamp *: timestamp *: timestamp)
+    (varchar *: varchar *: varchar *: varchar *: varchar *:varchar *: varchar *: varchar *: varchar *:varchar *: varchar *: varchar *: varchar *: varchar *: varchar *:varchar *:varchar *: int4 *:timestamp *: timestamp *: timestamp)
     
   val mfDecoder: Decoder[Supplier] = mfCodec.map:
-    case (id, name, description, street, zip, city, state, country, phone, email, account, oaccount, taxCode, vatCode, currency, company, modelid, enterdate, changedate, postingdate) =>
+    case (id, name, description, street, zip, city, state, country, phone, email, account, oaccount, taxCode, vatCode, currency, contact, company, modelid, enterdate, changedate, postingdate) =>
       Supplier(id, name, description, street, zip, city, state, country, phone, email, account, oaccount, taxCode , vatCode
-        , currency, company, modelid, toInstant(enterdate), toInstant(changedate), toInstant(postingdate), List.empty[BankAccount])
+        , currency, contact, company, modelid, toInstant(enterdate), toInstant(changedate), toInstant(postingdate), List.empty[BankAccount])
 
   val mfEncoder: Encoder[Supplier] = mfCodec.values.contramap(Supplier.encodeIt)
 
 
   def base =
     sql""" SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-             , vatCode, currency, company, modelid, enterdate, changedate,postingdate
+             , vatCode, currency, contact, company, modelid, enterdate, changedate,postingdate
              FROM   supplier ORDER BY id ASC"""
 
   def ALL_BY_ID(nr: Int): Query[(List[String], Int, String), Supplier] =
     sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account,  oaccount, tax_code
-             , vatCode, currency, company, modelid, enterdate, changedate, postingdate
+             , vatCode, currency, contact, company, modelid, enterdate, changedate, postingdate
              FROM   supplier
              WHERE id  IN ( ${varchar.list(nr)} ) AND  modelid = $int4 AND company = $varchar
              ORDER BY id ASC""".query(mfDecoder)
 
   val BY_IBAN: Query[String *: Int *: String *: EmptyTuple, Supplier] =
     sql"""SELECT su.id, su.name, su.description, su.street, su.zip, su.city, su.state, su.country, su.phone
-            , su.email, su.account, su.oaccount, su.tax_code, su.vatcode, su.currency, su.company
+            , su.email, su.account, su.oaccount, su.tax_code, su.vatcode, su.currency, su.contact, su.company
              , su.modelid, su.enterdate, su.changedate, su.postingdate
                  FROM   supplier su, bankaccount bankAcc
                  WHERE su.id = bankAcc.owner AND bankAcc.id = $varchar AND
@@ -146,32 +120,32 @@ private[repository] object SupplierRepositorySQL:
   
   val BY_ID: Query[String *: Int *: String *: EmptyTuple, Supplier] =
     sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-          , vatCode, currency, company, modelid, enterdate, changedate, postingdate
+          , vatCode, currency, contact, company, modelid, enterdate, changedate, postingdate
              FROM   supplier
              WHERE id = $varchar AND modelid = $int4 AND company = $varchar
              ORDER BY id ASC""".query(mfDecoder)
 
   val ALL: Query[Int *: String *: EmptyTuple, Supplier] =
     sql"""SELECT id, name, description, street, zip, city, state, country, phone, email, account, oaccount, tax_code
-          , vatCode, currency, company, modelid, enterdate, changedate, postingdate
+          , vatCode, currency, contact, company, modelid, enterdate, changedate, postingdate
              FROM   supplier
              WHERE  modelid = $int4 AND company = $varchar
              ORDER BY id ASC""".query(mfDecoder)
 
   val insert: Command[Supplier] = 
     sql"""INSERT INTO supplier (id, name, description, street, zip, city, state, country, phone, email, account
-                            , oaccount, tax_code, vatCode, currency, company, modelid, enterdate, changedate, postingdate)
+                            , oaccount, tax_code, vatCode, currency, contact, company, modelid, enterdate, changedate, postingdate)
                                 VALUES $mfEncoder """.stripMargin.command
 
   def insertAll(n: Int): Command[List[Supplier.TYPE2]] = 
     sql"""INSERT INTO supplier (id, name, description, street, zip, city, state, country, phone, email, account
-          , oaccount, tax_code, vatCode, currency, company, modelid, enterdate, changedate, postingdate)
+          , oaccount, tax_code, vatCode, currency, contact, company, modelid, enterdate, changedate, postingdate)
           VALUES ${mfCodec.values.list(n)}""".stripMargin.command
 
   val UPDATE: Command[Supplier.TYPE3] =
     sql"""UPDATE supplier SET name= $varchar, description= $varchar, street= $varchar, zip= $varchar, city= $varchar
           , state= $varchar, country= $varchar, phone= $varchar, email= $varchar, account= $varchar, oaccount= $varchar
-          , tax_code = $varchar , vatcode= $varchar, currency=$varchar
+          , tax_code = $varchar , vatcode= $varchar, currency=$varchar, contact=$varchar
           WHERE id=$varchar and modelid=$int4 and company= $varchar""".stripMargin.command
 
   def DELETE: Command[(String, Int, String)] =

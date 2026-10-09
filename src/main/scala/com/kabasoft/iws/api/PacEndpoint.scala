@@ -60,13 +60,13 @@ object PacEndpoint:
 
   val pacByPeriodRoute =
     pacByPeriod.implement: p =>
-      ZIO.logInfo(s"Get the PAC entries for period  $p._2 and company $p._1 ") *>
+      ZIO.logInfo(s"Get the PAC entries for period  ${p._2} and company ${p._1} ") *>
         PacRepository.findBalance4Period(p._2, p._1)
 
   ///pac/1000/202100/202112
   val pacByPeriodFromToRoute =
     pacByPeriodFromTo.implement: p =>
-      ZIO.logInfo(s"Get the PAC entries for period  from $p._2 to $p._3 and company $p._1 ") *>
+      ZIO.logInfo(s"Get the PAC entries for period  from ${p._2} to ${p._3} and company ${p._1} ") *>
         PacRepository.findBalance4Period(p._2, p._3, p._1 )
         //PacService.getBalance4Parent(p._2, p._3, p._4, p._1 )
 
@@ -75,10 +75,11 @@ object PacEndpoint:
       ///pac/1000/1810/202101
   val pacByAccountPeriodRoute =
     pacByAccountPeriod.implement (p =>  for {
-      _          <- ZIO.logInfo(s"Get PAC per  accountId ${p._2}, toPeriod ${p._3} and company ${p._1} ")
+      _          <- ZIO.logInfo(s"Get PAC per  accountId ${p._2}, from period ${p._3}  to period ${p._4} and company ${p._1} ")
       pacs       <- PacRepository.find4AccountPeriod(p._2, p._3, p._4, p._1)
-      parentPacs <- PacService.getBalance4Parent(p._2, p._3, p._4, p._1)
-   } yield  if(pacs.nonEmpty) pacs else parentPacs
+      result <- if (pacs.nonEmpty) ZIO.succeed(pacs)
+                  else PacService.getBalance4Parent(p._2, p._3, p._4, p._1)
+   } yield  result
   )
   
   val pacRoutes = Routes(allPacRoute, pacByAccountPeriodRoute, pacByPeriodRoute, pacByPeriodFromToRoute) @@ Middleware.debug

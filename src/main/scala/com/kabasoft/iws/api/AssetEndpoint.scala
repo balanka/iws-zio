@@ -1,14 +1,14 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.AppError.{AuthenticationError, RepositoryError}
-import com.kabasoft.iws.domain.{AppError, Asset}
-import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, assetSchema, repositoryErrorSchema}
+import com.kabasoft.iws.domain.{AppError, Asset, FinancialsTransaction}
+import com.kabasoft.iws.repository.Schema.{assetSchema, ftransactionSchema, authenticationErrorSchema, repositoryErrorSchema}
 import com.kabasoft.iws.repository.AssetRepository
 import com.kabasoft.iws.service.AssetsService
 import zio.schema.Schema
 import zio.*
 import zio.http.*
-import zio.http.codec.PathCodec.{path, int, string}
+import zio.http.codec.PathCodec.{int, path, string}
 import zio.http.codec.*
 import zio.http.endpoint.Endpoint
 
@@ -55,7 +55,7 @@ object AssetEndpoint:
        /string("company")?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
     .outErrors[AppError](HttpCodec.error[RepositoryError](Status.NotFound),
       HttpCodec.error[AuthenticationError](Status.Unauthorized)
-    ).out[Int] ?? Doc.p(mGenerateAPIDoc)
+    ).out[List[FinancialsTransaction]] ?? Doc.p(mGenerateAPIDoc)
   
   private val mDelete = Endpoint(RoutePattern.DELETE / "asset" / string("id") ?? Doc.p(modelidDoc) / int("modelid") ?? Doc.p(modelidDoc)
     / string("company") ?? Doc.p(companyDoc)).header(HeaderCodec.authorization)
