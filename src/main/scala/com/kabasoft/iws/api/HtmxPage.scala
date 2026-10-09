@@ -145,6 +145,29 @@ object HtmxPage:
       |    });
       |    syncLabel();
       |  })();
+      |  
+      |    /* Sub-grid add / remove */
+      |  (function () {
+      |    var nextIdx = {};
+      |
+      |    window.addSubRow = function (gridId, prefix) {
+      |      var tbody = document.getElementById(gridId + '-body');
+      |      var template = document.getElementById(gridId + '-template');
+      |      if (!tbody || !template) return;
+      |
+      |      var idx = nextIdx[prefix] = (nextIdx[prefix] === undefined)
+      |        ? tbody.querySelectorAll('tr').length
+      |        : nextIdx[prefix] + 1;
+      |
+      |      var html = template.innerHTML.replace(/__INDEX__/g, String(idx));
+      |      tbody.insertAdjacentHTML('beforeend', html);
+      |    };
+      |
+      |    window.removeSubRow = function (btn) {
+      |      var tr = btn.closest('tr');
+      |      if (tr) tr.remove();
+      |    };
+      |  })();
       |</script>
       |""".stripMargin
 
@@ -194,3 +217,5 @@ object HtmxPage:
        |$pageScript
        |</body>
        |</html>""".stripMargin
+
+ 

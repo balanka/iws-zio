@@ -18,10 +18,11 @@ object Messages:
   /** modelid -> lang -> title */
   private val masterfileTitles: Map[Int, Map[String, String]] = Map(
     6   -> Map("en" -> "Cost Center",   "de" -> "Kostenstelle",     "fr" -> "Centre de coût"),
+    11 -> Map("en" -> "Bank", "de" -> "Bank", "fr" -> "Banque"),
     15  -> Map("en" -> "Quantity Unit", "de" -> "Mengeneinheit",    "fr" -> "Unité de quantité"),
-    99  -> Map("en" -> "Currency",      "de" -> "Währung",          "fr" -> "Devise"),
     36  -> Map("en" -> "Account Class", "de" -> "Kontoklasse",      "fr" -> "Classe de compte"),
-    121 -> Map("en" -> "Role",          "de" -> "Rolle",            "fr" -> "Rôle")
+    99  -> Map("en" -> "Currency",      "de" -> "Währung",          "fr" -> "Devise"),
+    121 -> Map("en" -> "Role",          "de" -> "Rolle",            "fr" -> "Rôle"),
   )
 
   def masterfileTitle(modelid: Int, lang: String): String =

@@ -6,6 +6,9 @@ object HtmxCss:
     """
       |    /* ==========================================
       |       Density variables
+      |       Every rule below reads var(--...) so the
+      |       four blocks below fully control spacing.
+      |       :root is the default (compact).
       |       ========================================== */
       |    :root {
       |      --grid-row-gap:      3px;
@@ -92,7 +95,8 @@ object HtmxCss:
       |    }
       |
       |    /* ==========================================
-      |       Page wrapper
+      |       Page wrapper — replaces Tailwind's
+      |       p-x / space-y-x utilities on the shell.
       |       ========================================== */
       |    .htmx-page-wrapper {
       |      display: flex;
@@ -102,15 +106,19 @@ object HtmxCss:
       |    }
       |
       |    /* ==========================================
-      |       Form grid
-      |       ========================================== */
-      |    .htmx-grid {
-      |      display: grid;
-      |      grid-template-columns: max-content 1fr max-content 1fr;
-      |      column-gap: var(--grid-col-gap);
-      |      row-gap:    var(--grid-row-gap);
-      |      align-items: center;
-      |    }
+      |             Form grid — 4 columns
+      |             [ label | value | label | value ]
+      |             ========================================== */
+      |     .htmx-grid {
+      |         display: grid;
+      |         grid-template-columns: max-content 1fr max-content 1fr;
+      |         column-gap: var(--grid-col-gap);
+      |         row-gap:    var(--grid-row-gap);
+      |         align-items: center;
+      |         background: #fafafa;
+      |         padding: 8px;
+      |         border-radius: 6px;
+      |     }
       |    .htmx-grid > input[type="hidden"] { display: none; }
       |    .htmx-grid > .label {
       |      white-space: nowrap;
@@ -169,6 +177,13 @@ object HtmxCss:
       |    }
       |    .htmx-toolbar .btn { min-width: 100px; justify-content: center; }
       |    .htmx-toolbar .density-select { width: auto; min-width: 100px; }
+      |    .toolbar-sep {
+      |      display: inline-block;
+      |      width: 1px;
+      |      height: 18px;
+      |      background: #ddd;
+      |      margin: 0 4px;
+      |    }
       |
       |    /* ==========================================
       |       Collapsible cards
@@ -189,11 +204,12 @@ object HtmxCss:
       |    .card-body.compact { padding: var(--card-pad); }
       |
       |    /* ==========================================
-      |       Table
+      |       Table wrapper
       |       ========================================== */
       |    .htmx-table-wrapper { width: 100%; }
       |    .table-toolbar { margin-bottom: 4px; }
       |
+      |    /* Search field visibility — toggled by body class */
       |    body.hide-search .table-search-wrapper { display: none; }
       |
       |    .table-scroll {
@@ -221,7 +237,10 @@ object HtmxCss:
       |    .table-sort:hover { color: #1976d2; }
       |
       |    /* ==========================================
-      |       Pager
+      |       Pager — 3-column grid
+      |         left   = page size selector
+      |         center = Prev / info / Next
+      |         right  = spacer
       |       ========================================== */
       |    .table-pager {
       |      display: grid;
@@ -253,10 +272,88 @@ object HtmxCss:
       |      padding: var(--btn-pad);
       |      font-size: var(--btn-font);
       |    }
-      |        /* ==========================================
-      |       Read-only form mode (toggled by the Edit button)
+      |
+      |    /* ==========================================
+      |       Sub-grid (editable rows inside a form)
+      |       Density-aware — every size comes from a var.
       |       ========================================== */
-      |    .form-readonly input:not([type="hidden"]),
+      |    .htmx-subgrid { width: 100%; }
+      |    .htmx-subgrid table { margin: 0; }
+      |
+      |    .htmx-subgrid th,
+      |    .htmx-subgrid td {
+      |      padding: var(--table-cell-pad);
+      |      font-size: var(--table-font);
+      |      line-height: 1.3;
+      |    }
+      |
+      |    .htmx-subgrid thead th {
+      |      background: var(--color-base-100, #fff);
+      |      font-size: var(--table-font);
+      |    }
+      |
+      |    .htmx-subgrid input.input-xs,
+      |    .htmx-subgrid select.select-xs {
+      |      height: var(--grid-input-height);
+      |      width: 100%;
+      |      padding: 2px 6px;
+      |      font-size: var(--grid-label-size);
+      |    }
+      |
+      |    .htmx-subgrid .subgrid-actions {
+      |      width: calc(var(--btn-height) + 8px);
+      |      text-align: center;
+      |    }
+      |
+      |    .htmx-subgrid .subgrid-actions .btn {
+      |      height: var(--btn-height);
+      |      min-height: var(--btn-height);
+      |      padding: var(--btn-pad);
+      |      font-size: var(--btn-font);
+      |    }
+      |
+      |    .htmx-subgrid > button {
+      |      height: var(--btn-height);
+      |      min-height: var(--btn-height);
+      |      padding: var(--btn-pad);
+      |      font-size: var(--btn-font);
+      |      margin-top: 4px;
+      |    }
+      |
+      |    .htmx-subgrid .num {
+      |      text-align: right;
+      |    }
+      |
+      |    /* ==========================================
+      |       Sub-grid block — spans the main form grid
+      |       ========================================== */
+      |    .subgrid-block {
+      |      grid-column: 1 / -1;
+      |      margin-top: 8px;
+      |      padding-top: 8px;
+      |      border-top: 1px solid #e5e7eb;
+      |    }
+      |
+      |    /* If a form uses the wrapper-div structure instead */
+      |    .form-subgrid {
+      |      margin-top: 12px;
+      |      padding-top: 10px;
+      |      border-top: 1px solid #e5e7eb;
+      |    }
+      |    .form-subgrid > .label {
+      |      display: block;
+      |      margin-bottom: 4px;
+      |      font-weight: 500;
+      |      color: #555;
+      |      font-size: var(--grid-label-size);
+      |    }
+      |
+      |    /* ==========================================
+      |       Read-only form mode
+      |       Toggled by the Edit button client-side.
+      |       Applied to the <form> element.
+      |       ========================================== */
+      |    .form-readonly input:not([type="hidden"]):not([type="checkbox"]),
       |    .form-readonly select,
       |    .form-readonly textarea {
       |      pointer-events: none;
@@ -269,13 +366,44 @@ object HtmxCss:
       |      pointer-events: none;
       |      opacity: 0.55;
       |    }
-      |
-      |    /* Toolbar separator */
-      |    .toolbar-sep {
-      |      display: inline-block;
-      |      width: 1px;
-      |      height: 18px;
-      |      background: #ddd;
-      |      margin: 0 4px;
+      |    .form-readonly .htmx-subgrid .btn {
+      |      pointer-events: none;
+      |      opacity: 0.5;
       |    }
+      |
+      |    /* ==========================================
+      |       Custom combobox (if used)
+      |       ========================================== */
+      |    .combo { position: relative; width: 100%; }
+      |    .combo-trigger {
+      |      width: 100%; text-align: left;
+      |      padding: 6px 10px; font-size: 14px;
+      |      border: 1px solid #ccc; border-radius: 4px;
+      |      background: white; cursor: pointer;
+      |      display: flex; justify-content: space-between; align-items: center;
+      |      font-family: inherit;
+      |    }
+      |    .combo-trigger:hover { border-color: #999; }
+      |    .combo-arrow { color: #888; font-size: 12px; }
+      |    .combo-list {
+      |      position: absolute; top: 100%; left: 0; right: 0;
+      |      max-height: 260px; overflow-y: auto;
+      |      margin: 4px 0 0; padding: 0; list-style: none;
+      |      background: white; border: 1px solid #ccc; border-radius: 4px;
+      |      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      |      z-index: 100;
+      |    }
+      |    .combo-item {
+      |      padding: 5px 10px; cursor: pointer;
+      |      font-size: 14px; white-space: nowrap;
+      |      overflow: hidden; text-overflow: ellipsis;
+      |    }
+      |    .combo-item.opt-odd  { background-color: #ffffff; }
+      |    .combo-item.opt-even { background-color: #eef4fb; }
+      |    .combo-item:hover    { background-color: #e3f2fd; }
+      |    .combo-item.opt-selected { font-weight: 600; color: #1976d2; }
+      |
+      |    background: #fafafa;
+      |    padding: 8px;
+      |    border-radius: 6px;
       |""".stripMargin

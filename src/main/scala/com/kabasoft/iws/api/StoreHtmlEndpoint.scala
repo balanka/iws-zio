@@ -1,7 +1,8 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.domain.{ModelId, Store}
+import com.kabasoft.iws.domain.{ModelId, Stock, Store}
 import com.kabasoft.iws.repository.{AccountRepository, MasterfileRepository, StoreRepository}
+import java.math.BigDecimal
 import zio._
 import zio.http._
 
@@ -23,13 +24,38 @@ object StoreHtmlEndpoint:
     } yield StoreFormView.render(s, accs, ccs, mode)
 
   private def applyParams(existing: Store, params: Map[String, String]): Store =
+    val parentId = params.getOrElse("id_display", existing.id)
+
+    val stocks: List[Stock] =
+      HtmxFormIndex.parseIndexed(params, "stocks").map { m =>
+        Stock(
+          id = m.getOrElse("id", ""),
+          store = parentId,
+          article = m.getOrElse("article", ""),
+          quantity = BigDecimal(m.getOrElse("quantity", "0")),
+          price = BigDecimal(m.getOrElse("price", "0")),
+          charge = m.getOrElse("charge", ""),
+          company = existing.company,
+          modelid = ModelId.STOCK.modelid)
+      }
+
     existing.copy(
-      id          = params.getOrElse("id_display", existing.id),
-      name        = params.getOrElse("name", existing.name),
+      id = parentId,
+      name = params.getOrElse("name", existing.name),
       description = params.getOrElse("description", existing.description),
-      costcenter  = params.getOrElse("costcenter", existing.costcenter),
-      account     = params.getOrElse("account", existing.account),
-      oaccount    = params.getOrElse("oaccount", existing.oaccount))
+      costcenter = params.getOrElse("costcenter", existing.costcenter),
+      account = params.getOrElse("account", existing.account),
+      oaccount = params.getOrElse("oaccount", existing.oaccount),
+      stocks = stocks)
+
+//  private def applyParams(existing: Store, params: Map[String, String]): Store =
+//    existing.copy(
+//      id          = params.getOrElse("id_display", existing.id),
+//      name        = params.getOrElse("name", existing.name),
+//      description = params.getOrElse("description", existing.description),
+//      costcenter  = params.getOrElse("costcenter", existing.costcenter),
+//      account     = params.getOrElse("account", existing.account),
+//      oaccount    = params.getOrElse("oaccount", existing.oaccount))
 
   private val listGet: Route[StoreRepository, Response] =
     Method.GET / "html" / "store-list" / string("company") ->

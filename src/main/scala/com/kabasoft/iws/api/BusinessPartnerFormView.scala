@@ -1,9 +1,19 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.domain.{Account, BusinessPartner, Contact, Employee, Vat}
+import com.kabasoft.iws.domain.{Account, BankAccount, BusinessPartner, Contact, Employee, Vat}
 import Html.esc
 
 object BusinessPartnerFormView:
+
+  private val bankColumns = List(
+    HtmxSubGrid.Column("id",    "Id",    "w-24"),
+    HtmxSubGrid.Column("bic",   "BIC",   "w-28"),
+    HtmxSubGrid.Column("owner", "Owner", "w-40")
+  )
+
+  private def bankRows(p: BusinessPartner): List[HtmxSubGrid.Row] =
+    p.bankaccounts.map(b => HtmxSubGrid.Row(
+      cells = List(b.id, b.bic, b.owner)))
 
   def render(
               p:        BusinessPartner,
@@ -26,12 +36,18 @@ object BusinessPartnerFormView:
         s"${HtmxFields.moneyRow("Salary", s"$formId-salary", "salary", salary, p.currency)}\n<span></span>\n<span></span>"
       else ""
 
+    val bankGrid = HtmxSubGrid.render(
+      id       = s"$formId-banks",
+      prefix   = "bankaccounts",
+      fkField  = "owner",
+      fkValue  = p.id,
+      columns  = bankColumns,
+      rows     = bankRows(p))
+
     s"""
-       |<form id="$formId"
-       |      class="$formClass"
+       |<form id="$formId" class="$formClass"
        |      hx-put="/html/$prefix"
-       |      hx-target="#$formId"
-       |      hx-swap="outerHTML">
+       |      hx-target="#$formId" hx-swap="outerHTML">
        |
        |  ${HtmxFields.hiddenField("id", p.id)}
        |  ${HtmxFields.hiddenField("modelid", p.modelid.toString)}
@@ -62,5 +78,10 @@ object BusinessPartnerFormView:
        |  ${HtmxFields.textRow("Tax code", s"$formId-taxCode", "taxCode", p.taxCode)}
        |  ${HtmxFields.vatRow("VAT code", s"$formId-vatCode", "vatCode", vats, p.vatCode)}
        |$salaryRow
+       |
+       |  <div class="subgrid-block">
+       |    <label class="label">Bank accounts</label>
+       |    $bankGrid
+       |  </div>
        |</form>
        |""".stripMargin

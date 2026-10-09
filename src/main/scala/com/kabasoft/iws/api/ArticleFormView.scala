@@ -1,9 +1,26 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.domain.{Account, Article, Vat}
-import Html.esc
+import com.kabasoft.iws.domain.{Account, Article, Stock, Vat}
+import java.math.BigDecimal
 
 object ArticleFormView:
+
+  private val stockColumns = List(
+    HtmxSubGrid.Column("id",       "Id",       "w-24"),
+    HtmxSubGrid.Column("store",    "Store",    "w-28"),
+    HtmxSubGrid.Column("quantity", "Qty",      "num w-20"),
+    HtmxSubGrid.Column("price",    "Price",    "num w-24"),
+    HtmxSubGrid.Column("charge",   "Charge",   "w-20")
+  )
+
+  private def stockRows(a: Article): List[HtmxSubGrid.Row] =
+    a.stocks.map(s => HtmxSubGrid.Row(
+      cells = List(
+        s.id,
+        s.store,
+        s.quantity.toString,
+        s.price.toString,
+        s.charge)))
 
   def render(
               a:        Article,
@@ -15,12 +32,18 @@ object ArticleFormView:
     val formClass = if mode == "view" then "htmx-grid form-readonly" else "htmx-grid"
     val formId    = "article-form"
 
+    val stockGrid = HtmxSubGrid.render(
+      id       = s"$formId-stocks",
+      prefix   = "stocks",
+      fkField  = "article",
+      fkValue  = a.id,
+      columns  = stockColumns,
+      rows     = stockRows(a))
+
     s"""
-       |<form id="$formId"
-       |      class="$formClass"
+       |<form id="$formId" class="$formClass"
        |      hx-put="/html/article"
-       |      hx-target="#$formId"
-       |      hx-swap="outerHTML">
+       |      hx-target="#$formId" hx-swap="outerHTML">
        |
        |  ${HtmxFields.hiddenField("id", a.id)}
        |  ${HtmxFields.hiddenField("modelid", a.modelid.toString)}
@@ -51,5 +74,10 @@ object ArticleFormView:
        |  ${HtmxFields.checkboxRow("Stocked", s"$formId-stocked", "stocked", a.stocked)}
        |  <span></span>
        |  <span></span>
+       |
+       |  <div class="subgrid-block">
+       |    <label class="label">Stocks</label>
+       |    $stockGrid
+       |  </div>
        |</form>
        |""".stripMargin

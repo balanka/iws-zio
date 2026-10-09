@@ -1,8 +1,25 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.domain.{Account, Masterfile, Store}
+import com.kabasoft.iws.domain.{Account, Masterfile, Stock, Store}
 
 object StoreFormView:
+
+  private val stockColumns = List(
+    HtmxSubGrid.Column("id",       "Id",       "w-24"),
+    HtmxSubGrid.Column("article",  "Article",  "w-28"),
+    HtmxSubGrid.Column("quantity", "Qty",      "num w-20"),
+    HtmxSubGrid.Column("price",    "Price",    "num w-24"),
+    HtmxSubGrid.Column("charge",   "Charge",   "w-20")
+  )
+
+  private def stockRows(s: Store): List[HtmxSubGrid.Row] =
+    s.stocks.map(st => HtmxSubGrid.Row(
+      cells = List(
+        st.id,
+        st.article,
+        st.quantity.toString,
+        st.price.toString,
+        st.charge)))
 
   def render(
               s:           Store,
@@ -13,6 +30,14 @@ object StoreFormView:
     val isCreate  = mode == "create"
     val formClass = if mode == "view" then "htmx-grid form-readonly" else "htmx-grid"
     val formId    = "store-form"
+
+    val stockGrid = HtmxSubGrid.render(
+      id       = s"$formId-stocks",
+      prefix   = "stocks",
+      fkField  = "store",
+      fkValue  = s.id,
+      columns  = stockColumns,
+      rows     = stockRows(s))
 
     s"""
        |<form id="$formId" class="$formClass"
@@ -33,7 +58,9 @@ object StoreFormView:
        |  ${HtmxFields.accountRow("Stock account", s"$formId-account", "account", accounts, s.account)}
        |  ${HtmxFields.accountRow("Expense account", s"$formId-oaccount", "oaccount", accounts, s.oaccount)}
        |
-       |  <span></span>
-       |  <span></span>
+       |  <div class="subgrid-block">
+       |    <label class="label">Stocks</label>
+       |    $stockGrid
+       |  </div>
        |</form>
        |""".stripMargin

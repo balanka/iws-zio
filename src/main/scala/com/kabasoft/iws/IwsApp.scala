@@ -55,7 +55,7 @@ import com.kabasoft.iws.api.{AccountCombinedPage, AccountHtmlEndpoint, AccountLi
   , BusinessPartnerHtmlEndpoint, ContactCombinedPage, ContactHtmlEndpoint, FmoduleCombinedPage, FmoduleHtmlEndpoint
   , PartnerHtmlEndpoint, PartnerPage, PermissionCombinedPage, PermissionHtmlEndpoint
   , StoreCombinedPage, StoreHtmlEndpoint, UserCombinedPage, UserHtmlEndpoint, VatCombinedPage, VatHtmlEndpoint
-  , MasterfileCombinedPage, MasterfileHtmlEndpoint, VatPage}
+  , MasterfileCombinedPage, MasterfileHtmlEndpoint, CompanyCombinedPage, CompanyHtmlEndpoint}
 object IwsApp extends ZIOAppDefault {
 
   implicit val clock: Clock = Clock.systemUTC
@@ -100,6 +100,7 @@ object IwsApp extends ZIOAppDefault {
         loginRoutes
         ++ expose
           ++ BusinessPartnerHtmlEndpoint.routes ++ BusinessPartnerCombinedPage.routes
+          ++ CompanyHtmlEndpoint.routes ++ CompanyCombinedPage.routes
           ++ PartnerPage.routes ++ PartnerHtmlEndpoint.routes
           ++ AccountPage.routes ++ AccountListPage.routes ++ AccountHtmlEndpoint.routes++ AccountCombinedPage.routes
           ++ ArticlePage.routes ++ ArticleHtmlEndpoint.routes ++ ArticleCombinedPage.routes
