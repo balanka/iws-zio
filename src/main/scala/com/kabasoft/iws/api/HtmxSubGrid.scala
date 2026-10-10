@@ -4,12 +4,17 @@ import Html.esc
 
 object HtmxSubGrid:
 
+  enum CellKind:
+    case Text, Number, Money, Date, Select, Computed
+
   case class Column(
                      field:    String,
                      label:    String,
                      cssClass: String = "",
                      options:  List[(String, String)] = Nil,
-                     readonly: Boolean = false
+                     readonly: Boolean = false,
+                     kind:     CellKind = CellKind.Text,
+                     expr:     String = ""            // only for CellKind.Computed, e.g. "quantity * price + vat"
                    )
 
   case class Row(
@@ -24,10 +29,11 @@ object HtmxSubGrid:
               fkValue:  String,
               columns:  List[Column],
               rows:     List[Row],
-              readonly: Boolean = false
+              readonly: Boolean = false,
+              totalField: String = ""    // e.g. "net" — cells whose values sum into .calc-total
             ): String =
     if readonly then renderReadonly(prefix, columns, rows)
-    else            renderEditable(id, prefix, fkField, fkValue, columns, rows)
+    else            renderEditable(id, prefix, fkField, fkValue, columns, rows, totalField)
 
   // ── read-only (whole grid) ──────────────────────────────────────────────
 
@@ -58,7 +64,7 @@ object HtmxSubGrid:
        |</div>
        |""".stripMargin
 
-  // ── editable (grid has inputs + fk hidden fields) ───────────────────────
+  // ── editable ────────────────────────────────────────────────────────────
 
   private def renderEditable(
                               id:      String,
@@ -66,43 +72,69 @@ object HtmxSubGrid:
                               fkField: String,
                               fkValue: String,
                               columns: List[Column],
-                              rows:    List[Row]
+                              rows:    List[Row],
+                              totalField: String
                             ): String =
     val headerCells = columns.map(c => s"<th>${esc(c.label)}</th>").mkString
 
-    def hiddenFor(idx: Int, extra: Map[String, String]): String =
+    def hiddenFor(idx: String, extra: Map[String, String]): String =
       val fk = s"""<input type="hidden" name="$prefix.$idx.${esc(fkField)}" value="${esc(fkValue)}" />"""
       val rest = extra.map { case (k, v) =>
         s"""<input type="hidden" name="$prefix.$idx.${esc(k)}" value="${esc(v)}" />"""
       }.mkString
       fk + rest
 
-    def cellInput(col: Column, idx: String, value: String): String =
-      if col.options.nonEmpty then
-        // Dropdown
-        val opts = col.options.map { case (v, label) =>
-          val sel = if v == value then " selected" else ""
-          s"""<option value="${esc(v)}"$sel>${esc(label)}</option>"""
-        }.mkString
-        s"""<select class="select select-xs ${esc(col.cssClass)}"
-           |        name="$prefix.$idx.${esc(col.field)}">
-           |  $opts
-           |</select>""".stripMargin
-      else if col.readonly then
-        // Read-only text input — visible, not editable, still submitted
-        s"""<input class="input input-xs ${esc(col.cssClass)} fk-cell"
-           |       name="$prefix.$idx.${esc(col.field)}"
-           |       value="${esc(value)}" readonly />""".stripMargin
-      else
-        // Normal editable text input
-        s"""<input class="input input-xs ${esc(col.cssClass)}"
-           |       name="$prefix.$idx.${esc(col.field)}"
-           |       value="${esc(value)}" />""".stripMargin
+    def cell(col: Column, idx: String, value: String): String =
+      col.kind match
+        case CellKind.Select =>
+          val opts = col.options.map { case (v, label) =>
+            val sel = if v == value then " selected" else ""
+            s"""<option value="${esc(v)}"$sel>${esc(label)}</option>"""
+          }.mkString
+          s"""<select class="select select-xs ${esc(col.cssClass)}"
+             |        name="$prefix.$idx.${esc(col.field)}">
+             |  $opts
+             |</select>""".stripMargin
+
+        case CellKind.Money =>
+          s"""<input class="input input-xs num ${esc(col.cssClass)}"
+             |       type="number" step="0.01"
+             |       name="$prefix.$idx.${esc(col.field)}"
+             |       value="${esc(value)}" />""".stripMargin
+
+        case CellKind.Number =>
+          s"""<input class="input input-xs num ${esc(col.cssClass)}"
+             |       type="number" step="1"
+             |       name="$prefix.$idx.${esc(col.field)}"
+             |       value="${esc(value)}" />""".stripMargin
+
+        case CellKind.Date =>
+          s"""<input class="input input-xs ${esc(col.cssClass)}"
+             |       type="date"
+             |       name="$prefix.$idx.${esc(col.field)}"
+             |       value="${esc(value)}" />""".stripMargin
+
+        case CellKind.Computed =>
+          s"""<span class="calc-cell num ${esc(col.cssClass)}"
+             |      data-expr="${esc(col.expr)}">${esc(value)}</span>
+             |<input type="hidden" data-calc
+             |       name="$prefix.$idx.${esc(col.field)}"
+             |       value="${esc(value)}" />""".stripMargin
+
+        case CellKind.Text if col.readonly =>
+          s"""<input class="input input-xs ${esc(col.cssClass)} fk-cell"
+             |       name="$prefix.$idx.${esc(col.field)}"
+             |       value="${esc(value)}" readonly />""".stripMargin
+
+        case CellKind.Text =>
+          s"""<input class="input input-xs ${esc(col.cssClass)}"
+             |       name="$prefix.$idx.${esc(col.field)}"
+             |       value="${esc(value)}" />""".stripMargin
 
     def renderRow(row: Row, idx: Int): String =
       val cells = columns.zipAll(row.cells, null, "").map { case (col, value) =>
         val v = if value == null then "" else value
-        s"""<td class="${esc(col.cssClass)}">${cellInput(col, idx.toString, v)}</td>"""
+        s"""<td class="${esc(col.cssClass)}">${cell(col, idx.toString, v)}</td>"""
       }.mkString
 
       s"""<tr>
@@ -110,14 +142,16 @@ object HtmxSubGrid:
          |  <td class="subgrid-actions">
          |    <button type="button" class="btn btn-xs btn-ghost"
          |            onclick="removeSubRow(this)">×</button>
-         |    ${hiddenFor(idx, row.hidden)}
+         |    ${hiddenFor(idx.toString, row.hidden)}
          |  </td>
          |</tr>""".stripMargin
 
     val bodyRows = rows.zipWithIndex.map { case (row, idx) => renderRow(row, idx) }.mkString
 
     val templateCells = columns.map { col =>
-      s"""<td class="${esc(col.cssClass)}">${cellInput(col, "__INDEX__", "")}</td>"""
+      val initialValue =
+        if col.kind == CellKind.Date then "" else if col.kind == CellKind.Computed then "0.00" else ""
+      s"""<td class="${esc(col.cssClass)}">${cell(col, "__INDEX__", initialValue)}</td>"""
     }.mkString
 
     val templateRow =
@@ -130,14 +164,16 @@ object HtmxSubGrid:
          |  </td>
          |</tr>""".stripMargin
 
+    val totalAttr = if totalField.nonEmpty then s""" data-total-field="$totalField"""" else ""
+
     s"""
-       |<div class="htmx-subgrid" data-prefix="$prefix" data-fk-field="$fkField">
+       |<div class="htmx-subgrid" data-prefix="$prefix" data-fk-field="$fkField"$totalAttr>
        |  <table class="table table-xs table-zebra">
        |    <thead><tr>$headerCells<th></th></tr></thead>
        |    <tbody id="$id-body">$bodyRows</tbody>
        |  </table>
        |  <button type="button" class="btn btn-xs btn-outline mt-1"
-       |          onclick="addSubRow('$id', '$prefix')">+ Add</button>
+       |          onclick="addSubRow('$id', '$prefix')">+ Add line</button>
        |
        |  <template id="$id-template">$templateRow</template>
        |</div>

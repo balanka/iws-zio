@@ -57,7 +57,7 @@ object CompanyCombinedPage:
                |          </button>
                |        </div>
                |        <div class="card-content">
-               |          <div id="$prefix-form">$formHtml</div>
+               |          $formHtml
                |        </div>
                |      </div>
                |    </div>

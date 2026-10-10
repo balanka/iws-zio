@@ -394,6 +394,31 @@ object HtmxCss:
       |    }
       |
       |    /* ==========================================
+      |       Filter selects — never disabled
+      |       (e.g. the Transaction / fmodule selector)
+      |       These override .form-readonly above so a
+      |       filter combo stays clickable in view mode.
+      |       ========================================== */
+      |    select.filter-select,
+      |    .form-readonly select.filter-select,
+      |    .htmx-form.form-readonly select.filter-select,
+      |    .collapsible-content > select.filter-select {
+      |      pointer-events: auto !important;
+      |      background: #ffffff !important;
+      |      color: #333333 !important;
+      |      border-color: #bcd9f5 !important;
+      |      cursor: pointer !important;
+      |      opacity: 1 !important;
+      |    }
+      |    select.filter-select:disabled {
+      |      pointer-events: auto !important;
+      |      background: #ffffff !important;
+      |      color: #333333 !important;
+      |      cursor: pointer !important;
+      |      opacity: 1 !important;
+      |    }
+      |
+      |    /* ==========================================
       |       Custom combobox (if used)
       |       ========================================== */
       |    .combo { position: relative; width: 100%; }
@@ -424,4 +449,181 @@ object HtmxCss:
       |    .combo-item.opt-even { background-color: #eef4fb; }
       |    .combo-item:hover    { background-color: #e3f2fd; }
       |    .combo-item.opt-selected { font-weight: 600; color: #1976d2; }
+      |
+      |    /* ==========================================
+      |       Collapsible form sections (<details>)
+      |       Base styles — used by every form that
+      |       renders sections via HtmxCollapsible.
+      |       Sizes come from the density vars.
+      |       ========================================== */
+      |    .htmx-form {
+      |      display: block;
+      |    }
+      |
+      |    .collapsible-section {
+      |      border: 1px solid #e5e7eb;
+      |      border-radius: 6px;
+      |      background: #fff;
+      |      margin-bottom: var(--grid-row-gap);
+      |      overflow: hidden;
+      |    }
+      |    .collapsible-section + .collapsible-section {
+      |      margin-top: 2px;
+      |    }
+      |
+      |    .collapsible-summary {
+      |      display: flex;
+      |      align-items: center;
+      |      gap: 6px;
+      |      cursor: pointer;
+      |      user-select: none;
+      |      padding: 4px 10px;
+      |      font-size: var(--card-title-size);
+      |      font-weight: 600;
+      |      line-height: 1.3;
+      |      background: #f7f8fa;
+      |      border-bottom: 1px solid transparent;
+      |      list-style: none;
+      |    }
+      |    .collapsible-summary::-webkit-details-marker { display: none; }
+      |    .collapsible-section[open] > .collapsible-summary {
+      |      border-bottom-color: #e5e7eb;
+      |    }
+      |    .collapsible-summary:hover { background: #eef4fb; }
+      |
+      |    .collapsible-arrow {
+      |      display: inline-block;
+      |      width: 10px;
+      |      font-size: 12px;
+      |      color: #666;
+      |      transition: transform 0.12s ease;
+      |    }
+      |    .collapsible-arrow::before { content: "▸"; }
+      |    .collapsible-section[open] > .collapsible-summary .collapsible-arrow::before {
+      |      content: "▾";
+      |    }
+      |
+      |    /* The grid inside a section.
+      |       Same 4-column layout as .htmx-grid, but no
+      |       outer border-radius — the section provides it. */
+      |    .collapsible-content {
+      |      display: grid;
+      |      grid-template-columns: max-content 1fr max-content 1fr;
+      |      column-gap: var(--grid-col-gap);
+      |      row-gap:    var(--grid-row-gap);
+      |      align-items: center;
+      |      background: #fafafa;
+      |      padding: 8px;
+      |      border-radius: 0;
+      |    }
+      |    .collapsible-content > input[type="hidden"] { display: none; }
+      |    .collapsible-content > .label {
+      |      white-space: nowrap;
+      |      justify-self: start;
+      |      padding: 0;
+      |      font-size: var(--grid-label-size);
+      |      line-height: 1.2;
+      |    }
+      |    .collapsible-content > textarea {
+      |      min-height: var(--grid-textarea-min);
+      |      resize: vertical;
+      |    }
+      |
+      |    .collapsible-content > .input,
+      |    .collapsible-content > .select,
+      |    .collapsible-content > .textarea {
+      |      height: var(--grid-input-height);
+      |      padding: 2px 6px;
+      |      font-size: var(--grid-label-size);
+      |    }
+      |    .collapsible-content > .textarea { height: auto; }
+      |    .collapsible-content > .btn {
+      |      height: var(--grid-input-height);
+      |      min-height: var(--grid-input-height);
+      |      padding: var(--btn-pad);
+      |      font-size: var(--grid-label-size);
+      |    }
+      |    .collapsible-content > .checkbox { height: 16px; width: 16px; }
+      |
+      |    /* Read-only mode must still allow opening/closing sections. */
+      |    .form-readonly .collapsible-summary { pointer-events: auto; }
+      |
+      |    /* ==========================================
+      |       Partner form — light blue tint
+      |       ========================================== */
+      |    .partner-form .collapsible-section {
+      |      border-color: #bcd9f5;
+      |    }
+      |    .partner-form .collapsible-summary {
+      |      background: #d6e9fb;
+      |    }
+      |    .partner-form .collapsible-summary:hover {
+      |      background: #c6e0f8;
+      |    }
+      |    .partner-form .collapsible-content {
+      |      background: #eaf4fe;
+      |    }
+      |
+      |    /* ==========================================
+      |       Article form — light green tint
+      |       ========================================== */
+      |    .article-form .collapsible-section {
+      |      border-color: #c3e6cb;
+      |    }
+      |    .article-form .collapsible-summary {
+      |      background: #d4edda;
+      |    }
+      |    .article-form .collapsible-summary:hover {
+      |      background: #c3e6cb;
+      |    }
+      |    .article-form .collapsible-content {
+      |      background: #eaf7ee;
+      |    }
+      |
+      |    /* ==========================================
+      |       Transaction form — line grid enhancements
+      |       ========================================== */
+      |    .transaction-form .htmx-subgrid input[type="number"] {
+      |      text-align: right;
+      |      font-variant-numeric: tabular-nums;
+      |      -moz-appearance: textfield;
+      |    }
+      |    .transaction-form .htmx-subgrid input[type="number"]::-webkit-outer-spin-button,
+      |    .transaction-form .htmx-subgrid input[type="number"]::-webkit-inner-spin-button {
+      |      -webkit-appearance: none;
+      |      margin: 0;
+      |    }
+      |    .transaction-form .htmx-subgrid input[type="date"] {
+      |      font-size: var(--grid-label-size);
+      |      height: var(--grid-input-height);
+      |    }
+      |    .transaction-form .htmx-subgrid .calc-cell {
+      |      display: block;
+      |      height: var(--grid-input-height);
+      |      line-height: var(--grid-input-height);
+      |      padding: 0 6px;
+      |      background: #f5f5f5;
+      |      color: #333;
+      |      border: 1px solid #e5e7eb;
+      |      border-radius: 4px;
+      |      font-variant-numeric: tabular-nums;
+      |      text-align: right;
+      |    }
+      |    .transaction-form .subgrid-total {
+      |      display: flex;
+      |      justify-content: flex-end;
+      |      align-items: center;
+      |      gap: 8px;
+      |      margin-top: 4px;
+      |      font-weight: 600;
+      |    }
+      |    .transaction-form .subgrid-total .calc-total {
+      |      min-width: 100px;
+      |      padding: 2px 8px;
+      |      background: #eaf4fe;
+      |      border: 1px solid #bcd9f5;
+      |      border-radius: 4px;
+      |      font-variant-numeric: tabular-nums;
+      |      text-align: right;
+      |    }
       |""".stripMargin

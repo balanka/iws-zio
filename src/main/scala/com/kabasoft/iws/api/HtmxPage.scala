@@ -18,7 +18,25 @@ object HtmxPage:
   private val pageScript: String =
     """
       |<script>
-      |  /* Multi-column sort */
+      |  /* =====================================================================
+      |     Shared event helpers
+      |     ===================================================================== */
+      |  (function () {
+      |    window.iwsEventEl = function (e) {
+      |      var d = e && e.detail;
+      |      if (!d) return null;
+      |      var el = d.elt || d.target;
+      |      return (el && el.nodeType === 1) ? el : null;
+      |    };
+      |    window.iwsEventElId = function (e) {
+      |      var el = window.iwsEventEl(e);
+      |      return (el && typeof el.id === 'string') ? el.id : '';
+      |    };
+      |  })();
+      |
+      |  /* =====================================================================
+      |     Multi-column sort
+      |     ===================================================================== */
       |  (function () {
       |    function parseSpec(s) {
       |      if (!s) return [];
@@ -58,7 +76,9 @@ object HtmxPage:
       |    }, true);
       |  })();
       |
-      |  /* Collapsible cards */
+      |  /* =====================================================================
+      |     Collapsible cards (form card / list card)
+      |     ===================================================================== */
       |  (function () {
       |    function refresh(btn, collapsed) {
       |      var arrow = btn.querySelector('.toggle-arrow');
@@ -79,7 +99,9 @@ object HtmxPage:
       |    });
       |  })();
       |
-      |  /* Show / hide the table search field */
+      |  /* =====================================================================
+      |     Show / hide the table search field
+      |     ===================================================================== */
       |  (function () {
       |    function refresh() {
       |      var btn = document.getElementById('toggle-search-btn');
@@ -100,7 +122,9 @@ object HtmxPage:
       |    refresh();
       |  })();
       |
-      |  /* Density selector */
+      |  /* =====================================================================
+      |     Density selector
+      |     ===================================================================== */
       |  (function () {
       |    function syncSelect() {
       |      var sel = document.getElementById('density-select');
@@ -117,12 +141,21 @@ object HtmxPage:
       |    syncSelect();
       |  })();
       |
-      |  /* Form edit-mode toggle */
+      |  /* =====================================================================
+      |     Form edit-mode toggle
+      |     ===================================================================== */
       |  (function () {
+      |    function resolveForm(selector) {
+      |      var el = document.querySelector(selector);
+      |      if (!el) return null;
+      |      if (el.tagName === 'FORM') return el;
+      |      return el.querySelector('form') || el;
+      |    }
+      |
       |    function syncLabel() {
       |      var btn = document.getElementById('toggle-edit-btn');
       |      if (!btn) return;
-      |      var form = document.querySelector(btn.dataset.editTarget);
+      |      var form = resolveForm(btn.dataset.editTarget);
       |      if (!form) return;
       |      var locked = form.classList.contains('form-readonly');
       |      var label = btn.querySelector('.edit-label');
@@ -133,20 +166,26 @@ object HtmxPage:
       |      var btn = e.target.closest('#toggle-edit-btn');
       |      if (!btn) return;
       |      e.preventDefault();
-      |      var form = document.querySelector(btn.dataset.editTarget);
+      |      var form = resolveForm(btn.dataset.editTarget);
       |      if (!form) return;
       |      form.classList.toggle('form-readonly');
+      |      if (!form.classList.contains('form-readonly')) {
+      |        var first = form.querySelector('details.collapsible-section');
+      |        if (first) first.open = true;
+      |      }
       |      syncLabel();
       |    });
       |
       |    document.body.addEventListener('htmx:afterSwap', function (e) {
-      |      var t = e.detail && e.detail.target;
-      |      if (t && t.id && t.id.endsWith('-form')) syncLabel();
+      |      var id = window.iwsEventElId(e);
+      |      if (id && id.endsWith('-form')) syncLabel();
       |    });
       |    syncLabel();
       |  })();
       |
-      |    /* Sub-grid add / remove */
+      |  /* =====================================================================
+      |     Sub-grid add / remove
+      |     ===================================================================== */
       |  (function () {
       |    var nextIdx = {};
       |
@@ -168,17 +207,14 @@ object HtmxPage:
       |      if (tr) tr.remove();
       |    };
       |  })();
-      |    /* ==================================================
-      |     Sub-grid foreign keys: keep the fk column in every
-      |     row equal to the main form's id_display value.
-      |     Applies while the user types the id in create mode,
-      |     and covers any case where the id changes during edit.
-      |     ================================================== */
+      |
+      |  /* =====================================================================
+      |     Sub-grid foreign keys
+      |     ===================================================================== */
       |  (function () {
       |    function syncGrid(grid, newId) {
       |      var fk = grid.dataset.fkField;
       |      if (!fk) return;
-      |      // Update both the visible fk input and the hidden one
       |      grid.querySelectorAll('input[name$=".' + fk + '"]').forEach(function (el) {
       |        el.value = newId;
       |      });
@@ -194,6 +230,165 @@ object HtmxPage:
       |        syncGrid(grid, newId);
       |      });
       |    });
+      |  })();
+      |
+      |  /* =====================================================================
+      |     Sub-grid computed cells + running total
+      |     ===================================================================== */
+      |  (function () {
+      |    function fieldValue(row, name) {
+      |      var el = row.querySelector('[name$=".' + name + '"]');
+      |      if (!el) return 0;
+      |      var v = parseFloat(el.value);
+      |      return isNaN(v) ? 0 : v;
+      |    }
+      |
+      |    function recomputeRow(row) {
+      |      row.querySelectorAll('.calc-cell[data-expr]').forEach(function (span) {
+      |        var expr = span.dataset.expr;
+      |        var exprSub = expr.replace(/[a-zA-Z_][a-zA-Z0-9_]*/g, function (name) {
+      |          if (['min', 'max', 'abs', 'round'].indexOf(name) >= 0) return name;
+      |          return String(fieldValue(row, name));
+      |        });
+      |        var result;
+      |        try { result = Function('"use strict";return (' + exprSub + ')')(); }
+      |        catch (e) { result = null; }
+      |        var n = parseFloat(result);
+      |        if (isNaN(n)) n = 0;
+      |        span.textContent = n.toFixed(2);
+      |        var hidden = span.parentElement.querySelector('input[type="hidden"][data-calc]');
+      |        if (hidden) hidden.value = n.toFixed(2);
+      |      });
+      |    }
+      |
+      |    function recomputeTotal(grid) {
+      |      var field = grid.dataset.totalField;
+      |      if (!field) return;
+      |      var form = grid.closest('form');
+      |      if (!form) return;
+      |      var total = 0;
+      |      grid.querySelectorAll('tbody tr').forEach(function (tr) {
+      |        var el = tr.querySelector('[name$=".' + field + '"]');
+      |        if (!el) return;
+      |        var v = parseFloat(el.value);
+      |        if (!isNaN(v)) total += v;
+      |      });
+      |      var out = form.querySelector('.calc-total');
+      |      if (out) out.textContent = total.toFixed(2);
+      |    }
+      |
+      |    function recomputeAll(root) {
+      |      (root || document).querySelectorAll('.htmx-subgrid').forEach(function (grid) {
+      |        grid.querySelectorAll('tbody tr').forEach(recomputeRow);
+      |        recomputeTotal(grid);
+      |      });
+      |    }
+      |
+      |    document.body.addEventListener('input', function (e) {
+      |      var grid = e.target.closest('.htmx-subgrid');
+      |      if (!grid) return;
+      |      var row = e.target.closest('tr');
+      |      if (row) recomputeRow(row);
+      |      recomputeTotal(grid);
+      |    });
+      |    document.body.addEventListener('change', function (e) {
+      |      var grid = e.target.closest('.htmx-subgrid');
+      |      if (!grid) return;
+      |      var row = e.target.closest('tr');
+      |      if (row) recomputeRow(row);
+      |      recomputeTotal(grid);
+      |    });
+      |
+      |    document.body.addEventListener('htmx:afterSwap', function (e) {
+      |      var el = window.iwsEventEl(e);
+      |      if (el) recomputeAll(el);
+      |    });
+      |
+      |    recomputeAll(document);
+      |  })();
+      |
+      |  /* =====================================================================
+      |     Collapsible sections (<details>)
+      |     - Persist open / closed per section id in localStorage.
+      |     - Auto-open a section containing an invalid field after a
+      |       failed htmx request.
+      |     ===================================================================== */
+      |  (function () {
+      |    var KEY = 'iws-collapse:';
+      |
+      |    function persist(d) {
+      |      if (!d.id) return;
+      |      try { localStorage.setItem(KEY + d.id, d.open ? '1' : '0'); } catch (e) {}
+      |    }
+      |    function restore(root) {
+      |      (root || document)
+      |        .querySelectorAll('details.collapsible-section')
+      |        .forEach(function (d) {
+      |          if (!d.id) return;
+      |          var saved = null;
+      |          try { saved = localStorage.getItem(KEY + d.id); } catch (e) {}
+      |          if (saved !== null) d.open = saved === '1';
+      |        });
+      |    }
+      |    function openInvalid(root) {
+      |      (root || document)
+      |        .querySelectorAll('input:invalid, select:invalid, textarea:invalid')
+      |        .forEach(function (el) {
+      |          var sec = el.closest('details.collapsible-section');
+      |          if (sec) sec.open = true;
+      |        });
+      |    }
+      |
+      |    document.body.addEventListener('toggle', function (e) {
+      |      if (e.target instanceof HTMLDetailsElement) persist(e.target);
+      |    }, true);
+      |
+      |    document.body.addEventListener('htmx:afterSwap', function (e) {
+      |      var el = window.iwsEventEl(e);
+      |      if (!el) return;
+      |      restore(el);
+      |    });
+      |
+      |    document.body.addEventListener('htmx:afterRequest', function (e) {
+      |      if (!e.detail || !e.detail.successful) return;
+      |      var el = window.iwsEventEl(e);
+      |      if (!el) return;
+      |      openInvalid(el);
+      |    });
+      |
+      |    restore(document);
+      |  })();
+      |
+      |  /* =====================================================================
+      |     Filter selects — never disabled (JS safety net)
+      |     Removes the `disabled` attribute and re-enables pointer events
+      |     on any select.filter-select after every HTMX swap / settle, and
+      |     once on initial load. Guarantees the Transaction / fmodule
+      |     selector stays usable in view mode regardless of CSS.
+      |     ===================================================================== */
+      |  (function () {
+      |    function unlock(root) {
+      |      (root || document)
+      |        .querySelectorAll('select.filter-select')
+      |        .forEach(function (el) {
+      |          if (el.disabled) el.disabled = false;
+      |          el.removeAttribute('disabled');
+      |          el.style.pointerEvents = 'auto';
+      |          el.style.cursor = 'pointer';
+      |          el.style.opacity = '1';
+      |        });
+      |    }
+      |
+      |    document.body.addEventListener('htmx:afterSwap', function (e) {
+      |      var el = window.iwsEventEl(e);
+      |      if (el) unlock(el);
+      |    });
+      |    document.body.addEventListener('htmx:afterSettle', function (e) {
+      |      var el = window.iwsEventEl(e);
+      |      if (el) unlock(el);
+      |    });
+      |
+      |    unlock(document);
       |  })();
       |</script>
       |""".stripMargin
@@ -244,4 +439,3 @@ object HtmxPage:
        |$pageScript
        |</body>
        |</html>""".stripMargin
-

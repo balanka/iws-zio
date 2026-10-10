@@ -55,7 +55,7 @@ object AssetCombinedPage:
                |          </button>
                |        </div>
                |        <div class="card-content">
-               |          <div id="$prefix-form">$formHtml</div>
+               |          $formHtml
                |        </div>
                |      </div>
                |    </div>

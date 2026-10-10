@@ -50,12 +50,13 @@ import java.time.Clock
 import java.util
 import scala.annotation.nowarn
 import scala.language.postfixOps
-import com.kabasoft.iws.api.{AccountCombinedPage, AccountHtmlEndpoint, AccountListPage, AccountPage, ArticleCombinedPage,
-  ArticleHtmlEndpoint, ArticlePage, AssetCombinedPage, AssetHtmlEndpoint, BusinessPartnerCombinedPage
-  , BusinessPartnerHtmlEndpoint, ContactCombinedPage, ContactHtmlEndpoint, FmoduleCombinedPage, FmoduleHtmlEndpoint
-  , PartnerHtmlEndpoint, PartnerPage, PermissionCombinedPage, PermissionHtmlEndpoint
-  , StoreCombinedPage, StoreHtmlEndpoint, UserCombinedPage, UserHtmlEndpoint, VatCombinedPage, VatHtmlEndpoint
-  , MasterfileCombinedPage, MasterfileHtmlEndpoint, CompanyCombinedPage, CompanyHtmlEndpoint}
+import com.kabasoft.iws.api.{AccountCombinedPage, AccountHtmlEndpoint, AccountListPage, AccountPage, ArticleCombinedPage
+  , ArticleHtmlEndpoint, ArticlePage, AssetCombinedPage, AssetHtmlEndpoint, BusinessPartnerCombinedPage
+  , BusinessPartnerHtmlEndpoint, CompanyCombinedPage, CompanyHtmlEndpoint, ContactCombinedPage, ContactHtmlEndpoint
+  , FmoduleCombinedPage, FmoduleHtmlEndpoint, MasterfileCombinedPage, MasterfileHtmlEndpoint, PartnerHtmlEndpoint
+  , PartnerPage, PermissionCombinedPage, PermissionHtmlEndpoint, StoreCombinedPage, StoreHtmlEndpoint
+  , TransactionCombinedPage, TransactionHtmlEndpoint //FinancialsHtmlEndpoint, FinancialsCombinedPage
+  , UserCombinedPage, UserHtmlEndpoint, VatCombinedPage, VatHtmlEndpoint}
 object IwsApp extends ZIOAppDefault {
 
   implicit val clock: Clock = Clock.systemUTC
@@ -116,6 +117,8 @@ object IwsApp extends ZIOAppDefault {
           ++ AssetCombinedPage.routes ++ AssetHtmlEndpoint.routes
           ++ FmoduleCombinedPage.routes ++ FmoduleHtmlEndpoint.routes
           ++ MasterfileHtmlEndpoint.routes ++ MasterfileCombinedPage.routes
+          ++ TransactionHtmlEndpoint.routes ++ TransactionCombinedPage.routes
+          //++ FinancialsHtmlEndpoint.routes ++  FinancialsCombinedPage.routes
           ++ (httpApp @@ bearerAuthWithContext2)
         )
 //        .serve(loginRoutes++expose ++ VatPage.routes ++ VatHtmlEndpoint.routes ++ httpApp@@bearerAuthWithContext2)

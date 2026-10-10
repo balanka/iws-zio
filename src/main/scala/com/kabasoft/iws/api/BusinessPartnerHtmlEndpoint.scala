@@ -156,26 +156,44 @@ object BusinessPartnerHtmlEndpoint:
       .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
 
   // ── New (blank form in create mode) ─────────────────────────────────────
-
   private val formNew
   : Route[AccountRepository & VatRepository & PartnerRepository & MasterfileRepository, Response] =
-    Method.GET / "html" / string("prefix") / "new" / int("modelid") / string("company") ->
+    Method.GET / "html" / string("prefix") / "new-form" / int("modelid") / string("company") ->
       handler { (prefix: String, modelid: Int, company: String, _: Request) =>
         PartnerKind.fromPrefix(prefix) match
           case Some(kind) =>
             (for {
-              accs     <- AccountRepository.all((ModelId.ACCOUNT.modelid, company))
-              vats     <- VatRepository.all((ModelId.VAT.modelid, company))
+              accs <- AccountRepository.all((ModelId.ACCOUNT.modelid, company))
+              vats <- VatRepository.all((ModelId.VAT.modelid, company))
               contacts <- PartnerRepository.all((ModelId.CONTACT.modelid, company))
-              bankMf   <- MasterfileRepository.all((ModelId.BANK.modelid, company))
+              bankMf <- MasterfileRepository.all((ModelId.BANK.modelid, company))
             } yield HtmxResponse.html(
               BusinessPartnerFormView.render(
                 PartnerKind.blank(kind, company), accs, vats, contacts, bankMf, kind,
                 mode = "create")))
               .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
           case None =>
-            ZIO.succeed(HtmxResponse.errorHtml(s"unknown partner kind: $prefix"))
+            ZIO.succeed(Response.status(Status.NotFound))
       }
+//  private val formNew
+//  : Route[AccountRepository & VatRepository & PartnerRepository & MasterfileRepository, Response] =
+//    Method.GET / "html" / string("prefix") / "new-form" / int("modelid") / string("company") ->
+//      handler { (prefix: String, modelid: Int, company: String, _: Request) =>
+//        PartnerKind.fromPrefix(prefix) match
+//          case Some(kind) =>
+//            (for {
+//              accs     <- AccountRepository.all((ModelId.ACCOUNT.modelid, company))
+//              vats     <- VatRepository.all((ModelId.VAT.modelid, company))
+//              contacts <- PartnerRepository.all((ModelId.CONTACT.modelid, company))
+//              bankMf   <- MasterfileRepository.all((ModelId.BANK.modelid, company))
+//            } yield HtmxResponse.html(
+//              BusinessPartnerFormView.render(
+//                PartnerKind.blank(kind, company), accs, vats, contacts, bankMf, kind,
+//                mode = "create")))
+//              .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
+//          case None =>
+//            ZIO.succeed(HtmxResponse.errorHtml(s"unknown partner kind: $prefix"))
+//      }
 
   // ── Form handlers ───────────────────────────────────────────────────────
 
@@ -248,11 +266,38 @@ object BusinessPartnerHtmlEndpoint:
       handler { (req: Request) => handleFormPut(PartnerKind.Employee, req) }
 
   // ── Assembly ────────────────────────────────────────────────────────────
+  private def newRouteFor(kind: PartnerKind, prefix: String)
+  : Route[AccountRepository & VatRepository & PartnerRepository & MasterfileRepository, Response] =
+    Method.GET / "html" / prefix / "new-form" / int("modelid") / string("company") ->
+      handler { (modelid: Int, company: String, _: Request) =>
+        (for {
+          accs <- AccountRepository.all((ModelId.ACCOUNT.modelid, company))
+          vats <- VatRepository.all((ModelId.VAT.modelid, company))
+          contacts <- PartnerRepository.all((ModelId.CONTACT.modelid, company))
+          bankMf <- MasterfileRepository.all((ModelId.BANK.modelid, company))
+        } yield HtmxResponse.html(
+          BusinessPartnerFormView.render(
+            PartnerKind.blank(kind, company), accs, vats, contacts, bankMf, kind,
+            mode = "create")))
+          .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
+      }
+
+  private val customerNew = newRouteFor(PartnerKind.Customer, "customer")
+  private val supplierNew = newRouteFor(PartnerKind.Supplier, "supplier")
+  private val employeeNew = newRouteFor(PartnerKind.Employee, "employee")
 
   val routes: Routes[Repos, Response] =
     Routes(
       customerList, supplierList, employeeList,
-      formNew,
-      customerGet,  supplierGet,  employeeGet,
-      customerPut,  supplierPut,  employeePut
+      customerNew, supplierNew, employeeNew, // ← replace formNew
+      customerGet, supplierGet, employeeGet,
+      customerPut, supplierPut, employeePut
     ) @@ Middleware.debug
+
+//  val routes: Routes[Repos, Response] =
+//    Routes(
+//      customerList, supplierList, employeeList,
+//      formNew,
+//      customerGet,  supplierGet,  employeeGet,
+//      customerPut,  supplierPut,  employeePut
+//    ) @@ Middleware.debug

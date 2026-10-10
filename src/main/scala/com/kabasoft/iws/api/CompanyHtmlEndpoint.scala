@@ -1,19 +1,15 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.domain.{BankAccount, Company, ModelId}
+import com.kabasoft.iws.domain.{Company, ModelId}
 import com.kabasoft.iws.repository.{
-  AccountRepository,
-  BankAccountRepository,
-  CompanyRepository,
-  MasterfileRepository
+  AccountRepository, CompanyRepository, MasterfileRepository
 }
 import zio._
 import zio.http._
 
 object CompanyHtmlEndpoint:
 
-  type FormEnv = AccountRepository & BankAccountRepository & MasterfileRepository
-  type Repos   = CompanyRepository & FormEnv
+  private val prefix = "company"
 
   private def blank(company: String): Company =
     Company(
@@ -24,89 +20,39 @@ object CompanyHtmlEndpoint:
       balanceSheetAcc = "-1", incomeStmtAcc = "-1",
       purchasingClearingAcc = "-1", salesClearingAcc = "-1", cashAcc = "-1")
 
-  private def renderCompany(c: Company, mode: String = "view")
-  : ZIO[FormEnv, com.kabasoft.iws.domain.AppError.RepositoryError, String] =
-    for {
-      accs     <- AccountRepository.all((ModelId.ACCOUNT.modelid, c.id))
-      bankAccs <- BankAccountRepository.getByOwner(c.id, ModelId.BANK_ACCOUNT.modelid, c.id)
-      banks    <- MasterfileRepository.all((ModelId.BANK.modelid, c.id))
-    } yield CompanyFormView.render(c.copy(bankaccounts = bankAccs), accs, banks, mode)
+  /** Build the entity from form params, over an existing / blank base. */
+  private def applyParams(base: Company, params: Map[String, String]): Company =
+    base.copy(
+      id                    = params.getOrElse("id_display", base.id),
+      name                  = params.getOrElse("name",          base.name),
+      description           = params.getOrElse("description",   base.description),
+      street                = params.getOrElse("street",        base.street),
+      zip                   = params.getOrElse("zip",           base.zip),
+      city                  = params.getOrElse("city",          base.city),
+      state                 = params.getOrElse("state",         base.state),
+      country               = params.getOrElse("country",       base.country),
+      email                 = params.getOrElse("email",         base.email),
+      contact               = params.getOrElse("contact",       base.contact),
+      phone                 = params.getOrElse("phone",         base.phone),
+      bankAcc               = params.getOrElse("bankAcc",       base.bankAcc),
+      taxCode               = params.getOrElse("taxCode",       base.taxCode),
+      vatCode               = params.getOrElse("vatCode",       base.vatCode),
+      currency              = params.getOrElse("currency",      base.currency),
+      locale                = params.getOrElse("locale",        base.locale),
+      account               = params.getOrElse("account",       base.account),
+      oaccount              = params.getOrElse("oaccount",      base.oaccount),
+      balanceSheetAcc       = params.getOrElse("balanceSheetAcc",       base.balanceSheetAcc),
+      incomeStmtAcc         = params.getOrElse("incomeStmtAcc",         base.incomeStmtAcc),
+      purchasingClearingAcc = params.getOrElse("purchasingClearingAcc", base.purchasingClearingAcc),
+      salesClearingAcc      = params.getOrElse("salesClearingAcc",      base.salesClearingAcc),
+      cashAcc               = params.getOrElse("cashAcc",               base.cashAcc)
+    )
 
-  private def applyParams(existing: Company, params: Map[String, String]): Company =
-    val parentId = params.getOrElse("id_display", existing.id)
+  // ── New (blank form in create mode) ────────────────────────────────────
 
-    val bankAccounts: List[BankAccount] =
-      HtmxFormIndex.parseIndexed(params, "bankaccounts").map { m =>
-        BankAccount(
-          id      = m.getOrElse("id", ""),
-          bic     = m.getOrElse("bic", ""),
-          owner   = parentId,
-          company = parentId,
-          modelid = ModelId.BANK_ACCOUNT.modelid)
-      }
-
-    existing.copy(
-      id                    = parentId,
-      name                  = params.getOrElse("name", existing.name),
-      description           = params.getOrElse("description", existing.description),
-      street                = params.getOrElse("street", existing.street),
-      zip                   = params.getOrElse("zip", existing.zip),
-      city                  = params.getOrElse("city", existing.city),
-      state                 = params.getOrElse("state", existing.state),
-      country               = params.getOrElse("country", existing.country),
-      email                 = params.getOrElse("email", existing.email),
-      contact               = params.getOrElse("contact", existing.contact),
-      phone                 = params.getOrElse("phone", existing.phone),
-      bankAcc               = params.getOrElse("bankAcc", existing.bankAcc),
-      taxCode               = params.getOrElse("taxCode", existing.taxCode),
-      vatCode               = params.getOrElse("vatCode", existing.vatCode),
-      currency              = params.getOrElse("currency", existing.currency),
-      locale                = params.getOrElse("locale", existing.locale),
-      account               = params.getOrElse("account", existing.account),
-      oaccount              = params.getOrElse("oaccount", existing.oaccount),
-      balanceSheetAcc       = params.getOrElse("balanceSheetAcc", existing.balanceSheetAcc),
-      incomeStmtAcc         = params.getOrElse("incomeStmtAcc", existing.incomeStmtAcc),
-      purchasingClearingAcc = params.getOrElse("purchasingClearingAcc", existing.purchasingClearingAcc),
-      salesClearingAcc      = params.getOrElse("salesClearingAcc", existing.salesClearingAcc),
-      cashAcc               = params.getOrElse("cashAcc", existing.cashAcc),
-      bankaccounts          = bankAccounts)
-
-  private val listGet: Route[CompanyRepository, Response] =
-    Method.GET / "html" / "company-list" / string("company") ->
-      handler { (company: String, req: Request) =>
-        val page  = req.queryParam("page").flatMap(_.toIntOption).getOrElse(0)
-        val query = req.queryParam("q").getOrElse("")
-        val size  = req.queryParam("size").flatMap(_.toIntOption)
-          .filter(HtmxTable.pageSizes.contains).getOrElse(20)
-        val sort  = req.queryParam("sort").map(HtmxTable.Page.parseSort)
-          .filter(_.nonEmpty).getOrElse(HtmxTable.Page.defaultSort)
-        CompanyRepository.all((ModelId.COMPANY.modelid)).map { all =>
-          val filtered =
-            if query.isEmpty then all
-            else all.filter(c => c.id.contains(query) ||
-              c.name.toLowerCase.contains(query.toLowerCase))
-          val sorted = filtered.sortWith { (x, y) =>
-            val cmp = sort.iterator.map { case (key, dir) =>
-              val c = key match
-                case "name"    => x.name.trim.compareTo(y.name.trim)
-                case "city"    => x.city.trim.compareTo(y.city.trim)
-                case "country" => x.country.trim.compareTo(y.country.trim)
-                case "email"   => x.email.trim.compareTo(y.email.trim)
-                case _         => x.id.trim.compareTo(y.id.trim)
-              if dir == "desc" then -c else c
-            }.find(_ != 0).getOrElse(0)
-            cmp < 0
-          }
-          val slice = sorted.slice(page * size, page * size + size)
-          HtmxResponse.html(
-            CompanyListView.render(
-              HtmxTable.Page(slice, page, size, sorted.size.toLong, sort),
-              company, query))
-        }.catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
-      }
-
-  private val formNew: Route[AccountRepository & MasterfileRepository, Response] =
-    Method.GET / "html" / "company" / "new" / int("modelid") / string("company") ->
+  private val formNew
+  : Route[AccountRepository & MasterfileRepository, Response] =
+    Method.GET / "html" / "company" / "new-form" / int("modelid") / string("company") ->
       handler { (modelid: Int, company: String, _: Request) =>
         (for {
           accs  <- AccountRepository.all((ModelId.ACCOUNT.modelid, company))
@@ -116,36 +62,52 @@ object CompanyHtmlEndpoint:
           .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 
-  private val formGet: Route[Repos, Response] =
+  // ── GET by id (read-only view) ─────────────────────────────────────────
+
+  private val formGet
+  : Route[CompanyRepository & AccountRepository & MasterfileRepository, Response] =
     Method.GET / "html" / "company" / string("id") / int("modelid") / string("company") ->
       handler { (id: String, modelid: Int, company: String, _: Request) =>
         (for {
-          c    <- CompanyRepository.getById((id, modelid))
-          html <- renderCompany(c)
-        } yield HtmxResponse.html(html))
+          c     <- CompanyRepository.getById((id, modelid))
+          accs  <- AccountRepository.all((ModelId.ACCOUNT.modelid, company))
+          banks <- MasterfileRepository.all((ModelId.BANK.modelid, company))
+        } yield HtmxResponse.html(
+          CompanyFormView.render(c, accs, banks, mode = "view")))
           .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 
-  private val formPut: Route[Repos, Response] =
+  // ── PUT — create or modify ─────────────────────────────────────────────
+
+  private val formPut
+  : Route[CompanyRepository & AccountRepository & MasterfileRepository, Response] =
     Method.PUT / "html" / "company" ->
       handler { (req: Request) =>
         (for {
-          body    <- req.body.asString
-          params   = HtmxResponse.parseForm(body)
-          mode     = params.getOrElse("mode", "view")
-          id       = params.getOrElse("id", "")
-          modelid  = params.get("modelid").flatMap(_.toIntOption).getOrElse(ModelId.COMPANY.modelid)
-          company  = params.getOrElse("company", "")
+          body     <- req.body.asString
+          params    = HtmxResponse.parseForm(body)
+          mode      = params.getOrElse("mode", "view")
+          company   = params.getOrElse("company", "")
+          modelid   = params.get("modelid").flatMap(_.toIntOption)
+            .getOrElse(ModelId.COMPANY.modelid)
+
           existing <- if mode == "create" then ZIO.succeed(blank(company))
-          else CompanyRepository.getById((id, modelid))
+          else CompanyRepository.getById(
+            (params.getOrElse("id", ""), modelid))
           toSave    = applyParams(existing, params)
-          _        <- if mode == "create" then CompanyRepository.create(toSave).unit
-          else CompanyRepository.modify(toSave).unit
+
+          // create() or modify() always receive the FULL entity
+          _        <- if mode == "create" then CompanyRepository.create(toSave)
+          else CompanyRepository.modify(toSave)
+
           fresh    <- CompanyRepository.getById((toSave.id, modelid))
-          html     <- renderCompany(fresh)
-        } yield HtmxResponse.html(html))
+          accs     <- AccountRepository.all((ModelId.ACCOUNT.modelid, company))
+          banks    <- MasterfileRepository.all((ModelId.BANK.modelid, company))
+        } yield HtmxResponse.html(
+          CompanyFormView.render(fresh, accs, banks, mode = "view")))
           .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 
-  val routes: Routes[Repos, Response] =
-    Routes(listGet, formNew, formGet, formPut) @@ Middleware.debug
+  val routes: Routes[
+    CompanyRepository & AccountRepository & MasterfileRepository, Response
+  ] = Routes(formNew, formGet, formPut) @@ Middleware.debug

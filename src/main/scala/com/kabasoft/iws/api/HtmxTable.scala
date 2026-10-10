@@ -40,6 +40,24 @@ object HtmxTable:
 
   val pageSizes: List[Int] = List(10, 20, 40, 80)
 
+  /** Carried on every list request so filtered lists (e.g. by modelid)
+   * keep their filter across sort / search / paging.
+   *
+   * The selectors are matched globally, so any extra [name=…] fields on
+   * the page are simply ignored by endpoints that don't read them.
+   */
+  private val carrySelectors: String =
+    "[name='sort'],[name='size'],[name='q'],[name='modelid'],[name='company']"
+
+  private val carrySelectorsNoSort: String =
+    "[name='sort'],[name='size'],[name='modelid'],[name='company']"
+
+  private val carrySelectorsNoSize: String =
+    "[name='sort'],[name='q'],[name='modelid'],[name='company']"
+
+  private val carrySelectorsNoSortNoSize: String =
+    "[name='sort'],[name='modelid'],[name='company']"
+
   def render[A](
                  path:        String,
                  columns:     List[Column],
@@ -67,7 +85,7 @@ object HtmxTable:
        |             hx-trigger="keyup changed delay:300ms, search"
        |             hx-target="closest .htmx-table-wrapper"
        |             hx-swap="outerHTML"
-       |             hx-include="[name='sort'],[name='size']" />
+       |             hx-include="$carrySelectorsNoSortNoSize" />
        |    </div>
        |  </div>
        |
@@ -105,7 +123,7 @@ object HtmxTable:
        |     data-sort-key="${esc(c.key)}"
        |     title="Click to sort. Shift+click to add to sort."
        |     hx-get="$path"
-       |     hx-include="[name='sort'],[name='size'],[name='q']"
+       |     hx-include="$carrySelectorsNoSize"
        |     hx-target="closest .htmx-table-wrapper"
        |     hx-swap="outerHTML"
        |     hx-push-url="true">${esc(c.label)}$arrow</a>
@@ -149,7 +167,7 @@ object HtmxTable:
        |              hx-trigger="change"
        |              hx-target="closest .htmx-table-wrapper"
        |              hx-swap="outerHTML"
-       |              hx-include="[name='sort'],[name='q']">
+       |              hx-include="$carrySelectorsNoSize">
        |        ${pageSizes.map(s => sizeOption(s, p.pageSize)).mkString}
        |      </select>
        |      <span>rows</span>
@@ -158,14 +176,14 @@ object HtmxTable:
        |  <div class="pager-center">
        |    <button class="btn $disabledPrev"
        |            hx-get="$path?page=$prev"
-       |            hx-include="[name='sort'],[name='size'],[name='q']"
+       |            hx-include="$carrySelectors"
        |            hx-target="closest .htmx-table-wrapper"
        |            hx-swap="outerHTML"
        |            hx-push-url="true">‹ Prev</button>
        |    <span class="page-info">Page ${p.page + 1} of ${p.totalPages} (${p.total} rows)</span>
        |    <button class="btn $disabledNext"
        |            hx-get="$path?page=$next"
-       |            hx-include="[name='sort'],[name='size'],[name='q']"
+       |            hx-include="$carrySelectors"
        |            hx-target="closest .htmx-table-wrapper"
        |            hx-swap="outerHTML"
        |            hx-push-url="true">Next ›</button>
