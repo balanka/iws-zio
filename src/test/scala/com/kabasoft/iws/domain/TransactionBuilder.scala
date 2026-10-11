@@ -14,7 +14,7 @@ object TransactionBuilder {
   val modelid = ModelId.GOODRECEIVING.modelid
   val modelid2 = ModelId.SUPPLIER_INVOICE.modelid
   val modelid3 = ModelId.BILL_OF_DELIVERY.modelid
-  val modelid4 = ModelId.CUSTOMER_INVOICE.modelid
+  val modelid4 = ModelId.SALES_INVOICE.modelid
   val modelid5 = ModelId.PURCHASE_ORDER.modelid
   val modelid6 = ModelId.SALES_ORDER.modelid
   val vtime = Instant.now()

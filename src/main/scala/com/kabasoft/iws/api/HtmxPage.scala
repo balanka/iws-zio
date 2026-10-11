@@ -20,6 +20,7 @@ object HtmxPage:
       |<script>
       |  /* =====================================================================
       |     Shared event helpers
+      |     HTMX 2.x does not guarantee that e.detail.target is a DOM element.
       |     ===================================================================== */
       |  (function () {
       |    window.iwsEventEl = function (e) {
@@ -185,6 +186,14 @@ object HtmxPage:
       |
       |  /* =====================================================================
       |     Sub-grid add / remove
+      |
+      |     - addSubRow: appends a fresh row from the <template>.
+      |     - removeSubRow: does NOT remove the row from the DOM. Instead it
+      |       marks the row so its fields are still submitted on Save:
+      |         * hidden transid  → -2 (backend delete convention)
+      |         * the <tr> is hidden from view
+      |       The backend sees the row with transid=-2 and deletes it from
+      |       the database inside transactModifyInternal.
       |     ===================================================================== */
       |  (function () {
       |    var nextIdx = {};
@@ -200,11 +209,27 @@ object HtmxPage:
       |
       |      var html = template.innerHTML.replace(/__INDEX__/g, String(idx));
       |      tbody.insertAdjacentHTML('beforeend', html);
+      |
+      |      var grid = tbody.closest('.htmx-subgrid');
+      |      if (window.iwsRecomputeGrid) window.iwsRecomputeGrid(grid);
       |    };
       |
       |    window.removeSubRow = function (btn) {
       |      var tr = btn.closest('tr');
-      |      if (tr) tr.remove();
+      |      if (!tr) return;
+      |      var grid = tr.closest('.htmx-subgrid');
+      |
+      |      // Mark row as deleted (backend convention: transid = -2).
+      |      tr.querySelectorAll('[name$=".transid"]').forEach(function (el) {
+      |        el.value = '-2';
+      |      });
+      |
+      |      // Keep the row in the DOM so its fields are still submitted,
+      |      // but hide it from the user.
+      |      tr.style.display = 'none';
+      |      tr.classList.add('row-deleted');
+      |
+      |      if (window.iwsRecomputeGrid && grid) window.iwsRecomputeGrid(grid);
       |    };
       |  })();
       |
@@ -233,10 +258,38 @@ object HtmxPage:
       |  })();
       |
       |  /* =====================================================================
-      |     Sub-grid computed cells + running total
+      |     Sub-grid: article-driven fill + computed cells + running total
+      |
+      |     - Picking an article fills Name (locked), Unit (locked), and the
+      |       starting Price on that row.
+      |     - Picking a VAT code (or changing Qty/Price) recomputes the VAT
+      |       amount column using the option's data-rate attribute.
+      |     - Adding or removing a row updates the running total.
+      |     - Rows marked as deleted (transid = -2, .row-deleted) are skipped
+      |       by every recompute so they don't affect Amount / VAT / Total.
+      |
+      |     Server-side applyParams recomputes vat authoritatively on save.
       |     ===================================================================== */
       |  (function () {
+      |    function isDeleted(tr) {
+      |      if (!tr) return false;
+      |      if (tr.classList.contains('row-deleted')) return true;
+      |      if (tr.style.display === 'none') return true;
+      |      var t = tr.querySelector('[name$=".transid"]');
+      |      return !!(t && t.value === '-2');
+      |    }
+      |
       |    function fieldValue(row, name) {
+      |      // vatRate is not an input — it comes from the selected option
+      |      // of the row's vatCode <select>.
+      |      if (name === 'vatRate') {
+      |        var sel = row.querySelector('select[name$=".vatCode"]');
+      |        if (!sel) return 0;
+      |        var opt = sel.options[sel.selectedIndex];
+      |        if (!opt) return 0;
+      |        var r = parseFloat(opt.dataset.rate);
+      |        return isNaN(r) ? 0 : r;
+      |      }
       |      var el = row.querySelector('[name$=".' + name + '"]');
       |      if (!el) return 0;
       |      var v = parseFloat(el.value);
@@ -244,6 +297,7 @@ object HtmxPage:
       |    }
       |
       |    function recomputeRow(row) {
+      |      if (isDeleted(row)) return;
       |      row.querySelectorAll('.calc-cell[data-expr]').forEach(function (span) {
       |        var expr = span.dataset.expr;
       |        var exprSub = expr.replace(/[a-zA-Z_][a-zA-Z0-9_]*/g, function (name) {
@@ -268,6 +322,7 @@ object HtmxPage:
       |      if (!form) return;
       |      var total = 0;
       |      grid.querySelectorAll('tbody tr').forEach(function (tr) {
+      |        if (isDeleted(tr)) return;
       |        var el = tr.querySelector('[name$=".' + field + '"]');
       |        if (!el) return;
       |        var v = parseFloat(el.value);
@@ -279,11 +334,23 @@ object HtmxPage:
       |
       |    function recomputeAll(root) {
       |      (root || document).querySelectorAll('.htmx-subgrid').forEach(function (grid) {
-      |        grid.querySelectorAll('tbody tr').forEach(recomputeRow);
+      |        grid.querySelectorAll('tbody tr').forEach(function (tr) {
+      |          if (!isDeleted(tr)) recomputeRow(tr);
+      |        });
       |        recomputeTotal(grid);
       |      });
       |    }
       |
+      |    // Expose for use by addSubRow / removeSubRow
+      |    window.iwsRecomputeGrid = function (grid) {
+      |      if (!grid) return;
+      |      grid.querySelectorAll('tbody tr').forEach(function (tr) {
+      |        if (!isDeleted(tr)) recomputeRow(tr);
+      |      });
+      |      recomputeTotal(grid);
+      |    };
+      |
+      |    // Input: recompute on every keystroke
       |    document.body.addEventListener('input', function (e) {
       |      var grid = e.target.closest('.htmx-subgrid');
       |      if (!grid) return;
@@ -291,11 +358,33 @@ object HtmxPage:
       |      if (row) recomputeRow(row);
       |      recomputeTotal(grid);
       |    });
+      |
+      |    // Change: article-driven fill, then recompute
       |    document.body.addEventListener('change', function (e) {
       |      var grid = e.target.closest('.htmx-subgrid');
       |      if (!grid) return;
       |      var row = e.target.closest('tr');
-      |      if (row) recomputeRow(row);
+      |      if (!row) return;
+      |
+      |      // Article selected → fill Name, Unit, Price, and (optionally) VAT code
+      |      if (e.target.matches('select[name$=".article"]')) {
+      |        var opt = e.target.options[e.target.selectedIndex];
+      |        if (opt) {
+      |          var nameEl  = row.querySelector('[name$=".articleName"]');
+      |          var unitEl  = row.querySelector('[name$=".unit"]');
+      |          var priceEl = row.querySelector('[name$=".price"]');
+      |          var vatEl   = row.querySelector('select[name$=".vatCode"]');
+      |
+      |          if (nameEl)  nameEl.value  = opt.dataset.name  || '';
+      |          if (unitEl)  unitEl.value  = opt.dataset.unit  || '';
+      |          if (priceEl) priceEl.value = opt.dataset.price || '0';
+      |          if (vatEl && opt.dataset.vatcode) {
+      |            vatEl.value = opt.dataset.vatcode;
+      |          }
+      |        }
+      |      }
+      |
+      |      recomputeRow(row);
       |      recomputeTotal(grid);
       |    });
       |
@@ -304,14 +393,12 @@ object HtmxPage:
       |      if (el) recomputeAll(el);
       |    });
       |
+      |    // Initial pass
       |    recomputeAll(document);
       |  })();
       |
       |  /* =====================================================================
       |     Collapsible sections (<details>)
-      |     - Persist open / closed per section id in localStorage.
-      |     - Auto-open a section containing an invalid field after a
-      |       failed htmx request.
       |     ===================================================================== */
       |  (function () {
       |    var KEY = 'iws-collapse:';
@@ -361,10 +448,6 @@ object HtmxPage:
       |
       |  /* =====================================================================
       |     Filter selects — never disabled (JS safety net)
-      |     Removes the `disabled` attribute and re-enables pointer events
-      |     on any select.filter-select after every HTMX swap / settle, and
-      |     once on initial load. Guarantees the Transaction / fmodule
-      |     selector stays usable in view mode regardless of CSS.
       |     ===================================================================== */
       |  (function () {
       |    function unlock(root) {

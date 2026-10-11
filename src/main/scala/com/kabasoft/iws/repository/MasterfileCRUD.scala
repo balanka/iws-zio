@@ -77,7 +77,7 @@ trait MasterfileCRUD:
         _ <- fn(masterx, transid).traverse_ { details =>
           for {
             id <- session.unique(sequenceQuery)(sequenceName._2)
-            _ <- detailsPci.execute(fd(details, id)) //.debug("DDDDDDD>>>")
+            _ <- detailsPci.execute(fd(details, id)) .debug("DDDDDDD>>>")
           } yield ()
         }
       } yield masterx

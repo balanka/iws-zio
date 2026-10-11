@@ -2,7 +2,7 @@ package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.*
-import com.kabasoft.iws.domain.ModelId.{BILL_OF_DELIVERY, CONSUMPTION, CUSTOMER_INVOICE, GOODRECEIVING, PURCHASE_CONTRACT
+import com.kabasoft.iws.domain.ModelId.{BILL_OF_DELIVERY, CONSUMPTION, SALES_INVOICE, GOODRECEIVING, PURCHASE_CONTRACT
   , PURCHASE_QUOTATION, PURCHASE_ORDER, PURCHASE_REQUISITION, RQF, SALES_CONTRACT, SALES_ORDER, SALES_QUOTATION
   , STOCK_TAKE, STOCK_TRANSFER, SUPPLIER_INVOICE}
 import com.kabasoft.iws.repository.{AccountRepository, ArticleRepository, CompanyRepository, JournalRepository, PacRepository, PostTransactionRepository, StockRepository, TransactionLogRepository, TransactionRepository}
@@ -71,7 +71,7 @@ final class TransactionServiceLive(trRepo: TransactionRepository
           case BILL_OF_DELIVERY.modelid => postBillOfDelivery.postAll(transactions, company)
           case PURCHASE_ORDER.modelid => orderService.postAll(transactions, company)
           case SUPPLIER_INVOICE.modelid => postSupplierInvoice.postAll(transactions, company)
-          case CUSTOMER_INVOICE.modelid => postCustomerInvoice.postAll(transactions, company)
+          case SALES_INVOICE.modelid => postCustomerInvoice.postAll(transactions, company)
           case STOCK_TRANSFER.modelid => postStocktransferService.postAll(transactions, company)
           case CONSUMPTION.modelid => postConsumptionService.postAll(transactions, company)
           case STOCK_TAKE.modelid => postStocktakeService.postAll(transactions, company)
@@ -101,7 +101,7 @@ final class TransactionServiceLive(trRepo: TransactionRepository
         case (PURCHASE_ORDER.modelid, GOODRECEIVING.modelid) => Copy2Self.copy(trans,  modelidTo, company)
         case (GOODRECEIVING.modelid, SUPPLIER_INVOICE.modelid) => Copy2Self.copy(trans,  modelidTo, company)
         case (SALES_ORDER.modelid, BILL_OF_DELIVERY.modelid) => Copy2Self.copy(trans,  modelidTo, company)
-        case (BILL_OF_DELIVERY.modelid, CUSTOMER_INVOICE.modelid) => Copy2Self.copy(trans,  modelidTo, company)
+        case (BILL_OF_DELIVERY.modelid, SALES_INVOICE.modelid) => Copy2Self.copy(trans,  modelidTo, company)
         case _ => Copy2Self.copy(trans,  modelidTo, company)
       }
        _ <- ZIO.logInfo(s"newly Created financials transaction  from one with id = $id ${transaction}")

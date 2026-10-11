@@ -580,6 +580,29 @@ object HtmxCss:
       |      background: #eaf7ee;
       |    }
       |
+      |   /* ==========================================
+      |       Transaction form — soft lavender tint
+      |       Elegant, distinct from blue / green.
+      |       ========================================== */
+      |    .transaction-form .collapsible-section {
+      |      border-color: #cdb8ec;
+      |      box-shadow: 0 1px 2px rgba(90, 50, 140, 0.05);
+      |    }
+      |    .transaction-form .collapsible-summary {
+      |      background: linear-gradient(135deg, #ece2fa 0%, #e0d0f7 100%);
+      |      color: #4a2b7a;
+      |    }
+      |    .transaction-form .collapsible-summary:hover {
+      |      background: linear-gradient(135deg, #e0d0f7 0%, #d4bef4 100%);
+      |    }
+      |    .transaction-form .collapsible-content {
+      |      background: #f6f1fd;
+      |    }
+      |    .transaction-form .subgrid-total .calc-total {
+      |      background: #ece2fa;
+      |      border-color: #cdb8ec;
+      |    }
+      |
       |    /* ==========================================
       |       Transaction form — line grid enhancements
       |       ========================================== */

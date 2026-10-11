@@ -1,6 +1,6 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.domain.{Account, Article, Contact, Fmodule, Store, Transaction, Vat}
+import com.kabasoft.iws.domain.{Account, Article, Contact, Fmodule, Store, Transaction, Vat, ModelId}
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, ZoneId}
 
@@ -13,10 +13,9 @@ object TransactionFormView:
 
   /** Native <select> rendered as a combobox.
    *
-   * @param extraClass additional CSS classes on the <select> element —
-   *                   used to mark filter selectors (see `.filter-select`)
-   *                   that must remain interactive in view mode.
-   * The optional `hx*` params let a combo drive another region (e.g. list).
+   * `extraClass` adds CSS classes on the <select> — used to mark filter
+   * selectors (`.filter-select`) that must remain interactive in view mode.
+   * The optional hx* params let a combo drive another region (e.g. the list).
    */
   private def comboRow(
                         label:      String,
@@ -55,27 +54,64 @@ object TransactionFormView:
 
   private def lineColumns(
                            articles: List[Article],
-                           vats:     List[Vat]
+                           vats:     List[Vat],
+                           modelid:  Int
                          ): List[HtmxSubGrid.Column] =
+    // Sales-type modules → default price = article.sprice
+    // Purchase-type modules → default price = article.pprice
+    val isSales = Set(
+      ModelId.SALES_ORDER.modelid,
+      ModelId.SALES_INVOICE.modelid,
+      ModelId.SALES_QUOTATION.modelid,
+      ModelId.SALES_CONTRACT.modelid,
+      ModelId.BILL_OF_DELIVERY.modelid
+    ).contains(modelid)
+
+    val articleOptions: List[(String, String)] =
+      articles.map(a => a.id -> s"${a.id} ${a.name}")
+
+    val articleOptionData: Map[String, Map[String, String]] =
+      articles.map { a =>
+        val price = if isSales then a.sprice else a.pprice
+        a.id -> Map(
+          "name"    -> a.name,
+          "unit"    -> a.quantityUnit,
+          "price"   -> price.toString,
+          "vatcode" -> a.vatCode
+        )
+      }.toMap
+
+    val vatOptionData: Map[String, Map[String, String]] =
+      vats.map(v => v.id -> Map("rate" -> v.percent.toString)).toMap
+
     List(
       HtmxSubGrid.Column("id",          "Id",       "w-16"),
       HtmxSubGrid.Column("article",     "Article",  "w-40",
-        kind = HtmxSubGrid.CellKind.Select,
-        options = articles.map(a => a.id -> s"${a.id} ${a.name}")),
-      HtmxSubGrid.Column("articleName", "Name",     "w-40"),
+        kind       = HtmxSubGrid.CellKind.Select,
+        options    = articleOptions,
+        optionData = articleOptionData),
+      HtmxSubGrid.Column("articleName", "Name",     "w-40",
+        kind     = HtmxSubGrid.CellKind.Text,
+        readonly = true),
       HtmxSubGrid.Column("quantity",    "Qty",      "num w-16",
         kind = HtmxSubGrid.CellKind.Number),
-      HtmxSubGrid.Column("unit",        "Unit",     "w-16"),
+      HtmxSubGrid.Column("unit",        "Unit",     "w-16",
+        kind     = HtmxSubGrid.CellKind.Text,
+        readonly = true),
       HtmxSubGrid.Column("price",       "Price",    "num w-24",
         kind = HtmxSubGrid.CellKind.Money),
       HtmxSubGrid.Column("amount",      "Amount",   "num w-24",
-        kind = HtmxSubGrid.CellKind.Computed,
-        expr = "quantity * price", readonly = true),
-      HtmxSubGrid.Column("vatCode",     "VAT",      "w-20",
-        kind = HtmxSubGrid.CellKind.Select,
-        options = vats.map(v => v.id -> s"${v.id} ${v.name}")),
+        kind     = HtmxSubGrid.CellKind.Computed,
+        expr     = "quantity * price",
+        readonly = true),
+      HtmxSubGrid.Column("vatCode",     "VAT",      "w-24",
+        kind       = HtmxSubGrid.CellKind.Select,
+        options    = vats.map(v => v.id -> s"${v.id} ${v.name}"),
+        optionData = vatOptionData),
       HtmxSubGrid.Column("vat",         "VAT amt",  "num w-20",
-        kind = HtmxSubGrid.CellKind.Money),
+        kind     = HtmxSubGrid.CellKind.Computed,
+        expr     = "quantity * price * vatRate / 100",
+        readonly = true),
       HtmxSubGrid.Column("duedate",     "Due date", "w-32",
         kind = HtmxSubGrid.CellKind.Date),
       HtmxSubGrid.Column("text",        "Text",     "")
@@ -98,7 +134,7 @@ object TransactionFormView:
           fmtDate(l.duedate),
           l.text),
         hidden = Map(
-          "transid"  -> l.transid.toString,
+          //"transid"  -> l.transid.toString,
           "currency" -> l.currency))
     }
 
@@ -130,7 +166,7 @@ object TransactionFormView:
       prefix     = "lines",
       fkField    = "transid",
       fkValue    = t.id.toString,
-      columns    = lineColumns(articles, vats),
+      columns    = lineColumns(articles, vats, t.modelid),
       rows       = lineRows(t),
       totalField = "amount")
 
@@ -143,7 +179,7 @@ object TransactionFormView:
       open  = true,
       content =
         s"""
-           |${HtmxFields.textRow("Id",  s"$formId-id",  "id",  t.id.toString, readonly = !isCreate)}
+           |${HtmxFields.textRow("Id",  s"$formId-id",  "id_display",  t.id.toString, readonly = !isCreate)}
            |${HtmxFields.textRow("Oid", s"$formId-oid", "oid", t.oid)}
            |
            |${comboRow(
@@ -222,6 +258,7 @@ object TransactionFormView:
        |  ${HtmxFields.hiddenField("id",      t.id.toString)}
        |  ${HtmxFields.hiddenField("company", t.company)}
        |  ${HtmxFields.hiddenField("mode",    mode)}
+       |  ${HtmxFields.hiddenField("record_modelid", t.modelid.toString)}
        |
        |  $headerSection
        |  $textSection

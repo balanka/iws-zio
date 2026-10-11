@@ -1,6 +1,6 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.domain.{ModelId, Transaction, TransactionDetails}
+import com.kabasoft.iws.domain.{ModelId, Transaction, TransactionDetails, Vat}
 import com.kabasoft.iws.repository.{
   AccountRepository, ArticleRepository, FModuleRepository,
   PartnerRepository, StoreRepository, TransactionRepository, VatRepository
@@ -15,9 +15,15 @@ object TransactionHtmlEndpoint:
     AccountRepository & ArticleRepository & FModuleRepository &
       PartnerRepository & StoreRepository & TransactionRepository & VatRepository
 
+  private val HUNDRED = new java.math.BigDecimal("100")
+
   // ── Params → entity ────────────────────────────────────────────────────
 
-  private def applyParams(base: Transaction, params: Map[String, String]): Transaction =
+  private def applyParams(
+                           base:   Transaction,
+                           params: Map[String, String],
+                           vats:   List[Vat]
+                         ): Transaction =
     val transDate: Instant =
       params.get("transdate").filter(_.nonEmpty)
         .map(s => LocalDate.parse(s).atStartOfDay(ZoneId.systemDefault()).toInstant)
@@ -26,11 +32,17 @@ object TransactionHtmlEndpoint:
     val ld     = transDate.atZone(ZoneId.systemDefault()).toLocalDate
     val period = ld.getYear * 100 + ld.getMonthValue
 
+    def rateFor(vatCode: String): java.math.BigDecimal =
+      vats.find(_.id == vatCode).map(_.percent).getOrElse(java.math.BigDecimal.ZERO)
+
     val lines: List[TransactionDetails] =
       HtmxFormIndex.parseIndexed(params, "lines").map { m =>
         val qty   = new java.math.BigDecimal(m.getOrElse("quantity", "0"))
         val price = new java.math.BigDecimal(m.getOrElse("price",    "0"))
-        val vat   = new java.math.BigDecimal(m.getOrElse("vat",      "0"))
+        val code  = m.getOrElse("vatCode", "-1")
+        val rate  = rateFor(code)
+        // Server-side authoritative VAT: qty × price × rate / 100
+        val vat   = qty.multiply(price).multiply(rate).divide(HUNDRED)
         val due: Instant =
           m.get("duedate").filter(_.nonEmpty)
             .map(s => LocalDate.parse(s).atStartOfDay(ZoneId.systemDefault()).toInstant)
@@ -46,17 +58,20 @@ object TransactionHtmlEndpoint:
           price       = price,
           currency    = m.getOrElse("currency",    "EUR"),
           duedate     = due,
-          vatCode     = m.getOrElse("vatCode",     "-1"),
+          vatCode     = code,
           vat         = vat,
           text        = m.getOrElse("text",        ""),
           company     = base.company,
-          modelid     = ModelId.TRANSACTION.modelid)
+          modelid     = base.modelid)
       }
 
     base.copy(
-      id        = params.get("id").flatMap(_.toLongOption).getOrElse(base.id),
+      id        = params.get("id_display").flatMap(_.toLongOption)
+                        .orElse(params.get("id").flatMap(_.toLongOption))
+                        .getOrElse(base.id),
+      //id        = params.get("id").flatMap(_.toLongOption).getOrElse(base.id),
       oid       = params.getOrElse("oid",      base.oid),
-      modelid   = base.modelid,               // immutable; combo is a filter only
+      modelid   = base.modelid,
       period    = period,
       transdate = transDate,
       store     = params.getOrElse("store",    base.store),
@@ -71,24 +86,11 @@ object TransactionHtmlEndpoint:
   private def blank(company: String, modelid: Int): Transaction =
     val ld = LocalDate.now()
     Transaction(
-      id          = 0L,
-      oid         = "",
-      contact     = "",
-      store       = "",
-      account     = "-1",
-      transdate   = Instant.now(),
-      enterdate   = Instant.now(),
-      postingdate = Instant.now(),
-      period      = ld.getYear * 100 + ld.getMonthValue,
-      posted      = false,
-      modelid     = modelid,
-      company     = company,
-      text        = "",
-      footText    = "",
-      lines       = Nil)
-
-  // ── Shared list loader ─────────────────────────────────────────────────
-  // Tuple order: (accounts, articles, vats, stores, contacts, fmodules)
+      id = 0L, oid = "", contact = "", store = "", account = "-1",
+      transdate = Instant.now(), enterdate = Instant.now(), postingdate = Instant.now(),
+      period = ld.getYear * 100 + ld.getMonthValue,
+      posted = false, modelid = modelid,
+      company = company, text = "", footText = "", lines = Nil)
 
   private def loadLists(company: String) =
     for {
@@ -100,8 +102,6 @@ object TransactionHtmlEndpoint:
       fmodules <- FModuleRepository.all((ModelId.FMODULE.modelid, company))
     } yield (accs, arts, vats, stores, contacts, fmodules)
 
-  // ── New ────────────────────────────────────────────────────────────────
-
   private val formNew: Route[FormEnv, Response] =
     Method.GET / "html" / "transaction" / "new-form" ->
       handler { (req: Request) =>
@@ -112,18 +112,11 @@ object TransactionHtmlEndpoint:
           (accs, arts, vats, stores, contacts, fmodules) = lists
         } yield HtmxResponse.html(
           TransactionFormView.render(
-            t        = blank(company, modelid),
-            fmodules = fmodules,
-            stores   = stores,
-            accounts = accs,
-            articles = arts,
-            vats     = vats,
-            contacts = contacts,
-            mode     = "create")))
+            t = blank(company, modelid), fmodules = fmodules, stores = stores,
+            accounts = accs, articles = arts, vats = vats, contacts = contacts,
+            mode = "create")))
           .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
-
-  // ── Get by id ──────────────────────────────────────────────────────────
 
   private val formGet: Route[FormEnv, Response] =
     Method.GET / "html" / "transaction" / string("id") / int("modelid") / string("company") ->
@@ -131,25 +124,17 @@ object TransactionHtmlEndpoint:
         id.toLongOption match
           case Some(lid) =>
             (for {
-              t     <- TransactionRepository.getById((lid, modelid, company))   // lines already attached
+              t     <- TransactionRepository.getById((lid, modelid, company))
               lists <- loadLists(company)
               (accs, arts, vats, stores, contacts, fmodules) = lists
             } yield HtmxResponse.html(
               TransactionFormView.render(
-                t        = t,
-                fmodules = fmodules,
-                stores   = stores,
-                accounts = accs,
-                articles = arts,
-                vats     = vats,
-                contacts = contacts,
-                mode     = "view")))
+                t = t, fmodules = fmodules, stores = stores,
+                accounts = accs, articles = arts, vats = vats, contacts = contacts,
+                mode = "view")))
               .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
-          case None =>
-            ZIO.succeed(Response.status(Status.BadRequest))
+          case None => ZIO.succeed(Response.status(Status.BadRequest))
       }
-
-  // ── Put ────────────────────────────────────────────────────────────────
 
   private val formPut: Route[FormEnv, Response] =
     Method.PUT / "html" / "transaction" ->
@@ -159,36 +144,52 @@ object TransactionHtmlEndpoint:
           params  = HtmxResponse.parseForm(body)
           mode    = params.getOrElse("mode", "view")
           company = params.getOrElse("company", "")
-          modelid = params.get("modelid").flatMap(_.toIntOption)
+          // In edit mode the combo is a filter; the record's real modelid is
+          // carried in `record_modelid`. In create mode there is no record yet,
+          // so fall back to the combo value.
+          modelid = params.get("record_modelid").flatMap(_.toIntOption)
+            .filter(_ > 0)
+            .orElse(params.get("modelid").flatMap(_.toIntOption))
             .getOrElse(ModelId.TRANSACTION.modelid)
+          //modelid = params.get("modelid").flatMap(_.toIntOption)
+          //  .getOrElse(ModelId.TRANSACTION.modelid)
+
+          lists   <- loadLists(company)
+          (accs, arts, vats, stores, contacts, fmodules) = lists
 
           existing <- if mode == "create" then ZIO.succeed(blank(company, modelid))
-          else params.get("id").flatMap(_.toLongOption) match
-            case Some(lid) => TransactionRepository.getById((lid, modelid, company))
-            case None      => ZIO.succeed(blank(company, modelid))
+          else
+            val lookupId =
+              params.get("id_display").flatMap(_.toLongOption)
+                .orElse(params.get("id").flatMap(_.toLongOption))
+            lookupId match
+              case Some(lid) => TransactionRepository.getById((lid, modelid, company))
+              case None      => ZIO.succeed(blank(company, modelid))
+//          existing <- if mode == "create" then ZIO.succeed(blank(company, modelid))
+//          else params.get("id").flatMap(_.toLongOption) match
+//            case Some(lid) => TransactionRepository.getById((lid, modelid, company))
+//            case None      => ZIO.succeed(blank(company, modelid))
 
-          toSave = applyParams(existing, params)
-
+          toSave = applyParams(existing, params, vats)
+          _ <- ZIO.logInfo(s"toSave = ${toSave}")
+          _ <- ZIO.logInfo(s"RAW KEYS = ${params.keys.filter(_.startsWith("lines")).toList.sorted}")
           _      <- if mode == "create" then TransactionRepository.create(toSave)
           else TransactionRepository.modify(toSave)
 
-          fresh  <- TransactionRepository.getById((toSave.id, modelid, company))  // lines attached
-          lists  <- loadLists(company)
-          (accs, arts, vats, stores, contacts, fmodules) = lists
+          fresh  <- TransactionRepository
+            .getById((toSave.id, modelid, company))
+            .catchAll(_ =>
+              ZIO.fail(new RuntimeException(
+                s"Saved transaction id=${toSave.id} modelid=$modelid company=$company, but it could not be reloaded"))
+            )
+          //fresh  <- TransactionRepository.getById((toSave.id, modelid, company))
         } yield HtmxResponse.html(
           TransactionFormView.render(
-            t        = fresh,
-            fmodules = fmodules,
-            stores   = stores,
-            accounts = accs,
-            articles = arts,
-            vats     = vats,
-            contacts = contacts,
-            mode     = "view")))
+            t = fresh, fmodules = fmodules, stores = stores,
+            accounts = accs, articles = arts, vats = vats, contacts = contacts,
+            mode = "view")))
           .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
-
-  // ── List ───────────────────────────────────────────────────────────────
 
   private val listGet: Route[FormEnv, Response] =
     Method.GET / "html" / "transaction-list" ->
@@ -224,8 +225,6 @@ object TransactionHtmlEndpoint:
             }
             .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
-
-  // ── Routes ─────────────────────────────────────────────────────────────
 
   val routes: Routes[FormEnv, Response] =
     Routes(formNew, formGet, formPut, listGet) @@ Middleware.debug

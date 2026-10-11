@@ -99,7 +99,7 @@ trait PostLogisticalTransaction:
           detail <- model.modelid match
             case SUPPLIER_INVOICE.modelid => buildDetails(accounts, vat.inputVatAccount, oaccountId, vat)
             case  GOODRECEIVING.modelid => buildDetails(accounts, vat.inputVatAccount, oaccountId, vat)
-            case CUSTOMER_INVOICE.modelid => buildDetails(accounts, partnerAccountId, vat.outputVatAccount, vat)
+            case SALES_INVOICE.modelid => buildDetails(accounts, partnerAccountId, vat.outputVatAccount, vat)
             case BILL_OF_DELIVERY.modelid => buildDetails(accounts, partnerAccountId, vat.outputVatAccount, vat)
             case _ => ZIO.succeed(FinancialsTransactionDetails.dummy)
         yield detail
@@ -136,7 +136,7 @@ trait PostLogisticalTransaction:
               creditAcc = partnerAccountId
             yield FinancialsTransactionDetails(-1, 0, debitAcc, side = true, creditAcc, netAmount, Instant.now()
               , model.text, currency, model.company, account.name, oaccount.name, modelid)
-          case CUSTOMER_INVOICE.modelid =>
+          case SALES_INVOICE.modelid =>
             for
               acc   <- findObjectById(accounts, partnerAccountId)
               oacc  <- findObjectById(accounts, oaccountId)
