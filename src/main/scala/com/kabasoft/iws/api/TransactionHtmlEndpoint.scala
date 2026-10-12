@@ -11,13 +11,8 @@ import java.time.{Instant, LocalDate, ZoneId}
 
 object TransactionHtmlEndpoint:
 
-  type FormEnv =
-    AccountRepository & ArticleRepository & FModuleRepository &
+  type FormEnv = AccountRepository & ArticleRepository & FModuleRepository &
       PartnerRepository & StoreRepository & TransactionRepository & VatRepository
-
-  private val HUNDRED = new java.math.BigDecimal("100")
-
-  // ── Params → entity ────────────────────────────────────────────────────
 
   private def applyParams(
                            base:   Transaction,
@@ -41,8 +36,8 @@ object TransactionHtmlEndpoint:
         val price = new java.math.BigDecimal(m.getOrElse("price",    "0"))
         val code  = m.getOrElse("vatCode", "-1")
         val rate  = rateFor(code)
-        // Server-side authoritative VAT: qty × price × rate / 100
-        val vat   = qty.multiply(price).multiply(rate).divide(HUNDRED)
+        // Server-side authoritative VAT: qty × price × rate
+        val vat   = qty.multiply(price).multiply(rate)
         val due: Instant =
           m.get("duedate").filter(_.nonEmpty)
             .map(s => LocalDate.parse(s).atStartOfDay(ZoneId.systemDefault()).toInstant)
@@ -225,6 +220,37 @@ object TransactionHtmlEndpoint:
             }
             .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
+  private val formPrint: Route[FormEnv, Response] =
+    Method.GET / "html" / "transaction" / "print" / string("id") / int("modelid") / string("company") ->
+      handler { (id: String, modelid: Int, company: String, _: Request) =>
+        id.toLongOption match
+          case Some(lid) =>
+            (for {
+              t <- TransactionRepository.getById((lid, modelid, company))
+              lists <- loadLists(company)
+              (accs, arts, vats, stores, contacts, fmodules) = lists
+            } yield {
+              val fmoduleName = fmodules.find(_.id == t.modelid).map(_.name).getOrElse("Transaction")
+              val docTitle = s"$company/$fmoduleName"
+
+              HtmxResponse.html(
+                HtmxPrintPage.render(
+                  docTitle,
+                  TransactionFormView.render(
+                    t = t,
+                    fmodules = fmodules,
+                    stores = stores,
+                    accounts = accs,
+                    articles = arts,
+                    vats = vats,
+                    contacts = contacts,
+                    mode = "view",
+                    title = docTitle)))
+            })
+              .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
+          case None =>
+            ZIO.succeed(Response.status(Status.BadRequest))
+      }
 
   val routes: Routes[FormEnv, Response] =
-    Routes(formNew, formGet, formPut, listGet) @@ Middleware.debug
+    Routes(formNew, formGet, formPut, listGet, formPrint) @@ Middleware.debug

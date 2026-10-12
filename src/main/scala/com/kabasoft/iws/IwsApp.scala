@@ -55,7 +55,7 @@ import com.kabasoft.iws.api.{AccountCombinedPage, AccountHtmlEndpoint, AccountLi
   , BusinessPartnerHtmlEndpoint, CompanyCombinedPage, CompanyHtmlEndpoint, ContactCombinedPage, ContactHtmlEndpoint
   , FmoduleCombinedPage, FmoduleHtmlEndpoint, MasterfileCombinedPage, MasterfileHtmlEndpoint, PartnerHtmlEndpoint
   , PartnerPage, PermissionCombinedPage, PermissionHtmlEndpoint, StoreCombinedPage, StoreHtmlEndpoint
-  , TransactionCombinedPage, TransactionHtmlEndpoint //FinancialsHtmlEndpoint, FinancialsCombinedPage
+  , TransactionCombinedPage, TransactionHtmlEndpoint, FinancialsHtmlEndpoint, FinancialsCombinedPage
   , UserCombinedPage, UserHtmlEndpoint, VatCombinedPage, VatHtmlEndpoint}
 object IwsApp extends ZIOAppDefault {
 
@@ -118,7 +118,7 @@ object IwsApp extends ZIOAppDefault {
           ++ FmoduleCombinedPage.routes ++ FmoduleHtmlEndpoint.routes
           ++ MasterfileHtmlEndpoint.routes ++ MasterfileCombinedPage.routes
           ++ TransactionHtmlEndpoint.routes ++ TransactionCombinedPage.routes
-          //++ FinancialsHtmlEndpoint.routes ++  FinancialsCombinedPage.routes
+          ++ FinancialsHtmlEndpoint.routes ++  FinancialsCombinedPage.routes
           ++ (httpApp @@ bearerAuthWithContext2)
         )
 //        .serve(loginRoutes++expose ++ VatPage.routes ++ VatHtmlEndpoint.routes ++ httpApp@@bearerAuthWithContext2)

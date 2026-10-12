@@ -6,9 +6,6 @@ object HtmxCss:
     """
       |    /* ==========================================
       |       Density variables
-      |       Every rule below reads var(--...) so the
-      |       four blocks fully control spacing.
-      |       :root is the default (compact).
       |       ========================================== */
       |    :root {
       |      --grid-row-gap:      3px;
@@ -106,7 +103,6 @@ object HtmxCss:
       |
       |    /* ==========================================
       |       Form grid — 4 columns
-      |       [ label | value | label | value ]
       |       ========================================== */
       |    .htmx-grid {
       |      display: grid;
@@ -154,15 +150,33 @@ object HtmxCss:
       |      padding-right: 8px !important;
       |    }
       |
-      |    /* Input with a currency suffix badge */
-      |    .input-money { display: flex; align-items: center; gap: 4px; width: 100%; }
-      |    .input-money > .input { flex: 1; text-align: right; }
+      |    /* ==========================================
+      |       Money fields — currency symbol overlaid
+      |       inside the input / computed-cell box
+      |       ========================================== */
+      |    .input-money {
+      |      position: relative;
+      |      display: block;
+      |      width: 100%;
+      |    }
+      |    .input-money > .input,
+      |    .input-money > .calc-cell {
+      |      width: 100%;
+      |      padding-right: 32px;        /* room for the symbol */
+      |      text-align: right;
+      |      box-sizing: border-box;
+      |    }
       |    .input-money > .currency-suffix {
+      |      position: absolute;
+      |      right: 8px;
+      |      top: 50%;
+      |      transform: translateY(-50%);
+      |      pointer-events: none;
+      |      user-select: none;
       |      font-size: var(--grid-label-size);
+      |      line-height: 1;
       |      color: #666;
-      |      padding: 0 2px;
       |      white-space: nowrap;
-      |      min-width: 24px;
       |    }
       |
       |    /* ==========================================
@@ -206,9 +220,7 @@ object HtmxCss:
       |       Table wrapper
       |       ========================================== */
       |    .htmx-table-wrapper { width: 100%; }
-      |    .table-toolbar { margin-bottom: 4px; }
       |
-      |    /* Search field visibility — toggled by body class */
       |    body.hide-search .table-search-wrapper { display: none; }
       |
       |    .table-scroll {
@@ -236,10 +248,67 @@ object HtmxCss:
       |    .table-sort:hover { color: #1976d2; }
       |
       |    /* ==========================================
-      |       Pager — 3-column grid
-      |         left   = page size selector
-      |         center = Prev / info / Next
-      |         right  = spacer
+      |       Boolean cells — checkbox
+      |       ========================================== */
+      |    .table-scroll td.bool-cell {
+      |      text-align: center;
+      |      vertical-align: middle;
+      |    }
+      |    .table-scroll td.bool-cell input[type="checkbox"] {
+      |      pointer-events: none;
+      |      margin: 0;
+      |      vertical-align: middle;
+      |      width: 14px;
+      |      height: 14px;
+      |      accent-color: #1976d2;
+      |    }
+      |
+      |    /* ==========================================
+      |       Table toolbar — search + filters
+      |       ========================================== */
+      |    .table-toolbar {
+      |      display: flex;
+      |      flex-wrap: wrap;
+      |      align-items: center;
+      |      gap: 8px;
+      |      margin-bottom: 6px;
+      |    }
+      |    .table-search-wrapper { flex: 0 1 240px; }
+      |
+      |    /* ==========================================
+      |       Auto-filter row under the table header
+      |       ========================================== */
+      |    .table-filter-row > th.table-filter-cell {
+      |      position: sticky;
+      |      top: calc(var(--table-font) + var(--table-cell-pad) * 2 + 6px);
+      |      z-index: 2;
+      |      background: var(--color-base-100, #fff);
+      |      box-shadow: inset 0 -1px 0 #e5e7eb;
+      |      padding: 2px 4px;
+      |      vertical-align: middle;
+      |    }
+      |    .table-filter-input {
+      |      width: 100%;
+      |      height: calc(var(--grid-input-height) - 4px);
+      |      padding: 1px 6px;
+      |      font-size: var(--table-font);
+      |      border: 1px solid #e5e7eb;
+      |      border-radius: 3px;
+      |      background: #fafafa;
+      |    }
+      |    .table-filter-input:focus {
+      |      background: #fff;
+      |      outline: none;
+      |      border-color: #bcd9f5;
+      |    }
+      |    .table-filter-input.num { text-align: right; }
+      |    .table-filter-cell select.table-filter-input {
+      |      min-width: 0;
+      |      width: 100%;
+      |    }
+      |
+      |    /* ==========================================
+      |       Pager
       |       ========================================== */
       |    .table-pager {
       |      display: grid;
@@ -273,8 +342,7 @@ object HtmxCss:
       |    }
       |
       |    /* ==========================================
-      |       Sub-grid (editable rows inside a form)
-      |       Every size comes from a density var.
+      |       Sub-grid
       |       ========================================== */
       |    .htmx-subgrid { width: 100%; }
       |    .htmx-subgrid table { margin: 0; }
@@ -299,8 +367,18 @@ object HtmxCss:
       |      font-size: var(--grid-label-size);
       |    }
       |
-      |    /* Read-only cells inside an editable sub-grid
-      |       (e.g. the parent-id field, kept in sync by JS). */
+      |    /* Money overlay inside sub-grid cells — one-space gap */
+      |    .htmx-subgrid .input-money > .input,
+      |    .htmx-subgrid .input-money > .calc-cell {
+      |      padding-right: 14px;
+      |    }
+      |    .htmx-subgrid .input-money > .currency-suffix {
+      |      right: 3px;
+      |      font-size: 10px;
+      |      color: #888;
+      |    }
+      |
+      |    /* Read-only cells inside an editable sub-grid */
       |    .htmx-subgrid input.fk-cell {
       |      background: #f0f0f0;
       |      color: #666;
@@ -335,7 +413,7 @@ object HtmxCss:
       |      text-align: right;
       |    }
       |
-      |    /* Entirely read-only sub-grid (e.g. Article/Store stocks) */
+      |    /* Entirely read-only sub-grid */
       |    .htmx-subgrid-readonly td {
       |      color: #444;
       |      background: transparent;
@@ -355,6 +433,46 @@ object HtmxCss:
       |      padding-top: 8px;
       |      border-top: 1px solid #e5e7eb;
       |    }
+      |    /* ==========================================
+      |       Sub-grid total — badge with symbol inside
+      |       ========================================== */
+      |    .subgrid-total {
+      |      display: flex;
+      |      justify-content: flex-end;
+      |      align-items: center;
+      |      gap: 8px;
+      |      margin-top: 4px;
+      |      font-weight: 600;
+      |    }
+      |    .subgrid-total .total-money {
+      |      position: relative;
+      |      display: inline-block;
+      |      min-width: 120px;
+      |    }
+      |    .subgrid-total .total-money > .calc-total {
+      |      display: inline-block;
+      |      width: 100%;
+      |      min-width: 120px;
+      |      padding: 2px 16px 2px 6px;   /* room on the right for the symbol */
+      |      background: #eaf4fe;
+      |      border: 1px solid #bcd9f5;
+      |      border-radius: 4px;
+      |      font-variant-numeric: tabular-nums;
+      |      text-align: right;
+      |      box-sizing: border-box;
+      |    }
+      |    .subgrid-total .total-money > .currency-suffix {
+      |      position: absolute;
+      |      right: 4px;
+      |      top: 50%;
+      |      transform: translateY(-50%);
+      |      pointer-events: none;
+      |      user-select: none;
+      |      font-size: var(--table-font);
+      |      line-height: 1;
+      |      color: #666;
+      |      white-space: nowrap;
+      |    }
       |
       |    /* If a form uses the wrapper-div structure instead */
       |    .form-subgrid {
@@ -372,8 +490,6 @@ object HtmxCss:
       |
       |    /* ==========================================
       |       Read-only form mode
-      |       Toggled by the Edit button client-side.
-      |       Applied to the <form> element.
       |       ========================================== */
       |    .form-readonly input:not([type="hidden"]):not([type="checkbox"]),
       |    .form-readonly select,
@@ -395,9 +511,6 @@ object HtmxCss:
       |
       |    /* ==========================================
       |       Filter selects — never disabled
-      |       (e.g. the Transaction / fmodule selector)
-      |       These override .form-readonly above so a
-      |       filter combo stays clickable in view mode.
       |       ========================================== */
       |    select.filter-select,
       |    .form-readonly select.filter-select,
@@ -416,6 +529,36 @@ object HtmxCss:
       |      color: #333333 !important;
       |      cursor: pointer !important;
       |      opacity: 1 !important;
+      |    }
+      |
+      |    /* ==========================================
+      |       Computed cells — inert, not focusable
+      |       ========================================== */
+      |    .calc-cell-wrap,
+      |    .calc-cell {
+      |      pointer-events: none;
+      |      user-select: none;
+      |      -webkit-user-select: none;
+      |      cursor: default;
+      |      outline: none;
+      |    }
+      |    .calc-cell-wrap:focus,
+      |    .calc-cell:focus,
+      |    .calc-cell-wrap:focus-within {
+      |      outline: none;
+      |      box-shadow: none;
+      |    }
+      |    .calc-cell {
+      |      display: block;
+      |      height: var(--grid-input-height);
+      |      line-height: var(--grid-input-height);
+      |      padding: 0 6px;
+      |      background: #f5f5f5;
+      |      color: #333;
+      |      border: 1px solid #e5e7eb;
+      |      border-radius: 4px;
+      |      font-variant-numeric: tabular-nums;
+      |      text-align: right;
       |    }
       |
       |    /* ==========================================
@@ -452,9 +595,6 @@ object HtmxCss:
       |
       |    /* ==========================================
       |       Collapsible form sections (<details>)
-      |       Base styles — used by every form that
-      |       renders sections via HtmxCollapsible.
-      |       Sizes come from the density vars.
       |       ========================================== */
       |    .htmx-form {
       |      display: block;
@@ -503,9 +643,6 @@ object HtmxCss:
       |      content: "▾";
       |    }
       |
-      |    /* The grid inside a section.
-      |       Same 4-column layout as .htmx-grid, but no
-      |       outer border-radius — the section provides it. */
       |    .collapsible-content {
       |      display: grid;
       |      grid-template-columns: max-content 1fr max-content 1fr;
@@ -545,7 +682,6 @@ object HtmxCss:
       |    }
       |    .collapsible-content > .checkbox { height: 16px; width: 16px; }
       |
-      |    /* Read-only mode must still allow opening/closing sections. */
       |    .form-readonly .collapsible-summary { pointer-events: auto; }
       |
       |    /* ==========================================
@@ -580,9 +716,8 @@ object HtmxCss:
       |      background: #eaf7ee;
       |    }
       |
-      |   /* ==========================================
+      |    /* ==========================================
       |       Transaction form — soft lavender tint
-      |       Elegant, distinct from blue / green.
       |       ========================================== */
       |    .transaction-form .collapsible-section {
       |      border-color: #cdb8ec;
@@ -598,14 +733,7 @@ object HtmxCss:
       |    .transaction-form .collapsible-content {
       |      background: #f6f1fd;
       |    }
-      |    .transaction-form .subgrid-total .calc-total {
-      |      background: #ece2fa;
-      |      border-color: #cdb8ec;
-      |    }
       |
-      |    /* ==========================================
-      |       Transaction form — line grid enhancements
-      |       ========================================== */
       |    .transaction-form .htmx-subgrid input[type="number"] {
       |      text-align: right;
       |      font-variant-numeric: tabular-nums;
@@ -620,33 +748,34 @@ object HtmxCss:
       |      font-size: var(--grid-label-size);
       |      height: var(--grid-input-height);
       |    }
-      |    .transaction-form .htmx-subgrid .calc-cell {
-      |      display: block;
-      |      height: var(--grid-input-height);
-      |      line-height: var(--grid-input-height);
-      |      padding: 0 6px;
-      |      background: #f5f5f5;
-      |      color: #333;
-      |      border: 1px solid #e5e7eb;
-      |      border-radius: 4px;
-      |      font-variant-numeric: tabular-nums;
-      |      text-align: right;
+      |
+      |    /* ==========================================
+      |       Financials form — warm amber tint
+      |       ========================================== */
+      |    .financials-form .collapsible-section {
+      |      border-color: #f0d3a0;
+      |      box-shadow: 0 1px 2px rgba(140, 100, 0, 0.05);
       |    }
-      |    .transaction-form .subgrid-total {
-      |      display: flex;
-      |      justify-content: flex-end;
-      |      align-items: center;
-      |      gap: 8px;
-      |      margin-top: 4px;
-      |      font-weight: 600;
+      |    .financials-form .collapsible-summary {
+      |      background: linear-gradient(135deg, #fbe7c6 0%, #f6d9a8 100%);
+      |      color: #6a4a10;
       |    }
+      |    .financials-form .collapsible-summary:hover {
+      |      background: linear-gradient(135deg, #f6d9a8 0%, #f0c88a 100%);
+      |    }
+      |    .financials-form .collapsible-content {
+      |      background: #fef8ec;
+      |    }
+      |
+      |    /* ==========================================
+      |       Sub-grid total — badge colour per form
+      |       ========================================== */
       |    .transaction-form .subgrid-total .calc-total {
-      |      min-width: 100px;
-      |      padding: 2px 8px;
-      |      background: #eaf4fe;
-      |      border: 1px solid #bcd9f5;
-      |      border-radius: 4px;
-      |      font-variant-numeric: tabular-nums;
-      |      text-align: right;
+      |      background: #ece2fa;
+      |      border-color: #cdb8ec;
+      |    }
+      |    .financials-form .subgrid-total .calc-total {
+      |      background: #fbe7c6;
+      |      border-color: #f0d3a0;
       |    }
       |""".stripMargin

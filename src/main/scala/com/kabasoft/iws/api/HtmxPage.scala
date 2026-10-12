@@ -185,15 +185,13 @@ object HtmxPage:
       |  })();
       |
       |  /* =====================================================================
-      |     Sub-grid add / remove
+      |     Sub-grid add / remove + dirty-flag
       |
-      |     - addSubRow: appends a fresh row from the <template>.
-      |     - removeSubRow: does NOT remove the row from the DOM. Instead it
-      |       marks the row so its fields are still submitted on Save:
-      |         * hidden transid  → -2 (backend delete convention)
-      |         * the <tr> is hidden from view
-      |       The backend sees the row with transid=-2 and deletes it from
-      |       the database inside transactModifyInternal.
+      |     Server-side rules for lines:
+      |       new line            → id = -1
+      |       existing unchanged  → id > 0 and transid > 0
+      |       existing modified   → id > 0 and transid = -1
+      |       existing deleted    → id = -2
       |     ===================================================================== */
       |  (function () {
       |    var nextIdx = {};
@@ -219,17 +217,28 @@ object HtmxPage:
       |      if (!tr) return;
       |      var grid = tr.closest('.htmx-subgrid');
       |
-      |      // Mark row as deleted (backend convention: transid = -2).
-      |      tr.querySelectorAll('[name$=".transid"]').forEach(function (el) {
-      |        el.value = '-2';
-      |      });
+      |      // Mark row as deleted — server convention: id = -2
+      |      var idEl = tr.querySelector('[name$=".id"]');
+      |      if (idEl) idEl.value = '-2';
       |
-      |      // Keep the row in the DOM so its fields are still submitted,
-      |      // but hide it from the user.
+      |      // Keep the row in the DOM (so its fields still submit), hide it.
       |      tr.style.display = 'none';
       |      tr.classList.add('row-deleted');
       |
       |      if (window.iwsRecomputeGrid && grid) window.iwsRecomputeGrid(grid);
+      |    };
+      |
+      |    // Any edit to an existing row marks it dirty → transid = -1.
+      |    // New rows (id = -1) and deleted rows (id = -2) are left alone.
+      |    window.iwsMarkRowDirty = function (tr) {
+      |      if (!tr) return;
+      |      var idEl      = tr.querySelector('[name$=".id"]');
+      |      var transidEl = tr.querySelector('[name$=".transid"]');
+      |      if (!idEl || !transidEl) return;
+      |      var idv = parseInt(idEl.value, 10);
+      |      if (!isNaN(idv) && idv > 0) {
+      |        transidEl.value = '-1';
+      |      }
       |    };
       |  })();
       |
@@ -259,29 +268,22 @@ object HtmxPage:
       |
       |  /* =====================================================================
       |     Sub-grid: article-driven fill + computed cells + running total
-      |
-      |     - Picking an article fills Name (locked), Unit (locked), and the
-      |       starting Price on that row.
-      |     - Picking a VAT code (or changing Qty/Price) recomputes the VAT
-      |       amount column using the option's data-rate attribute.
-      |     - Adding or removing a row updates the running total.
-      |     - Rows marked as deleted (transid = -2, .row-deleted) are skipped
-      |       by every recompute so they don't affect Amount / VAT / Total.
-      |
-      |     Server-side applyParams recomputes vat authoritatively on save.
+      |     - Picking an article fills Name (locked), Unit (locked) and Price.
+      |     - Picking a VAT code (or changing Qty/Price) recomputes VAT.
+      |     - Adding / removing a row updates the running total.
+      |     - Any edit to an existing row sets transid = -1 (dirty marker).
       |     ===================================================================== */
       |  (function () {
       |    function isDeleted(tr) {
       |      if (!tr) return false;
       |      if (tr.classList.contains('row-deleted')) return true;
       |      if (tr.style.display === 'none') return true;
-      |      var t = tr.querySelector('[name$=".transid"]');
-      |      return !!(t && t.value === '-2');
+      |      var idEl = tr.querySelector('[name$=".id"]');
+      |      return !!(idEl && idEl.value === '-2');
       |    }
       |
       |    function fieldValue(row, name) {
-      |      // vatRate is not an input — it comes from the selected option
-      |      // of the row's vatCode <select>.
+      |      // vatRate comes from the selected option of the row's vatCode <select>.
       |      if (name === 'vatRate') {
       |        var sel = row.querySelector('select[name$=".vatCode"]');
       |        if (!sel) return 0;
@@ -316,8 +318,7 @@ object HtmxPage:
       |    }
       |
       |    function recomputeTotal(grid) {
-      |      var field = grid.dataset.totalField;
-      |      if (!field) return;
+      |      var field = grid.dataset.totalField || 'amount';
       |      var form = grid.closest('form');
       |      if (!form) return;
       |      var total = 0;
@@ -341,7 +342,6 @@ object HtmxPage:
       |      });
       |    }
       |
-      |    // Expose for use by addSubRow / removeSubRow
       |    window.iwsRecomputeGrid = function (grid) {
       |      if (!grid) return;
       |      grid.querySelectorAll('tbody tr').forEach(function (tr) {
@@ -350,23 +350,26 @@ object HtmxPage:
       |      recomputeTotal(grid);
       |    };
       |
-      |    // Input: recompute on every keystroke
+      |    // Input: mark dirty, then recompute
       |    document.body.addEventListener('input', function (e) {
       |      var grid = e.target.closest('.htmx-subgrid');
       |      if (!grid) return;
       |      var row = e.target.closest('tr');
-      |      if (row) recomputeRow(row);
+      |      if (row) {
+      |        if (window.iwsMarkRowDirty) window.iwsMarkRowDirty(row);
+      |        recomputeRow(row);
+      |      }
       |      recomputeTotal(grid);
       |    });
       |
-      |    // Change: article-driven fill, then recompute
+      |    // Change: article-driven fill, mark dirty, recompute
       |    document.body.addEventListener('change', function (e) {
       |      var grid = e.target.closest('.htmx-subgrid');
       |      if (!grid) return;
       |      var row = e.target.closest('tr');
       |      if (!row) return;
       |
-      |      // Article selected → fill Name, Unit, Price, and (optionally) VAT code
+      |      // Article selected → fill Name, Unit, Price, VAT code
       |      if (e.target.matches('select[name$=".article"]')) {
       |        var opt = e.target.options[e.target.selectedIndex];
       |        if (opt) {
@@ -384,6 +387,23 @@ object HtmxPage:
       |        }
       |      }
       |
+      |      // Financials: account → accountName / oaccountName
+      |      if (e.target.matches('select[name$=".account"]')) {
+      |        var opt = e.target.options[e.target.selectedIndex];
+      |        if (opt) {
+      |          var nameEl = row.querySelector('[name$=".accountName"]');
+      |          if (nameEl) nameEl.value = opt.dataset.name || '';
+      |        }
+      |      }
+      |      if (e.target.matches('select[name$=".oaccount"]')) {
+      |        var opt = e.target.options[e.target.selectedIndex];
+      |        if (opt) {
+      |          var nameEl = row.querySelector('[name$=".oaccountName"]');
+      |          if (nameEl) nameEl.value = opt.dataset.name || '';
+      |        }
+      |      }
+      |
+      |      if (window.iwsMarkRowDirty) window.iwsMarkRowDirty(row);
       |      recomputeRow(row);
       |      recomputeTotal(grid);
       |    });
@@ -393,7 +413,6 @@ object HtmxPage:
       |      if (el) recomputeAll(el);
       |    });
       |
-      |    // Initial pass
       |    recomputeAll(document);
       |  })();
       |
@@ -472,6 +491,82 @@ object HtmxPage:
       |    });
       |
       |    unlock(document);
+      |  })();
+      |
+      |  /* =====================================================================
+      |     Card title follows the fmodule selector
+      |     - When the fmodule combo (.filter-select inside a .htmx-form)
+      |       changes, replace the card's .card-title with
+      |       "<company>/<fmodule name>".
+      |     - The company is read from the form's hidden [name='company'] input.
+      |     - The combo's option label is "105 Purchase order"; we drop the
+      |       leading id and show "Purchase order".
+      |     ===================================================================== */
+      |  (function () {
+      |    function labelWithoutId(text) {
+      |      var t = (text || '').trim();
+      |      if (!t) return '';
+      |      var parts = t.split(/\s+/);
+      |      if (parts.length > 1) parts.shift();          // drop leading "105" / "TR-01"
+      |      return parts.join(' ') || t;
+      |    }
+      |
+      |    document.body.addEventListener('change', function (e) {
+      |      var sel = e.target;
+      |      if (!sel || !sel.matches) return;
+      |      if (!sel.matches('select.filter-select')) return;
+      |
+      |      var form = sel.closest('form.htmx-form');
+      |      if (!form) return;
+      |
+      |      var card = form.closest('.card');
+      |      if (!card) return;
+      |
+      |      var h2 = card.querySelector('.card-title');
+      |      if (!h2) return;
+      |
+      |      var opt = sel.options[sel.selectedIndex];
+      |      if (!opt) return;
+      |
+      |      var name = labelWithoutId(opt.textContent);
+      |      if (!name) return;
+      |
+      |      var companyEl = form.querySelector('[name="company"]');
+      |      var company   = companyEl ? (companyEl.value || '').trim() : '';
+      |
+      |      h2.textContent = company ? (company + '/' + name) : name;
+      |    });
+      |  })();
+      |
+      |    /* =====================================================================
+      |     Print the currently displayed record
+      |     - Reads id / modelid / company from the form.
+      |     - Opens a new browser tab at /html/<prefix>/print/<id>/<modelid>/<company>.
+      |     - That page auto-triggers window.print() and closes when done.
+      |     ===================================================================== */
+      |  (function () {
+      |    window.iwsPrintForm = function (prefix) {
+      |      var form = document.getElementById(prefix + '-form');
+      |      if (!form) return;
+      |
+      |      var val = function (name) {
+      |        var el = form.querySelector('[name="' + name + '"]');
+      |        return el ? (el.value || '').trim() : '';
+      |      };
+      |
+      |      var id      = val('id_display') || val('id');
+      |      var modelid = val('record_modelid') || val('modelid');
+      |      var company = val('company');
+      |
+      |      if (!id || !modelid || !company) return;
+      |
+      |      var url = '/html/' + prefix + '/print/'
+      |              + encodeURIComponent(id)      + '/'
+      |              + encodeURIComponent(modelid) + '/'
+      |              + encodeURIComponent(company);
+      |
+      |      window.open(url, '_blank');
+      |    };
       |  })();
       |</script>
       |""".stripMargin

@@ -11,12 +11,6 @@ object TransactionFormView:
   private def fmtDate(i: Instant): String =
     if i == null then "" else dateFmt.format(i.atZone(ZoneId.systemDefault()))
 
-  /** Native <select> rendered as a combobox.
-   *
-   * `extraClass` adds CSS classes on the <select> — used to mark filter
-   * selectors (`.filter-select`) that must remain interactive in view mode.
-   * The optional hx* params let a combo drive another region (e.g. the list).
-   */
   private def comboRow(
                         label:      String,
                         id:         String,
@@ -57,8 +51,6 @@ object TransactionFormView:
                            vats:     List[Vat],
                            modelid:  Int
                          ): List[HtmxSubGrid.Column] =
-    // Sales-type modules → default price = article.sprice
-    // Purchase-type modules → default price = article.pprice
     val isSales = Set(
       ModelId.SALES_ORDER.modelid,
       ModelId.SALES_INVOICE.modelid,
@@ -110,7 +102,7 @@ object TransactionFormView:
         optionData = vatOptionData),
       HtmxSubGrid.Column("vat",         "VAT amt",  "num w-20",
         kind     = HtmxSubGrid.CellKind.Computed,
-        expr     = "quantity * price * vatRate / 100",
+        expr     = "quantity * price * vatRate",
         readonly = true),
       HtmxSubGrid.Column("duedate",     "Due date", "w-32",
         kind = HtmxSubGrid.CellKind.Date),
@@ -133,9 +125,7 @@ object TransactionFormView:
           l.vat.toString,
           fmtDate(l.duedate),
           l.text),
-        hidden = Map(
-          //"transid"  -> l.transid.toString,
-          "currency" -> l.currency))
+        hidden = Map("currency" -> l.currency))
     }
 
   private def headerTotal(t: Transaction): java.math.BigDecimal =
@@ -153,7 +143,8 @@ object TransactionFormView:
               articles: List[Article],
               vats:     List[Vat],
               contacts: List[Contact],
-              mode:     String = "view"
+              mode:     String = "view",
+              title:    String = "Header"
             ): String =
     val isCreate = mode == "create"
     val formId   = "transaction-form"
@@ -161,26 +152,30 @@ object TransactionFormView:
       if mode == "view" then "htmx-form transaction-form form-readonly"
       else                     "htmx-form transaction-form"
 
+    val currencySymbol = MoneyFmt.symbol(t.lines.headOption.map(_.currency).filter(_.nonEmpty).getOrElse("EUR"))
     val lineGrid = HtmxSubGrid.render(
-      id         = s"$formId-lines",
-      prefix     = "lines",
-      fkField    = "transid",
-      fkValue    = t.id.toString,
-      columns    = lineColumns(articles, vats, t.modelid),
-      rows       = lineRows(t),
-      totalField = "amount")
+      id = s"$formId-lines",
+      prefix = "lines",
+      fkField = "transid",
+      fkValue = t.id.toString,
+      columns = lineColumns(articles, vats, t.modelid),
+      rows = lineRows(t),
+      totalField = "amount",
+      currencySymbol = currencySymbol)
 
     val total = headerTotal(t)
 
-    // Merged Header section — Summary + Module + Dates
+    // Header section — Summary + Module + Dates.
+    // `Posted` sits at columns 3–4 (under Period), so it aligns with
+    // the right half of the 4-column grid.
     val headerSection = HtmxCollapsible.section(
-      title = "Header",
+      title = title,
       id    = s"$formId-sec-header",
       open  = true,
       content =
         s"""
-           |${HtmxFields.textRow("Id",  s"$formId-id",  "id_display",  t.id.toString, readonly = !isCreate)}
-           |${HtmxFields.textRow("Oid", s"$formId-oid", "oid", t.oid)}
+           |${HtmxFields.textRow("Id",  s"$formId-id",  "id_display", t.id.toString, readonly = !isCreate)}
+           |${HtmxFields.textRow("Oid", s"$formId-oid", "oid",        t.oid)}
            |
            |${comboRow(
           label      = "Transaction",
@@ -220,33 +215,41 @@ object TransactionFormView:
            |${HtmxFields.textRow("Transaction date", s"$formId-td", "transdate", fmtDate(t.transdate))}
            |${HtmxFields.textRow("Period",           s"$formId-pd", "period",    t.period.toString, readonly = true)}
            |
+           |<span></span>
+           |<span></span>
            |${HtmxFields.checkboxRow("Posted", s"$formId-posted", "posted", t.posted)}
-           |<span></span>
-           |<span></span>
            |""".stripMargin)
 
+    // Text section — only the main text field.
     val textSection = HtmxCollapsible.section(
       title = "Text",
       id    = s"$formId-sec-text",
       content =
         s"""
-           |${HtmxFields.textareaRow("Text",      s"$formId-text", "text",     t.text)}
-           |${HtmxFields.textareaRow("Foot text", s"$formId-foot", "footText", t.footText)}
+           |${HtmxFields.textareaRow("Text", s"$formId-text", "text", t.text)}
            |""".stripMargin)
 
-    val linesSection = HtmxCollapsible.section(
-      title = "Lines",
-      id    = s"$formId-sec-lines",
-      open  = true,
+    val linesBlock =
+      s"""
+         |<div class="subgrid-block">
+         |  $lineGrid
+         |  <div class="subgrid-total">
+         |      <span class="label">Total:</span>
+         |      <span class="input-money total-money">
+         |        <span class="calc-total num">${total.toString}</span>
+         |        <span class="currency-suffix">${Html.esc(currencySymbol)}</span>
+         |      </span>
+         |  </div>
+         |</div>
+         |""".stripMargin
+
+    // Foot text — rendered last, after the Lines section.
+    val footTextSection = HtmxCollapsible.section(
+      title = "Foot text",
+      id    = s"$formId-sec-foot",
       content =
         s"""
-           |<div class="subgrid-block">
-           |  $lineGrid
-           |  <div class="subgrid-total">
-           |    <span class="label">Total:</span>
-           |    <span class="calc-total num">${total.toString}</span>
-           |  </div>
-           |</div>
+           |${HtmxFields.textareaRow("Foot text", s"$formId-foot", "footText", t.footText)}
            |""".stripMargin)
 
     s"""
@@ -262,6 +265,7 @@ object TransactionFormView:
        |
        |  $headerSection
        |  $textSection
-       |  $linesSection
+       |  $linesBlock
+       |  $footTextSection
        |</form>
        |""".stripMargin

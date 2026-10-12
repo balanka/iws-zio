@@ -12,10 +12,11 @@ object HtmxSubGrid:
                      label:      String,
                      cssClass:   String = "",
                      options:    List[(String, String)] = Nil,
-                     optionData: Map[String, Map[String, String]] = Map.empty,  // value → extra attrs
+                     optionData: Map[String, Map[String, String]] = Map.empty,
                      readonly:   Boolean = false,
                      kind:       CellKind = CellKind.Text,
-                     expr:       String = ""
+                     expr:       String = "",
+                     hidden:     Boolean = false
                    )
 
   case class Row(
@@ -24,30 +25,33 @@ object HtmxSubGrid:
                 )
 
   def render(
-              id:         String,
-              prefix:     String,
-              fkField:    String,
-              fkValue:    String,
-              columns:    List[Column],
-              rows:       List[Row],
-              readonly:   Boolean = false,
-              totalField: String = ""
+              id:             String,
+              prefix:         String,
+              fkField:        String,
+              fkValue:        String,
+              columns:        List[Column],
+              rows:           List[Row],
+              readonly:       Boolean = false,
+              totalField:     String = "",
+              currencySymbol: String = ""
             ): String =
     if readonly then renderReadonly(prefix, columns, rows)
-    else            renderEditable(id, prefix, fkField, fkValue, columns, rows, totalField)
+    else            renderEditable(id, prefix, fkField, fkValue, columns, rows, currencySymbol)
 
   // ── read-only (whole grid) ──────────────────────────────────────────────
 
   private def renderReadonly(prefix: String, columns: List[Column], rows: List[Row]): String =
-    val headerCells = columns.map(c => s"<th>${esc(c.label)}</th>").mkString
+    val visible = columns.filterNot(_.hidden)
+    val headerCells = visible.map(c => s"<th>${esc(c.label)}</th>").mkString
     val bodyRows =
       if rows.isEmpty then
-        s"""<tr><td colspan="${columns.size}" class="subgrid-empty">— none —</td></tr>"""
+        s"""<tr><td colspan="${visible.size}" class="subgrid-empty">— none —</td></tr>"""
       else
         rows.map { row =>
-          val cells = columns.zipAll(row.cells, null, "").map { case (col, value) =>
-            val v = if value == null then "" else value
-            s"""<td class="${esc(col.cssClass)}">${esc(v)}</td>"""
+          val cells = columns.zipAll(row.cells, null, "").collect {
+            case (col, value) if !col.hidden =>
+              val v = if value == null then "" else value
+              s"""<td class="${esc(col.cssClass)}">${esc(v)}</td>"""
           }.mkString
           s"<tr>$cells</tr>"
         }.mkString
@@ -64,15 +68,16 @@ object HtmxSubGrid:
   // ── editable ────────────────────────────────────────────────────────────
 
   private def renderEditable(
-                              id:         String,
-                              prefix:     String,
-                              fkField:    String,
-                              fkValue:    String,
-                              columns:    List[Column],
-                              rows:       List[Row],
-                              totalField: String
+                              id:             String,
+                              prefix:         String,
+                              fkField:        String,
+                              fkValue:        String,
+                              columns:        List[Column],
+                              rows:           List[Row],
+                              currencySymbol: String
                             ): String =
-    val headerCells = columns.map(c => s"<th>${esc(c.label)}</th>").mkString
+    val visibleColumns = columns.filterNot(_.hidden)
+    val headerCells    = visibleColumns.map(c => s"<th>${esc(c.label)}</th>").mkString
 
     def hiddenFor(idx: String, extra: Map[String, String]): String =
       val fk = s"""<input type="hidden" name="$prefix.$idx.${esc(fkField)}" value="${esc(fkValue)}" />"""
@@ -100,10 +105,13 @@ object HtmxSubGrid:
              |</select>""".stripMargin
 
         case CellKind.Money =>
-          s"""<input class="input input-xs num ${esc(col.cssClass)}"
-             |       type="number" step="0.01"
-             |       name="$prefix.$idx.${esc(col.field)}"
-             |       value="${esc(value)}" />""".stripMargin
+          s"""<span class="input-money">
+             |  <input class="input input-xs num ${esc(col.cssClass)}"
+             |         type="number" step="0.01"
+             |         name="$prefix.$idx.${esc(col.field)}"
+             |         value="${esc(value)}" />
+             |  <span class="currency-suffix">${esc(currencySymbol)}</span>
+             |</span>""".stripMargin
 
         case CellKind.Number =>
           s"""<input class="input input-xs num ${esc(col.cssClass)}"
@@ -118,18 +126,21 @@ object HtmxSubGrid:
              |       value="${esc(value)}" />""".stripMargin
 
         case CellKind.Computed =>
-          s"""<span class="calc-cell num ${esc(col.cssClass)}"
-             |      data-expr="${esc(col.expr)}"
-             |      tabindex="-1"
-             |      aria-readonly="true"
-             |      onmousedown="return false"
-             |      ondblclick="return false">${esc(value)}</span>
-             |<input type="hidden"
-             |       tabindex="-1"
-             |       aria-hidden="true"
-             |       data-calc
-             |       name="$prefix.$idx.${esc(col.field)}"
-             |       value="${esc(value)}" />""".stripMargin
+          s"""<span class="input-money calc-money">
+             |  <span class="calc-cell num ${esc(col.cssClass)}"
+             |        data-expr="${esc(col.expr)}"
+             |        tabindex="-1"
+             |        aria-readonly="true"
+             |        onmousedown="return false"
+             |        ondblclick="return false">${esc(value)}</span>
+             |  <span class="currency-suffix">${esc(currencySymbol)}</span>
+             |  <input type="hidden"
+             |         tabindex="-1"
+             |         aria-hidden="true"
+             |         data-calc
+             |         name="$prefix.$idx.${esc(col.field)}"
+             |         value="${esc(value)}" />
+             |</span>""".stripMargin
 
         case CellKind.Text if col.readonly =>
           s"""<input class="input input-xs ${esc(col.cssClass)} fk-cell"
@@ -147,53 +158,68 @@ object HtmxSubGrid:
       if col.kind == CellKind.Computed then s"$base calc-cell-wrap".trim
       else base
 
+    def hiddenInput(col: Column, idx: String, value: String): String =
+      val v = if value == null then "" else value
+      s"""<input type="hidden" name="$prefix.$idx.${esc(col.field)}" value="${esc(v)}" />"""
+
     def renderRow(row: Row, idx: Int): String =
-      val cells = columns.zipAll(row.cells, null, "").map { case (col, value) =>
-        val v = if value == null then "" else value
-        s"""<td class="${esc(tdClass(col))}">${cell(col, idx.toString, v)}</td>"""
+      val visibleCells = columns.zipAll(row.cells, null, "").collect {
+        case (col, value) if !col.hidden =>
+          val v = if value == null then "" else value
+          s"""<td class="${esc(tdClass(col))}">${cell(col, idx.toString, v)}</td>"""
+      }.mkString
+
+      val hiddenCells = columns.zipAll(row.cells, null, "").collect {
+        case (col, value) if col.hidden =>
+          hiddenInput(col, idx.toString, value)
       }.mkString
 
       s"""<tr>
-         |  $cells
+         |  $visibleCells
          |  <td class="subgrid-actions">
          |    <button type="button" class="btn btn-xs btn-ghost"
          |            onclick="removeSubRow(this)">×</button>
-         |    ${hiddenFor(idx.toString, row.hidden)}
+         |    ${hiddenFor(idx.toString, row.hidden)}$hiddenCells
          |  </td>
          |</tr>""".stripMargin
 
     val bodyRows = rows.zipWithIndex.map { case (row, idx) => renderRow(row, idx) }.mkString
 
-    val templateCells = columns.map { col =>
+    val templateVisible = columns.filterNot(_.hidden).map { col =>
       val initial =
-        col.kind match
-          case CellKind.Computed => "0.00"
-          case CellKind.Date     => ""
-          case _                 => ""
+        if col.field == "id" then "-1"
+        else
+          col.kind match
+            case CellKind.Computed => "0.00"
+            case CellKind.Date     => ""
+            case _                 => ""
       s"""<td class="${esc(tdClass(col))}">${cell(col, "__INDEX__", initial)}</td>"""
+    }.mkString
+
+    val templateHidden = columns.filter(_.hidden).map { col =>
+      hiddenInput(col, "__INDEX__", "")
     }.mkString
 
     val templateRow =
       s"""<tr>
-         |  $templateCells
+         |  $templateVisible
          |  <td class="subgrid-actions">
          |    <button type="button" class="btn btn-xs btn-ghost"
          |            onclick="removeSubRow(this)">×</button>
          |    <input type="hidden" name="$prefix.__INDEX__.${esc(fkField)}" value="${esc(fkValue)}" />
+         |    $templateHidden
          |  </td>
          |</tr>""".stripMargin
 
-    val totalAttr = if totalField.nonEmpty then s""" data-total-field="$totalField"""" else ""
-
     s"""
-       |<div class="htmx-subgrid" data-prefix="$prefix" data-fk-field="$fkField"$totalAttr>
+       |<div class="htmx-subgrid"
+       |     data-prefix="$prefix"
+       |     data-grid-id="$id"
+       |     data-fk-field="$fkField">
        |  <table class="table table-xs table-zebra">
        |    <thead><tr>$headerCells<th></th></tr></thead>
        |    <tbody id="$id-body">$bodyRows</tbody>
        |  </table>
-       |  <button type="button" class="btn btn-xs btn-outline mt-1"
-       |          onclick="addSubRow('$id', '$prefix')">+ Add line</button>
-       |
        |  <template id="$id-template">$templateRow</template>
        |</div>
        |""".stripMargin

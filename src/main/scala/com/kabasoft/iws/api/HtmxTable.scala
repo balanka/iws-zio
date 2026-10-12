@@ -4,10 +4,19 @@ import Html.esc
 
 object HtmxTable:
 
+  enum FilterKind:
+    case None, Text, Number, Date, Select
+
+  enum ColumnKind:
+    case Text, Bool
+
   case class Column(
-                     key:   String,
-                     label: String,
-                     width: Option[String] = None
+                     key:           String,
+                     label:         String,
+                     width:         Option[String] = None,
+                     filter:        FilterKind = FilterKind.None,
+                     filterOptions: List[(String, String)] = Nil,
+                     kind:          ColumnKind = ColumnKind.Text
                    )
 
   case class Page[A](
@@ -40,35 +49,37 @@ object HtmxTable:
 
   val pageSizes: List[Int] = List(10, 20, 40, 80)
 
-  /** Carried on every list request so filtered lists (e.g. by modelid)
-   * keep their filter across sort / search / paging.
-   *
-   * The selectors are matched globally, so any extra [name=…] fields on
-   * the page are simply ignored by endpoints that don't read them.
-   */
   private val carrySelectors: String =
-    "[name='sort'],[name='size'],[name='q'],[name='modelid'],[name='company']"
+    "[name='sort'],[name='size'],[name='q'],[name='modelid'],[name='company'],[data-filter-input]"
 
   private val carrySelectorsNoSort: String =
-    "[name='sort'],[name='size'],[name='modelid'],[name='company']"
+    "[name='size'],[name='q'],[name='modelid'],[name='company'],[data-filter-input]"
 
   private val carrySelectorsNoSize: String =
-    "[name='sort'],[name='q'],[name='modelid'],[name='company']"
+    "[name='sort'],[name='q'],[name='modelid'],[name='company'],[data-filter-input]"
 
   private val carrySelectorsNoSortNoSize: String =
-    "[name='sort'],[name='modelid'],[name='company']"
+    "[name='sort'],[name='modelid'],[name='company'],[data-filter-input]"
 
   def render[A](
-                 path:        String,
-                 columns:     List[Column],
-                 p:           Page[A],
-                 rowCells:    A => List[String],
-                 detailUrl:   A => String,
-                 cellClasses: A => List[String] = (_: A) => Nil,
-                 query:       String = "",
-                 rowMode:     RowMode = RowMode.Navigate,
-                 maxHeight:   String = "480px"
+                 path:         String,
+                 columns:      List[Column],
+                 p:            Page[A],
+                 rowCells:     A => List[String],
+                 detailUrl:    A => String,
+                 cellClasses:  A => List[String] = (_: A) => Nil,
+                 query:        String = "",
+                 rowMode:      RowMode = RowMode.Navigate,
+                 maxHeight:    String = "480px",
+                 filterValues: Map[String, String] = Map.empty
                ): String =
+    val hasFilters = columns.exists(_.filter != FilterKind.None)
+
+    val filterRow =
+      if hasFilters then
+        s"""<tr class="table-filter-row">${columns.map(c => filterCell(path, c, filterValues)).mkString}</tr>"""
+      else ""
+
     s"""
        |<div class="htmx-table-wrapper">
        |  <div class="table-toolbar">
@@ -93,9 +104,10 @@ object HtmxTable:
        |    <table class="table table-zebra">
        |      <thead>
        |        <tr>${columns.map(c => headerCell(path, c, p)).mkString}</tr>
+       |        $filterRow
        |      </thead>
        |      <tbody>
-       |        ${p.rows.map(r => row(r, rowCells, cellClasses, detailUrl, rowMode)).mkString}
+       |        ${p.rows.map(r => row(r, columns, rowCells, cellClasses, detailUrl, rowMode)).mkString}
        |      </tbody>
        |    </table>
        |  </div>
@@ -103,6 +115,74 @@ object HtmxTable:
        |  ${pager(path, p)}
        |</div>
        |""".stripMargin
+
+  // ── filter row cell ────────────────────────────────────────────────────
+
+  private def filterCell(path: String, c: Column, values: Map[String, String]): String =
+    val cur   = values.getOrElse(c.key, "")
+    val style = c.width.map(w => s"""style="width:$w"""").getOrElse("")
+    val inner =
+      c.filter match
+        case FilterKind.None =>
+          ""
+
+        case FilterKind.Text =>
+          s"""<input type="search"
+             |       class="input input-xs table-filter-input"
+             |       data-filter-input
+             |       name="${esc(c.key)}"
+             |       value="${esc(cur)}"
+             |       placeholder="…"
+             |       hx-get="$path"
+             |       hx-trigger="keyup changed delay:400ms, search"
+             |       hx-target="closest .htmx-table-wrapper"
+             |       hx-swap="outerHTML"
+             |       hx-include="$carrySelectorsNoSortNoSize" />""".stripMargin
+
+        case FilterKind.Number =>
+          s"""<input type="number"
+             |       class="input input-xs table-filter-input num"
+             |       data-filter-input
+             |       name="${esc(c.key)}"
+             |       value="${esc(cur)}"
+             |       placeholder="…"
+             |       hx-get="$path"
+             |       hx-trigger="keyup changed delay:400ms, change"
+             |       hx-target="closest .htmx-table-wrapper"
+             |       hx-swap="outerHTML"
+             |       hx-include="$carrySelectorsNoSortNoSize" />""".stripMargin
+
+        case FilterKind.Date =>
+          s"""<input type="date"
+             |       class="input input-xs table-filter-input"
+             |       data-filter-input
+             |       name="${esc(c.key)}"
+             |       value="${esc(cur)}"
+             |       hx-get="$path"
+             |       hx-trigger="change"
+             |       hx-target="closest .htmx-table-wrapper"
+             |       hx-swap="outerHTML"
+             |       hx-include="$carrySelectorsNoSortNoSize" />""".stripMargin
+
+        case FilterKind.Select =>
+          val opts = (("" -> "Any") :: c.filterOptions).map { case (v, l) =>
+            val sel = if v == cur then " selected" else ""
+            s"""<option value="${esc(v)}"$sel>${esc(l)}</option>"""
+          }.mkString
+          s"""<select class="select select-xs table-filter-input"
+             |        data-filter-input
+             |        name="${esc(c.key)}"
+             |        hx-get="$path"
+             |        hx-trigger="change"
+             |        hx-target="closest .htmx-table-wrapper"
+             |        hx-swap="outerHTML"
+             |        hx-include="$carrySelectorsNoSortNoSize">
+             |  $opts
+             |</select>""".stripMargin
+
+    s"""<th class="table-filter-cell" $style>$inner</th>"""
+
+  // ── header cell ────────────────────────────────────────────────────────
 
   private def sizeOption(size: Int, current: Int): String =
     val sel = if size == current then " selected" else ""
@@ -129,8 +209,11 @@ object HtmxTable:
        |     hx-push-url="true">${esc(c.label)}$arrow</a>
        |</th>""".stripMargin
 
+  // ── body row ───────────────────────────────────────────────────────────
+
   private def row[A](
                       r:           A,
+                      columns:     List[Column],
                       rowCells:    A => List[String],
                       cellClasses: A => List[String],
                       detailUrl:   A => String,
@@ -141,14 +224,28 @@ object HtmxTable:
         s"""onclick="window.location.href='${detailUrl(r)}'" style="cursor:pointer;" """
       case RowMode.Fetch(target) =>
         s"""hx-get="${detailUrl(r)}" hx-target="$target" hx-swap="outerHTML" style="cursor:pointer;" """
+
     val cells = rowCells(r)
     val cls   = cellClasses(r)
+
     s"""<tr class="table-row" $attrs>
        |  ${cells.zipWithIndex.map { case (c, i) =>
-      val klass = cls.lift(i).getOrElse("")
-      s"""<td class="$klass">${esc(c)}</td>"""
+      val userCls = cls.lift(i).getOrElse("")
+      val col     = columns.lift(i)
+
+      val (cellCls, inner) = col.map(_.kind).getOrElse(ColumnKind.Text) match
+        case ColumnKind.Bool =>
+          val checked = if c == "true" then " checked" else ""
+          val klass   = (userCls + " bool-cell").trim
+          (klass, s"""<input type="checkbox" tabindex="-1" aria-readonly="true"$checked />""")
+        case ColumnKind.Text =>
+          (userCls, esc(c))
+
+      s"""<td class="$cellCls">$inner</td>"""
     }.mkString}
        |</tr>""".stripMargin
+
+  // ── pager ──────────────────────────────────────────────────────────────
 
   private def pager[A](path: String, p: Page[A]): String =
     val prev = math.max(0, p.page - 1)

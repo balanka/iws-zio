@@ -66,7 +66,7 @@ object TransactionCombinedPage:
            |    <div id="$prefix-form-card" class="card bg-base-100 shadow-sm">
            |      <div class="card-body compact">
            |        <div class="card-header-row">
-           |          <h2 class="card-title">Transaction</h2>
+           |          <h2 class="card-title"> ${company}/Transaction</h2>
            |          <button type="button" class="btn btn-ghost btn-xs"
            |                  data-toggle="#$prefix-form-card"
            |                  data-label-show="Show" data-label-hide="Hide">
