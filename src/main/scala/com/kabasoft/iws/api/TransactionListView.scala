@@ -1,6 +1,5 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.api.HtmxSubGrid.CellKind.Money
 import com.kabasoft.iws.domain.Transaction
 
 object TransactionListView:
@@ -11,6 +10,8 @@ object TransactionListView:
     HtmxTable.Column("modelid", "Model",   Some("80px")),
     HtmxTable.Column("period",  "Period",  Some("90px")),
     HtmxTable.Column("contact", "Contact"),
+    HtmxTable.Column("account", "Account", Some("100px")),
+    HtmxTable.Column("store",   "Store",   Some("100px")),
     HtmxTable.Column("text",    "Text"),
     HtmxTable.Column("total",   "Total",   Some("140px")),
     HtmxTable.Column("posted",  "Posted",  Some("80px"),
@@ -41,9 +42,16 @@ object TransactionListView:
         t.modelid.toString,
         t.period.toString,
         t.contact,
+        t.account,
+        t.store,
         t.text,
         total(t),
         t.posted.toString
+      ),
+      cellClasses = (_: Transaction) => List(
+        "", "", "", "", "", "", "", "",
+        "num-cell",       // ← Total column right-aligned
+        ""
       ),
       detailUrl = (t: Transaction) =>
         s"/html/transaction/${t.id}/${t.modelid}/${t.company}",

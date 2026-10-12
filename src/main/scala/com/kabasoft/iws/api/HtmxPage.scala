@@ -568,6 +568,42 @@ object HtmxPage:
       |      window.open(url, '_blank');
       |    };
       |  })();
+      |
+      |    /* =====================================================================
+      |     Add-line button in the toolbar
+      |     - Finds the active subgrid inside the currently focused form
+      |       (or the first subgrid on the page) and calls addSubRow on it.
+      |     - Hides the button entirely when no subgrid is present.
+      |     ===================================================================== */
+      |  (function () {
+      |    window.iwsAddLineToActiveGrid = function () {
+      |      var activeForm =
+      |        document.activeElement && document.activeElement.closest
+      |          ? document.activeElement.closest('form')
+      |          : null;
+      |
+      |      var grid =
+      |        (activeForm && activeForm.querySelector('.htmx-subgrid')) ||
+      |        document.querySelector('.htmx-subgrid');
+      |
+      |      if (!grid) return;
+      |      var gridId = grid.dataset.gridId;
+      |      var prefix = grid.dataset.prefix;
+      |      if (!gridId || !prefix) return;
+      |      if (window.addSubRow) window.addSubRow(gridId, prefix);
+      |    };
+      |
+      |    function syncAddLineButton() {
+      |      var btn = document.getElementById('add-line-btn');
+      |      if (!btn) return;
+      |      var hasGrid = !!document.querySelector('.htmx-subgrid');
+      |      btn.style.display = hasGrid ? '' : 'none';
+      |    }
+      |
+      |    document.body.addEventListener('htmx:afterSwap',  syncAddLineButton);
+      |    document.body.addEventListener('htmx:afterSettle', syncAddLineButton);
+      |    syncAddLineButton();
+      |  })();
       |</script>
       |""".stripMargin
 
