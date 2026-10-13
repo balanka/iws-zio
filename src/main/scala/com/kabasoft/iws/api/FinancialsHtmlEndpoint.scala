@@ -170,7 +170,7 @@ object FinancialsHtmlEndpoint:
               cloned     <- FinancialsService.copyFrom(sid, m, m, c)
               data       <- loadLists(c)
               candidates <- loadCandidates(c, m)
-            } yield HtmxResponse.html(
+            } yield HtmxResponse.htmlWithTrigger(
               FinancialsFormView.render(
                 t                  = cloned,
                 fmodules           = data.fmodules,
@@ -178,7 +178,9 @@ object FinancialsHtmlEndpoint:
                 accounts           = data.accounts,
                 contacts           = data.contacts,
                 copyFromCandidates = candidates,
-                mode               = "create")))
+                mode               = "create"),
+              "iws:list-refresh")
+              )
               .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
           case _ =>
             ZIO.succeed(Response.status(Status.BadRequest))
@@ -235,64 +237,18 @@ object FinancialsHtmlEndpoint:
             } yield t
 
           candidates <- loadCandidates(company, modelid)
-        } yield HtmxResponse.html(
+        } yield HtmxResponse.htmlWithTrigger(
           FinancialsFormView.render(
-            t = fresh,
-            fmodules = data.fmodules,
-            stores = data.stores,
-            accounts = data.accounts,
-            contacts = data.contacts,
+            t                  = fresh,
+            fmodules           = data.fmodules,
+            stores             = data.stores,
+            accounts           = data.accounts,
+            contacts           = data.contacts,
             copyFromCandidates = candidates,
-            mode = "view")))
+            mode               = "view"),
+          "iws:list-refresh"))
           .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
-//  private val formPut: Route[FormEnv, Response] =
-//    Method.PUT / "html" / "financials" ->
-//      handler { (req: Request) =>
-//        (for {
-//          body   <- req.body.asString
-//          params  = HtmxResponse.parseForm(body)
-//          mode    = params.getOrElse("mode", "view")
-//          company = params.getOrElse("company", "")
-//
-//          modelid = params.get("record_modelid").flatMap(_.toIntOption)
-//            .filter(_ > 0)
-//            .orElse(params.get("modelid").flatMap(_.toIntOption))
-//            .getOrElse(ModelId.FINANCIALS.modelid)
-//
-//          existing <- if mode == "create" then ZIO.succeed(blank(company, modelid))
-//          else
-//            val lookupId =
-//              params.get("id_display").flatMap(_.toLongOption)
-//                .orElse(params.get("id").flatMap(_.toLongOption))
-//            lookupId match
-//              case Some(lid) => FinancialsRepository.getById((lid, modelid, company))
-//              case None      => ZIO.succeed(blank(company, modelid))
-//
-//          toSave = applyParams(existing, params)
-//
-//          _      <- if mode == "create" then FinancialsRepository.create(toSave)
-//          else FinancialsRepository.modify(toSave)
-//
-//          fresh  <- FinancialsRepository
-//            .getById((toSave.id, modelid, company))
-//            .catchAll(_ =>
-//              ZIO.fail(new RuntimeException(
-//                s"Saved financials id=${toSave.id} modelid=$modelid company=$company, but it could not be reloaded")))
-//
-//          data       <- loadLists(company)
-//          candidates <- loadCandidates(company, modelid)
-//        } yield HtmxResponse.html(
-//          FinancialsFormView.render(
-//            t                  = fresh,
-//            fmodules           = data.fmodules,
-//            stores             = data.stores,
-//            accounts           = data.accounts,
-//            contacts           = data.contacts,
-//            copyFromCandidates = candidates,
-//            mode               = "view")))
-//          .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
-//      }
 
   private val listGet: Route[FormEnv, Response] =
     Method.GET / "html" / "financials-list" ->

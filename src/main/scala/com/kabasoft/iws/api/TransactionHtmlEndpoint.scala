@@ -177,17 +177,19 @@ object TransactionHtmlEndpoint:
               cloned     <- TransactionService.copyFrom(sid, m, m, c)
               data       <- loadLists(c)
               candidates <- loadCandidates(c, m)
-            } yield HtmxResponse.html(
-              TransactionFormView.render(
-                t                  = cloned,
-                fmodules           = data.fmodules,
-                stores             = data.stores,
-                accounts           = data.accounts,
-                articles           = data.articles,
-                vats               = data.vats,
-                contacts           = data.contacts,
-                copyFromCandidates = candidates,
-                mode               = "create")))
+            } yield HtmxResponse.htmlWithTrigger(
+                TransactionFormView.render(
+                  t                  = cloned,
+                  fmodules           = data.fmodules,
+                  stores             = data.stores,
+                  accounts           = data.accounts,
+                  articles           = data.articles,
+                  vats               = data.vats,
+                  contacts           = data.contacts,
+                  copyFromCandidates = candidates,
+                  mode               = "create"),
+                "iws:list-refresh")
+              )
               .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
           case _ =>
             ZIO.succeed(Response.status(Status.BadRequest))
@@ -250,17 +252,18 @@ object TransactionHtmlEndpoint:
             } yield t
 
           candidates <- loadCandidates(company, modelid)
-        } yield HtmxResponse.html(
+        } yield HtmxResponse.htmlWithTrigger(
           TransactionFormView.render(
-            t = fresh,
-            fmodules = data.fmodules,
-            stores = data.stores,
-            accounts = data.accounts,
-            articles = data.articles,
-            vats = data.vats,
-            contacts = data.contacts,
+            t                  = fresh,
+            fmodules           = data.fmodules,
+            stores             = data.stores,
+            accounts           = data.accounts,
+            articles           = data.articles,
+            vats               = data.vats,
+            contacts           = data.contacts,
             copyFromCandidates = candidates,
-            mode = "view")))
+            mode               = "view"),
+          "iws:list-refresh"))
           .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 

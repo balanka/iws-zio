@@ -3,10 +3,14 @@ package com.kabasoft.iws.api
 /** The wrapper every combined page shares: page container, toolbar,
  * form card, list card. Callers render each piece and hand the HTML in.
  *
- * The list card's `.card-content` wrapper is required by the collapse CSS
- * (`.card.collapsed > .card-body > *:not(.card-header-row) { display: none; }`)
- * and by the fmodule combo's `hx-target="#<prefix>-list-card .card-content"`.
- * Keeping the wrapper here prevents the two combined pages drifting apart.
+ * The list card's `.card-content` is wired to refresh itself when the
+ * server emits `HX-Trigger: iws:list-refresh` on a save response. The
+ * trigger is defined here so any combined page benefits automatically.
+ *
+ * The `.card-content` wrapper is also required by the collapse CSS
+ * (`.card.collapsed > .card-body > *:not(.card-header-row) { display:none; }`),
+ * by the collapse JS, and by the fmodule combo's
+ * `hx-target="#<prefix>-list-card .card-content"`.
  */
 object HtmxCombinedLayout:
 
@@ -40,7 +44,14 @@ object HtmxCombinedLayout:
        |
        |    <div id="$prefix-list-card" class="card bg-base-100 shadow-sm">
        |      <div class="card-body compact">
-       |        <div class="card-content">$listHtml</div>
+       |        <div class="card-content"
+       |             hx-get="/html/${prefix}-list"
+       |             hx-trigger="iws:list-refresh from:body"
+       |             hx-target="this"
+       |             hx-swap="innerHTML"
+       |             hx-include="#$prefix-form [name='modelid'], #$prefix-form [name='company']">
+       |          $listHtml
+       |        </div>
        |      </div>
        |    </div>
        |

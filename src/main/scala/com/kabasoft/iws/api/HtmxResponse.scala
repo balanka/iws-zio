@@ -45,3 +45,17 @@ object HtmxResponse:
       ),
       body = Body.fromString(body, StandardCharsets.UTF_8)
     )
+
+  /** HTML response that also emits an HTMX trigger event.
+   * The event is fired on `body` (HTMX default), and any element with
+   * `hx-trigger="<event> from:body"` will react.
+   */
+  def htmlWithTrigger(body: String, event: String): Response =
+    Response(
+      status = Status.Ok,
+      headers = Headers(
+        Header.Custom("Content-Type", "text/html; charset=UTF-8"),
+        Header.Custom("HX-Trigger", event)
+      ),
+      body = Body.fromString(body, StandardCharsets.UTF_8)
+    )

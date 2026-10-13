@@ -714,6 +714,37 @@ object HtmxPage:
       |      syncPeriod(el.closest('form'));
       |    });
       |  })();
+      |
+      |    /* =====================================================================
+      |     Refresh the list after a successful form save
+      |     - HTMX reports the request verb in UPPERCASE, so the check must be
+      |       case-insensitive.
+      |     - The form is swapped before htmx:afterRequest fires, so look up the
+      |       live combo by id in the document rather than using the (detached)
+      |       request element.
+      |     - Fires `change` on the module combo, which reloads the list card via
+      |       the combo's own hx-get.
+      |     ===================================================================== */
+      |  (function () {
+      |    document.body.addEventListener('htmx:afterRequest', function (e) {
+      |      var d = e.detail;
+      |      if (!d || !d.successful) return;
+      |      if (!d.requestConfig) return;
+      |
+      |      var verb = (d.requestConfig.verb || '').toLowerCase();
+      |      if (verb !== 'put') return;
+      |
+      |      var el = d.elt;
+      |      if (!el || !el.id) return;
+      |      var formId = el.id;
+      |
+      |      // Defer one tick so the swap has settled and the new combo exists.
+      |      setTimeout(function () {
+      |        var combo = document.getElementById(formId + '-fmodule');
+      |        if (combo && window.htmx) window.htmx.trigger(combo, 'change');
+      |      }, 0);
+      |    });
+      |  })();
       |</script>
       |""".stripMargin
 

@@ -257,7 +257,6 @@ object TransactionFormView:
        |<form id="$formId" class="$formClass"
        |      hx-put="/html/transaction"
        |      hx-target="#$formId" hx-swap="outerHTML"
-       |      hx-on::after-request="if(event.detail.requestConfig.verb === 'put' && event.detail.successful){ var c=document.getElementById('$formId-fmodule'); if(c) htmx.trigger(c,'change'); }">
        |
        |  ${HtmxFields.hiddenField("id",      t.id.toString)}
        |  ${HtmxFields.hiddenField("company", t.company)}
