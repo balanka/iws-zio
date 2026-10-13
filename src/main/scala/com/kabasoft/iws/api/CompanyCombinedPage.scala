@@ -73,6 +73,7 @@ object CompanyCombinedPage:
                |""".stripMargin
 
           HtmxResponse.html(HtmxPage.renderRaw("Company", bodyHtml))
+          HtmxResponse.htmlNoCache(HtmxPage.renderRaw("Company", bodyHtml))
         }).catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 

@@ -16,7 +16,8 @@ object HtmxTable:
                      width:         Option[String] = None,
                      filter:        FilterKind = FilterKind.None,
                      filterOptions: List[(String, String)] = Nil,
-                     kind:          ColumnKind = ColumnKind.Text
+                     kind:          ColumnKind = ColumnKind.Text,
+                     resizable:     Boolean = false
                    )
 
   case class Page[A](
@@ -49,17 +50,18 @@ object HtmxTable:
 
   val pageSizes: List[Int] = List(10, 20, 40, 80)
 
-  private val carrySelectors: String =
+  /** Everything a list request should carry (sort, size, q, modelid, company,
+   * and every per-column filter). Used by all list interactions EXCEPT the
+   * size select itself — see `carryExceptSize`.
+   */
+  private val carryAll: String =
     "[name='sort'],[name='size'],[name='q'],[name='modelid'],[name='company'],[data-filter-input]"
 
-  private val carrySelectorsNoSort: String =
-    "[name='size'],[name='q'],[name='modelid'],[name='company'],[data-filter-input]"
-
-  private val carrySelectorsNoSize: String =
+  /** Same as carryAll, minus [name='size']. The size select's own value is
+   * sent by HTMX as the trigger element; including it here would duplicate.
+   */
+  private val carryExceptSize: String =
     "[name='sort'],[name='q'],[name='modelid'],[name='company'],[data-filter-input]"
-
-  private val carrySelectorsNoSortNoSize: String =
-    "[name='sort'],[name='modelid'],[name='company'],[data-filter-input]"
 
   def render[A](
                  path:         String,
@@ -73,15 +75,18 @@ object HtmxTable:
                  maxHeight:    String = "480px",
                  filterValues: Map[String, String] = Map.empty
                ): String =
-    val hasFilters = columns.exists(_.filter != FilterKind.None)
+    val hasFilters   = columns.exists(_.filter != FilterKind.None)
+    val hasResizable = columns.exists(_.resizable)
 
     val filterRow =
       if hasFilters then
         s"""<tr class="table-filter-row">${columns.map(c => filterCell(path, c, filterValues)).mkString}</tr>"""
       else ""
 
+    val tableCls = if hasResizable then "table table-zebra htmx-table-fixed" else "table table-zebra"
+
     s"""
-       |<div class="htmx-table-wrapper">
+       |<div class="htmx-table-wrapper" data-table-key="$path">
        |  <div class="table-toolbar">
        |    <input type="hidden" name="sort" value="${esc(p.encodedSort)}" />
        |    <div class="table-search-wrapper">
@@ -96,12 +101,12 @@ object HtmxTable:
        |             hx-trigger="keyup changed delay:300ms, search"
        |             hx-target="closest .htmx-table-wrapper"
        |             hx-swap="outerHTML"
-       |             hx-include="$carrySelectorsNoSortNoSize" />
+       |             hx-include="$carryAll" />
        |    </div>
        |  </div>
        |
        |  <div class="table-scroll" style="max-height: $maxHeight; overflow-y: auto;">
-       |    <table class="table table-zebra">
+       |    <table class="$tableCls" data-table-key="$path">
        |      <thead>
        |        <tr>${columns.map(c => headerCell(path, c, p)).mkString}</tr>
        |        $filterRow
@@ -123,9 +128,7 @@ object HtmxTable:
     val style = c.width.map(w => s"""style="width:$w"""").getOrElse("")
     val inner =
       c.filter match
-        case FilterKind.None =>
-          ""
-
+        case FilterKind.None => ""
         case FilterKind.Text =>
           s"""<input type="search"
              |       class="input input-xs table-filter-input"
@@ -137,7 +140,7 @@ object HtmxTable:
              |       hx-trigger="keyup changed delay:400ms, search"
              |       hx-target="closest .htmx-table-wrapper"
              |       hx-swap="outerHTML"
-             |       hx-include="$carrySelectorsNoSortNoSize" />""".stripMargin
+             |       hx-include="$carryAll" />""".stripMargin
 
         case FilterKind.Number =>
           s"""<input type="number"
@@ -150,7 +153,7 @@ object HtmxTable:
              |       hx-trigger="keyup changed delay:400ms, change"
              |       hx-target="closest .htmx-table-wrapper"
              |       hx-swap="outerHTML"
-             |       hx-include="$carrySelectorsNoSortNoSize" />""".stripMargin
+             |       hx-include="$carryAll" />""".stripMargin
 
         case FilterKind.Date =>
           s"""<input type="date"
@@ -162,7 +165,7 @@ object HtmxTable:
              |       hx-trigger="change"
              |       hx-target="closest .htmx-table-wrapper"
              |       hx-swap="outerHTML"
-             |       hx-include="$carrySelectorsNoSortNoSize" />""".stripMargin
+             |       hx-include="$carryAll" />""".stripMargin
 
         case FilterKind.Select =>
           val opts = (("" -> "Any") :: c.filterOptions).map { case (v, l) =>
@@ -176,11 +179,11 @@ object HtmxTable:
              |        hx-trigger="change"
              |        hx-target="closest .htmx-table-wrapper"
              |        hx-swap="outerHTML"
-             |        hx-include="$carrySelectorsNoSortNoSize">
+             |        hx-include="$carryAll">
              |  $opts
              |</select>""".stripMargin
 
-    s"""<th class="table-filter-cell" $style>$inner</th>"""
+    s"""<th class="table-filter-cell" data-col-key="${esc(c.key)}" $style>$inner</th>"""
 
   // ── header cell ────────────────────────────────────────────────────────
 
@@ -197,16 +200,22 @@ object HtmxTable:
         val glyph = if dir == "asc" then "▲" else "▼"
         if p.sort.length == 1 then s" $glyph"
         else s" ${sortIdx + 1}$glyph"
-    val style = c.width.map(w => s"""style="width:$w"""").getOrElse("")
-    s"""<th $style>
+    val style  = c.width.map(w => s"""style="width:$w"""").getOrElse("")
+    val resiz  = if c.resizable then " resizable-th" else ""
+    val handle =
+      if c.resizable then
+        s"""<span class="col-resizer" data-col-key="${esc(c.key)}" title="Drag to resize"></span>"""
+      else ""
+    s"""<th class="th-${esc(c.key)}$resiz" data-col-key="${esc(c.key)}" $style>
        |  <a class="table-sort"
        |     data-sort-key="${esc(c.key)}"
        |     title="Click to sort. Shift+click to add to sort."
        |     hx-get="$path"
-       |     hx-include="$carrySelectorsNoSize"
+       |     hx-include="$carryAll"
        |     hx-target="closest .htmx-table-wrapper"
        |     hx-swap="outerHTML"
        |     hx-push-url="true">${esc(c.label)}$arrow</a>
+       |  $handle
        |</th>""".stripMargin
 
   // ── body row ───────────────────────────────────────────────────────────
@@ -264,7 +273,7 @@ object HtmxTable:
        |              hx-trigger="change"
        |              hx-target="closest .htmx-table-wrapper"
        |              hx-swap="outerHTML"
-       |              hx-include="$carrySelectorsNoSize">
+       |              hx-include="$carryExceptSize">
        |        ${pageSizes.map(s => sizeOption(s, p.pageSize)).mkString}
        |      </select>
        |      <span>rows</span>
@@ -273,14 +282,14 @@ object HtmxTable:
        |  <div class="pager-center">
        |    <button class="btn $disabledPrev"
        |            hx-get="$path?page=$prev"
-       |            hx-include="$carrySelectors"
+       |            hx-include="$carryAll"
        |            hx-target="closest .htmx-table-wrapper"
        |            hx-swap="outerHTML"
        |            hx-push-url="true">‹ Prev</button>
        |    <span class="page-info">Page ${p.page + 1} of ${p.totalPages} (${p.total} rows)</span>
        |    <button class="btn $disabledNext"
        |            hx-get="$path?page=$next"
-       |            hx-include="$carrySelectors"
+       |            hx-include="$carryAll"
        |            hx-target="closest .htmx-table-wrapper"
        |            hx-swap="outerHTML"
        |            hx-push-url="true">Next ›</button>
