@@ -21,7 +21,9 @@ object TransactionFormView:
                         hxTarget:   String = "",
                         hxInclude:  String = "",
                         hxTrigger:  String = "change",
-                        extraClass: String = ""
+                        hxSwap:     String = "innerHTML",
+                        extraClass: String = "",
+                        disabled:   Boolean = false
                       ): String =
     val opts = options.map { case (v, lbl) =>
       val sel = if v == value then " selected" else ""
@@ -33,23 +35,24 @@ object TransactionFormView:
         if hxGet.nonEmpty     then s"""hx-get="${Html.esc(hxGet)}""""           else "",
         if hxTarget.nonEmpty  then s"""hx-target="${Html.esc(hxTarget)}""""     else "",
         if hxInclude.nonEmpty then s"""hx-include="${Html.esc(hxInclude)}""""   else "",
-        if hxGet.nonEmpty     then s"""hx-trigger="${Html.esc(hxTrigger)}""""    else ""
+        if hxGet.nonEmpty     then s"""hx-trigger="${Html.esc(hxTrigger)}""""    else "",
+        if hxGet.nonEmpty     then s"""hx-swap="${Html.esc(hxSwap)}""""          else ""
       ).filter(_.nonEmpty)
       if parts.isEmpty then "" else " " + parts.mkString(" ")
 
     val cls = List("select", extraClass).filter(_.nonEmpty).mkString(" ")
+    val dis = if disabled then " disabled" else ""
 
     s"""<label class="label" for="${Html.esc(id)}">${Html.esc(label)}</label>
-       |<select id="${Html.esc(id)}" name="${Html.esc(name)}" class="${Html.esc(cls)}"$htmxAttrs>
+       |<select id="${Html.esc(id)}" name="${Html.esc(name)}" class="${Html.esc(cls)}"$htmxAttrs$dis>
        |  $opts
        |</select>""".stripMargin
 
   // ── Line columns ────────────────────────────────────────────────────────
-
   private def lineColumns(
                            articles: List[Article],
-                           vats:     List[Vat],
-                           modelid:  Int
+                           vats: List[Vat],
+                           modelid: Int
                          ): List[HtmxSubGrid.Column] =
     val isSales = Set(
       ModelId.SALES_ORDER.modelid,
@@ -66,9 +69,9 @@ object TransactionFormView:
       articles.map { a =>
         val price = if isSales then a.sprice else a.pprice
         a.id -> Map(
-          "name"    -> a.name,
-          "unit"    -> a.quantityUnit,
-          "price"   -> price.toString,
+          "name" -> a.name,
+          "unit" -> a.quantityUnit,
+          "price" -> price.toString,
           "vatcode" -> a.vatCode
         )
       }.toMap
@@ -77,37 +80,31 @@ object TransactionFormView:
       vats.map(v => v.id -> Map("rate" -> v.percent.toString)).toMap
 
     List(
-      HtmxSubGrid.Column("id",          "Id",       "w-16"),
-      HtmxSubGrid.Column("article",     "Article",  "w-40",
-        kind       = HtmxSubGrid.CellKind.Select,
-        options    = articleOptions,
-        optionData = articleOptionData),
-      HtmxSubGrid.Column("articleName", "Name",     "w-40",
-        kind     = HtmxSubGrid.CellKind.Text,
-        readonly = true,
-        hidden  = true),
-      HtmxSubGrid.Column("quantity",    "Qty",      "num w-16",
-        kind = HtmxSubGrid.CellKind.Number),
-      HtmxSubGrid.Column("unit",        "Unit",     "w-16",
-        kind     = HtmxSubGrid.CellKind.Text,
-        readonly = true),
-      HtmxSubGrid.Column("price",       "Price",    "num w-24",
-        kind = HtmxSubGrid.CellKind.Money),
-      HtmxSubGrid.Column("amount",      "Amount",   "num w-24",
-        kind     = HtmxSubGrid.CellKind.Computed,
-        expr     = "quantity * price",
-        readonly = true),
-      HtmxSubGrid.Column("vatCode",     "VAT",      "w-24",
-        kind       = HtmxSubGrid.CellKind.Select,
-        options    = vats.map(v => v.id -> s"${v.id} ${v.name}"),
-        optionData = vatOptionData),
-      HtmxSubGrid.Column("vat",         "VAT amt",  "num w-20",
-        kind     = HtmxSubGrid.CellKind.Computed,
-        expr     = "quantity * price * vatRate",
-        readonly = true),
-      HtmxSubGrid.Column("duedate",     "Due date", "w-32",
-        kind = HtmxSubGrid.CellKind.Date),
-      HtmxSubGrid.Column("text",        "Text",     "")
+      HtmxSubGrid.Column("id", "Id", "w-10", resizable = true),
+      HtmxSubGrid.Column("article", "Article", "w-40",
+        kind = HtmxSubGrid.CellKind.Select, options = articleOptions,
+        optionData = articleOptionData, resizable = true),
+      HtmxSubGrid.Column("articleName", "Name", "w-10",
+        kind = HtmxSubGrid.CellKind.Text, readonly = true, hidden = true),
+      HtmxSubGrid.Column("quantity", "Qty", "num w-12",
+        kind = HtmxSubGrid.CellKind.Number,  resizable = true),
+      HtmxSubGrid.Column("unit", "Unit", "w-6",
+        kind = HtmxSubGrid.CellKind.Text, readonly = true,  resizable = true),
+      HtmxSubGrid.Column("price", "Price", "num w-24",
+        kind = HtmxSubGrid.CellKind.Money,  resizable = true),
+      HtmxSubGrid.Column("amount", "Amount", "num w-24",
+        kind = HtmxSubGrid.CellKind.Computed,
+        expr = "quantity * price", readonly = true, resizable = true),
+      HtmxSubGrid.Column("vatCode", "VAT", "w-30",
+        kind = HtmxSubGrid.CellKind.Select,
+        options = vats.map(v => v.id -> s"${v.id} ${v.name}"),
+        optionData = vatOptionData, resizable = true),
+      HtmxSubGrid.Column("vat", "VAT amt", "num w-16",
+        kind = HtmxSubGrid.CellKind.Computed,
+        expr = "quantity * price * vatRate", readonly = true,  resizable = true),
+      HtmxSubGrid.Column("duedate", "Due date", "w-24",
+        kind = HtmxSubGrid.CellKind.Date, resizable = true),
+      HtmxSubGrid.Column("text", "Text", "", resizable = true)
     )
 
   private def lineRows(t: Transaction): List[HtmxSubGrid.Row] =
@@ -134,41 +131,68 @@ object TransactionFormView:
       .map(l => l.quantity.multiply(l.price).add(l.vat))
       .foldLeft(java.math.BigDecimal.ZERO)(_.add(_))
 
-  // ── Main render ─────────────────────────────────────────────────────────
 
   def render(
-              t:        Transaction,
-              fmodules: List[Fmodule],
-              stores:   List[Store],
-              accounts: List[Account],
-              articles: List[Article],
-              vats:     List[Vat],
-              contacts: List[Contact],
-              mode:     String = "view",
-              title:    String = "Header"
+              t:                  Transaction,
+              fmodules:           List[Fmodule],
+              stores:             List[Store],
+              accounts:           List[Account],
+              articles:           List[Article],
+              vats:               List[Vat],
+              contacts:           List[Contact],
+              copyFromCandidates: List[Transaction] = Nil,
+              mode:               String = "view",
+              title:              String = "Header"
             ): String =
     val isCreate = mode == "create"
     val formId   = "transaction-form"
     val formClass =
-      if mode == "view" then "htmx-form transaction-form form-readonly"
+      if t.posted then "htmx-form transaction-form form-readonly"
       else                     "htmx-form transaction-form"
 
-    val currencySymbol = MoneyFmt.symbol(t.lines.headOption.map(_.currency).filter(_.nonEmpty).getOrElse("EUR"))
+    val currencyCode =
+      t.lines.headOption.map(_.currency).filter(_.nonEmpty).getOrElse("EUR")
+    val currencySymbol = MoneyFmt.symbol(currencyCode)
+
     val lineGrid = HtmxSubGrid.render(
-      id = s"$formId-lines",
-      prefix = "lines",
-      fkField = "transid",
-      fkValue = t.id.toString,
-      columns = lineColumns(articles, vats, t.modelid),
-      rows = lineRows(t),
-      totalField = "amount",
+      id             = s"$formId-lines",
+      prefix         = "lines",
+      fkField        = "transid",
+      fkValue        = t.id.toString,
+      columns        = lineColumns(articles, vats, t.modelid),
+      rows           = lineRows(t),
+      totalField     = "amount",
       currencySymbol = currencySymbol)
 
     val total = headerTotal(t)
 
-    // Header section — Summary + Module + Dates.
-    // `Posted` sits at columns 3–4 (under Period), so it aligns with
-    // the right half of the 4-column grid.
+    // Copy-from combo options (placeholder + existing records of the same module).
+    val copyFromOptions: List[(String, String)] =
+      if copyFromCandidates.isEmpty then Nil
+      else
+        ("" -> "— Copy from —") ::
+          copyFromCandidates.map { c =>
+            val label = s"${c.id}  ${c.period}  ${c.text.take(30)}".trim
+            c.id.toString -> label
+          }
+
+    val copyFromRow =
+      if copyFromOptions.isEmpty then ""
+      else
+        comboRow(
+          label      = "Copy from",
+          id         = s"$formId-copyFrom",
+          name       = "copyFrom",
+          options    = copyFromOptions,
+          value      = "",
+          hxGet      = "/html/transaction/copy-from",
+          hxTarget   = s"#$formId",
+          hxInclude  = s"#$formId [name='record_modelid'], #$formId [name='company']",
+          hxTrigger  = "change",
+          hxSwap     = "outerHTML",
+          extraClass = "copy-from-select"
+        )
+
     val headerSection = HtmxCollapsible.section(
       title = title,
       id    = s"$formId-sec-header",
@@ -198,19 +222,13 @@ object TransactionFormView:
           value   = t.contact
         )}
            |
+           |$copyFromRow
            |${comboRow(
           label   = "Account",
           id      = s"$formId-account",
           name    = "account",
           options = accounts.map(a => a.id -> s"${a.id} ${a.name}"),
           value   = t.account
-        )}
-           |${comboRow(
-          label   = "Store",
-          id      = s"$formId-store",
-          name    = "store",
-          options = stores.map(s => s.id -> s"${s.id} ${s.name}"),
-          value   = t.store
         )}
            |
            |${HtmxFields.textRow("Transaction date", s"$formId-td", "transdate", fmtDate(t.transdate))}
@@ -221,7 +239,6 @@ object TransactionFormView:
            |${HtmxFields.checkboxRow("Posted", s"$formId-posted", "posted", t.posted)}
            |""".stripMargin)
 
-    // Text section — only the main text field.
     val textSection = HtmxCollapsible.section(
       title = "Text",
       id    = s"$formId-sec-text",
@@ -235,16 +252,15 @@ object TransactionFormView:
          |<div class="subgrid-block">
          |  $lineGrid
          |  <div class="subgrid-total">
-         |      <span class="label">Total:</span>
-         |      <span class="input-money total-money">
-         |        <span class="calc-total num">${total.toString}</span>
-         |        <span class="currency-suffix">${Html.esc(currencySymbol)}</span>
-         |      </span>
+         |    <span class="label">Total:</span>
+         |    <span class="input-money total-money">
+         |      <span class="calc-total num">${total.toString}</span>
+         |      <span class="currency-suffix">${Html.esc(currencySymbol)}</span>
+         |    </span>
          |  </div>
          |</div>
          |""".stripMargin
 
-    // Foot text — rendered last, after the Lines section.
     val footTextSection = HtmxCollapsible.section(
       title = "Foot text",
       id    = s"$formId-sec-foot",

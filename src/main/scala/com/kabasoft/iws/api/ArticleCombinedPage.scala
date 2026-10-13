@@ -88,6 +88,7 @@ object ArticleCombinedPage:
                |""".stripMargin
 
           HtmxResponse.html(HtmxPage.renderRaw("Article", bodyHtml))
+          HtmxResponse.htmlNoCache(HtmxPage.renderRaw("Article", bodyHtml))
         }).catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 

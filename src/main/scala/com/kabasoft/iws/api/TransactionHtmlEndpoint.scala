@@ -5,14 +5,19 @@ import com.kabasoft.iws.repository.{
   AccountRepository, ArticleRepository, FModuleRepository,
   PartnerRepository, StoreRepository, TransactionRepository, VatRepository
 }
+import com.kabasoft.iws.service.TransactionService
 import zio._
 import zio.http._
 import java.time.{Instant, LocalDate, ZoneId}
 
 object TransactionHtmlEndpoint:
 
-  type FormEnv = AccountRepository & ArticleRepository & FModuleRepository &
-      PartnerRepository & StoreRepository & TransactionRepository & VatRepository
+  type FormEnv =
+    AccountRepository & ArticleRepository & FModuleRepository &
+      PartnerRepository & StoreRepository & TransactionRepository &
+      TransactionService & VatRepository
+
+  // ── Params → entity ────────────────────────────────────────────────────
 
   private def applyParams(
                            base:   Transaction,
@@ -36,7 +41,6 @@ object TransactionHtmlEndpoint:
         val price = new java.math.BigDecimal(m.getOrElse("price",    "0"))
         val code  = m.getOrElse("vatCode", "-1")
         val rate  = rateFor(code)
-        // Server-side authoritative VAT: qty × price × rate
         val vat   = qty.multiply(price).multiply(rate)
         val due: Instant =
           m.get("duedate").filter(_.nonEmpty)
@@ -62,9 +66,8 @@ object TransactionHtmlEndpoint:
 
     base.copy(
       id        = params.get("id_display").flatMap(_.toLongOption)
-                        .orElse(params.get("id").flatMap(_.toLongOption))
-                        .getOrElse(base.id),
-      //id        = params.get("id").flatMap(_.toLongOption).getOrElse(base.id),
+        .orElse(params.get("id").flatMap(_.toLongOption))
+        .getOrElse(base.id),
       oid       = params.getOrElse("oid",      base.oid),
       modelid   = base.modelid,
       period    = period,
@@ -87,6 +90,8 @@ object TransactionHtmlEndpoint:
       posted = false, modelid = modelid,
       company = company, text = "", footText = "", lines = Nil)
 
+  // ── Shared loaders ─────────────────────────────────────────────────────
+
   private def loadLists(company: String) =
     for {
       accs     <- AccountRepository.all((ModelId.ACCOUNT.modelid, company))
@@ -97,19 +102,36 @@ object TransactionHtmlEndpoint:
       fmodules <- FModuleRepository.all((ModelId.FMODULE.modelid, company))
     } yield (accs, arts, vats, stores, contacts, fmodules)
 
+  private def loadCandidates(company: String, modelid: Int)
+  : ZIO[TransactionRepository, Nothing, List[Transaction]] =
+    if modelid <= 0 || company.isEmpty then ZIO.succeed(Nil)
+    else
+      TransactionRepository.all((modelid, company))
+        .map(_.sortBy(-_.id).take(50))
+        .catchAll(_ => ZIO.succeed(Nil))
+
+  // ── Routes ─────────────────────────────────────────────────────────────
+
   private val formNew: Route[FormEnv, Response] =
     Method.GET / "html" / "transaction" / "new-form" ->
       handler { (req: Request) =>
         val modelid = req.queryParam("modelid").flatMap(_.toIntOption).getOrElse(-1)
         val company = req.queryParam("company").getOrElse("")
         (for {
-          lists <- loadLists(company)
+          lists      <- loadLists(company)
           (accs, arts, vats, stores, contacts, fmodules) = lists
+          candidates <- loadCandidates(company, modelid)
         } yield HtmxResponse.html(
           TransactionFormView.render(
-            t = blank(company, modelid), fmodules = fmodules, stores = stores,
-            accounts = accs, articles = arts, vats = vats, contacts = contacts,
-            mode = "create")))
+            t                  = blank(company, modelid),
+            fmodules           = fmodules,
+            stores             = stores,
+            accounts           = accs,
+            articles           = arts,
+            vats               = vats,
+            contacts           = contacts,
+            copyFromCandidates = candidates,
+            mode               = "create")))
           .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 
@@ -119,16 +141,57 @@ object TransactionHtmlEndpoint:
         id.toLongOption match
           case Some(lid) =>
             (for {
-              t     <- TransactionRepository.getById((lid, modelid, company))
-              lists <- loadLists(company)
+              t          <- TransactionRepository.getById((lid, modelid, company))
+              lists      <- loadLists(company)
               (accs, arts, vats, stores, contacts, fmodules) = lists
+              candidates <- loadCandidates(company, modelid)
             } yield HtmxResponse.html(
               TransactionFormView.render(
-                t = t, fmodules = fmodules, stores = stores,
-                accounts = accs, articles = arts, vats = vats, contacts = contacts,
-                mode = "view")))
+                t                  = t,
+                fmodules           = fmodules,
+                stores             = stores,
+                accounts           = accs,
+                articles           = arts,
+                vats               = vats,
+                contacts           = contacts,
+                copyFromCandidates = candidates,
+                mode               = "view")))
               .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
           case None => ZIO.succeed(Response.status(Status.BadRequest))
+      }
+
+  /** Copy-from: delegates to TransactionService.copyFrom(sourceId, src, dst, company).
+   *  Same-module copy → modelidFrom == modelidTo == record_modelid.
+   *  The service returns a Transaction clone ready to be rendered in create mode.
+   */
+  private val formCopyFrom: Route[FormEnv, Response] =
+    Method.GET / "html" / "transaction" / "copy-from" ->
+      handler { (req: Request) =>
+        val srcId   = req.queryParam("copyFrom").flatMap(_.toLongOption)
+        val modelid = req.queryParam("record_modelid").flatMap(_.toIntOption).getOrElse(-1)
+        val company = req.queryParam("company").getOrElse("")
+
+        (srcId, modelid, company) match
+          case (Some(sid), m, c) if m > 0 && c.nonEmpty =>
+            (for {
+              cloned     <- TransactionService.copyFrom(sid, m, m, c)
+              lists      <- loadLists(c)
+              (accs, arts, vats, stores, contacts, fmodules) = lists
+              candidates <- loadCandidates(c, m)
+            } yield HtmxResponse.html(
+              TransactionFormView.render(
+                t                  = cloned,
+                fmodules           = fmodules,
+                stores             = stores,
+                accounts           = accs,
+                articles           = arts,
+                vats               = vats,
+                contacts           = contacts,
+                copyFromCandidates = candidates,
+                mode               = "create")))
+              .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
+          case _ =>
+            ZIO.succeed(Response.status(Status.BadRequest))
       }
 
   private val formPut: Route[FormEnv, Response] =
@@ -139,15 +202,10 @@ object TransactionHtmlEndpoint:
           params  = HtmxResponse.parseForm(body)
           mode    = params.getOrElse("mode", "view")
           company = params.getOrElse("company", "")
-          // In edit mode the combo is a filter; the record's real modelid is
-          // carried in `record_modelid`. In create mode there is no record yet,
-          // so fall back to the combo value.
           modelid = params.get("record_modelid").flatMap(_.toIntOption)
             .filter(_ > 0)
             .orElse(params.get("modelid").flatMap(_.toIntOption))
             .getOrElse(ModelId.TRANSACTION.modelid)
-          //modelid = params.get("modelid").flatMap(_.toIntOption)
-          //  .getOrElse(ModelId.TRANSACTION.modelid)
 
           lists   <- loadLists(company)
           (accs, arts, vats, stores, contacts, fmodules) = lists
@@ -160,14 +218,9 @@ object TransactionHtmlEndpoint:
             lookupId match
               case Some(lid) => TransactionRepository.getById((lid, modelid, company))
               case None      => ZIO.succeed(blank(company, modelid))
-//          existing <- if mode == "create" then ZIO.succeed(blank(company, modelid))
-//          else params.get("id").flatMap(_.toLongOption) match
-//            case Some(lid) => TransactionRepository.getById((lid, modelid, company))
-//            case None      => ZIO.succeed(blank(company, modelid))
 
           toSave = applyParams(existing, params, vats)
-          _ <- ZIO.logInfo(s"toSave = ${toSave}")
-          _ <- ZIO.logInfo(s"RAW KEYS = ${params.keys.filter(_.startsWith("lines")).toList.sorted}")
+
           _      <- if mode == "create" then TransactionRepository.create(toSave)
           else TransactionRepository.modify(toSave)
 
@@ -175,14 +228,20 @@ object TransactionHtmlEndpoint:
             .getById((toSave.id, modelid, company))
             .catchAll(_ =>
               ZIO.fail(new RuntimeException(
-                s"Saved transaction id=${toSave.id} modelid=$modelid company=$company, but it could not be reloaded"))
-            )
-          //fresh  <- TransactionRepository.getById((toSave.id, modelid, company))
+                s"Saved transaction id=${toSave.id} modelid=$modelid company=$company, but it could not be reloaded")))
+
+          candidates <- loadCandidates(company, modelid)
         } yield HtmxResponse.html(
           TransactionFormView.render(
-            t = fresh, fmodules = fmodules, stores = stores,
-            accounts = accs, articles = arts, vats = vats, contacts = contacts,
-            mode = "view")))
+            t                  = fresh,
+            fmodules           = fmodules,
+            stores             = stores,
+            accounts           = accs,
+            articles           = arts,
+            vats               = vats,
+            contacts           = contacts,
+            copyFromCandidates = candidates,
+            mode               = "view")))
           .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 
@@ -220,37 +279,6 @@ object TransactionHtmlEndpoint:
             }
             .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
-  private val formPrint: Route[FormEnv, Response] =
-    Method.GET / "html" / "transaction" / "print" / string("id") / int("modelid") / string("company") ->
-      handler { (id: String, modelid: Int, company: String, _: Request) =>
-        id.toLongOption match
-          case Some(lid) =>
-            (for {
-              t <- TransactionRepository.getById((lid, modelid, company))
-              lists <- loadLists(company)
-              (accs, arts, vats, stores, contacts, fmodules) = lists
-            } yield {
-              val fmoduleName = fmodules.find(_.id == t.modelid).map(_.name).getOrElse("Transaction")
-              val docTitle = s"$company/$fmoduleName"
-
-              HtmxResponse.html(
-                HtmxPrintPage.render(
-                  docTitle,
-                  TransactionFormView.render(
-                    t = t,
-                    fmodules = fmodules,
-                    stores = stores,
-                    accounts = accs,
-                    articles = arts,
-                    vats = vats,
-                    contacts = contacts,
-                    mode = "view",
-                    title = docTitle)))
-            })
-              .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
-          case None =>
-            ZIO.succeed(Response.status(Status.BadRequest))
-      }
 
   val routes: Routes[FormEnv, Response] =
-    Routes(formNew, formGet, formPut, listGet, formPrint) @@ Middleware.debug
+    Routes(formNew, formGet, formCopyFrom, formPut, listGet) @@ Middleware.debug

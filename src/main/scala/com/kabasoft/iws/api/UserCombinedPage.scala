@@ -66,6 +66,7 @@ object UserCombinedPage:
                |""".stripMargin
 
           HtmxResponse.html(HtmxPage.renderRaw("User", bodyHtml))
+          HtmxResponse.htmlNoCache(HtmxPage.renderRaw("User", bodyHtml))
         }.catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 

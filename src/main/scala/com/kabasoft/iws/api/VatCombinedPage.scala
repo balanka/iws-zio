@@ -77,6 +77,7 @@ object VatCombinedPage:
                |""".stripMargin
 
           HtmxResponse.html(HtmxPage.renderRaw("VAT", bodyHtml))
+          HtmxResponse.htmlNoCache(HtmxPage.renderRaw("VAT", bodyHtml))
         }).catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 

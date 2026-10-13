@@ -150,7 +150,7 @@ object IwsApp extends ZIOAppDefault {
           RoleRepositoryLive.live,
           PermissionRepositoryLive.live,
           BankStatementRepositoryLive.live,
-          FinancialsTransactionRepositoryLive.live,
+          FinancialsRepositoryLive.live,
           PacRepositoryLive.live,
           UserRepositoryLive.live,
           VatRepositoryLive.live,

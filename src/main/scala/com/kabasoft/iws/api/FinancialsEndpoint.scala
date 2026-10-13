@@ -3,7 +3,7 @@ package com.kabasoft.iws.api
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.AppError.*
 import com.kabasoft.iws.domain.{AppError, FinancialsTransaction, ReminderBalance}
-import com.kabasoft.iws.repository.FinancialsTransactionRepository
+import com.kabasoft.iws.repository.FinancialsRepository
 import com.kabasoft.iws.service.FinancialsService
 import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, ftransactionSchema, reminderBalance, repositoryErrorSchema}
 import zio.*
@@ -116,43 +116,43 @@ object FinancialsEndpoint:
   val financialsCreateRoute = mCreate.implement { p =>
       val transaction = p._1
       ZIO.logInfo(s"Insert financials transaction  ${transaction}") *>
-      FinancialsTransactionRepository.create(transaction)
+      FinancialsRepository.create(transaction)
   }
   val financialsCreateListRoute = mCreateL.implement { p =>
     val transactions = p._1
     ZIO.logInfo(s"Size of financials transactions to insert   ${transactions.size}") *>
-      FinancialsTransactionRepository.create(transactions)
+      FinancialsRepository.create(transactions)
   }
   val financialsAllRoute =
     mAll.implement: p =>
       ZIO.logInfo(s"Get all financials transaction  for modelid: ${p._1}") *>
-        FinancialsTransactionRepository.all((p._1, p._2))
+        FinancialsRepository.all((p._1, p._2))
 
   val financialsAllNRoute =
     mAlln.implement: p =>
       ZIO.logInfo(s"Get all financials transaction  for modelid: ${p._2.split(',').map(_.trim.toInt).toList}") *>
-        FinancialsTransactionRepository.alln((p._2.split(',').map(_.trim.toInt).toList, p._1))
+        FinancialsRepository.alln((p._2.split(',').map(_.trim.toInt).toList, p._1))
 
   val financialsPostAllRoute =
     trPostAll.implement: p =>
       ZIO.logInfo(s"Post all financials transaction by id ${p._1.split('*').map(_.toLong).toList}") *>
         FinancialsService.postAll({p._1.split('*').map(_.toLong).toList}, p._2, p._3) *>
-        FinancialsTransactionRepository.getBy(p._1.split('*').map(_.toLong).toList, p._2, p._3)
+        FinancialsRepository.getBy(p._1.split('*').map(_.toLong).toList, p._2, p._3)
 
   val financialsByIdRoute =
     mById.implement: p =>
       ZIO.logInfo(s"Get financials transaction by id  ${p._1} modelid ${p._2} company ${p._3} ") *>
-        FinancialsTransactionRepository.getById(p._1, p._2, p._3)
+        FinancialsRepository.getById(p._1, p._2, p._3)
   
   val financialsModifyRoute =
     mModify.implement: (_, m) =>
       ZIO.logInfo(s"Modify financials transaction  ${m}") *>
-        FinancialsTransactionRepository.modify(m)
+        FinancialsRepository.modify(m)
   
   val financialsCancelnRoute =
     trCanceln.implement: (_, ftr) =>
       ZIO.logInfo(s"Canceln  financials transaction ${ftr}") *>
-        FinancialsTransactionRepository.create(ftr.cancel)
+        FinancialsRepository.create(ftr.cancel)
 //// copyFromFTr/id/modelidFrom/modelidTo/company
   val financialsCopyFromRoute =
     trCopyFrom.implement: (p) =>
@@ -162,11 +162,11 @@ object FinancialsEndpoint:
   val financialsDuplicateRoute =
     trDuplicate.implement: (_, ftr) =>
       ZIO.logInfo(s"Duplicate  transaction ${ftr}") *>
-        FinancialsTransactionRepository.create(ftr.duplicate) 
+        FinancialsRepository.create(ftr.duplicate) 
   
   val financialsDeleteRoute =
     mDelete.implement: (id, modelid, company, _) =>
-      FinancialsTransactionRepository.delete(id, modelid, company)
+      FinancialsRepository.delete(id, modelid, company)
 
   val balanceByPaiementRemeinderRoute =
     balanceByPaiementRemeinder.implement: (accountId, companyId, _) =>

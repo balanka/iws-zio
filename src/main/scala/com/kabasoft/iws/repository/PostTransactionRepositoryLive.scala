@@ -6,7 +6,7 @@ import zio.{Task, UIO, ZIO, ZLayer}
 import com.kabasoft.iws.domain.{Article, FinancialsTransaction, FinancialsTransactionDetails, Journal
   , PeriodicAccountBalance, Stock, Transaction, TransactionDetails, TransactionLog}
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import FinancialsTransactionRepositoryLive.{Details2Details, FINANCIAL_DETAIL_SEQUENCE_PREF, FINANCIAL_SEQUENCE_PREF
+import FinancialsRepositoryLive.{Details2Details, FINANCIAL_DETAIL_SEQUENCE_PREF, FINANCIAL_SEQUENCE_PREF
   , details2UpdateFilter, master2Details, master2master, newDetailsFilter, newMasterFilter, oldMasterFilter
   , sequenceNames, setJournalId}
 import JournalRepositoryLive.{JOURNAL_SEQUENCE_PREF, sequenceName}

@@ -12,7 +12,7 @@ import zio.{Task, ZIO, ZLayer}
 import java.time.{Instant, LocalDateTime, ZoneId}
 
 final case  class BankStatementRepositoryLive(postgres: Resource[Task, Session[Task]]
-                                              , ftrRepo: FinancialsTransactionRepository)
+                                              , ftrRepo: FinancialsRepository)
   extends BankStatementRepository, MasterfileCRUD:
 
   import BankStatementRepositorySQL.*
@@ -44,8 +44,8 @@ final case  class BankStatementRepositoryLive(postgres: Resource[Task, Session[T
           session.prepareR(UPDATE).use: pcuMaster =>
             execZ (session, pciMaster, pciDetails, pcuMaster, fnSetMasterId, fnSetDetailsTransId, fnSetDetailsId
               , BankStatement.encodeIt2, models, oldmodels 
-              , FinancialsTransactionRepositoryLive.sequenceNames(FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF
-                , FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF, models))
+              , FinancialsRepositoryLive.sequenceNames(FinancialsRepositoryLive.FINANCIAL_SEQUENCE_PREF
+                , FinancialsRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF, models))
 
   override def create(c: BankStatement):ZIO[Any, RepositoryError, Int] = create(List(c))
   override def create(models: List[BankStatement]):ZIO[Any, RepositoryError, Int]=
@@ -77,7 +77,7 @@ final case  class BankStatementRepositoryLive(postgres: Resource[Task, Session[T
       .mapBoth(e => RepositoryError(e.getMessage), _ => models.flatMap(_.lines).size + models.size )  
 
 object BankStatementRepositoryLive:
-  val live: ZLayer[Resource[Task, Session[Task]] & FinancialsTransactionRepository, Throwable, BankStatementRepository] =
+  val live: ZLayer[Resource[Task, Session[Task]] & FinancialsRepository, Throwable, BankStatementRepository] =
     ZLayer.fromFunction(new BankStatementRepositoryLive(_, _))
 
 private[repository] object BankStatementRepositorySQL:

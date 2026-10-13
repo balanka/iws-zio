@@ -70,6 +70,7 @@ object BusinessPartnerCombinedPage:
            |""".stripMargin
 
       HtmxResponse.html(HtmxPage.renderRaw(kind.title, bodyHtml))
+      HtmxResponse.htmlNoCache(HtmxPage.renderRaw(kind.title, bodyHtml))
     }).catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
 
   private val customerPage: Route[Repos, Response] =

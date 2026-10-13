@@ -68,6 +68,7 @@ object StoreCombinedPage:
                |""".stripMargin
 
           HtmxResponse.html(HtmxPage.renderRaw("Store", bodyHtml))
+          HtmxResponse.htmlNoCache(HtmxPage.renderRaw("Store", bodyHtml))
         }).catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 

@@ -16,7 +16,8 @@ object HtmxSubGrid:
                      readonly:   Boolean = false,
                      kind:       CellKind = CellKind.Text,
                      expr:       String = "",
-                     hidden:     Boolean = false
+                     hidden:     Boolean = false,
+                     resizable:  Boolean = false
                    )
 
   case class Row(
@@ -77,7 +78,25 @@ object HtmxSubGrid:
                               currencySymbol: String
                             ): String =
     val visibleColumns = columns.filterNot(_.hidden)
-    val headerCells    = visibleColumns.map(c => s"<th>${esc(c.label)}</th>").mkString
+    val hasResizable   = visibleColumns.exists(_.resizable)
+
+    val tableCls =
+      if hasResizable then "table table-xs table-zebra htmx-table-fixed"
+      else                  "table table-xs table-zebra"
+
+    val headerCells = visibleColumns.map { c =>
+      val clsList = List(
+        s"th-${c.field}",
+        if c.resizable then "resizable-th" else ""
+      ).filter(_.nonEmpty).mkString(" ")
+
+      val handle =
+        if c.resizable then
+          s"""<span class="col-resizer" data-col-key="${esc(c.field)}" title="Drag to resize"></span>"""
+        else ""
+
+      s"""<th class="$clsList" data-col-key="${esc(c.field)}">${esc(c.label)}$handle</th>"""
+    }.mkString
 
     def hiddenFor(idx: String, extra: Map[String, String]): String =
       val fk = s"""<input type="hidden" name="$prefix.$idx.${esc(fkField)}" value="${esc(fkValue)}" />"""
@@ -216,8 +235,8 @@ object HtmxSubGrid:
        |     data-prefix="$prefix"
        |     data-grid-id="$id"
        |     data-fk-field="$fkField">
-       |  <table class="table table-xs table-zebra">
-       |    <thead><tr>$headerCells<th></th></tr></thead>
+       |  <table class="$tableCls" data-table-key="$id">
+       |    <thead><tr>$headerCells<th class="subgrid-actions" data-col-key="__actions"></th></tr></thead>
        |    <tbody id="$id-body">$bodyRows</tbody>
        |  </table>
        |  <template id="$id-template">$templateRow</template>

@@ -9,7 +9,7 @@ import java.time.{Instant, LocalDate}
 object FinancialsCombinedPage:
 
   type Repos =
-    AccountRepository & FModuleRepository & FinancialsTransactionRepository &
+    AccountRepository & FModuleRepository & FinancialsRepository &
       PartnerRepository & StoreRepository
 
   private val prefix = "financials"
@@ -52,12 +52,13 @@ object FinancialsCombinedPage:
            |  <div class="htmx-page-wrapper">
            |
            |    ${HtmxToolbar.render(
-          prefix,
-          ModelId.FINANCIALS.modelid,
-          company,
-          newFormUrl     = "/html/financials/new-form",
-          newFormInclude = s"#financials-form [name='modelid'], #financials-form [name='company']"
-        )}
+                prefix,
+                ModelId.FINANCIALS.modelid,
+                company,
+                newFormUrl     = "/html/financials/new-form",
+                newFormInclude = s"#financials-form [name='modelid'], #financials-form [name='company']",
+                showEdit = false
+            )}
            |
            |    <div id="$prefix-form-card" class="card bg-base-100 shadow-sm">
            |      <div class="card-body compact">
@@ -85,6 +86,7 @@ object FinancialsCombinedPage:
            |""".stripMargin
 
       HtmxResponse.html(HtmxPage.renderRaw("Financials", bodyHtml))
+      HtmxResponse.htmlNoCache(HtmxPage.renderRaw("Financials", bodyHtml))
     }).catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
 
   private val pageGet: Route[Repos, Response] =

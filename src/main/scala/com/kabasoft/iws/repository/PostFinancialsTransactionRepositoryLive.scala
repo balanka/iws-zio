@@ -3,10 +3,10 @@ package com.kabasoft.iws.repository
 import cats.effect.Resource
 import skunk._
 import zio.interop.catz._
-import zio.{ZIO, _}
+import zio.*
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, Journal, PeriodicAccountBalance}
-import FinancialsTransactionRepositoryLive.{ FINANCIAL_DETAIL_SEQUENCE_PREF, FINANCIAL_SEQUENCE_PREF, sequenceNames
+import FinancialsRepositoryLive.{ FINANCIAL_DETAIL_SEQUENCE_PREF, FINANCIAL_SEQUENCE_PREF, sequenceNames
   , newMasterFilter, master2master, master2Details, Details2Details, newDetailsFilter
   , details2DeleteFilter, details2UpdateFilter, setJournalId}
 import JournalRepositoryLive.{JOURNAL_SEQUENCE_PREF, sequenceName}

@@ -3,7 +3,7 @@ package com.kabasoft.iws.service
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain._
 import com.kabasoft.iws.repository.{AccountRepository, CompanyRepository, EmployeeRepository,
-        FinancialsTransactionRepository}
+        FinancialsRepository}
 import zio._
 
 import java.time.Instant
@@ -13,7 +13,7 @@ final class EmployeeServiceLive(empRepo: EmployeeRepository
                                 , accountRepo: AccountRepository
                                 , companyRepo: CompanyRepository
                                 //, ptrRepo: PayrollTaxRangeRepository
-                                , ftrRepo: FinancialsTransactionRepository) 
+                                , ftrRepo: FinancialsRepository) 
                    extends EmployeeService:
 
   override def generate(period: Int, company: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
@@ -49,7 +49,7 @@ final class EmployeeServiceLive(empRepo: EmployeeRepository
   }
 
 object EmployeeServiceLive:
-  val live: ZLayer[EmployeeRepository &AccountRepository&FinancialsTransactionRepository&
+  val live: ZLayer[EmployeeRepository &AccountRepository&FinancialsRepository&
                   CompanyRepository //& PayrollTaxRangeRepository
                     ,  RepositoryError, EmployeeService] =
        ZLayer.fromFunction(new EmployeeServiceLive(_, _, _, _))

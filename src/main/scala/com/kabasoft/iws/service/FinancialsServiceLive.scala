@@ -4,7 +4,7 @@ import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.common.{zeroAmount, given}
 import com.kabasoft.iws.domain.{Account, CopyFromPayables2Bank, CopyFromReceavables2Bank, CopySelf, FinancialsTransaction
   , FinancialsTransactionDetails, Journal, ModelId, PeriodicAccountBalance, ReminderBalance, TPeriodicAccountBalance, common}
-import com.kabasoft.iws.repository.{AccountRepository, CompanyRepository, FModuleRepository, FinancialsTransactionRepository
+import com.kabasoft.iws.repository.{AccountRepository, CompanyRepository, FModuleRepository, FinancialsRepository
   , JournalRepository, PacRepository, PostFinancialsTransactionRepository}
 import com.kabasoft.iws.service.FinancialsService.buildPacIds
 import zio.*
@@ -19,7 +19,7 @@ final class FinancialsServiceLive( compRepo: CompanyRepository
                                   , accRepo: AccountRepository
                                   , fmoduleRepo: FModuleRepository
                                   , pacRepo: PacRepository
-                                  , ftrRepo: FinancialsTransactionRepository
+                                  , ftrRepo: FinancialsRepository
                                   , journalRepo: JournalRepository
                                   , repository4PostingTransaction:PostFinancialsTransactionRepository)
              extends FinancialsService:
@@ -217,7 +217,7 @@ final class FinancialsServiceLive( compRepo: CompanyRepository
 
 
 object FinancialsServiceLive:
-  val live: ZLayer[AccountRepository&CompanyRepository&PacRepository& FinancialsTransactionRepository
+  val live: ZLayer[AccountRepository&CompanyRepository&PacRepository& FinancialsRepository
     & JournalRepository& PostFinancialsTransactionRepository &FModuleRepository
     , RepositoryError, FinancialsService] =
     ZLayer.fromFunction(new FinancialsServiceLive(_, _, _, _,_, _, _))

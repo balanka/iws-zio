@@ -33,3 +33,15 @@ object HtmxResponse:
           java.net.URLDecoder.decode(kv.substring(i + 1), StandardCharsets.UTF_8)
       )
     }.toMap
+
+  def htmlNoCache(body: String): Response =
+    Response(
+      status = Status.Ok,
+      headers = Headers(
+        Header.Custom("Content-Type", "text/html; charset=UTF-8"),
+        Header.Custom("Cache-Control", "no-store, no-cache, must-revalidate"),
+        Header.Custom("Pragma", "no-cache"),
+        Header.Custom("Expires", "0")
+      ),
+      body = Body.fromString(body, StandardCharsets.UTF_8)
+    )

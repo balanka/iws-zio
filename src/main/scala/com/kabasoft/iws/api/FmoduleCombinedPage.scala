@@ -71,6 +71,7 @@ object FmoduleCombinedPage:
                |""".stripMargin
 
           HtmxResponse.html(HtmxPage.renderRaw("Fmodule", bodyHtml))
+          HtmxResponse.htmlNoCache(HtmxPage.renderRaw("Fmodule", bodyHtml))
         }).catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 

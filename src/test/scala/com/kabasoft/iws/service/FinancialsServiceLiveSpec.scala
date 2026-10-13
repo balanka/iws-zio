@@ -6,7 +6,7 @@ import com.kabasoft.iws.domain.common.given
 import com.kabasoft.iws.domain.AccountBuilder.{companyId, paccountId0}
 import com.kabasoft.iws.domain.FinancialsTransactionBuilder.{ftr1, ftr2, line1, line2}
 import com.kabasoft.iws.repository.container.PostgresContainer.appResourcesL
-import com.kabasoft.iws.repository.{AccountRepository, AccountRepositoryLive, BankAccountRepository, BankAccountRepositoryLive, CompanyRepository, CompanyRepositoryLive, FModuleRepository, FModuleRepositoryLive, FinancialsTransactionRepository, FinancialsTransactionRepositoryLive, JournalRepository, JournalRepositoryLive, ModuleRepositoryLive, PacRepository, PacRepositoryLive, PermissionRepositoryLive, PostFinancialsTransactionRepositoryLive, RoleRepositoryLive, UserRepositoryLive}
+import com.kabasoft.iws.repository.{AccountRepository, AccountRepositoryLive, BankAccountRepository, BankAccountRepositoryLive, CompanyRepository, CompanyRepositoryLive, FModuleRepository, FModuleRepositoryLive, FinancialsRepository, FinancialsRepositoryLive, JournalRepository, JournalRepositoryLive, ModuleRepositoryLive, PacRepository, PacRepositoryLive, PermissionRepositoryLive, PostFinancialsTransactionRepositoryLive, RoleRepositoryLive, UserRepositoryLive}
 import zio.ZLayer
 import zio.test.TestAspect.*
 import zio.test.*
@@ -17,7 +17,7 @@ import java.time.Instant
 
 object FinancialsServiceLiveSpec extends ZIOSpecDefault {
   
-  val testServiceLayer = ZLayer.make[AccountService & FinancialsService & FinancialsTransactionRepository & 
+  val testServiceLayer = ZLayer.make[AccountService & FinancialsService & FinancialsRepository & 
     AccountRepository & PacRepository & JournalRepository &CompanyRepository & FModuleRepository &BankAccountRepository](
     appResourcesL.project(_.postgres),
     appConfig,
@@ -28,7 +28,7 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
     AccountServiceLive.live,
     PacRepositoryLive.live,
     JournalRepositoryLive.live,
-    FinancialsTransactionRepositoryLive.live,
+    FinancialsRepositoryLive.live,
     FinancialsServiceLive.live,
     PostFinancialsTransactionRepositoryLive.live,
     ModuleRepositoryLive.live,
@@ -44,7 +44,7 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
     suite("Financials service  test with postgres test container")(
       test("clear financials transactions ") {
         for
-          deletedTransactions <- FinancialsTransactionRepository.deleteAll(list)
+          deletedTransactions <- FinancialsRepository.deleteAll(list)
           deletedPacs <- PacRepository.deleteAll()
           deletedJournal <- JournalRepository.deleteAllTest()
         yield assertTrue(deletedTransactions == 1) &&
@@ -53,7 +53,7 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
       },
       test("create  2 transaction") {
         for 
-          oneRow     <- FinancialsTransactionRepository.create(list)
+          oneRow     <- FinancialsRepository.create(list)
          yield assertTrue(oneRow.size+list.size == 7 )
       },
       test("create and post 1 transaction") {
@@ -69,7 +69,7 @@ object FinancialsServiceLiveSpec extends ZIOSpecDefault {
         //val creditAmount = new BigDecimal("200.00").setScale(2, RoundingMode.HALF_UP)
 
         for {
-          ftr        <-   FinancialsTransactionRepository.all(ftr1.modelid, ftr1.company)
+          ftr        <-   FinancialsRepository.all(ftr1.modelid, ftr1.company)
           postedRows <- FinancialsService.postAll(ftr.map(_.id), ftr1.modelid, companyId)
           oaccountEntry <- FinancialsService.journal(line1.oaccount, period, period, companyId).map(_.size)
           accountEntry <- FinancialsService.journal(line1.account, period, period, companyId).map(_.size)

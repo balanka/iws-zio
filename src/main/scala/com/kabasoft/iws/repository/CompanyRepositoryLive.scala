@@ -5,7 +5,7 @@ import cats.syntax.all.*
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{BankAccount, Company, Fmodule, ModelId, Module, Permission, Role, User, UserRight, UserRole}
 import com.kabasoft.iws.repository.BankStatementRepositorySQL.BANK_STATEMENT_SEQUENCE_PREF
-import com.kabasoft.iws.repository.FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF
+import com.kabasoft.iws.repository.FinancialsRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF
 import com.kabasoft.iws.repository.JournalRepositoryLive.JOURNAL_SEQUENCE_PREF
 import com.kabasoft.iws.repository.TransactionRepositoryLive.{TRANSACTION_DETAIL_SEQUENCE_PREF, TRANSACTION_LOG_SEQUENCE_PREF}
 import skunk.*

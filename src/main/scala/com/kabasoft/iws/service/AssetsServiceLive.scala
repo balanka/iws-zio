@@ -11,7 +11,7 @@ import java.time.Instant
 final class AssetsServiceLive(assetRepo: AssetRepository
                               , accountRepo: AccountRepository
                               , companyRepo: CompanyRepository,
-                              ftrRepo: FinancialsTransactionRepository) extends AssetsService:
+                              ftrRepo: FinancialsRepository) extends AssetsService:
 
   override def generate( period:Int, company: String): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = for {
     _<- ZIO.logInfo(s" Generating  transaction for the period  ${period} and   company ${company}")
@@ -46,7 +46,7 @@ final class AssetsServiceLive(assetRepo: AssetRepository
   )//.mapBoth(e => RepositoryError(e.getMessage), a => a)
 
 object AssetsServiceLive:
-  val live: ZLayer[AssetRepository& AccountRepository& FinancialsTransactionRepository& CompanyRepository,
+  val live: ZLayer[AssetRepository& AccountRepository& FinancialsRepository& CompanyRepository,
                        RepositoryError, AssetsService] =
     ZLayer.fromFunction(new AssetsServiceLive(_, _, _,  _))
 

@@ -8,7 +8,7 @@ import skunk.implicits._
 import zio.{Task, ZIO, ZLayer }
 import com.kabasoft.iws.domain.Fmodule
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.repository.FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF
+import com.kabasoft.iws.repository.FinancialsRepositoryLive.FINANCIAL_SEQUENCE_PREF
 import com.kabasoft.iws.repository.TransactionRepositoryLive.TRANSACTION_SEQUENCE_PREF
 import java.time.{Instant, LocalDateTime, ZoneId}
 

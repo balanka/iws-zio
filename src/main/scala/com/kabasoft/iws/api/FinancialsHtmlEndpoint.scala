@@ -1,12 +1,9 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.domain.{
-  FinancialsTransaction, FinancialsTransactionDetails, ModelId
-}
-import com.kabasoft.iws.repository.{
-  AccountRepository, FModuleRepository, FinancialsTransactionRepository,
-  PartnerRepository, StoreRepository
-}
+import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, ModelId}
+import com.kabasoft.iws.repository.{AccountRepository, FModuleRepository, FinancialsRepository,
+  PartnerRepository, StoreRepository}
+import com.kabasoft.iws.service.FinancialsService
 import zio._
 import zio.http._
 import java.time.{Instant, LocalDate, ZoneId}
@@ -14,20 +11,15 @@ import java.time.{Instant, LocalDate, ZoneId}
 object FinancialsHtmlEndpoint:
 
   type FormEnv =
-    AccountRepository & FModuleRepository & FinancialsTransactionRepository &
-      PartnerRepository & StoreRepository
+    AccountRepository & FModuleRepository & FinancialsRepository &
+      FinancialsService & PartnerRepository & StoreRepository
 
   private def bd(s: String, fallback: String = "0"): java.math.BigDecimal =
-    Option(s).map(_.trim).filter(v =>
-      v.nonEmpty && v != "null" && v != "undefined"
-    ) match
+    Option(s).map(_.trim).filter(v => v.nonEmpty && v != "null" && v != "undefined") match
       case Some(v) => new java.math.BigDecimal(v)
       case None    => new java.math.BigDecimal(fallback)
 
-  private def applyParams(
-                           base:   FinancialsTransaction,
-                           params: Map[String, String]
-                         ): FinancialsTransaction =
+  private def applyParams(base:   FinancialsTransaction, params: Map[String, String]): FinancialsTransaction =
     val transDate: Instant =
       params.get("transdate").filter(_.nonEmpty)
         .map(s => LocalDate.parse(s).atStartOfDay(ZoneId.systemDefault()).toInstant)
@@ -60,7 +52,7 @@ object FinancialsHtmlEndpoint:
             company      = base.company,
             accountName  = Option(m.getOrElse("accountName", "")).getOrElse(""),
             oaccountName = Option(m.getOrElse("oaccountName", "")).getOrElse(""),
-            modelid      = base.modelid)                    // ← inherits parent
+            modelid      = base.modelid)
         }
 
     base.copy(
@@ -68,7 +60,7 @@ object FinancialsHtmlEndpoint:
         .orElse(params.get("id").flatMap(_.toLongOption))
         .getOrElse(base.id),
       oid        = params.getOrElse("oid",         base.oid),
-      modelid    = base.modelid,                             // ← immutable
+      modelid    = base.modelid,
       period     = period,
       transdate  = transDate,
       contact    = params.getOrElse("contact",     base.contact),
@@ -99,6 +91,8 @@ object FinancialsHtmlEndpoint:
       footText    = "",
       lines       = Nil)
 
+  // ── Loaders ────────────────────────────────────────────────────────────
+
   private def loadLists(company: String) =
     for {
       accs     <- AccountRepository.all((ModelId.ACCOUNT.modelid, company))
@@ -106,6 +100,14 @@ object FinancialsHtmlEndpoint:
       contacts <- PartnerRepository.all((ModelId.CONTACT.modelid, company))
       fmodules <- FModuleRepository.all((ModelId.FMODULE.modelid, company))
     } yield (accs, stores, contacts, fmodules)
+
+  private def loadCandidates(company: String, modelid: Int)
+  : ZIO[FinancialsRepository, Nothing, List[FinancialsTransaction]] =
+    if modelid <= 0 || company.isEmpty then ZIO.succeed(Nil)
+    else
+      FinancialsRepository.all((modelid, company))
+        .map(_.sortBy(-_.id).take(50))
+        .catchAll(_ => ZIO.succeed(Nil))
 
   // ── Routes ─────────────────────────────────────────────────────────────
 
@@ -115,16 +117,18 @@ object FinancialsHtmlEndpoint:
         val modelid = req.queryParam("modelid").flatMap(_.toIntOption).getOrElse(-1)
         val company = req.queryParam("company").getOrElse("")
         (for {
-          lists <- loadLists(company)
+          lists      <- loadLists(company)
           (accs, stores, contacts, fmodules) = lists
+          candidates <- loadCandidates(company, modelid)
         } yield HtmxResponse.html(
           FinancialsFormView.render(
-            t        = blank(company, modelid),
-            fmodules = fmodules,
-            stores   = stores,
-            accounts = accs,
-            contacts = contacts,
-            mode     = "create")))
+            t                  = blank(company, modelid),
+            fmodules           = fmodules,
+            stores             = stores,
+            accounts           = accs,
+            contacts           = contacts,
+            copyFromCandidates = candidates,
+            mode               = "create")))
           .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 
@@ -134,19 +138,52 @@ object FinancialsHtmlEndpoint:
         id.toLongOption match
           case Some(lid) =>
             (for {
-              t     <- FinancialsTransactionRepository.getById((lid, modelid, company))
-              lists <- loadLists(company)
+              t          <- FinancialsRepository.getById((lid, modelid, company))
+              lists      <- loadLists(company)
               (accs, stores, contacts, fmodules) = lists
+              candidates <- loadCandidates(company, modelid)
             } yield HtmxResponse.html(
               FinancialsFormView.render(
-                t        = t,
-                fmodules = fmodules,
-                stores   = stores,
-                accounts = accs,
-                contacts = contacts,
-                mode     = "view")))
+                t                  = t,
+                fmodules           = fmodules,
+                stores             = stores,
+                accounts           = accs,
+                contacts           = contacts,
+                copyFromCandidates = candidates,
+                mode               = "view")))
               .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
           case None =>
+            ZIO.succeed(Response.status(Status.BadRequest))
+      }
+
+  /** Copy-from: delegates to FinancialsService.copyFrom(sourceId, src, dst, company).
+   *  Same-module copy → modelidFrom == modelidTo == record_modelid.
+   */
+  private val formCopyFrom: Route[FormEnv, Response] =
+    Method.GET / "html" / "financials" / "copy-from" ->
+      handler { (req: Request) =>
+        val srcId   = req.queryParam("copyFrom").flatMap(_.toLongOption)
+        val modelid = req.queryParam("record_modelid").flatMap(_.toIntOption).getOrElse(-1)
+        val company = req.queryParam("company").getOrElse("")
+
+        (srcId, modelid, company) match
+          case (Some(sid), m, c) if m > 0 && c.nonEmpty =>
+            (for {
+              cloned     <- FinancialsService.copyFrom(sid, m, m, c)
+              lists      <- loadLists(c)
+              (accs, stores, contacts, fmodules) = lists
+              candidates <- loadCandidates(c, m)
+            } yield HtmxResponse.html(
+              FinancialsFormView.render(
+                t                  = cloned,
+                fmodules           = fmodules,
+                stores             = stores,
+                accounts           = accs,
+                contacts           = contacts,
+                copyFromCandidates = candidates,
+                mode               = "create")))
+              .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
+          case _ =>
             ZIO.succeed(Response.status(Status.BadRequest))
       }
 
@@ -170,31 +207,81 @@ object FinancialsHtmlEndpoint:
               params.get("id_display").flatMap(_.toLongOption)
                 .orElse(params.get("id").flatMap(_.toLongOption))
             lookupId match
-              case Some(lid) => FinancialsTransactionRepository.getById((lid, modelid, company))
+              case Some(lid) => FinancialsRepository.getById((lid, modelid, company))
               case None      => ZIO.succeed(blank(company, modelid))
 
           toSave = applyParams(existing, params)
 
-          _      <- if mode == "create" then FinancialsTransactionRepository.create(toSave)
-          else FinancialsTransactionRepository.modify(toSave)
+          _      <- if mode == "create" then FinancialsRepository.create(toSave)
+          else FinancialsRepository.modify(toSave)
 
-          fresh  <- FinancialsTransactionRepository.getById((toSave.id, modelid, company))
+          fresh  <- FinancialsRepository
+            .getById((toSave.id, modelid, company))
+            .catchAll(_ =>
+              ZIO.fail(new RuntimeException(
+                s"Saved financials id=${toSave.id} modelid=$modelid company=$company, but it could not be reloaded")))
+
           lists  <- loadLists(company)
           (accs, stores, contacts, fmodules) = lists
+          candidates <- loadCandidates(company, modelid)
         } yield HtmxResponse.html(
           FinancialsFormView.render(
-            t        = fresh,
-            fmodules = fmodules,
-            stores   = stores,
-            accounts = accs,
-            contacts = contacts,
-            mode     = "view")))
+            t                  = fresh,
+            fmodules           = fmodules,
+            stores             = stores,
+            accounts           = accs,
+            contacts           = contacts,
+            copyFromCandidates = candidates,
+            mode               = "view")))
           .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 
-  /** Column filters — one `case` per column that has a filter.
-   * Empty string means "no filter applied".
-   */
+  private val listGet: Route[FormEnv, Response] =
+    Method.GET / "html" / "financials-list" ->
+      handler { (req: Request) =>
+        val modelid = req.queryParam("modelid").flatMap(_.toIntOption).getOrElse(-1)
+        val company = req.queryParam("company").getOrElse("")
+        val page    = req.queryParam("page").flatMap(_.toIntOption).getOrElse(0)
+        val query   = req.queryParam("q").getOrElse("")
+        val size    = req.queryParam("size").flatMap(_.toIntOption)
+          .filter(HtmxTable.pageSizes.contains).getOrElse(20)
+        val sort    = req.queryParam("sort")
+          .map(HtmxTable.Page.parseSort)
+          .filter(_.nonEmpty)
+          .getOrElse(HtmxTable.Page.defaultSort)
+
+        val filterKeys = List(
+          "id", "oid", "modelid", "period",
+          "contact", "costcenter", "text", "total", "posted")
+        val filters: Map[String, String] =
+          filterKeys.flatMap(k => req.queryParam(k).map(k -> _)).toMap
+
+        if modelid < 0 || company.isEmpty then
+          ZIO.succeed(HtmxResponse.html(
+            """<div class="p-4 text-center text-gray-500">Select a financials type above.</div>"""))
+        else
+          FinancialsRepository.all((modelid, company))
+            .map { all =>
+              val filtered =
+                all
+                  .filter(t =>
+                    query.isEmpty ||
+                      t.id.toString.contains(query) ||
+                      t.oid.toLowerCase.contains(query.toLowerCase) ||
+                      t.text.toLowerCase.contains(query.toLowerCase))
+                  .filter(t => filters.forall { case (k, v) => matches(t, k, v) })
+
+              val slice = filtered.slice(page * size, page * size + size)
+              HtmxResponse.html(
+                FinancialsListView.render(
+                  page         = HtmxTable.Page(slice, page, size, filtered.size.toLong, sort),
+                  company      = company,
+                  query        = query,
+                  filterValues = filters))
+            }
+            .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
+      }
+
   private def matches(
                        t:     FinancialsTransaction,
                        key:   String,
@@ -218,49 +305,5 @@ object FinancialsHtmlEndpoint:
         case "posted"     => t.posted.toString == value
         case _            => true
 
-  private val listGet: Route[FormEnv, Response] =
-    Method.GET / "html" / "financials-list" ->
-      handler { (req: Request) =>
-        val modelid = req.queryParam("modelid").flatMap(_.toIntOption).getOrElse(-1)
-        val company = req.queryParam("company").getOrElse("")
-        val page    = req.queryParam("page").flatMap(_.toIntOption).getOrElse(0)
-        val query   = req.queryParam("q").getOrElse("")
-        val size    = req.queryParam("size").flatMap(_.toIntOption)
-          .filter(HtmxTable.pageSizes.contains).getOrElse(20)
-        val sort    = req.queryParam("sort")
-          .map(HtmxTable.Page.parseSort)
-          .filter(_.nonEmpty)
-          .getOrElse(HtmxTable.Page.defaultSort)
-
-        // Every column key that has a filter input on the client.
-        val filterKeys = List("id", "oid", "modelid", "period", "contact", "costcenter",  "total", "posted", "text")
-        val filters: Map[String, String] =
-          filterKeys.flatMap(k => req.queryParam(k).map(k -> _)).toMap
-
-        if modelid < 0 || company.isEmpty then
-          ZIO.succeed(HtmxResponse.html(
-            """<div class="p-4 text-center text-gray-500">Select a financials type above.</div>"""))
-        else
-          FinancialsTransactionRepository.all((modelid, company))
-            .map { all =>
-              val filtered =
-                all
-                  .filter(t => query.isEmpty ||
-                    t.id.toString.contains(query) ||
-                    t.oid.toLowerCase.contains(query.toLowerCase) ||
-                    t.text.toLowerCase.contains(query.toLowerCase))
-                  .filter(t => filters.forall { case (k, v) => matches(t, k, v) })
-
-              val slice = filtered.slice(page * size, page * size + size)
-              HtmxResponse.html(
-                FinancialsListView.render(
-                  page         = HtmxTable.Page(slice, page, size, filtered.size.toLong, sort),
-                  company      = company,
-                  query        = query,
-                  filterValues = filters))
-            }
-            .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
-      }
-
   val routes: Routes[FormEnv, Response] =
-    Routes(formNew, formGet, formPut, listGet) @@ Middleware.debug
+    Routes(formNew, formGet, formCopyFrom, formPut, listGet) @@ Middleware.debug

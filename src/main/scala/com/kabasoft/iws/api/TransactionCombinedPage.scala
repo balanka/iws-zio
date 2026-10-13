@@ -56,12 +56,12 @@ object TransactionCombinedPage:
            |  <div class="htmx-page-wrapper">
            |
            |    ${HtmxToolbar.render(
-          prefix,
-          ModelId.TRANSACTION.modelid,
-          company,
-          newFormUrl     = "/html/transaction/new-form",
-          newFormInclude = s"#transaction-form [name='modelid'], #transaction-form [name='company']"
-        )}
+                prefix,
+                ModelId.TRANSACTION.modelid, company,
+                newFormUrl = "/html/transaction/new-form",
+                newFormInclude = s"#transaction-form [name='modelid'], #transaction-form [name='company']",
+                showEdit = false
+           )}
            |
            |    <div id="$prefix-form-card" class="card bg-base-100 shadow-sm">
            |      <div class="card-body compact">
@@ -89,6 +89,7 @@ object TransactionCombinedPage:
            |""".stripMargin
 
       HtmxResponse.html(HtmxPage.renderRaw("Transaction", bodyHtml))
+      HtmxResponse.htmlNoCache(HtmxPage.renderRaw("Financials", bodyHtml))
     }).catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
 
   private val pageGet: Route[Repos, Response] =

@@ -604,6 +604,90 @@ object HtmxPage:
       |    document.body.addEventListener('htmx:afterSettle', syncAddLineButton);
       |    syncAddLineButton();
       |  })();
+      |
+      |    /* =====================================================================
+      |     Resizable table columns
+      |     - A `<span class="col-resizer" data-col-key="...">` in a <th> starts
+      |       a drag. Moving the mouse updates the <th>'s inline width.
+      |     - The width is stored in localStorage keyed by table path + column.
+      |     - After every HTMX swap the saved widths are re-applied, so paging,
+      |       sorting and filtering don't lose them.
+      |     ===================================================================== */
+      |  (function () {
+      |    var PREFIX = 'iws-colwidth:';
+      |    var dragState = null;
+      |
+      |    function storageKey(tableKey, colKey) {
+      |      return PREFIX + tableKey + ':' + colKey;
+      |    }
+      |
+      |    function applyWidths(root) {
+      |      (root || document).querySelectorAll('table.htmx-table-fixed').forEach(function (table) {
+      |        var tableKey = table.dataset.tableKey;
+      |        if (!tableKey) return;
+      |        table.querySelectorAll('th[data-col-key]').forEach(function (th) {
+      |          var colKey = th.dataset.colKey;
+      |          if (!colKey) return;
+      |          var saved = null;
+      |          try { saved = localStorage.getItem(storageKey(tableKey, colKey)); } catch (e) {}
+      |          if (saved) th.style.width = saved;
+      |        });
+      |      });
+      |    }
+      |
+      |    document.body.addEventListener('mousedown', function (e) {
+      |      var handle = e.target.closest('.col-resizer');
+      |      if (!handle) return;
+      |      e.preventDefault();
+      |      e.stopPropagation();
+      |
+      |      var th    = handle.closest('th');
+      |      var table = th && th.closest('table.htmx-table-fixed');
+      |      if (!th || !table) return;
+      |
+      |      dragState = {
+      |        th:         th,
+      |        table:      table,
+      |        colKey:     handle.dataset.colKey,
+      |        tableKey:   table.dataset.tableKey,
+      |        startX:     e.clientX,
+      |        startWidth: th.offsetWidth
+      |      };
+      |      document.body.classList.add('col-resizing');
+      |    }, true);
+      |
+      |    document.body.addEventListener('mousemove', function (e) {
+      |      if (!dragState) return;
+      |      e.preventDefault();
+      |      var delta    = e.clientX - dragState.startX;
+      |      var newWidth = Math.max(40, dragState.startWidth + delta);
+      |      dragState.th.style.width = newWidth + 'px';
+      |    }, true);
+      |
+      |    document.body.addEventListener('mouseup', function (e) {
+      |      if (!dragState) return;
+      |      var w = dragState.th.style.width;
+      |      if (dragState.tableKey && dragState.colKey && w) {
+      |        try {
+      |          localStorage.setItem(
+      |            storageKey(dragState.tableKey, dragState.colKey), w);
+      |        } catch (err) {}
+      |      }
+      |      dragState = null;
+      |      document.body.classList.remove('col-resizing');
+      |    }, true);
+      |
+      |    document.body.addEventListener('htmx:afterSwap', function (e) {
+      |      var el = window.iwsEventEl(e);
+      |      if (el) applyWidths(el);
+      |    });
+      |    document.body.addEventListener('htmx:afterSettle', function (e) {
+      |      var el = window.iwsEventEl(e);
+      |      if (el) applyWidths(el);
+      |    });
+      |
+      |    applyWidths(document);
+      |  })();
       |</script>
       |""".stripMargin
 

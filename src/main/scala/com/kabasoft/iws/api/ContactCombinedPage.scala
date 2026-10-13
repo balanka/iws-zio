@@ -66,6 +66,7 @@ object ContactCombinedPage:
                |""".stripMargin
 
           HtmxResponse.html(HtmxPage.renderRaw("Contact", bodyHtml))
+          HtmxResponse.htmlNoCache(HtmxPage.renderRaw("Contact", bodyHtml))
         }.catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 

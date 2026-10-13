@@ -71,6 +71,7 @@ object AssetCombinedPage:
                |""".stripMargin
 
           HtmxResponse.html(HtmxPage.renderRaw("Asset", bodyHtml))
+          HtmxResponse.htmlNoCache(HtmxPage.renderRaw("Asset", bodyHtml))
         }).catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 

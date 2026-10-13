@@ -62,6 +62,7 @@ object PermissionCombinedPage:
                |""".stripMargin
 
           HtmxResponse.html(HtmxPage.renderRaw("Permission", bodyHtml))
+          HtmxResponse.htmlNoCache(HtmxPage.renderRaw("Permission", bodyHtml))
         }.catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 

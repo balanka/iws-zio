@@ -57,6 +57,7 @@ object MasterfileCombinedPage:
                |""".stripMargin
 
           HtmxResponse.html(HtmxPage.renderRaw(title, bodyHtml))
+          HtmxResponse.htmlNoCache(HtmxPage.renderRaw(title, bodyHtml))
         }.catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 

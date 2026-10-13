@@ -74,34 +74,8 @@ object AccountCombinedPage:
                  |  </div>
                  |</div>
                  |""".stripMargin
-
-//            val bodyHtml =
-//              s"""
-//                 |<div class="container mx-auto max-w-5xl p-6 space-y-4">
-//                 |
-//                 |  ${HtmxToolbar.render(prefix)}
-//                 |
-//                 |  <div id="$prefix-form-card" class="card bg-base-100 shadow-sm">
-//                 |    <div class="card-body">
-//                 |      <h2 class="card-title mb-4">Account</h2>
-//                 |      <div class="card-content">
-//                 |        <div id="$prefix-form">$formHtml</div>
-//                 |      </div>
-//                 |    </div>
-//                 |  </div>
-//                 |
-//                 |  <div id="$prefix-list-card" class="card bg-base-100 shadow-sm">
-//                 |    <div class="card-body">
-//                 |      <div class="card-content">
-//                 |        $listHtml
-//                 |      </div>
-//                 |    </div>
-//                 |  </div>
-//                 |
-//                 |</div>
-//                 |""".stripMargin
-
             HtmxResponse.html(HtmxPage.renderRaw("Account", bodyHtml))
+            HtmxResponse.htmlNoCache(HtmxPage.renderRaw("Account", bodyHtml))
           }
           .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }

@@ -23,7 +23,9 @@ object FinancialsFormView:
                         hxTarget:   String = "",
                         hxInclude:  String = "",
                         hxTrigger:  String = "change",
-                        extraClass: String = ""
+                        hxSwap:     String = "innerHTML",
+                        extraClass: String = "",
+                        disabled:   Boolean = false
                       ): String =
     val opts = options.map { case (v, lbl) =>
       val sel = if v == value then " selected" else ""
@@ -35,48 +37,51 @@ object FinancialsFormView:
         if hxGet.nonEmpty     then s"""hx-get="${Html.esc(hxGet)}""""           else "",
         if hxTarget.nonEmpty  then s"""hx-target="${Html.esc(hxTarget)}""""     else "",
         if hxInclude.nonEmpty then s"""hx-include="${Html.esc(hxInclude)}""""   else "",
-        if hxGet.nonEmpty     then s"""hx-trigger="${Html.esc(hxTrigger)}""""    else ""
+        if hxGet.nonEmpty     then s"""hx-trigger="${Html.esc(hxTrigger)}""""    else "",
+        if hxGet.nonEmpty     then s"""hx-swap="${Html.esc(hxSwap)}""""          else ""
       ).filter(_.nonEmpty)
       if parts.isEmpty then "" else " " + parts.mkString(" ")
 
     val cls = List("select", extraClass).filter(_.nonEmpty).mkString(" ")
+    val dis = if disabled then " disabled" else ""
 
     s"""<label class="label" for="${Html.esc(id)}">${Html.esc(label)}</label>
-       |<select id="${Html.esc(id)}" name="${Html.esc(name)}" class="${Html.esc(cls)}"$htmxAttrs>
+       |<select id="${Html.esc(id)}" name="${Html.esc(name)}" class="${Html.esc(cls)}"$htmxAttrs$dis>
        |  $opts
        |</select>""".stripMargin
 
   // ── Line columns ────────────────────────────────────────────────────────
+
   private def lineColumns(accounts: List[Account]): List[HtmxSubGrid.Column] =
-    val accountOptions = accounts.map(a => a.id -> s"${a.id} ${a.name}")
+    val accountOptions    = accounts.map(a => a.id -> s"${a.id} ${a.name}")
     val accountOptionData = accounts.map(a => a.id -> Map("name" -> a.name)).toMap
 
     List(
-      HtmxSubGrid.Column("id", "Id", "w-16"),
-      HtmxSubGrid.Column("account", "Account", "w-40",
+      HtmxSubGrid.Column("id",           "Id",       "w-10", resizable = true),
+      HtmxSubGrid.Column("account",      "Account",  "w-40",
+        kind       = HtmxSubGrid.CellKind.Select,
+        options    = accountOptions,
+        optionData = accountOptionData, resizable = true),
+      HtmxSubGrid.Column("accountName",  "Acc name", "",
+        kind     = HtmxSubGrid.CellKind.Text,
+        readonly = true, hidden   = true),
+      HtmxSubGrid.Column("side",         "Side",     "w-20",
         kind = HtmxSubGrid.CellKind.Select,
-        options = accountOptions,
-        optionData = accountOptionData),
-      HtmxSubGrid.Column("accountName", "Acc name", "", // ← hidden
-        kind = HtmxSubGrid.CellKind.Text,
+        options = List("false" -> "Debit", "true" -> "Credit")
+        , hidden   = true),
+      HtmxSubGrid.Column("oaccount",     "Oaccount", "w-30",
+        kind       = HtmxSubGrid.CellKind.Select,
+        options    = accountOptions,
+        optionData = accountOptionData, resizable = true),
+      HtmxSubGrid.Column("oaccountName", "Oacc name", "",
+        kind     = HtmxSubGrid.CellKind.Text,
         readonly = true,
-        hidden = true),
-      HtmxSubGrid.Column("side", "Side", "w-20",
-        kind = HtmxSubGrid.CellKind.Select,
-        options = List("false" -> "Debit", "true" -> "Credit")),
-      HtmxSubGrid.Column("oaccount", "Oaccount", "w-40",
-        kind = HtmxSubGrid.CellKind.Select,
-        options = accountOptions,
-        optionData = accountOptionData),
-      HtmxSubGrid.Column("oaccountName", "Oacc name", "", // ← hidden
-        kind = HtmxSubGrid.CellKind.Text,
-        readonly = true,
-        hidden = true),
-      HtmxSubGrid.Column("amount", "Amount", "num w-24",
-        kind = HtmxSubGrid.CellKind.Money),
-      HtmxSubGrid.Column("duedate", "Due date", "w-32",
-        kind = HtmxSubGrid.CellKind.Date),
-      HtmxSubGrid.Column("text", "Text", "")
+        hidden   = true),
+      HtmxSubGrid.Column("amount",       "Amount",   "num w-20",
+        kind = HtmxSubGrid.CellKind.Money, resizable = true),
+      HtmxSubGrid.Column("duedate",      "Due date", "w-25",
+        kind = HtmxSubGrid.CellKind.Date, resizable = true),
+      HtmxSubGrid.Column("text",         "Text",     "", resizable = true)
     )
 
   private def lineRows(t: FinancialsTransaction): List[HtmxSubGrid.Row] =
@@ -103,17 +108,19 @@ object FinancialsFormView:
   // ── Main render ─────────────────────────────────────────────────────────
 
   def render(
-              t:        FinancialsTransaction,
-              fmodules: List[Fmodule],
-              stores:   List[Store],
-              accounts: List[Account],
-              contacts: List[Contact],
-              mode:     String = "view"
+              t:                  FinancialsTransaction,
+              fmodules:           List[Fmodule],
+              stores:             List[Store],
+              accounts:           List[Account],
+              contacts:           List[Contact],
+              copyFromCandidates: List[FinancialsTransaction] = Nil,
+              mode:               String = "view",
+              title:              String = "Header"
             ): String =
     val isCreate = mode == "create"
     val formId   = "financials-form"
     val formClass =
-      if mode == "view" then "htmx-form financials-form form-readonly"
+      if t.posted then "htmx-form financials-form form-readonly"
       else                     "htmx-form financials-form"
 
     val currencyCode =
@@ -121,19 +128,46 @@ object FinancialsFormView:
     val currencySymbol = MoneyFmt.symbol(currencyCode)
 
     val lineGrid = HtmxSubGrid.render(
-      id = s"$formId-lines",
-      prefix = "lines",
-      fkField = "transid",
-      fkValue = t.id.toString,
-      columns = lineColumns(accounts),
-      rows = lineRows(t),
-      totalField = "amount",
+      id             = s"$formId-lines",
+      prefix         = "lines",
+      fkField        = "transid",
+      fkValue        = t.id.toString,
+      columns        = lineColumns(accounts),
+      rows           = lineRows(t),
+      totalField     = "amount",
       currencySymbol = currencySymbol)
 
     val total = headerTotal(t)
 
+    // Copy-from combo options (placeholder + existing records of the same module).
+    val copyFromOptions: List[(String, String)] =
+      if copyFromCandidates.isEmpty then Nil
+      else
+        ("" -> "— Copy from —") ::
+          copyFromCandidates.map { c =>
+            val label = s"${c.id}  ${c.period}  ${c.text.take(30)}".trim
+            c.id.toString -> label
+          }
+
+    val copyFromRow =
+      if copyFromOptions.isEmpty then ""
+      else
+        comboRow(
+          label      = "Copy from",
+          id         = s"$formId-copyFrom",
+          name       = "copyFrom",
+          options    = copyFromOptions,
+          value      = "",
+          hxGet      = "/html/financials/copy-from",
+          hxTarget   = s"#$formId",
+          hxInclude  = s"#$formId [name='record_modelid'], #$formId [name='company']",
+          hxTrigger  = "change",
+          hxSwap     = "outerHTML",
+          extraClass = "copy-from-select"
+        )
+
     val headerSection = HtmxCollapsible.section(
-      title = "Header",
+      title = title,
       id    = s"$formId-sec-header",
       open  = true,
       content =
@@ -161,6 +195,7 @@ object FinancialsFormView:
           value   = t.contact
         )}
            |
+           |$copyFromRow
            |${comboRow(
           label   = "Account",
           id      = s"$formId-account",
@@ -168,6 +203,7 @@ object FinancialsFormView:
           options = accounts.map(a => a.id -> s"${a.id} ${a.name}"),
           value   = t.account
         )}
+           |
            |${comboRow(
           label   = "Cost center",
           id      = s"$formId-cc",
@@ -179,9 +215,9 @@ object FinancialsFormView:
            |${HtmxFields.textRow("Transaction date", s"$formId-td", "transdate", fmtDate(t.transdate))}
            |${HtmxFields.textRow("Period",           s"$formId-pd", "period",    t.period.toString, readonly = true)}
            |
+           |<span></span>
+           |<span></span>
            |${HtmxFields.checkboxRow("Posted", s"$formId-posted", "posted", t.posted)}
-           |<span></span>
-           |<span></span>
            |""".stripMargin)
 
     val textSection = HtmxCollapsible.section(
@@ -189,26 +225,29 @@ object FinancialsFormView:
       id    = s"$formId-sec-text",
       content =
         s"""
-           |${HtmxFields.textareaRow("Text",      s"$formId-text", "text",     t.text)}
-           |${HtmxFields.textareaRow("Foot text", s"$formId-foot", "footText", t.footText)}
+           |${HtmxFields.textareaRow("Text", s"$formId-text", "text", t.text)}
            |""".stripMargin)
 
-    val linesSection = HtmxCollapsible.section(
-      title = "Lines",
-      id    = s"$formId-sec-lines",
-      open  = true,
+    val linesBlock =
+      s"""
+         |<div class="subgrid-block">
+         |  $lineGrid
+         |  <div class="subgrid-total">
+         |    <span class="label">Total:</span>
+         |    <span class="input-money total-money">
+         |      <span class="calc-total num">${total.toString}</span>
+         |      <span class="currency-suffix">${Html.esc(currencySymbol)}</span>
+         |    </span>
+         |  </div>
+         |</div>
+         |""".stripMargin
+
+    val footTextSection = HtmxCollapsible.section(
+      title = "Foot text",
+      id    = s"$formId-sec-foot",
       content =
         s"""
-           |<div class="subgrid-block">
-           |  $lineGrid
-           |  <div class="subgrid-total">
-           |    <span class="label">Total:</span>
-           |       span class="input-money total-money">
-           |       <span class="calc-total num">${total.toString}</span>
-           |       <span class="currency-suffix">${Html.esc(currencySymbol)}</span>
-           |    </span>
-           |  </div>
-           |</div>
+           |${HtmxFields.textareaRow("Foot text", s"$formId-foot", "footText", t.footText)}
            |""".stripMargin)
 
     s"""
@@ -224,6 +263,7 @@ object FinancialsFormView:
        |
        |  $headerSection
        |  $textSection
-       |  $linesSection
+       |  $linesBlock
+       |  $footTextSection
        |</form>
        |""".stripMargin

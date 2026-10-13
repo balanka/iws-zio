@@ -7,13 +7,26 @@ object HtmxToolbar:
               modelid:        Int,
               company:        String,
               newFormUrl:     String = "",
-              newFormInclude: String = ""
+              newFormInclude: String = "",
+              showEdit:       Boolean = true
             ): String =
     val newBtnAttrs =
       if newFormUrl.nonEmpty then
         s"""hx-get="$newFormUrl" hx-include="$newFormInclude""""
       else
         s"""hx-get="/html/$prefix/new-form/$modelid/$company""""
+
+    val editButton =
+      if showEdit then
+        s"""|      <button type="button"
+            |              class="btn btn-xs btn-outline"
+            |              id="toggle-edit-btn"
+            |              data-edit-target="#$prefix-form"
+            |              title="Toggle edit mode">
+            |        <span class="edit-label">Edit</span>
+            |      </button>
+            |""".stripMargin
+      else ""
 
     s"""
        |<div class="card bg-base-100 shadow-sm">
@@ -29,26 +42,14 @@ object HtmxToolbar:
        |        <span>New</span>
        |      </button>
        |
-       |      <button type="button"
-       |              class="btn btn-xs btn-outline"
-       |              id="toggle-edit-btn"
-       |              data-edit-target="#$prefix-form"
-       |              title="Toggle edit mode">
-       |        <span class="edit-label">Edit</span>
-       |      </button>
-       |
+       |$editButton
        |      <button type="submit"
        |              form="$prefix-form"
        |              class="btn btn-xs btn-primary"
        |              title="Save the form">
        |        <span>Save</span>
        |      </button>
-       |      <button type="button"
-       |             class="btn btn-xs btn-outline"
-       |              onclick="window.iwsPrintForm && window.iwsPrintForm('$prefix')"
-       |              title="Print this record">
-       |        <span>Print</span>
-       |      </button>
+       |
        |      <button type="button"
        |              class="btn btn-xs btn-outline"
        |              id="add-line-btn"

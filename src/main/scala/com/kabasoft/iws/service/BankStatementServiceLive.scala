@@ -6,7 +6,7 @@ import com.kabasoft.iws.domain.common.zeroAmount
 import com.kabasoft.iws.domain.{Account, BankStatement, BusinessPartner, Company, FinancialsTransaction
   , FinancialsTransactionDetails, ModelId, Vat, common}
 import com.kabasoft.iws.repository.{AccountRepository, BankStatementRepository, CompanyRepository, CustomerRepository
-  , FinancialsTransactionRepository, SupplierRepository, VatRepository}
+  , FinancialsRepository, SupplierRepository, VatRepository}
 import zio.prelude.FlipOps
 import zio.stream._
 import zio._
@@ -146,7 +146,7 @@ final class BankStatementServiceLive(bankStmtRepo: BankStatementRepository
 
 
 object BankStatementServiceLive:
-  val live: ZLayer[BankStatementRepository & FinancialsTransactionRepository & CustomerRepository & SupplierRepository &
+  val live: ZLayer[BankStatementRepository & FinancialsRepository & CustomerRepository & SupplierRepository &
     CompanyRepository & VatRepository & AccountRepository,
     RepositoryError,
     BankStatementService

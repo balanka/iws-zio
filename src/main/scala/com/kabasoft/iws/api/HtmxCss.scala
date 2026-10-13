@@ -210,7 +210,11 @@ object HtmxCss:
       |      font-size: var(--card-title-size);
       |      line-height: 1.2;
       |    }
-      |    .card.collapsed .card-content { display: none; }
+      |    /* Card collapse — hide everything inside .card-body except
+      |       the header row (which holds the collapse toggle). Works whether
+      |       the body contains .card-content, .htmx-table-wrapper, or a
+      |       dynamically swapped fragment. */
+      |    .card.collapsed > .card-body > *:not(.card-header-row) { display: none; }
       |    .card.collapsed .card-header-row { margin-bottom: 0; }
       |    .toggle-arrow { font-size: 12px; color: #666; display: inline-block; width: 10px; }
       |
@@ -240,6 +244,61 @@ object HtmxCss:
       |      background: var(--color-base-100, #fff);
       |      box-shadow: inset 0 -1px 0 #e5e7eb;
       |      font-size: var(--table-font);
+      |    }
+      |
+      |        /* ==========================================
+      |       Resizable columns
+      |       ========================================== */
+      |    table.htmx-table-fixed {
+      |      table-layout: fixed;
+      |      width: 100%;
+      |    }
+      |    table.htmx-table-fixed th,
+      |    table.htmx-table-fixed td {
+      |      overflow: hidden;
+      |      text-overflow: ellipsis;
+      |      white-space: nowrap;
+      |    }
+      |    /* Allow wrapping inside the resizable Text column so longer text
+      |       doesn't get cut off. Marked by .th-text on the header. */
+      |    table.htmx-table-fixed th.th-text,
+      |    table.htmx-table-fixed th.th-text ~ td:nth-child(8) {
+      |      white-space: normal;
+      |      overflow-wrap: anywhere;
+      |    }
+      |
+      |    .col-resizer {
+      |      position: absolute;
+      |      top: 0;
+      |      right: -3px;
+      |      width: 7px;
+      |      height: 100%;
+      |      cursor: col-resize;
+      |      user-select: none;
+      |      z-index: 3;
+      |      background: transparent;
+      |    }
+      |    .col-resizer::after {
+      |      content: "";
+      |      position: absolute;
+      |      top: 15%;
+      |      bottom: 15%;
+      |      right: 3px;
+      |      width: 1px;
+      |      background: #d0d0d0;
+      |    }
+      |    .col-resizer:hover::after,
+      |    .col-resizer.active::after {
+      |      background: #1976d2;
+      |      width: 2px;
+      |    }
+      |    th.resizable-th {
+      |      position: relative;
+      |    }
+      |    body.col-resizing,
+      |    body.col-resizing * {
+      |      cursor: col-resize !important;
+      |      user-select: none !important;
       |    }
       |
       |    .table-row { cursor: pointer; }
@@ -487,7 +546,12 @@ object HtmxCss:
       |      color: #555;
       |      font-size: var(--grid-label-size);
       |    }
-      |
+      |  /* Resizable subgrid headers keep the action column's compact width
+      |       even when the table switches to fixed layout. */
+      |    table.htmx-table-fixed th.subgrid-actions {
+      |      width: calc(var(--btn-height) + 8px);
+      |      text-align: center;
+      |    }
       |    /* ==========================================
       |       Read-only form mode
       |       ========================================== */

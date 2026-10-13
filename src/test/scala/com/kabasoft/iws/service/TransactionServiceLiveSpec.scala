@@ -51,7 +51,7 @@ object TransactionServiceLiveSpec extends ZIOSpecDefault {
     PostStockTransferLive.live,
     PostConsumptionLive.live,
     PostStocktakeLive.live,
-    FinancialsTransactionRepositoryLive.live,
+    FinancialsRepositoryLive.live,
     FinancialsServiceLive.live,
     ModuleRepositoryLive.live,
     UserRepositoryLive.live,
