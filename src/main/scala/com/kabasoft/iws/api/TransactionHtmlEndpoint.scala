@@ -100,7 +100,13 @@ object TransactionHtmlEndpoint:
       stores   <- StoreRepository.all((ModelId.STORE.modelid, company))
       contacts <- PartnerRepository.all((ModelId.CONTACT.modelid, company))
       fmodules <- FModuleRepository.all((ModelId.FMODULE.modelid, company))
-    } yield (accs, arts, vats, stores, contacts, fmodules)
+    } yield FormData(
+      accounts = accs,
+      articles = arts,
+      vats     = vats,
+      stores   = stores,
+      contacts = contacts,
+      fmodules = fmodules)
 
   private def loadCandidates(company: String, modelid: Int)
   : ZIO[TransactionRepository, Nothing, List[Transaction]] =
@@ -118,18 +124,17 @@ object TransactionHtmlEndpoint:
         val modelid = req.queryParam("modelid").flatMap(_.toIntOption).getOrElse(-1)
         val company = req.queryParam("company").getOrElse("")
         (for {
-          lists      <- loadLists(company)
-          (accs, arts, vats, stores, contacts, fmodules) = lists
+          data       <- loadLists(company)
           candidates <- loadCandidates(company, modelid)
         } yield HtmxResponse.html(
           TransactionFormView.render(
             t                  = blank(company, modelid),
-            fmodules           = fmodules,
-            stores             = stores,
-            accounts           = accs,
-            articles           = arts,
-            vats               = vats,
-            contacts           = contacts,
+            fmodules           = data.fmodules,
+            stores             = data.stores,
+            accounts           = data.accounts,
+            articles           = data.articles,
+            vats               = data.vats,
+            contacts           = data.contacts,
             copyFromCandidates = candidates,
             mode               = "create")))
           .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
@@ -142,28 +147,23 @@ object TransactionHtmlEndpoint:
           case Some(lid) =>
             (for {
               t          <- TransactionRepository.getById((lid, modelid, company))
-              lists      <- loadLists(company)
-              (accs, arts, vats, stores, contacts, fmodules) = lists
+              data       <- loadLists(company)
               candidates <- loadCandidates(company, modelid)
             } yield HtmxResponse.html(
               TransactionFormView.render(
                 t                  = t,
-                fmodules           = fmodules,
-                stores             = stores,
-                accounts           = accs,
-                articles           = arts,
-                vats               = vats,
-                contacts           = contacts,
+                fmodules           = data.fmodules,
+                stores             = data.stores,
+                accounts           = data.accounts,
+                articles           = data.articles,
+                vats               = data.vats,
+                contacts           = data.contacts,
                 copyFromCandidates = candidates,
                 mode               = "view")))
               .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
           case None => ZIO.succeed(Response.status(Status.BadRequest))
       }
 
-  /** Copy-from: delegates to TransactionService.copyFrom(sourceId, src, dst, company).
-   *  Same-module copy → modelidFrom == modelidTo == record_modelid.
-   *  The service returns a Transaction clone ready to be rendered in create mode.
-   */
   private val formCopyFrom: Route[FormEnv, Response] =
     Method.GET / "html" / "transaction" / "copy-from" ->
       handler { (req: Request) =>
@@ -175,18 +175,17 @@ object TransactionHtmlEndpoint:
           case (Some(sid), m, c) if m > 0 && c.nonEmpty =>
             (for {
               cloned     <- TransactionService.copyFrom(sid, m, m, c)
-              lists      <- loadLists(c)
-              (accs, arts, vats, stores, contacts, fmodules) = lists
+              data       <- loadLists(c)
               candidates <- loadCandidates(c, m)
             } yield HtmxResponse.html(
               TransactionFormView.render(
                 t                  = cloned,
-                fmodules           = fmodules,
-                stores             = stores,
-                accounts           = accs,
-                articles           = arts,
-                vats               = vats,
-                contacts           = contacts,
+                fmodules           = data.fmodules,
+                stores             = data.stores,
+                accounts           = data.accounts,
+                articles           = data.articles,
+                vats               = data.vats,
+                contacts           = data.contacts,
                 copyFromCandidates = candidates,
                 mode               = "create")))
               .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
@@ -207,8 +206,7 @@ object TransactionHtmlEndpoint:
             .orElse(params.get("modelid").flatMap(_.toIntOption))
             .getOrElse(ModelId.TRANSACTION.modelid)
 
-          lists   <- loadLists(company)
-          (accs, arts, vats, stores, contacts, fmodules) = lists
+          data   <- loadLists(company)
 
           existing <- if mode == "create" then ZIO.succeed(blank(company, modelid))
           else
@@ -219,7 +217,7 @@ object TransactionHtmlEndpoint:
               case Some(lid) => TransactionRepository.getById((lid, modelid, company))
               case None      => ZIO.succeed(blank(company, modelid))
 
-          toSave = applyParams(existing, params, vats)
+          toSave = applyParams(existing, params, data.vats)
 
           _      <- if mode == "create" then TransactionRepository.create(toSave)
           else TransactionRepository.modify(toSave)
@@ -234,12 +232,12 @@ object TransactionHtmlEndpoint:
         } yield HtmxResponse.html(
           TransactionFormView.render(
             t                  = fresh,
-            fmodules           = fmodules,
-            stores             = stores,
-            accounts           = accs,
-            articles           = arts,
-            vats               = vats,
-            contacts           = contacts,
+            fmodules           = data.fmodules,
+            stores             = data.stores,
+            accounts           = data.accounts,
+            articles           = data.articles,
+            vats               = data.vats,
+            contacts           = data.contacts,
             copyFromCandidates = candidates,
             mode               = "view")))
           .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))

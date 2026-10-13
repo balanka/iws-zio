@@ -5,11 +5,15 @@ import com.kabasoft.iws.domain.Company
 object CompanyListView:
 
   private val columns = List(
-    HtmxTable.Column("id",      "Id",      Some("100px")),
-    HtmxTable.Column("name",    "Name"),
-    HtmxTable.Column("city",    "City"),
-    HtmxTable.Column("country", "Country"),
-    HtmxTable.Column("email",   "Email")
+    HtmxTable.Column("id",    "Id",    Some("100px"), resizable = true),
+    HtmxTable.Column("name",  "Name", Some("50px"), resizable = true),
+    HtmxTable.Column("city",  "City", Some("50px"), resizable = true),
+    HtmxTable.Column("country", "Country", Some("50px"), resizable = true),
+    HtmxTable.Column("phone", "Phone", Some("50px"), resizable = true),
+    HtmxTable.Column("email", "Email", Some("50px"), resizable = true),
+    HtmxTable.Column("account", "Account", Some("50px"), resizable = true),
+    HtmxTable.Column("oaccount", "OAccount", Some("50px"), resizable = true),
+    HtmxTable.Column("vat", "Vat", Some("50px"), resizable = true),
   )
 
   def render(

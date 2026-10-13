@@ -5,10 +5,10 @@ import com.kabasoft.iws.domain.Asset
 object AssetListView:
 
   private val columns = List(
-    HtmxTable.Column("id",          "Id",          Some("100px")),
-    HtmxTable.Column("name",        "Name"),
-    HtmxTable.Column("description", "Description"),
-    HtmxTable.Column("amount",      "Amount",      Some("120px"))
+    HtmxTable.Column("id",          "Id",  Some("50px"), resizable = true),
+    HtmxTable.Column("name",        "Name", Some("100px"), resizable = true),
+    HtmxTable.Column("description", "Description", Some("200px"), resizable = true),
+    HtmxTable.Column("amount",      "Amount",      Some("50px"), resizable = true)
   )
 
   def render(

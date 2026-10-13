@@ -5,11 +5,11 @@ import com.kabasoft.iws.domain.Contact
 object ContactListView:
 
   private val columns = List(
-    HtmxTable.Column("id",    "Id",    Some("100px")),
-    HtmxTable.Column("name",  "Name"),
-    HtmxTable.Column("city",  "City"),
-    HtmxTable.Column("phone", "Phone"),
-    HtmxTable.Column("email", "Email")
+    HtmxTable.Column("id",    "Id",    Some("40px"), resizable = true),
+    HtmxTable.Column("name",  "Name",    Some("40px"), resizable = true),
+    HtmxTable.Column("city",  "City",    Some("40px"), resizable = true),
+    HtmxTable.Column("phone", "Phone",    Some("40px"), resizable = true),
+    HtmxTable.Column("email", "Email",    Some("40px"), resizable = true)
   )
 
   def render(

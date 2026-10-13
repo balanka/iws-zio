@@ -214,6 +214,19 @@ object HtmxFields:
     s"""<label class="label" for="$id">${esc(labelTitle)}</label>
        |${textInput(id, name, value, readonly)}""".stripMargin
 
+  def dateRow(
+               label: String,
+               id: String,
+               name: String,
+               value: String, // must be ISO "yyyy-MM-dd" (empty allowed)
+               readonly: Boolean = false
+             ): String =
+    val ro = if readonly then " readonly" else ""
+    s"""<label class="label" for="${Html.esc(id)}">${Html.esc(label)}</label>
+       |<input id="${Html.esc(id)}" name="${Html.esc(name)}"
+       |       type="date" class="input"
+       |       value="${Html.esc(value)}"$ro />""".stripMargin
+
   def textarea(
                 id:    String,
                 name:  String,
@@ -321,3 +334,54 @@ object HtmxFields:
     ("+", "+ — add"),
     ("-", "- — delete")
   )
+  // ── Date helper ────────────────────────────────────────────────────────
+
+  private val isoDateFmt =
+    java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
+
+  def fmtDate(i: java.time.Instant): String =
+    if i == null then ""
+    else isoDateFmt.format(i.atZone(java.time.ZoneId.systemDefault()))
+
+  // ── Generic combobox ───────────────────────────────────────────────────
+  // A native <select> styled by DaisyUI. Optional hx-* attributes let the
+  // combo drive another region (e.g. the transaction list). `extraClass`
+  // is used to mark filter selectors (`.filter-select`) that must remain
+  // interactive in view mode; `disabled` renders the disabled attribute.
+
+  def comboRow(
+                label: String,
+                id: String,
+                name: String,
+                options: List[(String, String)],
+                value: String,
+                hxGet: String = "",
+                hxTarget: String = "",
+                hxInclude: String = "",
+                hxTrigger: String = "change",
+                hxSwap: String = "innerHTML",
+                extraClass: String = "",
+                disabled: Boolean = false
+              ): String =
+    val opts = options.map { case (v, lbl) =>
+      val sel = if v == value then " selected" else ""
+      s"""<option value="${Html.esc(v)}"$sel>${Html.esc(lbl)}</option>"""
+    }.mkString
+
+    val htmxAttrs =
+      val parts = List(
+        if hxGet.nonEmpty then s"""hx-get="${Html.esc(hxGet)}"""" else "",
+        if hxTarget.nonEmpty then s"""hx-target="${Html.esc(hxTarget)}"""" else "",
+        if hxInclude.nonEmpty then s"""hx-include="${Html.esc(hxInclude)}"""" else "",
+        if hxGet.nonEmpty then s"""hx-trigger="${Html.esc(hxTrigger)}"""" else "",
+        if hxGet.nonEmpty then s"""hx-swap="${Html.esc(hxSwap)}"""" else ""
+      ).filter(_.nonEmpty)
+      if parts.isEmpty then "" else " " + parts.mkString(" ")
+
+    val cls = List("select", extraClass).filter(_.nonEmpty).mkString(" ")
+    val dis = if disabled then " disabled" else ""
+
+    s"""<label class="label" for="${Html.esc(id)}">${Html.esc(label)}</label>
+       |<select id="${Html.esc(id)}" name="${Html.esc(name)}" class="${Html.esc(cls)}"$htmxAttrs$dis>
+       |  $opts
+       |</select>""".stripMargin

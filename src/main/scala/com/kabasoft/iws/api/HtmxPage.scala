@@ -688,6 +688,32 @@ object HtmxPage:
       |
       |    applyWidths(document);
       |  })();
+      |
+      |    /* =====================================================================
+      |     Period follows the header's Transaction date
+      |     - Picking a new transdate updates the readonly Period input to
+      |       YYYYMM before Save.
+      |     ===================================================================== */
+      |  (function () {
+      |    function syncPeriod(form) {
+      |      if (!form) return;
+      |      var td = form.querySelector('input[name="transdate"]');
+      |      var pd = form.querySelector('input[name="period"]');
+      |      if (!td || !pd) return;
+      |      var v = td.value;
+      |      if (!v || v.length < 7) return;
+      |      var parts = v.split('-');
+      |      if (parts.length < 3) return;
+      |      pd.value = parts[0] + parts[1];
+      |    }
+      |
+      |    document.body.addEventListener('change', function (e) {
+      |      var el = e.target;
+      |      if (!el || !el.matches) return;
+      |      if (!el.matches('input[name="transdate"]')) return;
+      |      syncPeriod(el.closest('form'));
+      |    });
+      |  })();
       |</script>
       |""".stripMargin
 

@@ -5,10 +5,12 @@ import com.kabasoft.iws.domain.Article
 object ArticleListView:
 
   private val columns = List(
-    HtmxTable.Column("id",          "Id",          Some("100px")),
-    HtmxTable.Column("name",        "Name"),
-    HtmxTable.Column("description", "Description"),
-    HtmxTable.Column("sprice",      "Sales price", Some("130px"))
+    HtmxTable.Column("id",          "Id",          Some("20px"), resizable = true),
+    HtmxTable.Column("name",        "Name", Some("20px"), resizable = true),
+    HtmxTable.Column("description", "Description", Some("200px"), resizable = true),
+    HtmxTable.Column("pprice",      "Purchase price", Some("40px"), resizable = true),
+    HtmxTable.Column("sprice",      "Sales price", Some("40px"), resizable = true),
+    HtmxTable.Column("avgPrice",      "Av. price", Some("40px"), resizable = true)
   )
 
   def render(

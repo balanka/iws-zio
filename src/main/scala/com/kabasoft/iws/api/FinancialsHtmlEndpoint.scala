@@ -1,8 +1,12 @@
 package com.kabasoft.iws.api
 
-import com.kabasoft.iws.domain.{FinancialsTransaction, FinancialsTransactionDetails, ModelId}
-import com.kabasoft.iws.repository.{AccountRepository, FModuleRepository, FinancialsRepository,
-  PartnerRepository, StoreRepository}
+import com.kabasoft.iws.domain.{
+  FinancialsTransaction, FinancialsTransactionDetails, ModelId
+}
+import com.kabasoft.iws.repository.{
+  AccountRepository, FModuleRepository, FinancialsRepository,
+  PartnerRepository, StoreRepository
+}
 import com.kabasoft.iws.service.FinancialsService
 import zio._
 import zio.http._
@@ -15,11 +19,16 @@ object FinancialsHtmlEndpoint:
       FinancialsService & PartnerRepository & StoreRepository
 
   private def bd(s: String, fallback: String = "0"): java.math.BigDecimal =
-    Option(s).map(_.trim).filter(v => v.nonEmpty && v != "null" && v != "undefined") match
+    Option(s).map(_.trim).filter(v =>
+      v.nonEmpty && v != "null" && v != "undefined"
+    ) match
       case Some(v) => new java.math.BigDecimal(v)
       case None    => new java.math.BigDecimal(fallback)
 
-  private def applyParams(base:   FinancialsTransaction, params: Map[String, String]): FinancialsTransaction =
+  private def applyParams(
+                           base:   FinancialsTransaction,
+                           params: Map[String, String]
+                         ): FinancialsTransaction =
     val transDate: Instant =
       params.get("transdate").filter(_.nonEmpty)
         .map(s => LocalDate.parse(s).atStartOfDay(ZoneId.systemDefault()).toInstant)
@@ -99,7 +108,11 @@ object FinancialsHtmlEndpoint:
       stores   <- StoreRepository.all((ModelId.STORE.modelid, company))
       contacts <- PartnerRepository.all((ModelId.CONTACT.modelid, company))
       fmodules <- FModuleRepository.all((ModelId.FMODULE.modelid, company))
-    } yield (accs, stores, contacts, fmodules)
+    } yield FormData(
+      accounts = accs,
+      stores   = stores,
+      contacts = contacts,
+      fmodules = fmodules)
 
   private def loadCandidates(company: String, modelid: Int)
   : ZIO[FinancialsRepository, Nothing, List[FinancialsTransaction]] =
@@ -117,16 +130,15 @@ object FinancialsHtmlEndpoint:
         val modelid = req.queryParam("modelid").flatMap(_.toIntOption).getOrElse(-1)
         val company = req.queryParam("company").getOrElse("")
         (for {
-          lists      <- loadLists(company)
-          (accs, stores, contacts, fmodules) = lists
+          data       <- loadLists(company)
           candidates <- loadCandidates(company, modelid)
         } yield HtmxResponse.html(
           FinancialsFormView.render(
             t                  = blank(company, modelid),
-            fmodules           = fmodules,
-            stores             = stores,
-            accounts           = accs,
-            contacts           = contacts,
+            fmodules           = data.fmodules,
+            stores             = data.stores,
+            accounts           = data.accounts,
+            contacts           = data.contacts,
             copyFromCandidates = candidates,
             mode               = "create")))
           .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
@@ -139,16 +151,15 @@ object FinancialsHtmlEndpoint:
           case Some(lid) =>
             (for {
               t          <- FinancialsRepository.getById((lid, modelid, company))
-              lists      <- loadLists(company)
-              (accs, stores, contacts, fmodules) = lists
+              data       <- loadLists(company)
               candidates <- loadCandidates(company, modelid)
             } yield HtmxResponse.html(
               FinancialsFormView.render(
                 t                  = t,
-                fmodules           = fmodules,
-                stores             = stores,
-                accounts           = accs,
-                contacts           = contacts,
+                fmodules           = data.fmodules,
+                stores             = data.stores,
+                accounts           = data.accounts,
+                contacts           = data.contacts,
                 copyFromCandidates = candidates,
                 mode               = "view")))
               .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
@@ -156,9 +167,6 @@ object FinancialsHtmlEndpoint:
             ZIO.succeed(Response.status(Status.BadRequest))
       }
 
-  /** Copy-from: delegates to FinancialsService.copyFrom(sourceId, src, dst, company).
-   *  Same-module copy → modelidFrom == modelidTo == record_modelid.
-   */
   private val formCopyFrom: Route[FormEnv, Response] =
     Method.GET / "html" / "financials" / "copy-from" ->
       handler { (req: Request) =>
@@ -170,16 +178,15 @@ object FinancialsHtmlEndpoint:
           case (Some(sid), m, c) if m > 0 && c.nonEmpty =>
             (for {
               cloned     <- FinancialsService.copyFrom(sid, m, m, c)
-              lists      <- loadLists(c)
-              (accs, stores, contacts, fmodules) = lists
+              data       <- loadLists(c)
               candidates <- loadCandidates(c, m)
             } yield HtmxResponse.html(
               FinancialsFormView.render(
                 t                  = cloned,
-                fmodules           = fmodules,
-                stores             = stores,
-                accounts           = accs,
-                contacts           = contacts,
+                fmodules           = data.fmodules,
+                stores             = data.stores,
+                accounts           = data.accounts,
+                contacts           = data.contacts,
                 copyFromCandidates = candidates,
                 mode               = "create")))
               .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
@@ -221,16 +228,15 @@ object FinancialsHtmlEndpoint:
               ZIO.fail(new RuntimeException(
                 s"Saved financials id=${toSave.id} modelid=$modelid company=$company, but it could not be reloaded")))
 
-          lists  <- loadLists(company)
-          (accs, stores, contacts, fmodules) = lists
+          data       <- loadLists(company)
           candidates <- loadCandidates(company, modelid)
         } yield HtmxResponse.html(
           FinancialsFormView.render(
             t                  = fresh,
-            fmodules           = fmodules,
-            stores             = stores,
-            accounts           = accs,
-            contacts           = contacts,
+            fmodules           = data.fmodules,
+            stores             = data.stores,
+            accounts           = data.accounts,
+            contacts           = data.contacts,
             copyFromCandidates = candidates,
             mode               = "view")))
           .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))

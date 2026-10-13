@@ -253,12 +253,25 @@ object HtmxCss:
       |      table-layout: fixed;
       |      width: 100%;
       |    }
-      |    table.htmx-table-fixed th,
-      |    table.htmx-table-fixed td {
-      |      overflow: hidden;
-      |      text-overflow: ellipsis;
-      |      white-space: nowrap;
-      |    }
+//      |    table.htmx-table-fixed th,
+//      |    table.htmx-table-fixed td {
+//      |      overflow: hidden;
+//      |      text-overflow: ellipsis;
+//      |      white-space: nowrap;
+//      |    }
+      |   table.htmx-table-fixed th {
+      |     overflow: hidden;
+      |     text-overflow: ellipsis;
+      |     white-space: nowrap;
+      |   }
+      |  table.htmx-table-fixed td {
+      |   overflow: hidden;
+      |  }
+      |  table.htmx-table-fixed td input,
+      |  table.htmx-table-fixed td select {
+      |     min-width: 0;
+      |     width: 100%;
+      | }
       |    /* Allow wrapping inside the resizable Text column so longer text
       |       doesn't get cut off. Marked by .th-text on the header. */
       |    table.htmx-table-fixed th.th-text,
@@ -483,6 +496,26 @@ object HtmxCss:
       |      font-style: italic;
       |    }
       |
+      |   /* A textarea that stretches across columns 2..4 of the 4-column grid,
+      |       leaving its label in column 1. Used for Text / Foot text in the
+      |       header section. */
+      |    .collapsible-content > textarea.span-value {
+      |      grid-column: 2 / -1;
+      |      width: 100%;
+      |    }
+      |
+      |   /* Every value field in a collapsible header spans at most a fixed
+      |       width so columns 2 and 4 look identical regardless of label length.
+      |       Textareas marked `.span-value` are exempt (they fill 3 columns). */
+      |    .collapsible-content > .input,
+      |    .collapsible-content > .select {
+      |      width: 100%;
+      |      max-width: 240px;
+      |    }
+      |    /* Same cap for money/combo wrappers if used in the header later. */
+      |    .collapsible-content > .input-money {
+      |      max-width: 240px;
+      |    }
       |    /* ==========================================
       |       Sub-grid block — spans the main form grid
       |       ========================================== */
@@ -574,25 +607,29 @@ object HtmxCss:
       |    }
       |
       |    /* ==========================================
-      |       Filter selects — never disabled
+      |       Filter selects — always interactive
+      |       (e.g. the Transaction / Financials module combo)
       |       ========================================== */
+      |
+      |    /* Behavioural override: apply everywhere. Only the pointer and
+      |       opacity, so the combo stays usable when the form is read-only. */
       |    select.filter-select,
       |    .form-readonly select.filter-select,
       |    .htmx-form.form-readonly select.filter-select,
-      |    .collapsible-content > select.filter-select {
+      |    .collapsible-content > select.filter-select,
+      |    select.filter-select:disabled {
       |      pointer-events: auto !important;
-      |      background: #ffffff !important;
-      |      color: #333333 !important;
-      |      border-color: #bcd9f5 !important;
       |      cursor: pointer !important;
       |      opacity: 1 !important;
       |    }
-      |    select.filter-select:disabled {
-      |      pointer-events: auto !important;
+      |
+      |    /* Visual override: apply in view mode only. In edit mode the combo
+      |       looks like every other <select> (i.e. like Account). */
+      |    .form-readonly select.filter-select,
+      |    .htmx-form.form-readonly select.filter-select {
       |      background: #ffffff !important;
       |      color: #333333 !important;
-      |      cursor: pointer !important;
-      |      opacity: 1 !important;
+      |      border-color: #bcd9f5 !important;
       |    }
       |
       |    /* ==========================================
