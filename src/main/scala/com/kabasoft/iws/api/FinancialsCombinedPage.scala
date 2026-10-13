@@ -17,7 +17,7 @@ object FinancialsCombinedPage:
   private def blank(company: String, modelid: Int): FinancialsTransaction =
     val ld = LocalDate.now()
     FinancialsTransaction(
-      id = 0L, oid = "", contact = "", costcenter = "", account = "-1",
+      id = -1L, oid = "", contact = "", costcenter = "", account = "-1",
       transdate = Instant.now(), enterdate = Instant.now(), postingdate = Instant.now(),
       period = ld.getYear * 100 + ld.getMonthValue,
       posted = false, modelid = modelid,

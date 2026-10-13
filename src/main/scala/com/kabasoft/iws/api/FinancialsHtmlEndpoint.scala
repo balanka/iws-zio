@@ -84,21 +84,11 @@ object FinancialsHtmlEndpoint:
   private def blank(company: String, modelid: Int): FinancialsTransaction =
     val ld = LocalDate.now()
     FinancialsTransaction(
-      id          = 0L,
-      oid         = "",
-      contact     = "",
-      costcenter  = "",
-      account     = "-1",
-      transdate   = Instant.now(),
-      enterdate   = Instant.now(),
-      postingdate = Instant.now(),
-      period      = ld.getYear * 100 + ld.getMonthValue,
-      posted      = false,
-      modelid     = modelid,
-      company     = company,
-      text        = "",
-      footText    = "",
-      lines       = Nil)
+      id = -1L, oid = "", contact = "", costcenter = "", account = "-1",
+      transdate = Instant.now(), enterdate = Instant.now(), postingdate = Instant.now(),
+      period = ld.getYear * 100 + ld.getMonthValue,
+      posted = false, modelid = modelid,
+      company = company, text = "", footText = "", lines = Nil)
 
   // ── Loaders ────────────────────────────────────────────────────────────
 
@@ -193,54 +183,116 @@ object FinancialsHtmlEndpoint:
           case _ =>
             ZIO.succeed(Response.status(Status.BadRequest))
       }
-
   private val formPut: Route[FormEnv, Response] =
     Method.PUT / "html" / "financials" ->
       handler { (req: Request) =>
         (for {
-          body   <- req.body.asString
-          params  = HtmxResponse.parseForm(body)
-          mode    = params.getOrElse("mode", "view")
-          company = params.getOrElse("company", "")
+          body <- req.body.asString
+          params = HtmxResponse.parseForm(body)
 
-          modelid = params.get("record_modelid").flatMap(_.toIntOption)
-            .filter(_ > 0)
-            .orElse(params.get("modelid").flatMap(_.toIntOption))
-            .getOrElse(ModelId.FINANCIALS.modelid)
+          rawMode = params.getOrElse("mode", "view")
+          company = params.getOrElse("company", "").trim
+
+          _ <- if company.isEmpty then
+            ZIO.fail(new RuntimeException("Missing 'company' in form submission"))
+          else ZIO.unit
+
+          lookupId =
+            params.get("id_display").flatMap(_.toLongOption).filter(_ > 0)
+              .orElse(params.get("id").flatMap(_.toLongOption).filter(_ > 0))
+
+          modelid0 =
+            params.get("record_modelid").flatMap(_.toIntOption).filter(_ > 0)
+              .orElse(params.get("modelid").flatMap(_.toIntOption).filter(_ > 0))
+
+          modelid = modelid0.getOrElse(ModelId.FINANCIALS.modelid)
+
+          mode = if rawMode == "create" || lookupId.isEmpty then "create" else "view"
+
+          data <- loadLists(company)
 
           existing <- if mode == "create" then ZIO.succeed(blank(company, modelid))
           else
-            val lookupId =
-              params.get("id_display").flatMap(_.toLongOption)
-                .orElse(params.get("id").flatMap(_.toLongOption))
             lookupId match
-              case Some(lid) => FinancialsRepository.getById((lid, modelid, company))
-              case None      => ZIO.succeed(blank(company, modelid))
+              case Some(lid) =>
+                FinancialsRepository
+                  .getById((lid, modelid, company))
+                  .catchAll(_ => ZIO.succeed(blank(company, modelid)))
+              case None =>
+                ZIO.succeed(blank(company, modelid))
 
           toSave = applyParams(existing, params)
 
-          _      <- if mode == "create" then FinancialsRepository.create(toSave)
-          else FinancialsRepository.modify(toSave)
+          fresh  <- if mode == "create" then FinancialsRepository.create(toSave)
+          else
+            for {
+              _ <- FinancialsRepository.modify(toSave)
+              t <- FinancialsRepository
+                .getById((toSave.id, modelid, company))
+                .catchAll(_ =>
+                  ZIO.fail(new RuntimeException(
+                    s"Modified financials id=${toSave.id} modelid=$modelid company=$company, but it could not be reloaded")))
+            } yield t
 
-          fresh  <- FinancialsRepository
-            .getById((toSave.id, modelid, company))
-            .catchAll(_ =>
-              ZIO.fail(new RuntimeException(
-                s"Saved financials id=${toSave.id} modelid=$modelid company=$company, but it could not be reloaded")))
-
-          data       <- loadLists(company)
           candidates <- loadCandidates(company, modelid)
         } yield HtmxResponse.html(
           FinancialsFormView.render(
-            t                  = fresh,
-            fmodules           = data.fmodules,
-            stores             = data.stores,
-            accounts           = data.accounts,
-            contacts           = data.contacts,
+            t = fresh,
+            fmodules = data.fmodules,
+            stores = data.stores,
+            accounts = data.accounts,
+            contacts = data.contacts,
             copyFromCandidates = candidates,
-            mode               = "view")))
+            mode = "view")))
           .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
+//  private val formPut: Route[FormEnv, Response] =
+//    Method.PUT / "html" / "financials" ->
+//      handler { (req: Request) =>
+//        (for {
+//          body   <- req.body.asString
+//          params  = HtmxResponse.parseForm(body)
+//          mode    = params.getOrElse("mode", "view")
+//          company = params.getOrElse("company", "")
+//
+//          modelid = params.get("record_modelid").flatMap(_.toIntOption)
+//            .filter(_ > 0)
+//            .orElse(params.get("modelid").flatMap(_.toIntOption))
+//            .getOrElse(ModelId.FINANCIALS.modelid)
+//
+//          existing <- if mode == "create" then ZIO.succeed(blank(company, modelid))
+//          else
+//            val lookupId =
+//              params.get("id_display").flatMap(_.toLongOption)
+//                .orElse(params.get("id").flatMap(_.toLongOption))
+//            lookupId match
+//              case Some(lid) => FinancialsRepository.getById((lid, modelid, company))
+//              case None      => ZIO.succeed(blank(company, modelid))
+//
+//          toSave = applyParams(existing, params)
+//
+//          _      <- if mode == "create" then FinancialsRepository.create(toSave)
+//          else FinancialsRepository.modify(toSave)
+//
+//          fresh  <- FinancialsRepository
+//            .getById((toSave.id, modelid, company))
+//            .catchAll(_ =>
+//              ZIO.fail(new RuntimeException(
+//                s"Saved financials id=${toSave.id} modelid=$modelid company=$company, but it could not be reloaded")))
+//
+//          data       <- loadLists(company)
+//          candidates <- loadCandidates(company, modelid)
+//        } yield HtmxResponse.html(
+//          FinancialsFormView.render(
+//            t                  = fresh,
+//            fmodules           = data.fmodules,
+//            stores             = data.stores,
+//            accounts           = data.accounts,
+//            contacts           = data.contacts,
+//            copyFromCandidates = candidates,
+//            mode               = "view")))
+//          .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
+//      }
 
   private val listGet: Route[FormEnv, Response] =
     Method.GET / "html" / "financials-list" ->

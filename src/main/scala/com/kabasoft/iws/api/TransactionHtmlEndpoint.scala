@@ -84,7 +84,7 @@ object TransactionHtmlEndpoint:
   private def blank(company: String, modelid: Int): Transaction =
     val ld = LocalDate.now()
     Transaction(
-      id = 0L, oid = "", contact = "", store = "", account = "-1",
+      id = -1L, oid = "", contact = "", store = "", account = "-1",
       transdate = Instant.now(), enterdate = Instant.now(), postingdate = Instant.now(),
       period = ld.getYear * 100 + ld.getMonthValue,
       posted = false, modelid = modelid,
@@ -192,56 +192,78 @@ object TransactionHtmlEndpoint:
           case _ =>
             ZIO.succeed(Response.status(Status.BadRequest))
       }
-
   private val formPut: Route[FormEnv, Response] =
     Method.PUT / "html" / "transaction" ->
       handler { (req: Request) =>
         (for {
-          body   <- req.body.asString
-          params  = HtmxResponse.parseForm(body)
-          mode    = params.getOrElse("mode", "view")
-          company = params.getOrElse("company", "")
-          modelid = params.get("record_modelid").flatMap(_.toIntOption)
-            .filter(_ > 0)
-            .orElse(params.get("modelid").flatMap(_.toIntOption))
-            .getOrElse(ModelId.TRANSACTION.modelid)
+          body <- req.body.asString
+          params = HtmxResponse.parseForm(body)
 
-          data   <- loadLists(company)
+          rawMode = params.getOrElse("mode", "view")
+          company = params.getOrElse("company", "").trim
+
+          _ <- if company.isEmpty then
+            ZIO.fail(new RuntimeException("Missing 'company' in form submission"))
+          else ZIO.unit
+
+          // A positive id is the only valid signal for "modify an existing row".
+          lookupId =
+            params.get("id_display").flatMap(_.toLongOption).filter(_ > 0)
+              .orElse(params.get("id").flatMap(_.toLongOption).filter(_ > 0))
+
+          // Prefer record_modelid (immutable). Fall back to the combo's modelid.
+          modelid0 =
+            params.get("record_modelid").flatMap(_.toIntOption).filter(_ > 0)
+              .orElse(params.get("modelid").flatMap(_.toIntOption).filter(_ > 0))
+
+          modelid = modelid0.getOrElse(ModelId.TRANSACTION.modelid)
+
+          // Effective mode: "create" if the form said so OR we have no valid
+          // id to look up.
+          mode = if rawMode == "create" || lookupId.isEmpty then "create" else "view"
+
+          data <- loadLists(company)
 
           existing <- if mode == "create" then ZIO.succeed(blank(company, modelid))
           else
-            val lookupId =
-              params.get("id_display").flatMap(_.toLongOption)
-                .orElse(params.get("id").flatMap(_.toLongOption))
             lookupId match
-              case Some(lid) => TransactionRepository.getById((lid, modelid, company))
-              case None      => ZIO.succeed(blank(company, modelid))
+              case Some(lid) =>
+                TransactionRepository
+                  .getById((lid, modelid, company))
+                  .catchAll(_ => ZIO.succeed(blank(company, modelid)))
+              case None =>
+                ZIO.succeed(blank(company, modelid))
 
           toSave = applyParams(existing, params, data.vats)
 
-          _      <- if mode == "create" then TransactionRepository.create(toSave)
-          else TransactionRepository.modify(toSave)
-
-          fresh  <- TransactionRepository
-            .getById((toSave.id, modelid, company))
-            .catchAll(_ =>
-              ZIO.fail(new RuntimeException(
-                s"Saved transaction id=${toSave.id} modelid=$modelid company=$company, but it could not be reloaded")))
+          // create returns the fully persisted entity (with its new positive id).
+          // modify returns a row count, so reload after modify.
+          fresh  <- if mode == "create" then TransactionRepository.create(toSave)
+          else
+            for {
+              _ <- TransactionRepository.modify(toSave)
+              t <- TransactionRepository
+                .getById((toSave.id, modelid, company))
+                .catchAll(_ =>
+                  ZIO.fail(new RuntimeException(
+                    s"Modified transaction id=${toSave.id} modelid=$modelid company=$company, but it could not be reloaded")))
+            } yield t
 
           candidates <- loadCandidates(company, modelid)
         } yield HtmxResponse.html(
           TransactionFormView.render(
-            t                  = fresh,
-            fmodules           = data.fmodules,
-            stores             = data.stores,
-            accounts           = data.accounts,
-            articles           = data.articles,
-            vats               = data.vats,
-            contacts           = data.contacts,
+            t = fresh,
+            fmodules = data.fmodules,
+            stores = data.stores,
+            accounts = data.accounts,
+            articles = data.articles,
+            vats = data.vats,
+            contacts = data.contacts,
             copyFromCandidates = candidates,
-            mode               = "view")))
+            mode = "view")))
           .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
+
 
   private val listGet: Route[FormEnv, Response] =
     Method.GET / "html" / "transaction-list" ->
