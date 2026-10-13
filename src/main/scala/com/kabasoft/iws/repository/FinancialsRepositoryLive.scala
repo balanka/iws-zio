@@ -13,11 +13,11 @@ import zio.interop.catz._
 import zio.{ZIO, _}
 import java.time.{Instant, LocalDateTime, ZoneId}
 
-final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, Session[Task]]
-                   , accRepo: AccountRepository) extends FinancialsTransactionRepository, MasterfileCRUD:
+final case  class FinancialsRepositoryLive(postgres: Resource[Task, Session[Task]]
+                                           , accRepo: AccountRepository) extends FinancialsRepository, MasterfileCRUD:
 
   import FinancialsTransactionRepositorySQL._
-  import FinancialsTransactionRepositoryLive.{ sequenceNames, FINANCIAL_SEQUENCE_PREF, FINANCIAL_DETAIL_SEQUENCE_PREF
+  import FinancialsRepositoryLive.{ sequenceNames, FINANCIAL_SEQUENCE_PREF, FINANCIAL_DETAIL_SEQUENCE_PREF
     , newMasterFilter, oldMasterFilter, master2master, master2Details, Details2Details, newDetailsFilter, details2DeleteFilter, details2UpdateFilter}
 
   def insertTransact(session: Session[Task], models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =
@@ -92,8 +92,8 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
 
   private def transactModifyInternal(s: Session[Task], models: List[FinancialsTransaction]): Task[List[FinancialsTransaction]] = {
     val (seqMaster, seqDetail) = sequenceNames(
-      FinancialsTransactionRepositoryLive.FINANCIAL_SEQUENCE_PREF,
-      FinancialsTransactionRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF,
+      FinancialsRepositoryLive.FINANCIAL_SEQUENCE_PREF,
+      FinancialsRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF,
       models
     )
 
@@ -221,9 +221,9 @@ final case  class FinancialsTransactionRepositoryLive(postgres: Resource[Task, S
       .mapBoth(e => RepositoryError(e.getMessage), _ => 1))
 
 
-object FinancialsTransactionRepositoryLive:
-  val live: ZLayer[Resource[Task, Session[Task]] & AccountRepository, Throwable, FinancialsTransactionRepository] =
-    ZLayer.fromFunction(new FinancialsTransactionRepositoryLive(_, _))
+object FinancialsRepositoryLive:
+  val live: ZLayer[Resource[Task, Session[Task]] & AccountRepository, Throwable, FinancialsRepository] =
+    ZLayer.fromFunction(new FinancialsRepositoryLive(_, _))
   val FINANCIAL_SEQUENCE_PREF = "master_compta_id_seq"
   val FINANCIAL_DETAIL_SEQUENCE_PREF = "details_compta_id_seq"
 
