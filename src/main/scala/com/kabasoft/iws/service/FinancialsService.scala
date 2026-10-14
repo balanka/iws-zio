@@ -1,8 +1,8 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.{FinancialsTransaction, Journal, PeriodicAccountBalance}
-import zio._
+import com.kabasoft.iws.domain.{FinancialsTransaction, Journal, PeriodicAccountBalance, ReminderBalance}
+import zio.*
 
 trait FinancialsService:
   def post(id: Long, company: String): ZIO[Any, RepositoryError, Int]
@@ -13,10 +13,19 @@ trait FinancialsService:
   def postTransaction4Period(fromPeriod: Int, toPeriod: Int, modelid: Int, company: String): ZIO[Any, RepositoryError, Int]
   def postNewFinancialsTransaction(transaction: FinancialsTransaction): ZIO[Any, RepositoryError,
     (FinancialsTransaction, List[PeriodicAccountBalance], UIO[List[PeriodicAccountBalance]], List[Journal])]
+
+  def copyFrom(id:Long, modelidFrom: Int, modelidTo: Int, companyId:String): ZIO[Any, RepositoryError, FinancialsTransaction] 
+  def findBalance4paymentReminder (accountId:String, companyId:String):  ZIO[Any, RepositoryError, List[ReminderBalance]]
   
 
 
 object FinancialsService:
+  def findBalance4paymentReminder (accountId:String, companyId:String):  ZIO[FinancialsService, RepositoryError, List[ReminderBalance]]=
+    ZIO.serviceWithZIO[FinancialsService](_.findBalance4paymentReminder(accountId, companyId))
+    
+  def copyFrom(id:Long, modelidFrom: Int, modelidTo:Int, companyId:String): ZIO[FinancialsService, RepositoryError, FinancialsTransaction] =
+    ZIO.serviceWithZIO[FinancialsService](_.copyFrom(id, modelidFrom, modelidTo, companyId))
+  
   def post(id: Long, company: String): ZIO[FinancialsService, RepositoryError, Int]         =
     ZIO.serviceWithZIO[FinancialsService](_.post(id, company))
   def postAll(ids: List[Long], modelid:Int, company: String): ZIO[FinancialsService, RepositoryError, Int]                                       =

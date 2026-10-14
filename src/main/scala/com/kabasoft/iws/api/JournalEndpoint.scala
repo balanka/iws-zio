@@ -1,7 +1,7 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.AppError.*
-import com.kabasoft.iws.domain.{Account, AppError, Journal}
+import com.kabasoft.iws.domain.{AppError, Journal, ModelId}
 import com.kabasoft.iws.repository.{AccountRepository, JournalRepository}
 import com.kabasoft.iws.repository.Schema.{authenticationErrorSchema, journalSchema, repositoryErrorSchema}
 import zio.*
@@ -53,18 +53,23 @@ object JournalEndpoint:
     mByPeriodFromTo.implement: (company, fromPeriod, toPeriod, _) =>
       ZIO.logInfo (s"Get entries 4  company  $company from period  $fromPeriod  to   $toPeriod  ") *>
         JournalRepository.getFromPeriod2Period(fromPeriod, toPeriod, company)
-
+//string("company")?? Doc.p(companyDoc)/string("accountId")?? Doc.p(accountIdDoc) / int("from")?
   val journalByAccountFromToRoute =
-    mByAccount4Period.implement (p =>  for {
-    _<- ZIO.logInfo(s"Get entries 4 account  ${p._2}, from ${p._3}, to ${p._4} and  company ${p._1}")
-    journalEntries4Account <- JournalRepository.find4Period(p._2, p._3, p._4, p._1)
-    accounts <- AccountRepository.getByParentId(p._2, Account.MODELID, p._1)
-    journalEntries4Parent <-  if (journalEntries4Account.isEmpty) 
-      JournalRepository.find4Period(accounts.map(_.id), p._3, p._4, p._1).map(_.toList)
-      else ZIO.succeed(List.empty)
-    
-  } yield if (journalEntries4Account.nonEmpty) journalEntries4Account else journalEntries4Parent
-  )
+    mByAccount4Period.implement { case (company: String, account: String, from: Int, to: Int, _) =>
+      for {
+        _ <- ZIO.logInfo(s"Get entries for account $account, from $from, to $to, company $company")
+        directEntries <- JournalRepository.find4AccountPeriod(account, from, to, company)
+        _ <- ZIO.logInfo(s"directEntries $directEntries")
+        entries <-
+          if (directEntries.nonEmpty) ZIO.succeed(directEntries)
+          else
+            for {
+              subAccounts <- AccountRepository.getByParentId(account, ModelId.ACCOUNT.modelid, company)
+              _ <- ZIO.logInfo(s"Sub-accounts: $subAccounts")
+              parentEntries <- JournalRepository.find4Period(subAccounts.map(_.id), from, to, company).map(_.toList)
+            } yield parentEntries
+      } yield entries
+    }
 
   
   val journalRoutes = Routes(journalByPeriodRoute, journalFromPeriod2PerioddRoute, journalByAccountFromToRoute) @@ Middleware.debug

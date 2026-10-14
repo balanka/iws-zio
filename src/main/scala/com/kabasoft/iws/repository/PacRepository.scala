@@ -1,8 +1,8 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.domain.AppError.RepositoryError
-import com.kabasoft.iws.domain.PeriodicAccountBalance
-import zio._
+import com.kabasoft.iws.domain.{PeriodicAccountBalance, ReminderBalance}
+import zio.*
 
 trait PacRepository:
 
@@ -10,9 +10,6 @@ trait PacRepository:
 
   def create(models: List[PeriodicAccountBalance]):ZIO[Any, RepositoryError, Int]
 
-//  def modify(model: PeriodicAccountBalance):ZIO[Any, RepositoryError, Int]
-//
-//  def modify(models: List[PeriodicAccountBalance]):ZIO[Any, RepositoryError, Int]
   def update(models: List[PeriodicAccountBalance]):ZIO[Any, RepositoryError, Int]
 
   def all(Id: (Int, String)):ZIO[Any, RepositoryError, List[PeriodicAccountBalance]]
@@ -26,6 +23,8 @@ trait PacRepository:
   def findBalance4Period(fromPeriod: Int, toPeriod: Int, company: String):ZIO[Any, RepositoryError, List[PeriodicAccountBalance]]
   //def find4Period(fromPeriod: Int, toPeriod: Int, company: String): Task[List[PeriodicAccountBalance]]
   def find4AccountPeriod(accountId: String, fromPeriod: Int, toPeriod: Int, companyId: String):ZIO[Any, RepositoryError, List[PeriodicAccountBalance]]
+
+  def findBalance4paymentReminder(accountId: String, company: String): ZIO[Any, RepositoryError, List[ReminderBalance]]
   
   def deleteAll(): ZIO[Any, RepositoryError, Int]
 
@@ -35,12 +34,6 @@ object PacRepository:
 
   def create(models: List[PeriodicAccountBalance]): ZIO[PacRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[PacRepository](_.create(models))
-
-//  def modify(model: PeriodicAccountBalance): ZIO[PacRepository, RepositoryError, Int] =
-//    ZIO.serviceWithZIO[PacRepository](_.modify(model))
-//
-//  def modify(models: List[PeriodicAccountBalance]): ZIO[PacRepository, RepositoryError, Int] =
-//    ZIO.serviceWithZIO[PacRepository](_.update(models))  
 
   def update(models: List[PeriodicAccountBalance]): ZIO[PacRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[PacRepository](_.update(models))
@@ -66,13 +59,10 @@ object PacRepository:
   def find4AccountPeriod(accountId: String,  fromPeriod: Int, toPeriod: Int, companyId: String): ZIO[PacRepository, RepositoryError, List[PeriodicAccountBalance]] =
     ZIO.serviceWithZIO[PacRepository](_.find4AccountPeriod(accountId, fromPeriod, toPeriod, companyId))
 
+  def findBalance4paymentReminder(accountId: String, companyId: String): ZIO[PacRepository, RepositoryError, List[ReminderBalance]] =
+    ZIO.serviceWithZIO[PacRepository](_.findBalance4paymentReminder(accountId, companyId))
+    
   def deleteAll(): ZIO[PacRepository, RepositoryError, Int] =
     ZIO.serviceWithZIO[PacRepository](_.deleteAll())
-
-//  def find4PeriodZ(accountId: String,  toPeriod: Int, company: String): ZIO[PacRepository, RepositoryError, PeriodicAccountBalance] =
-//    ZStream.service[PacRepository] flatMap (_.find4PeriodZ(accountId,  toPeriod, company)).mapError(e => RepositoryError(e.getMessage))
-//  def getBalances4Period(toPeriod: Int, company: String): ZIO[PacRepository, RepositoryError, PeriodicAccountBalance] =
-//    ZStream.service[PacRepository] flatMap (_.getBalances4Period(toPeriod, company)).mapError(e => RepositoryError(e.getMessage))
-
 
 

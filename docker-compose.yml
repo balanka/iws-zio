@@ -1,0 +1,90 @@
+services:
+  iws-db:
+    image: postgres:18-alpine
+    restart: always
+    networks:
+      - node-network
+    volumes:
+      - ./iws-data-vol:/var/lib/postgresql:z   # 👈 /var/lib/postgresql (not /data)
+      - ./sql:/tmp/sql
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRESQL_DATABASE} #iws
+      - POSTGRES_USER=postgres
+    ports:
+      - "${POSTGRES_DB_PORT_FROM}:${POSTGRES_DB_PORT_TO}"
+    container_name: ${IWS_DB_CONTAINER}
+
+  iws-api:
+    image: bateka/iws-api:${IWS_API_IMAGE_VERSION} #4.0.7-native-arm64-distroless
+    platform: linux/arm64                  # 👈 added: distroless native image is ARM64-only
+    restart: always
+    stop_grace_period: 10s                 # 👈 added: allow graceful shutdown of native binary
+    networks:
+      - node-network
+    ports:
+      - "${IWS_API_PORT_FROM}:${IWS_API_PORT_TO}"
+    container_name: ${IWS_API_CONTAINER}
+    env_file:
+      - IWS_DEV.env
+    environment:
+      # Native binary reads config from env vars
+      - TRADEX_POSTGRESQL_HOST=${POSTGRESQL_HOST} #iws-db
+      - TRADEX_POSTGRESQL_PORT=${POSTGRES_DB_PORT_FROM} #5432
+      - TRADEX_POSTGRESQL_DATABASE=${POSTGRESQL_DATABASE} #iws
+      - TRADEX_POSTGRESQL_USER=postgres
+      - TRADEX_POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD}
+      - TRADEX_POSTGRESQL_MAX=${POSTGRESQL_MAX} #10
+      - IWS_API_HOST=${IWS_API_HOST} #0.0.0.0
+      - IWS_API_PORT=${IWS_API_PORT} #8080
+      - IWS_WEB_HOST=https://${IWS_WEB_HOST}
+      #- IWS_WEB_URL=https://${IWS_WEB_HOST}/${IWS_WEB_PORT_TO}
+    depends_on:
+      - iws-db
+
+  iws-ui:
+    image: ${IWS_WEB_IMAGE}:${IWS_WEB_IMAGE_VERSION}
+    restart: always
+    tty: true
+    networks:
+      - node-network
+    ports:
+      - "0.0.0.0:443:443"  # Force IPv4 binding
+      #- "${IWS_WEB_PORT_FROM}:80"  # HTTP (redirects to HTTPS)
+      #- "443:443"                   # HTTPS
+    container_name: ${IWS_WEB_CONTAINER}
+    volumes:
+      - ./working.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+      - ./iws-template:/usr/share/nginx/html/template:ro
+      - ./iws-template/env-config.js.template:/etc/nginx/templates/env-config.js.template:ro
+
+      #- ./working.conf:/etc/nginx/conf.d/default.conf:ro
+      #- ./certs:/etc/nginx/certs:ro
+      #- ./iws-template:/etc/nginx/templates:ro 
+      #- ./iws-template:/usr/share/nginx/html/template:ro
+    env_file:
+      - IWS_DEV.env
+    environment:
+      - NODE_ENV=production
+      - NGINX_PORT=${NGINX_PORT} #80
+      - SERVER_NAME=${IWS_WEB_HOST:-192.168.178.102}  # Fixed: only once
+      - NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
+      - REACT_APP_HOST_IP_ADDRESS=${IWS_API_HOST}
+      - REACT_APP_PORT=${IWS_API_PORT_FROM}
+      - REACT_WEB_HOST_IP_ADDRESS=${IWS_WEB_HOST}
+      - HOST=${IWS_WEB_HOST}
+      - REACT_APP_API_BASE=${REACT_APP_API_BASE}
+      - API_URL=${IWS_WEB_HOST}
+      - API_PORT=${IWS_API_PORT_TO}
+      - SCHEME=${SCHEME}
+      - REACT_APP_VERSION=${REACT_APP_VERSION}
+      #- NGINX_ENVSUBST_OUTPUT_DIR=/usr/share/nginx/html
+    command: >
+      sh -c "envsubst < /etc/nginx/templates/env-config.js.template > /usr/share/nginx/html/env-config.js && exec nginx -g 'daemon off;'"
+    depends_on:
+      - iws-api
+
+networks:
+  node-network:
+    driver: bridge

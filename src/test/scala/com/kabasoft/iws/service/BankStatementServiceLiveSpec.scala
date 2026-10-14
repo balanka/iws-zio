@@ -1,32 +1,37 @@
 package com.kabasoft.iws.service
 
 import com.kabasoft.iws.config.appConfig
-import com.kabasoft.iws.domain.AccountBuilder.companyId
-
-import com.kabasoft.iws.domain.BankStatementBuilder.{bs, bs1} 
-import com.kabasoft.iws.domain.{BankStatement, BankStatementBuilder}
-import com.kabasoft.iws.repository.container.PostgresContainer
+import com.kabasoft.iws.domain.BankStatementBuilder.{bs, bs1}
 import com.kabasoft.iws.repository.container.PostgresContainer.appResourcesL
-import com.kabasoft.iws.repository.{AccountRepositoryLive, BankAccountRepositoryLive, BankStatementRepository, BankStatementRepositoryLive, CompanyRepository, CompanyRepositoryLive, CustomerRepository, CustomerRepositoryLive, FinancialsTransactionRepository, FinancialsTransactionRepositoryLive, SupplierRepository, SupplierRepositoryLive, VatRepositoryLive}
+import com.kabasoft.iws.repository.{AccountRepositoryLive, BankAccountRepositoryLive, BankStatementRepository
+  , BankStatementRepositoryLive, CompanyRepository, CompanyRepositoryLive, CustomerRepository, CustomerRepositoryLive
+  , FinancialsRepository, FinancialsRepositoryLive, ModuleRepositoryLive, RoleRepositoryLive
+  , SupplierRepository, SupplierRepositoryLive, VatRepositoryLive, FModuleRepositoryLive, UserRepositoryLive, PermissionRepositoryLive }
 import zio.ZLayer
 import zio.test.TestAspect.*
 import zio.test.*
 
 object BankStatementServiceLiveSpec extends ZIOSpecDefault {
 
-  val testServiceLayer = ZLayer.make[BankStatementService& FinancialsTransactionRepository
+  val testServiceLayer = ZLayer.make[BankStatementService& FinancialsRepository
     & CustomerRepository & SupplierRepository& CompanyRepository& BankStatementRepository](
     appResourcesL.project(_.postgres),
     appConfig,
     CustomerRepositoryLive.live,
     SupplierRepositoryLive.live,
     CompanyRepositoryLive.live,
-    FinancialsTransactionRepositoryLive.live,
+    FinancialsRepositoryLive.live,
     VatRepositoryLive.live,
     AccountRepositoryLive.live,
     BankAccountRepositoryLive.live,
     BankStatementRepositoryLive.live,
     BankStatementServiceLive.live,
+    //CompanyRepositoryLive.live,
+    ModuleRepositoryLive.live,
+    FModuleRepositoryLive.live,
+    UserRepositoryLive.live,
+    RoleRepositoryLive.live,
+    PermissionRepositoryLive.live,
     //PostgresContainer.createContainer
   )
 

@@ -17,17 +17,17 @@ object SupplierBuilder {
   val bankAccountId =  "DE855805016104782700XXX"
   val name = "Sontige Lieferant Rechts und Beratung"
   val vtime = Instant.parse("2018-01-01T10:00:00.00Z")
-  val bankAccount0 = BankAccount(bankAccountId0, "SPBIDE3XXX", supplierId1, companyId, BankAccount.MODEL_ID)
-  val bankAccount = BankAccount(bankAccountId, "SPBIDE3XXX", supplierId1, companyId, BankAccount.MODEL_ID)
+  val bankAccount0 = BankAccount(bankAccountId0, "SPBIDE3XXX", supplierId1, companyId, ModelId.BANK_ACCOUNT.modelid)
+  val bankAccount = BankAccount(bankAccountId, "SPBIDE3XXX", supplierId1, companyId, ModelId.BANK_ACCOUNT.modelid)
   val bankAccounts = List(bankAccount0, bankAccount)
   val supplier1 = Supplier(supplierId1, "B Mady", "Bintou Mady Kaba","Bielefelder Str 1", "33615" , "Bielefeld", "NRW", "DE", "0521-471163"
-      ,"xxx@domain.de", accountRecvId, incaccountId, taxCode, vataccountId, currency, companyId, Supplier.MODELID, vtime, vtime, vtime, bankAccounts)
+      ,"xxx@domain.de", accountRecvId, incaccountId, taxCode, vataccountId, currency, "contact", companyId, ModelId.SUPPLIER.modelid, vtime, vtime, vtime, bankAccounts)
 
   val supplier2 = Supplier(supplierId2, "KABA Soft GmbH", "KABA Soft GmbH", "Universitaet Str 2", "33615", "Bielefeld", "NRW","DE",
-      "0521-4711631", "info@kabasoft.de", accountRecvId, incaccountId, taxCode, vataccountId, currency, companyId, Supplier.MODELID, vtime, vtime,vtime)
+      "0521-4711631", "info@kabasoft.de", accountRecvId, incaccountId, taxCode, vataccountId, currency, "contact", companyId, ModelId.SUPPLIER.modelid, vtime, vtime,vtime)
 
-  val sup = Supplier(supId, supName, supName, "", "", "", "", "DE","", "", accId, "6825",  taxCode, vat, currency, companyId, Supplier.MODELID, vtime, vtime,vtime)
-  val supx = Supplier(supIdx, supName, supName, "", "", "", "", "DE","", "", accId, "6825", taxCode,  vat,currency, companyId, Supplier.MODELID, vtime, vtime,vtime)
+  val sup = Supplier(supId, supName, supName, "", "", "", "", "DE","", "", accId, "6825",  taxCode, vat, currency, "contact", companyId, ModelId.SUPPLIER.modelid, vtime, vtime,vtime)
+  val supx = Supplier(supIdx, supName, supName, "", "", "", "", "DE","", "", accId, "6825", taxCode,  vat,currency, "contact", companyId, ModelId.SUPPLIER.modelid, vtime, vtime,vtime)
   val suppliers = List( supplier1, supplier2 )
 
 }
