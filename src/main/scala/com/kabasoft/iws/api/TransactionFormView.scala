@@ -38,36 +38,44 @@ object TransactionFormView:
       vats.map(v => v.id -> Map("rate" -> v.percent.toString)).toMap
 
     List(
-      HtmxSubGrid.Column("id",          "Id",       "w-16"),
+      HtmxSubGrid.Column("id",          "Id",       "w-16", printHidden = true),
       HtmxSubGrid.Column("article",     "Article",  "w-40",
         kind       = HtmxSubGrid.CellKind.Select,
         options    = articleOptions,
-        optionData = articleOptionData),
+        optionData = articleOptionData,
+        resizable  = true),
       HtmxSubGrid.Column("articleName", "Name",     "",
         kind     = HtmxSubGrid.CellKind.Text,
         readonly = true,
         hidden   = true),
       HtmxSubGrid.Column("quantity",    "Qty",      "num w-16",
-        kind = HtmxSubGrid.CellKind.Number),
+        kind      = HtmxSubGrid.CellKind.Number,
+        resizable = true),
       HtmxSubGrid.Column("unit",        "Unit",     "w-16",
-        kind     = HtmxSubGrid.CellKind.Text,
-        readonly = true),
+        kind      = HtmxSubGrid.CellKind.Text,
+        readonly  = true,
+        resizable = true),
       HtmxSubGrid.Column("price",       "Price",    "num w-24",
-        kind = HtmxSubGrid.CellKind.Money),
+        kind      = HtmxSubGrid.CellKind.Money,
+        resizable = true),
       HtmxSubGrid.Column("amount",      "Amount",   "num w-24",
-        kind     = HtmxSubGrid.CellKind.Computed,
-        expr     = "quantity * price",
-        readonly = true),
+        kind      = HtmxSubGrid.CellKind.Computed,
+        expr      = "quantity * price",
+        readonly  = true,
+        resizable = true),
       HtmxSubGrid.Column("vatCode",     "VAT",      "w-24",
         kind       = HtmxSubGrid.CellKind.Select,
         options    = vats.map(v => v.id -> s"${v.id} ${v.name}"),
-        optionData = vatOptionData),
+        optionData = vatOptionData,
+        resizable  = true),
       HtmxSubGrid.Column("vat",         "VAT amt",  "num w-20",
-        kind     = HtmxSubGrid.CellKind.Computed,
-        expr     = "quantity * price * vatRate",
-        readonly = true),
+        kind      = HtmxSubGrid.CellKind.Computed,
+        expr      = "quantity * price * vatRate",
+        readonly  = true,
+        resizable = true),
       HtmxSubGrid.Column("duedate",     "Due date", "w-32",
-        kind = HtmxSubGrid.CellKind.Date),
+        kind      = HtmxSubGrid.CellKind.Date,
+        resizable = true, printHidden = true),
       HtmxSubGrid.Column("text",        "Text",     "",
         resizable = true)
     )
@@ -96,6 +104,11 @@ object TransactionFormView:
       .map(l => l.quantity.multiply(l.price).add(l.vat))
       .foldLeft(java.math.BigDecimal.ZERO)(_.add(_))
 
+  private def vatTotal(t: Transaction): java.math.BigDecimal =
+    t.lines
+      .map(_.vat)
+      .foldLeft(java.math.BigDecimal.ZERO)(_.add(_))
+
   // ── Main render ─────────────────────────────────────────────────────────
 
   def render(
@@ -120,6 +133,34 @@ object TransactionFormView:
       t.lines.headOption.map(_.currency).filter(_.nonEmpty).getOrElse("EUR")
     val currencySymbol = MoneyFmt.symbol(currencyCode)
 
+    val vatSum = vatTotal(t)
+    val total  = headerTotal(t)
+
+    // Footer layout — visible columns of lineColumns:
+    //   1:id  2:article  3:quantity  4:unit  5:price  6:amount
+    //   7:vatCode  8:vat  9:duedate  10:text
+    //
+    // One label per cell. `Vat:` sits left of the VAT sum, `Total ` sits
+    // left of the total, both right-aligned within their columns.
+    val vatSumCell =
+      s"""<span class="subgrid-foot-label">Vat: </span>""" +
+        s"""<span class="calc-vat-total num">${vatSum.toString}</span>""" +
+        s"""<span class="currency-suffix">${Html.esc(currencySymbol)}</span>"""
+
+    val totalCell =
+      s"""<span class="subgrid-foot-label">Total </span>""" +
+        s"""<span class="calc-total num">${total.toString}</span>""" +
+        s"""<span class="currency-suffix">${Html.esc(currencySymbol)}</span>"""
+
+    val footers = List(
+      HtmxSubGrid.FooterCell(1, "", "subgrid-sum-cell print-hide"),   // id
+      HtmxSubGrid.FooterCell(6, "", "subgrid-sum-cell"),              // article..vatCode
+      HtmxSubGrid.FooterCell(1, vatSumCell, "num subgrid-sum-cell"),  // vat (VAT amt)
+      HtmxSubGrid.FooterCell(1, "", "subgrid-sum-cell print-hide"),   // duedate
+      HtmxSubGrid.FooterCell(1, totalCell, "num subgrid-sum-cell")    // text
+    )
+
+
     val lineGrid = HtmxSubGrid.render(
       id             = s"$formId-lines",
       prefix         = "lines",
@@ -128,11 +169,10 @@ object TransactionFormView:
       columns        = lineColumns(articles, vats, t.modelid),
       rows           = lineRows(t),
       totalField     = "amount",
-      currencySymbol = currencySymbol)
+      currencySymbol = currencySymbol,
+      footers        = footers)
 
-    val total = headerTotal(t)
-
-    // ── Copy-from combo (row 3, right column) ──────────────────────────
+    // ── Copy-from combo ────────────────────────────────────────────────
     val copyFromOptions: List[(String, String)] =
       if copyFromCandidates.isEmpty then Nil
       else
@@ -142,8 +182,6 @@ object TransactionFormView:
             c.id.toString -> label
           }
 
-    // If there's no combo, use two empty cells so Period and Posted stay
-    // in the right column of their rows.
     val copyFromCell =
       if copyFromOptions.isEmpty then
         s"""<span></span>
@@ -169,6 +207,8 @@ object TransactionFormView:
     //   Row 3: Store           | Copy from
     //   Row 4: Account         | Period
     //   Row 5: Contact         | Posted
+    //   Row 6: Text            | <span>
+    //   Row 7: Foot text       | <span>  (printed copy is at the bottom)
     val headerSection = HtmxCollapsible.section(
       title = title,
       id    = s"$formId-sec-header",
@@ -188,8 +228,9 @@ object TransactionFormView:
           hxTrigger  = "change",
           extraClass = "filter-select"
         )}
-           | ${HtmxFields.textRow("Oid", s"$formId-oid", "oid", t.oid)}
-           |  ${HtmxFields.dateRow("Transaction date", s"$formId-td", "transdate", fmtDate(t.transdate))}
+           |
+           |${HtmxFields.textRow("Oid", s"$formId-oid", "oid", t.oid)}
+           |${HtmxFields.dateRow("Transaction date", s"$formId-td", "transdate", fmtDate(t.transdate))}
            |
            |${comboRow(
           label   = "Store",
@@ -217,46 +258,35 @@ object TransactionFormView:
           value   = t.contact
         )}
            |${HtmxFields.checkboxRow("Posted", s"$formId-posted", "posted", t.posted)}
-           |    <label class="label" for="$formId-text">Text</label>
-           |     <textarea id="$formId-text" name="text" class="textarea span-value">${Html.esc(t.text)}</textarea>
-           |     <label class="label" for="$formId-foot">Foot text</label>
-           |    <textarea id="$formId-foot" name="footText" class="textarea span-value">${Html.esc(t.footText)}</textarea>
-           |      """.stripMargin)
-
-    val textSection = HtmxCollapsible.section(
-      title = "Text",
-      id    = s"$formId-sec-text",
-      content =
-        s"""
-           |${HtmxFields.textareaRow("Text", s"$formId-text", "text", t.text)}
+           |
+           |<label class="label print-foot-label" for="$formId-text">Text</label>
+           |<textarea id="$formId-text" name="text" class="textarea span-value">${Html.esc(t.text)}</textarea>
            |""".stripMargin)
 
     val linesBlock =
       s"""
          |<div class="subgrid-block">
          |  $lineGrid
-         |  <div class="subgrid-total">
-         |    <span class="label">Total:</span>
-         |    <span class="input-money total-money">
-         |      <span class="calc-total num">${total.toString}</span>
-         |      <span class="currency-suffix">${Html.esc(currencySymbol)}</span>
-         |    </span>
-         |  </div>
          |</div>
          |""".stripMargin
 
-    val footTextSection = HtmxCollapsible.section(
-      title = "Foot text",
-      id    = s"$formId-sec-foot",
-      content =
-        s"""
-           |${HtmxFields.textareaRow("Foot text", s"$formId-foot", "footText", t.footText)}
-           |""".stripMargin)
-
+    // Printed foot text — rendered after the subgrid so it lands at
+    // the bottom of the printed page. Hidden on screen.
+    //   <div class="print-foot-box">${Html.esc(t.footText)}</div>
+    //<div class="print-foot-grid">
+    //<textarea id="$formId-text" name="text" class="textarea span-value">${Html.esc(t.footText)}</textarea>
+    //</div>
+    val footTextPrintBlock =
+      s"""
+         |<div class="print-foot-grid">
+         |<textarea id="$formId-text" name="text" class="textarea span-value">${Html.esc(t.footText)}</textarea>
+         |</div>
+         |""".stripMargin
     s"""
        |<form id="$formId" class="$formClass"
        |      hx-put="/html/transaction"
        |      hx-target="#$formId" hx-swap="outerHTML"
+       |      hx-on::after-request="if(event.detail.requestConfig.verb === 'put' && event.detail.successful){ var c=document.getElementById('$formId-fmodule'); if(c) htmx.trigger(c,'change'); }">
        |
        |  ${HtmxFields.hiddenField("id",      t.id.toString)}
        |  ${HtmxFields.hiddenField("company", t.company)}
@@ -265,5 +295,6 @@ object TransactionFormView:
        |
        |  $headerSection
        |  $linesBlock
+       |  $footTextPrintBlock
        |</form>
        |""".stripMargin

@@ -58,6 +58,13 @@ object HtmxToolbar:
        |        <span>+ Add line</span>
        |      </button>
        |
+       |      <button type="button"
+       |              class="btn btn-xs btn-outline"
+       |              onclick="window.iwsPrintForm && window.iwsPrintForm('$prefix')"
+       |              title="Print this record">
+       |        <span>Print</span>
+       |      </button>
+       |
        |      <span class="toolbar-sep"></span>
        |
        |      <button type="button"

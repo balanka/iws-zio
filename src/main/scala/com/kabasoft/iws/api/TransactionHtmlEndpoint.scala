@@ -267,20 +267,52 @@ object TransactionHtmlEndpoint:
           .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 
+  /** Column filters — one `case` per column that has a filter.
+   * Empty string means "no filter applied".
+   */
+  private def matches(
+                       t: Transaction,
+                       key: String,
+                       value: String
+                     ): Boolean =
+    if value.isEmpty then true
+    else
+      val v = value.trim.toLowerCase
+      key match
+        case "id" => t.id.toString.contains(v)
+        case "oid" => t.oid.toLowerCase.contains(v)
+        case "modelid" => t.modelid.toString.contains(v)
+        case "period" => t.period.toString.contains(v)
+        case "contact" => t.contact.toLowerCase.contains(v)
+        case "account" => t.account.toLowerCase.contains(v)
+        case "store" => t.store.toLowerCase.contains(v)
+        case "text" => t.text.toLowerCase.contains(v)
+        case "total" =>
+          val tot = t.lines.map(_.amount)
+            .foldLeft(java.math.BigDecimal.ZERO)(_.add(_))
+          tot.toString.contains(v)
+        case "posted" => t.posted.toString == value
+        case _ => true
 
   private val listGet: Route[FormEnv, Response] =
     Method.GET / "html" / "transaction-list" ->
       handler { (req: Request) =>
         val modelid = req.queryParam("modelid").flatMap(_.toIntOption).getOrElse(-1)
         val company = req.queryParam("company").getOrElse("")
-        val page    = req.queryParam("page").flatMap(_.toIntOption).getOrElse(0)
-        val query   = req.queryParam("q").getOrElse("")
-        val size    = req.queryParam("size").flatMap(_.toIntOption)
+        val page = req.queryParam("page").flatMap(_.toIntOption).getOrElse(0)
+        val query = req.queryParam("q").getOrElse("")
+        val size = req.queryParam("size").flatMap(_.toIntOption)
           .filter(HtmxTable.pageSizes.contains).getOrElse(20)
-        val sort    = req.queryParam("sort")
+        val sort = req.queryParam("sort")
           .map(HtmxTable.Page.parseSort)
           .filter(_.nonEmpty)
           .getOrElse(HtmxTable.Page.defaultSort)
+
+        val filterKeys = List(
+          "id", "oid", "modelid", "period",
+          "contact", "account", "store", "text", "total", "posted")
+        val filters: Map[String, String] =
+          filterKeys.flatMap(k => req.queryParam(k).map(k -> _)).toMap
 
         if modelid < 0 || company.isEmpty then
           ZIO.succeed(HtmxResponse.html(
@@ -289,19 +321,53 @@ object TransactionHtmlEndpoint:
           TransactionRepository.all((modelid, company))
             .map { all =>
               val filtered =
-                if query.isEmpty then all
-                else all.filter(t =>
-                  t.id.toString.contains(query) ||
-                    t.oid.toLowerCase.contains(query.toLowerCase) ||
-                    t.text.toLowerCase.contains(query.toLowerCase))
+                all
+                  .filter(t =>
+                    query.isEmpty ||
+                      t.id.toString.contains(query) ||
+                      t.oid.toLowerCase.contains(query.toLowerCase) ||
+                      t.text.toLowerCase.contains(query.toLowerCase))
+                  .filter(t => filters.forall { case (k, v) => matches(t, k, v) })
+
               val slice = filtered.slice(page * size, page * size + size)
               HtmxResponse.html(
                 TransactionListView.render(
-                  HtmxTable.Page(slice, page, size, filtered.size.toLong, sort),
-                  company, query))
+                  page = HtmxTable.Page(slice, page, size, filtered.size.toLong, sort),
+                  company = company,
+                  query = query,
+                  filterValues = filters))
             }
             .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
+  private val formPrint: Route[FormEnv, Response] =
+    Method.GET / "html" / "transaction" / "print" / string("id") / int("modelid") / string("company") ->
+      handler { (id: String, modelid: Int, company: String, _: Request) =>
+        id.toLongOption match
+          case Some(lid) =>
+            (for {
+              t <- TransactionRepository.getById((lid, modelid, company))
+              data <- loadLists(company)
+            } yield {
+              val fmoduleName = data.fmodules.find(_.id == t.modelid).map(_.name).getOrElse("Transaction")
+              val docTitle = s"$company/$fmoduleName"
+              HtmxResponse.html(
+                HtmxPrintPage.render(
+                  docTitle,
+                  TransactionFormView.render(
+                    t = t,
+                    fmodules = data.fmodules,
+                    stores = data.stores,
+                    accounts = data.accounts,
+                    articles = data.articles,
+                    vats = data.vats,
+                    contacts = data.contacts,
+                    mode = "view",
+                    title = docTitle)))
+            })
+              .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
+          case None =>
+            ZIO.succeed(Response.status(Status.BadRequest))
+      }
 
   val routes: Routes[FormEnv, Response] =
-    Routes(formNew, formGet, formCopyFrom, formPut, listGet) @@ Middleware.debug
+    Routes(formNew, formGet, formCopyFrom, formPut, listGet, formPrint) @@ Middleware.debug

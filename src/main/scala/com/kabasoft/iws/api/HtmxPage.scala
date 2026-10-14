@@ -318,19 +318,31 @@ object HtmxPage:
       |    }
       |
       |    function recomputeTotal(grid) {
-      |      var field = grid.dataset.totalField || 'amount';
       |      var form = grid.closest('form');
       |      if (!form) return;
-      |      var total = 0;
+      |
+      |      var sumAmount = 0;
+      |      var sumVat    = 0;
+      |
       |      grid.querySelectorAll('tbody tr').forEach(function (tr) {
       |        if (isDeleted(tr)) return;
-      |        var el = tr.querySelector('[name$=".' + field + '"]');
-      |        if (!el) return;
-      |        var v = parseFloat(el.value);
-      |        if (!isNaN(v)) total += v;
+      |        var amtEl = tr.querySelector('[name$=".amount"]');
+      |        if (amtEl) {
+      |          var v = parseFloat(amtEl.value);
+      |          if (!isNaN(v)) sumAmount += v;
+      |        }
+      |        var vatEl = tr.querySelector('[name$=".vat"]');
+      |        if (vatEl) {
+      |          var vv = parseFloat(vatEl.value);
+      |          if (!isNaN(vv)) sumVat += vv;
+      |        }
       |      });
-      |      var out = form.querySelector('.calc-total');
-      |      if (out) out.textContent = total.toFixed(2);
+      |
+      |      var totalOut = form.querySelector('.calc-total');
+      |      if (totalOut) totalOut.textContent = (sumAmount + sumVat).toFixed(2);
+      |
+      |      var vatOut = form.querySelector('.calc-vat-total');
+      |      if (vatOut) vatOut.textContent = sumVat.toFixed(2);
       |    }
       |
       |    function recomputeAll(root) {
@@ -538,13 +550,19 @@ object HtmxPage:
       |    });
       |  })();
       |
-      |    /* =====================================================================
+      |  /* =====================================================================
       |     Print the currently displayed record
-      |     - Reads id / modelid / company from the form.
-      |     - Opens a new browser tab at /html/<prefix>/print/<id>/<modelid>/<company>.
-      |     - That page auto-triggers window.print() and closes when done.
+      |     - Builds the URL from window.location.origin so the scheme + host
+      |       + port always match the current page (no relative-URL surprises).
+      |     ===================================================================== */
+      |  /* =====================================================================
+      |     Print the currently displayed record
+      |     - Origin is hardcoded because the app is served on plain HTTP + 8080
+      |       and cannot be reached at https://kabasoft.iws.
       |     ===================================================================== */
       |  (function () {
+      |    var PRINT_ORIGIN = 'http://kabasoft.iws:8080';
+      |
       |    window.iwsPrintForm = function (prefix) {
       |      var form = document.getElementById(prefix + '-form');
       |      if (!form) return;
@@ -560,11 +578,12 @@ object HtmxPage:
       |
       |      if (!id || !modelid || !company) return;
       |
-      |      var url = '/html/' + prefix + '/print/'
+      |      var url = PRINT_ORIGIN + '/html/' + prefix + '/print/'
       |              + encodeURIComponent(id)      + '/'
       |              + encodeURIComponent(modelid) + '/'
       |              + encodeURIComponent(company);
       |
+      |      console.log('iwsPrintForm opening:', url);
       |      window.open(url, '_blank');
       |    };
       |  })();

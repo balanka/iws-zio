@@ -91,9 +91,7 @@ object HtmxCss:
       |      --wrapper-pad:       1.5rem;
       |    }
       |
-      |    /* ==========================================
-      |       Page wrapper
-      |       ========================================== */
+      |    /* Page wrapper */
       |    .htmx-page-wrapper {
       |      display: flex;
       |      flex-direction: column;
@@ -101,9 +99,7 @@ object HtmxCss:
       |      padding: var(--wrapper-pad);
       |    }
       |
-      |    /* ==========================================
-      |       Form grid — 4 columns
-      |       ========================================== */
+      |    /* Form grid — 4 columns */
       |    .htmx-grid {
       |      display: grid;
       |      grid-template-columns: max-content 1fr max-content 1fr;
@@ -140,9 +136,7 @@ object HtmxCss:
       |    }
       |    .htmx-grid > .checkbox { height: 16px; width: 16px; }
       |
-      |    /* ==========================================
-      |       Numeric alignment
-      |       ========================================== */
+      |    /* Numeric alignment */
       |    .num { text-align: right; font-variant-numeric: tabular-nums; }
       |    .num-cell {
       |      text-align: right;
@@ -150,10 +144,7 @@ object HtmxCss:
       |      padding-right: 8px !important;
       |    }
       |
-      |    /* ==========================================
-      |       Money fields — currency symbol overlaid
-      |       inside the input / computed-cell box
-      |       ========================================== */
+      |    /* Money fields — symbol overlaid */
       |    .input-money {
       |      position: relative;
       |      display: block;
@@ -162,7 +153,7 @@ object HtmxCss:
       |    .input-money > .input,
       |    .input-money > .calc-cell {
       |      width: 100%;
-      |      padding-right: 32px;        /* room for the symbol */
+      |      padding-right: 32px;
       |      text-align: right;
       |      box-sizing: border-box;
       |    }
@@ -179,9 +170,7 @@ object HtmxCss:
       |      white-space: nowrap;
       |    }
       |
-      |    /* ==========================================
-      |       Toolbar
-      |       ========================================== */
+      |    /* Toolbar */
       |    .htmx-toolbar {
       |      display: flex;
       |      flex-wrap: wrap;
@@ -198,9 +187,7 @@ object HtmxCss:
       |      margin: 0 4px;
       |    }
       |
-      |    /* ==========================================
-      |       Collapsible cards
-      |       ========================================== */
+      |    /* Collapsible cards */
       |    .card-header-row {
       |      display: flex; justify-content: space-between; align-items: center;
       |      margin-bottom: var(--card-title-mb);
@@ -210,21 +197,13 @@ object HtmxCss:
       |      font-size: var(--card-title-size);
       |      line-height: 1.2;
       |    }
-      |    /* Card collapse — hide everything inside .card-body except
-      |       the header row (which holds the collapse toggle). Works whether
-      |       the body contains .card-content, .htmx-table-wrapper, or a
-      |       dynamically swapped fragment. */
       |    .card.collapsed > .card-body > *:not(.card-header-row) { display: none; }
       |    .card.collapsed .card-header-row { margin-bottom: 0; }
       |    .toggle-arrow { font-size: 12px; color: #666; display: inline-block; width: 10px; }
-      |
       |    .card-body.compact { padding: var(--card-pad); }
       |
-      |    /* ==========================================
-      |       Table wrapper
-      |       ========================================== */
+      |    /* Table wrapper */
       |    .htmx-table-wrapper { width: 100%; }
-      |
       |    body.hide-search .table-search-wrapper { display: none; }
       |
       |    .table-scroll {
@@ -246,38 +225,28 @@ object HtmxCss:
       |      font-size: var(--table-font);
       |    }
       |
-      |        /* ==========================================
-      |       Resizable columns
-      |       ========================================== */
+      |    .table-row { cursor: pointer; }
+      |    .table-row:hover { background-color: #e3f2fd !important; }
+      |    .table-sort { color: inherit; text-decoration: none; }
+      |    .table-sort:hover { color: #1976d2; }
+      |
+      |    /* Resizable columns */
       |    table.htmx-table-fixed {
       |      table-layout: fixed;
       |      width: 100%;
       |    }
-//      |    table.htmx-table-fixed th,
-//      |    table.htmx-table-fixed td {
-//      |      overflow: hidden;
-//      |      text-overflow: ellipsis;
-//      |      white-space: nowrap;
-//      |    }
-      |   table.htmx-table-fixed th {
-      |     overflow: hidden;
-      |     text-overflow: ellipsis;
-      |     white-space: nowrap;
-      |   }
-      |  table.htmx-table-fixed td {
-      |   overflow: hidden;
-      |  }
-      |  table.htmx-table-fixed td input,
-      |  table.htmx-table-fixed td select {
-      |     min-width: 0;
-      |     width: 100%;
-      | }
-      |    /* Allow wrapping inside the resizable Text column so longer text
-      |       doesn't get cut off. Marked by .th-text on the header. */
-      |    table.htmx-table-fixed th.th-text,
-      |    table.htmx-table-fixed th.th-text ~ td:nth-child(8) {
-      |      white-space: normal;
-      |      overflow-wrap: anywhere;
+      |    table.htmx-table-fixed th {
+      |      overflow: hidden;
+      |      text-overflow: ellipsis;
+      |      white-space: nowrap;
+      |    }
+      |    table.htmx-table-fixed td {
+      |      overflow: hidden;
+      |    }
+      |    table.htmx-table-fixed td input,
+      |    table.htmx-table-fixed td select {
+      |      min-width: 0;
+      |      width: 100%;
       |    }
       |
       |    .col-resizer {
@@ -305,23 +274,14 @@ object HtmxCss:
       |      background: #1976d2;
       |      width: 2px;
       |    }
-      |    th.resizable-th {
-      |      position: relative;
-      |    }
+      |    th.resizable-th { position: relative; }
       |    body.col-resizing,
       |    body.col-resizing * {
       |      cursor: col-resize !important;
       |      user-select: none !important;
       |    }
       |
-      |    .table-row { cursor: pointer; }
-      |    .table-row:hover { background-color: #e3f2fd !important; }
-      |    .table-sort { color: inherit; text-decoration: none; }
-      |    .table-sort:hover { color: #1976d2; }
-      |
-      |    /* ==========================================
-      |       Boolean cells — checkbox
-      |       ========================================== */
+      |    /* Boolean cells — checkbox */
       |    .table-scroll td.bool-cell {
       |      text-align: center;
       |      vertical-align: middle;
@@ -335,9 +295,7 @@ object HtmxCss:
       |      accent-color: #1976d2;
       |    }
       |
-      |    /* ==========================================
-      |       Table toolbar — search + filters
-      |       ========================================== */
+      |    /* Table toolbar + filters */
       |    .table-toolbar {
       |      display: flex;
       |      flex-wrap: wrap;
@@ -347,9 +305,6 @@ object HtmxCss:
       |    }
       |    .table-search-wrapper { flex: 0 1 240px; }
       |
-      |    /* ==========================================
-      |       Auto-filter row under the table header
-      |       ========================================== */
       |    .table-filter-row > th.table-filter-cell {
       |      position: sticky;
       |      top: calc(var(--table-font) + var(--table-cell-pad) * 2 + 6px);
@@ -379,9 +334,7 @@ object HtmxCss:
       |      width: 100%;
       |    }
       |
-      |    /* ==========================================
-      |       Pager
-      |       ========================================== */
+      |    /* Pager */
       |    .table-pager {
       |      display: grid;
       |      grid-template-columns: 1fr auto 1fr;
@@ -413,24 +366,19 @@ object HtmxCss:
       |      font-size: var(--btn-font);
       |    }
       |
-      |    /* ==========================================
-      |       Sub-grid
-      |       ========================================== */
+      |    /* Sub-grid */
       |    .htmx-subgrid { width: 100%; }
       |    .htmx-subgrid table { margin: 0; }
-      |
       |    .htmx-subgrid th,
       |    .htmx-subgrid td {
       |      padding: var(--table-cell-pad);
       |      font-size: var(--table-font);
       |      line-height: 1.3;
       |    }
-      |
       |    .htmx-subgrid thead th {
       |      background: var(--color-base-100, #fff);
       |      font-size: var(--table-font);
       |    }
-      |
       |    .htmx-subgrid input.input-xs,
       |    .htmx-subgrid select.select-xs {
       |      height: var(--grid-input-height);
@@ -438,8 +386,6 @@ object HtmxCss:
       |      padding: 2px 6px;
       |      font-size: var(--grid-label-size);
       |    }
-      |
-      |    /* Money overlay inside sub-grid cells — one-space gap */
       |    .htmx-subgrid .input-money > .input,
       |    .htmx-subgrid .input-money > .calc-cell {
       |      padding-right: 14px;
@@ -449,8 +395,6 @@ object HtmxCss:
       |      font-size: 10px;
       |      color: #888;
       |    }
-      |
-      |    /* Read-only cells inside an editable sub-grid */
       |    .htmx-subgrid input.fk-cell {
       |      background: #f0f0f0;
       |      color: #666;
@@ -460,19 +404,16 @@ object HtmxCss:
       |      outline: none;
       |      box-shadow: none;
       |    }
-      |
       |    .htmx-subgrid .subgrid-actions {
       |      width: calc(var(--btn-height) + 8px);
       |      text-align: center;
       |    }
-      |
       |    .htmx-subgrid .subgrid-actions .btn {
       |      height: var(--btn-height);
       |      min-height: var(--btn-height);
       |      padding: var(--btn-pad);
       |      font-size: var(--btn-font);
       |    }
-      |
       |    .htmx-subgrid > button {
       |      height: var(--btn-height);
       |      min-height: var(--btn-height);
@@ -480,12 +421,7 @@ object HtmxCss:
       |      font-size: var(--btn-font);
       |      margin-top: 4px;
       |    }
-      |
-      |    .htmx-subgrid .num {
-      |      text-align: right;
-      |    }
-      |
-      |    /* Entirely read-only sub-grid */
+      |    .htmx-subgrid .num { text-align: right; }
       |    .htmx-subgrid-readonly td {
       |      color: #444;
       |      background: transparent;
@@ -496,77 +432,48 @@ object HtmxCss:
       |      font-style: italic;
       |    }
       |
-      |   /* A textarea that stretches across columns 2..4 of the 4-column grid,
-      |       leaving its label in column 1. Used for Text / Foot text in the
-      |       header section. */
-      |    .collapsible-content > textarea.span-value {
-      |      grid-column: 2 / -1;
-      |      width: 100%;
+      |    /* Sub-grid footer (tfoot) */
+      |    .htmx-subgrid tfoot .subgrid-foot-row > td {
+      |      padding: var(--table-cell-pad);
+      |      font-size: var(--table-font);
+      |      font-weight: 600;
+      |      background: #fafafa;
+      |      border-top: 1.5px solid #d0d0d0;
+      |      vertical-align: middle;
+      |      white-space: nowrap;
+      |    }
+      |    .htmx-subgrid tfoot .subgrid-foot-row > td.num {
+      |      text-align: right;
+      |      font-variant-numeric: tabular-nums;
+      |      padding-right: 8px;
+      |    }
+      |    .htmx-subgrid tfoot .subgrid-foot-label {
+      |      font-weight: 600;
+      |      color: #444;
+      |      margin-right: 2px;
+      |      white-space: nowrap;
+      |    }
+      |    .htmx-subgrid tfoot .calc-vat-total,
+      |    .htmx-subgrid tfoot .calc-total,
+      |    .htmx-subgrid tfoot .currency-suffix {
+      |      white-space: nowrap;
+      |    }
+      |    .transaction-form .htmx-subgrid tfoot .subgrid-foot-row > td {
+      |      background: #f6f1fd;
+      |      border-top-color: #cdb8ec;
+      |    }
+      |    .financials-form .htmx-subgrid tfoot .subgrid-foot-row > td {
+      |      background: #fef8ec;
+      |      border-top-color: #f0d3a0;
       |    }
       |
-      |   /* Every value field in a collapsible header spans at most a fixed
-      |       width so columns 2 and 4 look identical regardless of label length.
-      |       Textareas marked `.span-value` are exempt (they fill 3 columns). */
-      |    .collapsible-content > .input,
-      |    .collapsible-content > .select {
-      |      width: 100%;
-      |      max-width: 240px;
-      |    }
-      |    /* Same cap for money/combo wrappers if used in the header later. */
-      |    .collapsible-content > .input-money {
-      |      max-width: 240px;
-      |    }
-      |    /* ==========================================
-      |       Sub-grid block — spans the main form grid
-      |       ========================================== */
+      |    /* Sub-grid block */
       |    .subgrid-block {
       |      grid-column: 1 / -1;
       |      margin-top: 8px;
       |      padding-top: 8px;
       |      border-top: 1px solid #e5e7eb;
       |    }
-      |    /* ==========================================
-      |       Sub-grid total — badge with symbol inside
-      |       ========================================== */
-      |    .subgrid-total {
-      |      display: flex;
-      |      justify-content: flex-end;
-      |      align-items: center;
-      |      gap: 8px;
-      |      margin-top: 4px;
-      |      font-weight: 600;
-      |    }
-      |    .subgrid-total .total-money {
-      |      position: relative;
-      |      display: inline-block;
-      |      min-width: 120px;
-      |    }
-      |    .subgrid-total .total-money > .calc-total {
-      |      display: inline-block;
-      |      width: 100%;
-      |      min-width: 120px;
-      |      padding: 2px 16px 2px 6px;   /* room on the right for the symbol */
-      |      background: #eaf4fe;
-      |      border: 1px solid #bcd9f5;
-      |      border-radius: 4px;
-      |      font-variant-numeric: tabular-nums;
-      |      text-align: right;
-      |      box-sizing: border-box;
-      |    }
-      |    .subgrid-total .total-money > .currency-suffix {
-      |      position: absolute;
-      |      right: 4px;
-      |      top: 50%;
-      |      transform: translateY(-50%);
-      |      pointer-events: none;
-      |      user-select: none;
-      |      font-size: var(--table-font);
-      |      line-height: 1;
-      |      color: #666;
-      |      white-space: nowrap;
-      |    }
-      |
-      |    /* If a form uses the wrapper-div structure instead */
       |    .form-subgrid {
       |      margin-top: 12px;
       |      padding-top: 10px;
@@ -579,15 +486,24 @@ object HtmxCss:
       |      color: #555;
       |      font-size: var(--grid-label-size);
       |    }
-      |  /* Resizable subgrid headers keep the action column's compact width
-      |       even when the table switches to fixed layout. */
       |    table.htmx-table-fixed th.subgrid-actions {
       |      width: calc(var(--btn-height) + 8px);
       |      text-align: center;
       |    }
-      |    /* ==========================================
-      |       Read-only form mode
-      |       ========================================== */
+      |
+      |    /* Header fields — uniform max width */
+      |    .collapsible-content > textarea.span-value {
+      |      grid-column: 2 / -1;
+      |      width: 100%;
+      |    }
+      |    .collapsible-content > .input,
+      |    .collapsible-content > .select {
+      |      width: 100%;
+      |      max-width: 240px;
+      |    }
+      |    .collapsible-content > .input-money { max-width: 240px; }
+      |
+      |    /* Read-only form mode */
       |    .form-readonly input:not([type="hidden"]):not([type="checkbox"]),
       |    .form-readonly select,
       |    .form-readonly textarea {
@@ -606,13 +522,7 @@ object HtmxCss:
       |      opacity: 0.5;
       |    }
       |
-      |    /* ==========================================
-      |       Filter selects — always interactive
-      |       (e.g. the Transaction / Financials module combo)
-      |       ========================================== */
-      |
-      |    /* Behavioural override: apply everywhere. Only the pointer and
-      |       opacity, so the combo stays usable when the form is read-only. */
+      |    /* Filter selects — always interactive */
       |    select.filter-select,
       |    .form-readonly select.filter-select,
       |    .htmx-form.form-readonly select.filter-select,
@@ -622,9 +532,6 @@ object HtmxCss:
       |      cursor: pointer !important;
       |      opacity: 1 !important;
       |    }
-      |
-      |    /* Visual override: apply in view mode only. In edit mode the combo
-      |       looks like every other <select> (i.e. like Account). */
       |    .form-readonly select.filter-select,
       |    .htmx-form.form-readonly select.filter-select {
       |      background: #ffffff !important;
@@ -632,9 +539,7 @@ object HtmxCss:
       |      border-color: #bcd9f5 !important;
       |    }
       |
-      |    /* ==========================================
-      |       Computed cells — inert, not focusable
-      |       ========================================== */
+      |    /* Computed cells — inert */
       |    .calc-cell-wrap,
       |    .calc-cell {
       |      pointer-events: none;
@@ -662,9 +567,7 @@ object HtmxCss:
       |      text-align: right;
       |    }
       |
-      |    /* ==========================================
-      |       Custom combobox (if used)
-      |       ========================================== */
+      |    /* Custom combobox */
       |    .combo { position: relative; width: 100%; }
       |    .combo-trigger {
       |      width: 100%; text-align: left;
@@ -694,13 +597,8 @@ object HtmxCss:
       |    .combo-item:hover    { background-color: #e3f2fd; }
       |    .combo-item.opt-selected { font-weight: 600; color: #1976d2; }
       |
-      |    /* ==========================================
-      |       Collapsible form sections (<details>)
-      |       ========================================== */
-      |    .htmx-form {
-      |      display: block;
-      |    }
-      |
+      |    /* Collapsible form sections */
+      |    .htmx-form { display: block; }
       |    .collapsible-section {
       |      border: 1px solid #e5e7eb;
       |      border-radius: 6px;
@@ -708,10 +606,7 @@ object HtmxCss:
       |      margin-bottom: var(--grid-row-gap);
       |      overflow: hidden;
       |    }
-      |    .collapsible-section + .collapsible-section {
-      |      margin-top: 2px;
-      |    }
-      |
+      |    .collapsible-section + .collapsible-section { margin-top: 2px; }
       |    .collapsible-summary {
       |      display: flex;
       |      align-items: center;
@@ -731,7 +626,6 @@ object HtmxCss:
       |      border-bottom-color: #e5e7eb;
       |    }
       |    .collapsible-summary:hover { background: #eef4fb; }
-      |
       |    .collapsible-arrow {
       |      display: inline-block;
       |      width: 10px;
@@ -743,7 +637,6 @@ object HtmxCss:
       |    .collapsible-section[open] > .collapsible-summary .collapsible-arrow::before {
       |      content: "▾";
       |    }
-      |
       |    .collapsible-content {
       |      display: grid;
       |      grid-template-columns: max-content 1fr max-content 1fr;
@@ -766,7 +659,6 @@ object HtmxCss:
       |      min-height: var(--grid-textarea-min);
       |      resize: vertical;
       |    }
-      |
       |    .collapsible-content > .input,
       |    .collapsible-content > .select,
       |    .collapsible-content > .textarea {
@@ -782,44 +674,19 @@ object HtmxCss:
       |      font-size: var(--grid-label-size);
       |    }
       |    .collapsible-content > .checkbox { height: 16px; width: 16px; }
-      |
       |    .form-readonly .collapsible-summary { pointer-events: auto; }
       |
-      |    /* ==========================================
-      |       Partner form — light blue tint
-      |       ========================================== */
-      |    .partner-form .collapsible-section {
-      |      border-color: #bcd9f5;
-      |    }
-      |    .partner-form .collapsible-summary {
-      |      background: #d6e9fb;
-      |    }
-      |    .partner-form .collapsible-summary:hover {
-      |      background: #c6e0f8;
-      |    }
-      |    .partner-form .collapsible-content {
-      |      background: #eaf4fe;
-      |    }
+      |    /* Form tints */
+      |    .partner-form .collapsible-section { border-color: #bcd9f5; }
+      |    .partner-form .collapsible-summary { background: #d6e9fb; }
+      |    .partner-form .collapsible-summary:hover { background: #c6e0f8; }
+      |    .partner-form .collapsible-content { background: #eaf4fe; }
       |
-      |    /* ==========================================
-      |       Article form — light green tint
-      |       ========================================== */
-      |    .article-form .collapsible-section {
-      |      border-color: #c3e6cb;
-      |    }
-      |    .article-form .collapsible-summary {
-      |      background: #d4edda;
-      |    }
-      |    .article-form .collapsible-summary:hover {
-      |      background: #c3e6cb;
-      |    }
-      |    .article-form .collapsible-content {
-      |      background: #eaf7ee;
-      |    }
+      |    .article-form .collapsible-section { border-color: #c3e6cb; }
+      |    .article-form .collapsible-summary { background: #d4edda; }
+      |    .article-form .collapsible-summary:hover { background: #c3e6cb; }
+      |    .article-form .collapsible-content { background: #eaf7ee; }
       |
-      |    /* ==========================================
-      |       Transaction form — soft lavender tint
-      |       ========================================== */
       |    .transaction-form .collapsible-section {
       |      border-color: #cdb8ec;
       |      box-shadow: 0 1px 2px rgba(90, 50, 140, 0.05);
@@ -831,10 +698,7 @@ object HtmxCss:
       |    .transaction-form .collapsible-summary:hover {
       |      background: linear-gradient(135deg, #e0d0f7 0%, #d4bef4 100%);
       |    }
-      |    .transaction-form .collapsible-content {
-      |      background: #f6f1fd;
-      |    }
-      |
+      |    .transaction-form .collapsible-content { background: #f6f1fd; }
       |    .transaction-form .htmx-subgrid input[type="number"] {
       |      text-align: right;
       |      font-variant-numeric: tabular-nums;
@@ -850,9 +714,6 @@ object HtmxCss:
       |      height: var(--grid-input-height);
       |    }
       |
-      |    /* ==========================================
-      |       Financials form — warm amber tint
-      |       ========================================== */
       |    .financials-form .collapsible-section {
       |      border-color: #f0d3a0;
       |      box-shadow: 0 1px 2px rgba(140, 100, 0, 0.05);
@@ -864,19 +725,9 @@ object HtmxCss:
       |    .financials-form .collapsible-summary:hover {
       |      background: linear-gradient(135deg, #f6d9a8 0%, #f0c88a 100%);
       |    }
-      |    .financials-form .collapsible-content {
-      |      background: #fef8ec;
-      |    }
+      |    .financials-form .collapsible-content { background: #fef8ec; }
       |
-      |    /* ==========================================
-      |       Sub-grid total — badge colour per form
-      |       ========================================== */
-      |    .transaction-form .subgrid-total .calc-total {
-      |      background: #ece2fa;
-      |      border-color: #cdb8ec;
-      |    }
-      |    .financials-form .subgrid-total .calc-total {
-      |      background: #fbe7c6;
-      |      border-color: #f0d3a0;
-      |    }
+      |    /* Print-only foot-text block — hidden on screen */
+      |    .print-foot-block { display: none; }
+      |    .print-foot-grid { display: none; }
       |""".stripMargin

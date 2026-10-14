@@ -14,11 +14,12 @@ object FinancialsFormView:
     val accountOptionData = accounts.map(a => a.id -> Map("name" -> a.name)).toMap
 
     List(
-      HtmxSubGrid.Column("id",           "Id",       "w-16"),
+      HtmxSubGrid.Column("id",           "Id",       "w-16", printHidden = true),
       HtmxSubGrid.Column("account",      "Account",  "w-40",
         kind       = HtmxSubGrid.CellKind.Select,
         options    = accountOptions,
-        optionData = accountOptionData),
+        optionData = accountOptionData,
+        resizable  = true),
       HtmxSubGrid.Column("accountName",  "Acc name", "",
         kind     = HtmxSubGrid.CellKind.Text,
         readonly = true,
@@ -30,15 +31,18 @@ object FinancialsFormView:
       HtmxSubGrid.Column("oaccount",     "Oaccount", "w-40",
         kind       = HtmxSubGrid.CellKind.Select,
         options    = accountOptions,
-        optionData = accountOptionData),
+        optionData = accountOptionData,
+        resizable  = true),
       HtmxSubGrid.Column("oaccountName", "Oacc name", "",
         kind     = HtmxSubGrid.CellKind.Text,
         readonly = true,
         hidden   = true),
       HtmxSubGrid.Column("amount",       "Amount",   "num w-24",
-        kind = HtmxSubGrid.CellKind.Money),
+        kind      = HtmxSubGrid.CellKind.Money,
+        resizable = true),
       HtmxSubGrid.Column("duedate",      "Due date", "w-32",
-        kind = HtmxSubGrid.CellKind.Date),
+        kind      = HtmxSubGrid.CellKind.Date,
+        resizable = true, printHidden = true),
       HtmxSubGrid.Column("text",         "Text",     "",
         resizable = true)
     )
@@ -86,6 +90,20 @@ object FinancialsFormView:
       t.lines.headOption.map(_.currency).filter(_.nonEmpty).getOrElse("EUR")
     val currencySymbol = MoneyFmt.symbol(currencyCode)
 
+    val total = headerTotal(t)
+
+    // Footer: Total only — no VAT on Financials.
+    // Visible columns: 1:id  2:account  3:oaccount  4:amount  5:duedate  6:text
+    val totalCell =
+      s"""<span class="subgrid-foot-label">Total </span>""" +
+        s"""<span class="calc-total num">${total.toString}</span>""" +
+        s"""<span class="currency-suffix">${Html.esc(currencySymbol)}</span>"""
+
+    val footers = List(
+      HtmxSubGrid.FooterCell(5, "", "subgrid-sum-cell"),           // id..duedate
+      HtmxSubGrid.FooterCell(1, totalCell, "num subgrid-sum-cell") // text column
+    )
+
     val lineGrid = HtmxSubGrid.render(
       id             = s"$formId-lines",
       prefix         = "lines",
@@ -94,11 +112,10 @@ object FinancialsFormView:
       columns        = lineColumns(accounts),
       rows           = lineRows(t),
       totalField     = "amount",
-      currencySymbol = currencySymbol)
+      currencySymbol = currencySymbol,
+      footers        = footers)
 
-    val total = headerTotal(t)
-
-    // ── Copy-from combo (row 3, right column) ──────────────────────────
+    // ── Copy-from combo ────────────────────────────────────────────────
     val copyFromOptions: List[(String, String)] =
       if copyFromCandidates.isEmpty then Nil
       else
@@ -133,6 +150,8 @@ object FinancialsFormView:
     //   Row 3: Cost center     | Copy from
     //   Row 4: Account         | Period
     //   Row 5: Contact         | Posted
+    //   Row 6: Text            | <span>
+    //   Row 7: Foot text       | <span>
     val headerSection = HtmxCollapsible.section(
       title = title,
       id    = s"$formId-sec-header",
@@ -152,8 +171,9 @@ object FinancialsFormView:
           hxTrigger  = "change",
           extraClass = "filter-select"
         )}
-           | ${HtmxFields.textRow("Oid", s"$formId-oid", "oid", t.oid)}
-           |  ${HtmxFields.dateRow("Transaction date", s"$formId-td", "transdate", fmtDate(t.transdate))}
+           |
+           |${HtmxFields.textRow("Oid", s"$formId-oid", "oid", t.oid)}
+           |${HtmxFields.dateRow("Transaction date", s"$formId-td", "transdate", fmtDate(t.transdate))}
            |
            |${comboRow(
           label   = "Cost center",
@@ -181,46 +201,31 @@ object FinancialsFormView:
           value   = t.contact
         )}
            |${HtmxFields.checkboxRow("Posted", s"$formId-posted", "posted", t.posted)}
-           |<label class="label" for="$formId-text">Text</label>
+           |
+           |<label class="label print-foot-label" for="$formId-text">Text</label>
            |<textarea id="$formId-text" name="text" class="textarea span-value">${Html.esc(t.text)}</textarea>
-           |<label class="label" for="$formId-foot">Foot text</label>
-           |<textarea id="$formId-foot" name="footText" class="textarea span-value">${Html.esc(t.footText)}</textarea>
-           |""".stripMargin)
-
-    val textSection = HtmxCollapsible.section(
-      title = "Text",
-      id    = s"$formId-sec-text",
-      content =
-        s"""
-           |${HtmxFields.textareaRow("Text", s"$formId-text", "text", t.text)}
            |""".stripMargin)
 
     val linesBlock =
       s"""
          |<div class="subgrid-block">
          |  $lineGrid
-         |  <div class="subgrid-total">
-         |    <span class="label">Total:</span>
-         |    <span class="input-money total-money">
-         |      <span class="calc-total num">${total.toString}</span>
-         |      <span class="currency-suffix">${Html.esc(currencySymbol)}</span>
-         |    </span>
-         |  </div>
          |</div>
          |""".stripMargin
 
-    val footTextSection = HtmxCollapsible.section(
-      title = "Foot text",
-      id    = s"$formId-sec-foot",
-      content =
-        s"""
-           |${HtmxFields.textareaRow("Foot text", s"$formId-foot", "footText", t.footText)}
-           |""".stripMargin)
+    val footTextPrintBlock =
+      s"""
+         |<div class="print-foot-grid">
+         |  <label class="label">Foot text</label>
+         |  <div class="print-foot-box">${Html.esc(t.footText)}</div>
+         |</div>
+         |""".stripMargin
 
     s"""
        |<form id="$formId" class="$formClass"
        |      hx-put="/html/financials"
        |      hx-target="#$formId" hx-swap="outerHTML"
+       |      hx-on::after-request="if(event.detail.requestConfig.verb === 'put' && event.detail.successful){ var c=document.getElementById('$formId-fmodule'); if(c) htmx.trigger(c,'change'); }">
        |
        |  ${HtmxFields.hiddenField("id",           t.id.toString)}
        |  ${HtmxFields.hiddenField("company",      t.company)}
@@ -229,5 +234,6 @@ object FinancialsFormView:
        |
        |  $headerSection
        |  $linesBlock
+       |  $footTextPrintBlock
        |</form>
        |""".stripMargin

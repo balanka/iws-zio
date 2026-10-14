@@ -5,16 +5,29 @@ import com.kabasoft.iws.domain.Transaction
 object TransactionListView:
 
   private val columns = List(
-    HtmxTable.Column("id",      "Id",      Some("24px")),
-    HtmxTable.Column("oid",     "Oid", Some("24px"), resizable = true),
-    HtmxTable.Column("modelid", "Model",   Some("18px")),
-    HtmxTable.Column("period",  "Period",  Some("12px")),
-    HtmxTable.Column("contact", "Contact", Some("40px"), resizable = true),
-    HtmxTable.Column("account", "Account", Some("50px"), resizable = true),
-    HtmxTable.Column("store",   "Store",   Some("50px"), resizable = true),
-    HtmxTable.Column("text",    "Text",    Some("260px"), resizable = true),
-    HtmxTable.Column("total",   "Total",   Some("40px"), resizable = true),
-    HtmxTable.Column("posted",  "Posted",  Some("10px"), kind = HtmxTable.ColumnKind.Bool)
+    HtmxTable.Column("id",      "Id",      Some("100px"),
+      filter = HtmxTable.FilterKind.Number),
+    HtmxTable.Column("oid",     "Oid",
+      filter = HtmxTable.FilterKind.Text),
+    HtmxTable.Column("modelid", "Model",   Some("80px"),
+      filter = HtmxTable.FilterKind.Number),
+    HtmxTable.Column("period",  "Period",  Some("90px"),
+      filter = HtmxTable.FilterKind.Number),
+    HtmxTable.Column("contact", "Contact",
+      filter = HtmxTable.FilterKind.Text),
+    HtmxTable.Column("account", "Account", Some("100px"),
+      filter = HtmxTable.FilterKind.Text),
+    HtmxTable.Column("store",   "Store",   Some("100px"),
+      filter = HtmxTable.FilterKind.Text),
+    HtmxTable.Column("text",    "Text",    Some("260px"),
+      filter    = HtmxTable.FilterKind.Text,
+      resizable = true),
+    HtmxTable.Column("total",   "Total",   Some("140px"),
+      filter = HtmxTable.FilterKind.Number),
+    HtmxTable.Column("posted",  "Posted",  Some("80px"),
+      filter        = HtmxTable.FilterKind.Select,
+      filterOptions = List("true" -> "Posted", "false" -> "Draft"),
+      kind          = HtmxTable.ColumnKind.Bool)
   )
 
   private def total(t: Transaction): String =
@@ -25,10 +38,12 @@ object TransactionListView:
       t.lines.headOption.map(_.currency).filter(_.nonEmpty).getOrElse("EUR")
     MoneyFmt.format(sum, currencyCode)
 
-  def render(page:    HtmxTable.Page[Transaction],
-              company: String,
-              query:   String,
-              rowMode: HtmxTable.RowMode = HtmxTable.RowMode.Fetch("#transaction-form")
+  def render(
+              page:         HtmxTable.Page[Transaction],
+              company:      String,
+              query:        String,
+              filterValues: Map[String, String] = Map.empty,
+              rowMode:      HtmxTable.RowMode = HtmxTable.RowMode.Fetch("#transaction-form")
             ): String =
     HtmxTable.render(
       path      = "/html/transaction-list",
@@ -53,6 +68,7 @@ object TransactionListView:
       ),
       detailUrl = (t: Transaction) =>
         s"/html/transaction/${t.id}/${t.modelid}/${t.company}",
-      query     = query,
-      rowMode   = rowMode
+      query        = query,
+      rowMode      = rowMode,
+      filterValues = filterValues
     )

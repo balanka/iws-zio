@@ -7,23 +7,29 @@ object HtmxSubGrid:
   enum CellKind:
     case Text, Number, Money, Date, Select, Computed
 
-  case class Column(
-                     field:      String,
-                     label:      String,
-                     cssClass:   String = "",
-                     options:    List[(String, String)] = Nil,
+  case class Column(field: String,
+                     label: String,
+                     cssClass: String = "",
+                     options: List[(String, String)] = Nil,
                      optionData: Map[String, Map[String, String]] = Map.empty,
-                     readonly:   Boolean = false,
-                     kind:       CellKind = CellKind.Text,
-                     expr:       String = "",
-                     hidden:     Boolean = false,
-                     resizable:  Boolean = false
-                   )
+                     readonly: Boolean = false,
+                     kind: CellKind = CellKind.Text,
+                     expr: String = "",
+                     hidden: Boolean = false,
+                     resizable: Boolean = false,
+                     printHidden: Boolean = false)
 
-  case class Row(
-                  cells:  List[String],
-                  hidden: Map[String, String] = Map.empty
-                )
+
+  case class Row(cells:  List[String], hidden: Map[String, String] = Map.empty)
+
+
+
+  /** A single cell in the subgrid's <tfoot> row.
+   * `colspan` must sum, across all footer cells, to the number of
+   * visible columns in the subgrid. HtmxSubGrid adds one trailing
+   * action cell so the tfoot row lines up with the header + body.
+   */
+  case class FooterCell(colspan: Int, content: String = "", css: String = "", printHidden: Boolean = false)
 
   def render(
               id:             String,
@@ -34,10 +40,11 @@ object HtmxSubGrid:
               rows:           List[Row],
               readonly:       Boolean = false,
               totalField:     String = "",
-              currencySymbol: String = ""
+              currencySymbol: String = "",
+              footers:        List[FooterCell] = Nil
             ): String =
     if readonly then renderReadonly(prefix, columns, rows)
-    else            renderEditable(id, prefix, fkField, fkValue, columns, rows, currencySymbol)
+    else            renderEditable(id, prefix, fkField, fkValue, columns, rows, currencySymbol, footers)
 
   // ── read-only (whole grid) ──────────────────────────────────────────────
 
@@ -75,7 +82,8 @@ object HtmxSubGrid:
                               fkValue:        String,
                               columns:        List[Column],
                               rows:           List[Row],
-                              currencySymbol: String
+                              currencySymbol: String,
+                              footers:        List[FooterCell]
                             ): String =
     val visibleColumns = columns.filterNot(_.hidden)
     val hasResizable   = visibleColumns.exists(_.resizable)
@@ -87,7 +95,8 @@ object HtmxSubGrid:
     val headerCells = visibleColumns.map { c =>
       val clsList = List(
         s"th-${c.field}",
-        if c.resizable then "resizable-th" else ""
+        if c.resizable then "resizable-th" else "",
+        if c.printHidden then "print-hide" else ""
       ).filter(_.nonEmpty).mkString(" ")
 
       val handle =
@@ -185,7 +194,8 @@ object HtmxSubGrid:
       val visibleCells = columns.zipAll(row.cells, null, "").collect {
         case (col, value) if !col.hidden =>
           val v = if value == null then "" else value
-          s"""<td class="${esc(tdClass(col))}">${cell(col, idx.toString, v)}</td>"""
+          val printCls = if col.printHidden then " print-hide" else ""
+          s"""<td class="${esc(tdClass(col))}$printCls">${cell(col, idx.toString, v)}</td>"""
       }.mkString
 
       val hiddenCells = columns.zipAll(row.cells, null, "").collect {
@@ -229,7 +239,15 @@ object HtmxSubGrid:
          |    $templateHidden
          |  </td>
          |</tr>""".stripMargin
-
+    val tfootHtml =
+      if footers.isEmpty then ""
+      else
+        val cells = footers.map { f =>
+          val cls = List(f.css, if f.printHidden then "print-hide" else "")
+            .filter(_.nonEmpty).mkString(" ")
+          s"""<td colspan="${f.colspan}" class="${esc(cls)}">${f.content}</td>"""
+        }.mkString
+        s"""<tfoot><tr class="subgrid-foot-row">$cells<td class="subgrid-actions"></td></tr></tfoot>"""
     s"""
        |<div class="htmx-subgrid"
        |     data-prefix="$prefix"
@@ -238,6 +256,7 @@ object HtmxSubGrid:
        |  <table class="$tableCls" data-table-key="$id">
        |    <thead><tr>$headerCells<th class="subgrid-actions" data-col-key="__actions"></th></tr></thead>
        |    <tbody id="$id-body">$bodyRows</tbody>
+       |    $tfootHtml
        |  </table>
        |  <template id="$id-template">$templateRow</template>
        |</div>

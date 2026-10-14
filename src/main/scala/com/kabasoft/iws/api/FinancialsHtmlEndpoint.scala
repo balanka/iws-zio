@@ -295,6 +295,33 @@ object FinancialsHtmlEndpoint:
             }
             .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
+  private val formPrint: Route[FormEnv, Response] =
+    Method.GET / "html" / "financials" / "print" / string("id") / int("modelid") / string("company") ->
+      handler { (id: String, modelid: Int, company: String, _: Request) =>
+        id.toLongOption match
+          case Some(lid) =>
+            (for {
+              t <- FinancialsRepository.getById((lid, modelid, company))
+              data <- loadLists(company)
+            } yield {
+              val fmoduleName = data.fmodules.find(_.id == t.modelid).map(_.name).getOrElse("Financials")
+              val docTitle = s"$company/$fmoduleName"
+              HtmxResponse.html(
+                HtmxPrintPage.render(
+                  docTitle,
+                  FinancialsFormView.render(
+                    t = t,
+                    fmodules = data.fmodules,
+                    stores = data.stores,
+                    accounts = data.accounts,
+                    contacts = data.contacts,
+                    mode = "view",
+                    title = docTitle)))
+            })
+              .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
+          case None =>
+            ZIO.succeed(Response.status(Status.BadRequest))
+      }
 
   private def matches(
                        t:     FinancialsTransaction,
@@ -320,4 +347,4 @@ object FinancialsHtmlEndpoint:
         case _            => true
 
   val routes: Routes[FormEnv, Response] =
-    Routes(formNew, formGet, formCopyFrom, formPut, listGet) @@ Middleware.debug
+    Routes(formNew, formGet, formCopyFrom, formPut, listGet, formPrint) @@ Middleware.debug
