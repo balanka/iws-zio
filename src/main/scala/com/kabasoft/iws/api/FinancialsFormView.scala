@@ -14,7 +14,7 @@ object FinancialsFormView:
     val accountOptionData = accounts.map(a => a.id -> Map("name" -> a.name)).toMap
 
     List(
-      HtmxSubGrid.Column("id",           "Id",       "w-16", printHidden = true),
+      HtmxSubGrid.Column("id",           "Id",       "w-16", printHidden = true, hidden   = true),
       HtmxSubGrid.Column("account",      "Account",  "w-40",
         kind       = HtmxSubGrid.CellKind.Select,
         options    = accountOptions,
@@ -95,13 +95,13 @@ object FinancialsFormView:
     // Footer: Total only — no VAT on Financials.
     // Visible columns: 1:id  2:account  3:oaccount  4:amount  5:duedate  6:text
     val totalCell =
-      s"""<span class="subgrid-foot-label">Total </span>""" +
+      s"""<span class="subgrid-foot-daisy-label">Total </span>""" +
         s"""<span class="calc-total num">${total.toString}</span>""" +
         s"""<span class="currency-suffix">${Html.esc(currencySymbol)}</span>"""
 
     val footers = List(
-      HtmxSubGrid.FooterCell(5, "", "subgrid-sum-cell"),           // id..duedate
-      HtmxSubGrid.FooterCell(1, totalCell, "num subgrid-sum-cell") // text column
+      HtmxSubGrid.FooterCell(4, "", ""),                          // empty, plain background
+      HtmxSubGrid.FooterCell(2, totalCell, "num subgrid-sum-cell") // total, 2 cols wide
     )
 
     val lineGrid = HtmxSubGrid.render(
@@ -153,9 +153,10 @@ object FinancialsFormView:
     //   Row 6: Text            | <span>
     //   Row 7: Foot text       | <span>
     val headerSection = HtmxCollapsible.section(
-      title = title,
-      id    = s"$formId-sec-header",
-      open  = true,
+      title   = title,
+      titleId = "financials-title",     // ← new: stable id for JS updates
+      id      = s"$formId-sec-header",
+      open    = true,
       content =
         s"""
            |${HtmxFields.textRow("Id",  s"$formId-id",  "id_display", t.id.toString, readonly = !isCreate)}
@@ -166,7 +167,7 @@ object FinancialsFormView:
           options    = fmodules.map(f => f.id.toString -> s"${f.id} ${f.name}"),
           value      = t.modelid.toString,
           hxGet      = "/html/financials-list",
-          hxTarget   = "#financials-list-card .card-content",
+          hxTarget   = "#financials-list-placeholder",
           hxInclude  = s"#$formId [name='company']",
           hxTrigger  = "change",
           extraClass = "filter-select"
@@ -202,8 +203,8 @@ object FinancialsFormView:
         )}
            |${HtmxFields.checkboxRow("Posted", s"$formId-posted", "posted", t.posted)}
            |
-           |<label class="label print-foot-label" for="$formId-text">Text</label>
-           |<textarea id="$formId-text" name="text" class="textarea span-value">${Html.esc(t.text)}</textarea>
+           |<label class="label print-foot-daisy-label" for="$formId-text">Text</label>
+           |<textarea id="$formId-text" name="text" class="daisy-textarea span-value">${Html.esc(t.text)}</textarea>
            |""".stripMargin)
 
     val linesBlock =
@@ -216,20 +217,30 @@ object FinancialsFormView:
     val footTextPrintBlock =
       s"""
          |<div class="print-foot-grid">
-         |  <label class="label">Foot text</label>
+         |  <label class="daisy-label">Foot text</label>
          |  <div class="print-foot-box">${Html.esc(t.footText)}</div>
          |</div>
          |""".stripMargin
+
+    // ── Title update on fmodule change ─────────────────────────────────
+    // Event delegation on the <form>: only fires when #$formId-fmodule changes.
+    // ── Title update on fmodule change (delegated on the form) ──────────
+    val titleUpdate = HtmxTitleUpdates.fmoduleTitleUpdate(
+      formId = formId,
+      titleId = "financials-title",
+      company = t.company
+    )
 
     s"""
        |<form id="$formId" class="$formClass"
        |      hx-put="/html/financials"
        |      hx-target="#$formId" hx-swap="outerHTML"
+       |      hx-on:change="$titleUpdate"
        |      hx-on::after-request="if(event.detail.requestConfig.verb === 'put' && event.detail.successful){ var c=document.getElementById('$formId-fmodule'); if(c) htmx.trigger(c,'change'); }">
        |
-       |  ${HtmxFields.hiddenField("id",           t.id.toString)}
-       |  ${HtmxFields.hiddenField("company",      t.company)}
-       |  ${HtmxFields.hiddenField("mode",         mode)}
+       |  ${HtmxFields.hiddenField("id", t.id.toString)}
+       |  ${HtmxFields.hiddenField("company", t.company)}
+       |  ${HtmxFields.hiddenField("mode", mode)}
        |  ${HtmxFields.hiddenField("record_modelid", t.modelid.toString)}
        |
        |  $headerSection
@@ -237,3 +248,30 @@ object FinancialsFormView:
        |  $footTextPrintBlock
        |</form>
        |""".stripMargin
+    
+//    
+//    val titleUpdate =
+//      s"""if (event.target.id === '$formId-fmodule') {
+//         |  var sel = event.target.options[event.target.selectedIndex];
+//         |  var fmoduleName = sel ? sel.textContent.trim() : '';
+//         |  var titleEl = document.getElementById('financials-title');
+//         |  if (titleEl) titleEl.textContent = '${Html.esc(t.company)}/' + fmoduleName;
+//         |}""".stripMargin
+//
+//    s"""
+//       |<form id="$formId" class="$formClass"
+//       |      hx-put="/html/financials"
+//       |      hx-target="#$formId" hx-swap="outerHTML"
+//       |      hx-on:change="$titleUpdate"
+//       |      hx-on::after-request="if(event.detail.requestConfig.verb === 'put' && event.detail.successful){ var c=document.getElementById('$formId-fmodule'); if(c) htmx.trigger(c,'change'); }">
+//       |
+//       |  ${HtmxFields.hiddenField("id",           t.id.toString)}
+//       |  ${HtmxFields.hiddenField("company",      t.company)}
+//       |  ${HtmxFields.hiddenField("mode",         mode)}
+//       |  ${HtmxFields.hiddenField("record_modelid", t.modelid.toString)}
+//       |
+//       |  $headerSection
+//       |  $linesBlock
+//       |  $footTextPrintBlock
+//       |</form>
+//       |""".stripMargin

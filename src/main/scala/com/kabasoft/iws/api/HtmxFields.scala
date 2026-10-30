@@ -10,7 +10,6 @@ import Html.esc
 object HtmxFields:
 
   // ── Low-level: option list ─────────────────────────────────────────────
-
   private def options[A](
                           items:    List[A],
                           selected: String,
@@ -38,7 +37,7 @@ object HtmxFields:
                      disabled: Boolean = false
                    ): String =
     val dis = if disabled then " disabled" else ""
-    s"""<select id="$id" class="select select-xs w-full" name="$name"$dis>
+    s"""<select id="$id" class="daisy-select daisy-select-xs w-full" name="$name"$dis>
        |  ${accountOptions(accounts, selected)}
        |</select>""".stripMargin
 
@@ -50,8 +49,8 @@ object HtmxFields:
                   selected:   String,
                   disabled:   Boolean = false
                 ): String =
-    s"""<label class="label" for="$id">${esc(labelTitle)}</label>
-       |<select id="$id" class="select select-xs w-full" name="$name"${if disabled then " disabled" else ""}>
+    s"""<label class="daisy-label" for="$id">${esc(labelTitle)}</label>
+       |<select id="$id" class="daisy-select daisy-select-xs w-full" name="$name"${if disabled then " disabled" else ""}>
        |  ${accountOptions(accounts, selected)}
        |</select>""".stripMargin
 
@@ -68,7 +67,7 @@ object HtmxFields:
                  disabled: Boolean = false
                ): String =
     val dis = if disabled then " disabled" else ""
-    s"""<select id="$id" class="select select-xs w-full" name="$name"$dis>
+    s"""<select id="$id" class="daisy-select daisy-select-xs w-full" name="$name"$dis>
        |  ${vatOptions(vats, selected)}
        |</select>""".stripMargin
 
@@ -80,8 +79,8 @@ object HtmxFields:
               selected:   String,
               disabled:   Boolean = false
             ): String =
-    s"""<label class="label" for="$id">${esc(labelTitle)}</label>
-       |<select id="$id" class="select select-xs w-full" name="$name"${if disabled then " disabled" else ""}>
+    s"""<label class="daisy-label" for="$id">${esc(labelTitle)}</label>
+       |<select id="$id" class="daisy-select daisy-select-xs w-full" name="$name"${if disabled then " disabled" else ""}>
        |  ${vatOptions(vats, selected)}
        |</select>""".stripMargin
 
@@ -100,7 +99,7 @@ object HtmxFields:
                      disabled: Boolean = false
                    ): String =
     val dis = if disabled then " disabled" else ""
-    s"""<select id="$id" class="select select-xs w-full" name="$name"$dis>
+    s"""<select id="$id" class="daisy-select daisy-select-xs w-full" name="$name"$dis>
        |  ${contactOptions(contacts, selected)}
        |</select>""".stripMargin
 
@@ -112,8 +111,8 @@ object HtmxFields:
                   selected:   String,
                   disabled:   Boolean = false
                 ): String =
-    s"""<label class="label" for="$id">${esc(labelTitle)}</label>
-       |<select id="$id" class="select select-xs w-full" name="$name"${if disabled then " disabled" else ""}>
+    s"""<label class="daisy-label" for="$id">${esc(labelTitle)}</label>
+       |<select id="$id" class="daisy-select daisy-select-xs w-full" name="$name"${if disabled then " disabled" else ""}>
        |  ${contactOptions(contacts, selected)}
        |</select>""".stripMargin
 
@@ -142,7 +141,7 @@ object HtmxFields:
                       disabled: Boolean = false
                     ): String =
     val dis = if disabled then " disabled" else ""
-    s"""<select id="$id" class="select select-xs w-full" name="$name"$dis>
+    s"""<select id="$id" class="daisy-select daisy-select-xs w-full" name="$name"$dis>
        |  ${currencyOptions(selected)}
        |</select>""".stripMargin
 
@@ -153,8 +152,8 @@ object HtmxFields:
                    selected:   String,
                    disabled:   Boolean = false
                  ): String =
-    s"""<label class="label" for="$id">${esc(labelTitle)}</label>
-       |<select id="$id" class="select select-xs w-full" name="$name"${if disabled then " disabled" else ""}>
+    s"""<label class="daisy-label" for="$id">${esc(labelTitle)}</label>
+       |<select id="$id" class="daisy-select daisy-select-xs w-full" name="$name"${if disabled then " disabled" else ""}>
        |  ${currencyOptions(selected)}
        |</select>""".stripMargin
 
@@ -167,8 +166,8 @@ object HtmxFields:
                   currency: String
                 ): String =
     val sym = Format.symbol(currency)
-    s"""<div class="input-money">
-       |  <input id="$id" class="input input-xs num" name="$name"
+    s"""<div class="daisy-input-money">
+       |  <input id="$id" class="daisy-input daisy-input-xs num" name="$name"
        |         type="number" step="0.01" value="$value" />
        |  <span class="currency-suffix">${esc(sym)}</span>
        |</div>""".stripMargin
@@ -180,7 +179,7 @@ object HtmxFields:
                 value:      String,
                 currency:   String
               ): String =
-    s"""<label class="label" for="$id">${esc(labelTitle)}</label>
+    s"""<label class="daisy-label" for="$id">${esc(labelTitle)}</label>
        |${moneyInput(id, name, value, currency)}""".stripMargin
 
   def numberRow(
@@ -189,8 +188,8 @@ object HtmxFields:
                  name: String,
                  value: String
                ): String =
-    s"""<label class="label" for="$id">${esc(labelTitle)}</label>
-       |<input id="$id" class="input input-xs num" name="$name"
+    s"""<label class="daisy-label" for="$id">${esc(labelTitle)}</label>
+       |<input id="$id" class="daisy-input daisy-input-xs num" name="$name"
        |       type="number" step="0.01" value="$value" />""".stripMargin
 
   // ── Text / textarea / checkbox ─────────────────────────────────────────
@@ -202,7 +201,7 @@ object HtmxFields:
                  readonly: Boolean = false
                ): String =
     val ro = if readonly then " readonly" else ""
-    s"""<input id="$id" class="input input-xs w-full" name="$name" value="${esc(value)}"$ro />"""
+    s"""<input id="$id" class="daisy-input daisy-input-xs w-full" name="$name" value="${esc(value)}"$ro />"""
 
   def textRow(
                labelTitle: String,
@@ -211,7 +210,7 @@ object HtmxFields:
                value:      String,
                readonly:   Boolean = false
              ): String =
-    s"""<label class="label" for="$id">${esc(labelTitle)}</label>
+    s"""<label class="daisy-label" for="$id">${esc(labelTitle)}</label>
        |${textInput(id, name, value, readonly)}""".stripMargin
 
   def dateRow(
@@ -222,9 +221,9 @@ object HtmxFields:
                readonly: Boolean = false
              ): String =
     val ro = if readonly then " readonly" else ""
-    s"""<label class="label" for="${Html.esc(id)}">${Html.esc(label)}</label>
+    s"""<label class="daisy-label" for="${Html.esc(id)}">${Html.esc(label)}</label>
        |<input id="${Html.esc(id)}" name="${Html.esc(name)}"
-       |       type="date" class="input"
+       |       type="date" class="daisy-input"
        |       value="${Html.esc(value)}"$ro />""".stripMargin
 
   def textarea(
@@ -232,7 +231,7 @@ object HtmxFields:
                 name:  String,
                 value: String
               ): String =
-    s"""<textarea id="$id" class="textarea textarea-xs w-full" name="$name">${esc(value)}</textarea>"""
+    s"""<textarea id="$id" class="daisy-textarea daisy-textarea-xs w-full" name="$name">${esc(value)}</textarea>"""
 
   def textareaRow(
                    labelTitle: String,
@@ -240,7 +239,7 @@ object HtmxFields:
                    name:       String,
                    value:      String
                  ): String =
-    s"""<label class="label" for="$id">${esc(labelTitle)}</label>
+    s"""<label class="daisy-label" for="$id">${esc(labelTitle)}</label>
        |${textarea(id, name, value)}""".stripMargin
 
   def checkbox(
@@ -249,7 +248,7 @@ object HtmxFields:
                 checked: Boolean
               ): String =
     val ck = if checked then " checked" else ""
-    s"""<input id="$id" type="checkbox" class="checkbox checkbox-xs" name="$name"$ck />"""
+    s"""<input id="$id" type="checkbox" class="daisy-checkbox checkbox-xs" name="$name"$ck />"""
 
   def checkboxRow(
                    labelTitle: String,
@@ -257,14 +256,14 @@ object HtmxFields:
                    name:       String,
                    checked:    Boolean
                  ): String =
-    s"""<label class="label" for="$id">${esc(labelTitle)}</label>
+    s"""<label class="daisy-label" for="$id">${esc(labelTitle)}</label>
        |${checkbox(id, name, checked)}""".stripMargin
 
   // ── Button ─────────────────────────────────────────────────────────────
 
   def saveRow: String =
     s"""<span></span>
-       |<button type="submit" class="btn btn-primary btn-xs justify-self-start">Save</button>
+       |<button type="submit" class="daisy-btn btn-primary daisy-btn-xs justify-self-start">Save</button>
        |<span></span>
        |<span></span>""".stripMargin
 
@@ -279,7 +278,7 @@ object HtmxFields:
                         disabled: Boolean = false
                       ): String =
     val dis = if disabled then " disabled" else ""
-    s"""<select id="$id" class="select select-xs w-full" name="$name"$dis>
+    s"""<select id="$id" class="daisy-select daisy-select-xs w-full" name="$name"$dis>
        |  ${masterfileOptions(items, selected)}
        |</select>""".stripMargin
 
@@ -291,8 +290,8 @@ object HtmxFields:
                      selected: String,
                      disabled: Boolean = false
                    ): String =
-    s"""<label class="label" for="$id">${esc(labelTitle)}</label>
-       |<select id="$id" class="select select-xs w-full" name="$name"${if disabled then " disabled" else ""}>
+    s"""<label class="daisy-label" for="$id">${esc(labelTitle)}</label>
+       |<select id="$id" class="daisy-select daisy-select-xs w-full" name="$name"${if disabled then " disabled" else ""}>
        |  ${masterfileOptions(items, selected)}
        |</select>""".stripMargin
 
@@ -308,7 +307,7 @@ object HtmxFields:
                     choices: List[(String, String)],
                     selected: String
                   ): String =
-    s"""<select id="$id" class="select select-xs w-full" name="$name">
+    s"""<select id="$id" class="daisy-select daisy-select-xs w-full" name="$name">
        |  ${choiceOptions(choices, selected)}
        |</select>""".stripMargin
 
@@ -319,8 +318,8 @@ object HtmxFields:
                  choices: List[(String, String)],
                  selected: String
                ): String =
-    s"""<label class="label" for="$id">${esc(labelTitle)}</label>
-       |<select id="$id" class="select select-xs w-full" name="$name">
+    s"""<label class="daisy-label" for="$id">${esc(labelTitle)}</label>
+       |<select id="$id" class="daisy-select daisy-select-xs w-full" name="$name">
        |  ${choiceOptions(choices, selected)}
        |</select>""".stripMargin
 
@@ -381,7 +380,22 @@ object HtmxFields:
     val cls = List("select", extraClass).filter(_.nonEmpty).mkString(" ")
     val dis = if disabled then " disabled" else ""
 
-    s"""<label class="label" for="${Html.esc(id)}">${Html.esc(label)}</label>
+    s"""<label class="daisy-label" for="${Html.esc(id)}">${Html.esc(label)}</label>
        |<select id="${Html.esc(id)}" name="${Html.esc(name)}" class="${Html.esc(cls)}"$htmxAttrs$dis>
        |  $opts
        |</select>""".stripMargin
+
+    // In a shared HtmxFields or HtmxButtons object:
+  def toolbarButton(
+                       tooltip: String,
+                       action: String, // e.g. "hx-get='/html/financials/new'"
+                       iconHtml: String, // inline SVG or CoreUI icon markup
+                       disabled: Boolean = false
+                     ): String =
+      s"""<span class="toolbar-btn-wrap" title="${esc(tooltip)}">
+         |  <button type="button" class="toolbar-btn${if disabled then " disabled" else ""}"
+         |          $action ${if disabled then "disabled" else ""}>
+         |    $iconHtml
+         |  </button>
+         |</span>
+         |""".stripMargin

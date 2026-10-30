@@ -31,7 +31,7 @@ final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
 
   def transact(s: Session[Task], newCustomers: List[Company], newbankAccount: List[BankAccount], oldCustomers: List[Company]
                , oldbankAcc2Update: List[BankAccount], bankAcc2Delete: List[BankAccount]): Task[Unit] =
-    transact(s, newCustomers, newbankAccount, oldCustomers.map(Company.encodeIt2)
+    transact(s, newCustomers, newbankAccount, oldCustomers.map(Company.encodeIt3)
       , oldbankAcc2Update.map(BankAccount.encodeIt2), bankAcc2Delete.map(BankAccount.encodeIt3)
       , insert, BankAccountRepositorySQL.insert, CompanyRepositorySQL.UPDATE, BankAccountRepositorySQL.UPDATE_BANK_ACCOUNT
       , BankAccountRepositorySQL.DELETE_BANK_ACCOUNT)
@@ -53,7 +53,7 @@ final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
         cmdWithArg(insert, c),
         cmdWithArg(ModuleRepositorySQL.insertAll(modules.size), modules.map(_.copy(company = c.id)).map(Module.encodeIt)),
         cmdWithArg(FModuleRepositorySQL.insertAll(fmodules.size), fmodules.map(_.copy(company = c.id)).map(Fmodule.encodeIt)),
-        cmdWithArg(UserRepositorySQL.insertAll(users.size), users.map(_.copy(company = c.id)).map(User.encodeIt)),
+        cmdWithArg(UserRepositorySQL.insertAll(users.size), users.map(_.copy(company = c.id)).map(User.encodeIt3)),
         cmdWithArg(PermissionRepositorySQL.insertAll(permissions.size), permissions.map(_.copy(company = c.id)).map(Permission.encodeIt)),
         cmdWithArg(RoleRepositorySQL.insertAll(roles.size), roles.map(_.copy(company = c.id)).map(Role.encodeIt)),
         cmdWithArg(RoleRepositorySQL.insertUserRole(userRoles.size), userRoles.map(_.copy(company = c.id)).map(UserRole.encodeIt)),
@@ -64,6 +64,7 @@ final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
         cmdWithArg(journal_seq_command, skunk.Void),
         cmdWithArg(bankStmt_seq_command, skunk.Void)
       )
+      _ <- ZIO.logInfo(s"insert.sql = ${insert.sql}")
       result <- executeWithTx(postgres, commands).mapError(t => RepositoryError(t.getMessage))
     } yield result
 
@@ -130,23 +131,23 @@ private[repository] object CompanyRepositorySQL:
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 
   private val mfCodec =
-    (varchar *: varchar *: varchar *: varchar *: varchar  *: varchar *: varchar *: varchar *: varchar *: varchar  *:
-     varchar *: varchar *: varchar *:
-     varchar *: varchar *: varchar *: varchar *: varchar  *: varchar *: varchar *: varchar *: varchar *: varchar *: int4)
-
-  private[repository] def encodeIt(st: Company): Company.TYPE2 =
-    (st.id, st.name, st.street, st.zip, st.city, st.state, st.country, st.email, st.contact, st.phone, st.bankAcc , st.description
-      , st.taxCode, st.vatCode, st.currency, st.locale, st.account, st.oaccount, st.balanceSheetAcc
-      , st.incomeStmtAcc, st.purchasingClearingAcc, st.salesClearingAcc, st.cashAcc, st.modelid)
+     varchar *: varchar *: varchar *: varchar *: varchar  *: varchar *: varchar *: varchar *: varchar *: varchar  *:
+     varchar *: varchar *: varchar *:varchar *: varchar *: varchar *: varchar *: varchar  *:  varchar *: varchar *:
+     varchar *: varchar *: varchar *: int4 *: timestamp *: timestamp *: timestamp *:varchar *: varchar  *: varchar *:
+     varchar *: varchar *: varchar *: varchar
 
   val mfDecoder: Decoder[Company] = mfCodec.map:
     case ( id, name, street, zip, city, state, country, email, contact, phone, bankAcc, description, taxCode, vatCode
       , currency, locale, account, oaccount, balanceSheetAcc, incomeStmtAcc, purchasingClearingAcc, salesClearingAcc
-      , cashAcc, modelid) => Company(id, name, street, zip, city, state, country, email, contact, phone, bankAcc, description
+      , cashAcc, modelid, enterdate, changedate, postingdate, pageHeaderText, pageFooterText
+      , headerText, footerText, logoContent, logoName, contentType) =>
+      Company(id, name, street, zip, city, state, country, email, contact, phone, bankAcc, description
       , taxCode, vatCode, currency, locale, account, oaccount, balanceSheetAcc, incomeStmtAcc, purchasingClearingAcc
-      , salesClearingAcc, cashAcc, modelid)
+      , salesClearingAcc, cashAcc, modelid, Nil,  toInstant(enterdate),  toInstant(changedate),  toInstant(postingdate)
+      , pageHeaderText, pageFooterText, headerText, footerText, logoContent, logoName, contentType)
+
   
-  val mfEncoder: Encoder[Company] = mfCodec.values.contramap(encodeIt)
+  val mfEncoder: Encoder[Company] = mfCodec.values.contramap(Company.encodeIt)
 
   def base =
     sql""" id, name, street, zip, city, state, country, email, contact, phone, bank_acc, description, tax_code, vat_code
@@ -157,7 +158,8 @@ private[repository] object CompanyRepositorySQL:
   def ALL_BY_ID(nr: Int): Query[(List[String], Int), Company] =
     sql"""SELECT id, name, street, zip, city, state, country, email, contact, phone, bank_acc, description, tax_code, vat_code
           , currency, locale, account, oaccount, balance_sheet_acc, income_stmt_acc, purchasing_clearing_acc
-          , sales_clearing_acc, cash_acc, modelid
+          , sales_clearing_acc, cash_acc, modelid, enterdate, changedate, postingdate, pageHeaderText, pageFooterText
+      , headerText, footerText, logoContent, logoName, contentType
            FROM   company
            WHERE id  IN ${varchar.list(nr)} AND  modelid = $int4
            ORDER BY id ASC""".query(mfDecoder)
@@ -165,7 +167,8 @@ private[repository] object CompanyRepositorySQL:
   val BY_ID: Query[String *: Int *: EmptyTuple, Company] =
     sql"""SELECT id, name, street, zip, city, state, country, email, contact, phone, bank_acc, description, tax_code, vat_code
           , currency, locale, account, oaccount, balance_sheet_acc, income_stmt_acc, purchasing_clearing_acc
-          , sales_clearing_acc, cash_acc, modelid
+          , sales_clearing_acc, cash_acc, modelid,enterdate, changedate, postingdate, pageHeaderText, pageFooterText
+      , headerText, footerText, logoContent, logoName, contentType
            FROM   company
            WHERE id = $varchar AND modelid = $int4
            ORDER BY id ASC""".query(mfDecoder)
@@ -173,7 +176,8 @@ private[repository] object CompanyRepositorySQL:
   val ALL: Query[Int, Company] =
      sql"""SELECT id, name, street, zip, city, state, country, email, contact, phone, bank_acc, description, tax_code, vat_code
           , currency, locale, account, oaccount, balance_sheet_acc, income_stmt_acc, purchasing_clearing_acc
-          , sales_clearing_acc, cash_acc, modelid
+          , sales_clearing_acc, cash_acc, modelid, enterdate, changedate, postingdate, pageHeaderText, pageFooterText
+      , headerText, footerText, logoContent, logoName, contentType
            FROM   company
            WHERE  modelid = $int4
            ORDER BY id ASC""".query(mfDecoder)
@@ -181,27 +185,30 @@ private[repository] object CompanyRepositorySQL:
   val insert: Command[Company] = sql"""INSERT INTO company 
     (id, name, street, zip, city, state, country, email, contact, phone, bank_acc, description, tax_code, vat_code,
       currency, locale, account, oaccount, balance_sheet_acc, income_stmt_acc, purchasing_clearing_acc
-      , sales_clearing_acc, cash_acc, modelid)
+      , sales_clearing_acc, cash_acc, modelid, enterdate, changedate, postingdate,pageheadertext, pagefootertext
+      , headertext, footertext, logocontent, logoname, contenttype)
     VALUES $mfEncoder""".command
   
-   def insertAll(n:Int):Command[List[Company.TYPE2]]=
+   def insertAll(n:Int):Command[List[Company.TYPE]]=
      sql"""INSERT INTO company 
-           (id, name, street, zip, city, state, country, email, contact, phone, bank_acc, description, tax_code, vat_code,
-             currency, locale, account, oaccount, balance_sheet_acc, income_stmt_acc, purchasing_clearing_acc
-             , sales_clearing_acc, cash_acc, modelid)
+           (id, name, street, zip, city, state, country, email, contact, phone, bank_acc, description, tax_code, vat_code
+             , currency, locale, account, oaccount, balance_sheet_acc, income_stmt_acc, purchasing_clearing_acc
+             , sales_clearing_acc, cash_acc, modelid, enterdate, changedate, postingdate,pageheadertext, pagefootertext
+             , headertext, footertext, logocontent, logoname, contenttype)
          VALUES ${mfCodec.values.list(n)}""".command
   
-  val UPDATE:Command[Company.TYPE2]=
+  val UPDATE:Command[Company.TYPE3]=
     sql"""UPDATE company set name =$varchar, street =$varchar, zip =$varchar, city =$varchar, state =$varchar
           , country =$varchar, email =$varchar, contact =$varchar, phone =$varchar, bank_acc =$varchar, description =$varchar
           , tax_code =$varchar, vat_code =$varchar, currency =$varchar, locale =$varchar, balance_sheet_acc =$varchar 
           , income_stmt_acc =$varchar, purchasing_clearing_acc =$varchar, sales_clearing_acc =$varchar,  cash_acc=$varchar
-          , account=$varchar, oaccount=$varchar 
+          , account=$varchar, oaccount=$varchar  pageheadertext=$varchar , pagefootertext=$varchar, headertext=$varchar
+          , footertext=$varchar, logocontent=$varchar, logoname=$varchar, contenttype=$varchar
           WHERE id=$varchar and modelid=$int4""".command
 
   def DELETE: Command[(String, Int)] = sql"DELETE FROM Company WHERE id = $varchar AND modelid = $int4".command
 
-  def createSequence(name: String, companyId: String) = {
+  def createSequence(name: String, companyId: String): Command[Void] = {
     val sequenceName_ = sequenceName(name, companyId)
     sql"""create sequence #$sequenceName_ start with 1""".command
   }
@@ -209,5 +216,7 @@ private[repository] object CompanyRepositorySQL:
   def sequenceName(sequenceName: String, companyId: String): String =
     s"${sequenceName}_${companyId}}"
 
-  def cmdWithArg[A](cmd: Command[A], arg: A): (Command[Any], Any) =
-    (cmd.asInstanceOf[Command[Any]], arg)
+  def cmdWithArg[A](cmd: Command[A], arg: A): (Command[Any], Any) = {
+    //ZIO.logInfo(s"cmd.sql ${cmd.sql}") *>
+      (cmd.asInstanceOf[Command[Any]], arg)
+  }

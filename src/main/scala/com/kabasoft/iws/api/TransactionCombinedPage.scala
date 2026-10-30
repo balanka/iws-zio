@@ -1,6 +1,7 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.{ModelId, Transaction}
+import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.repository._
 import zio._
 import zio.http._
@@ -17,14 +18,29 @@ object TransactionCombinedPage:
   private def blank(company: String, modelid: Int): Transaction =
     val ld = LocalDate.now()
     Transaction(
-      id = -1L, oid = "", contact = "", store = "", account = "-1",
-      transdate = Instant.now(), enterdate = Instant.now(), postingdate = Instant.now(),
+      id = -1L,
+      oid = "",
+      contact = "",
+      store = "",
+      account = "-1",
+      transdate = Instant.now(),
+      enterdate = Instant.now(),
+      postingdate = Instant.now(),
       period = ld.getYear * 100 + ld.getMonthValue,
-      posted = false, modelid = modelid,
-      company = company, text = "", footText = "", lines = Nil)
+      posted = false,
+      modelid = modelid,
+      company = company,
+      text = "",
+      footText = "",
+      lines = Nil)
 
-  private def render(company: String): ZIO[Repos, Nothing, Response] =
-    (for {
+  /**
+   * Builds the combined body (toolbar + form + list placeholder) without
+   * the outer HTML page wrapper. This is the fragment that HTMX swaps into
+   * #transaction-combined-htmx-mount inside the React CoreUI shell.
+   */
+  private def buildBody(company: String): ZIO[Repos, RepositoryError, String] =
+    for {
       accs   <- AccountRepository.all((ModelId.ACCOUNT.modelid, company))
       arts   <- ArticleRepository.all((ModelId.ARTICLE.modelid, company))
       vats   <- VatRepository.all((ModelId.VAT.modelid, company))
@@ -33,7 +49,8 @@ object TransactionCombinedPage:
       fms    <- FModuleRepository.all((ModelId.FMODULE.modelid, company))
     } yield {
       val data           = FormData(accs, arts, vats, stores, cts, fms)
-      val initialModelid = data.fmodules.headOption.map(_.id).getOrElse(ModelId.TRANSACTION.modelid)
+      val initialModelid =
+        data.fmodules.headOption.map(_.id).getOrElse(ModelId.TRANSACTION.modelid)
 
       val formHtml = TransactionFormView.render(
         t                  = blank(company, initialModelid),
@@ -61,19 +78,44 @@ object TransactionCombinedPage:
         showEdit       = false
       )
 
-      val bodyHtml = HtmxCombinedLayout.render(
+      HtmxCombinedLayout.render(
         prefix      = prefix,
         title       = s"$company/Transaction",
         toolbarHtml = toolbarHtml,
         formHtml    = formHtml,
         listHtml    = listHtml
       )
+    }
 
-      HtmxResponse.htmlNoCache(HtmxPage.renderRaw("Transaction", bodyHtml))
-    }).catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
+  /**
+   * Full-page renderer — for direct browser navigation to
+   * /transaction-combined-htmx/:company.
+   */
+  private def render(company: String): ZIO[Repos, Nothing, Response] =
+    buildBody(company)
+      .map(bodyHtml =>
+        HtmxResponse.htmlNoCache(HtmxPage.renderRaw("Transaction", bodyHtml)))
+      .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
 
+  /**
+   * Fragment renderer — for HTMX swap into the React CoreUI shell.
+   */
+  private def renderFragment(company: String): ZIO[Repos, Nothing, Response] =
+    buildBody(company)
+      .map(bodyHtml => HtmxResponse.htmlNoCache(bodyHtml))
+      .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
+
+  // ── Routes ────────────────────────────────────────────────────────────
+  //
+  // /transaction-combined-htmx/:company  → full page (direct browser access)
+  // /html/transaction-combined/:company  → fragment (HTMX fetch from React)
+  //
   private val pageGet: Route[Repos, Response] =
     Method.GET / "transaction-combined-htmx" / string("company") ->
       handler { (company: String, _: Request) => render(company) }
 
-  val routes: Routes[Repos, Response] = Routes(pageGet)
+  private val fragmentGet: Route[Repos, Response] =
+    Method.GET / "html" / "transaction-combined" / string("company") ->
+      handler { (company: String, _: Request) => renderFragment(company) }
+
+  val routes: Routes[Repos, Response] = Routes(pageGet, fragmentGet)

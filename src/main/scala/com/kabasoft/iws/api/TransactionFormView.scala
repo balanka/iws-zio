@@ -5,8 +5,6 @@ import HtmxFields.{comboRow, fmtDate}
 
 object TransactionFormView:
 
-  // ── Line columns ────────────────────────────────────────────────────────
-
   private def lineColumns(
                            articles: List[Article],
                            vats:     List[Vat],
@@ -109,8 +107,6 @@ object TransactionFormView:
       .map(_.vat)
       .foldLeft(java.math.BigDecimal.ZERO)(_.add(_))
 
-  // ── Main render ─────────────────────────────────────────────────────────
-
   def render(
               t:                  Transaction,
               fmodules:           List[Fmodule],
@@ -136,30 +132,26 @@ object TransactionFormView:
     val vatSum = vatTotal(t)
     val total  = headerTotal(t)
 
-    // Footer layout — visible columns of lineColumns:
+    // Footer — visible columns:
     //   1:id  2:article  3:quantity  4:unit  5:price  6:amount
     //   7:vatCode  8:vat  9:duedate  10:text
-    //
-    // One label per cell. `Vat:` sits left of the VAT sum, `Total ` sits
-    // left of the total, both right-aligned within their columns.
     val vatSumCell =
-      s"""<span class="subgrid-foot-label">Vat: </span>""" +
+      s"""<span class="subgrid-foot-daisy-label">Vat: </span>""" +
         s"""<span class="calc-vat-total num">${vatSum.toString}</span>""" +
         s"""<span class="currency-suffix">${Html.esc(currencySymbol)}</span>"""
 
     val totalCell =
-      s"""<span class="subgrid-foot-label">Total </span>""" +
+      s"""<span class="subgrid-foot-daisy-label">Total </span>""" +
         s"""<span class="calc-total num">${total.toString}</span>""" +
         s"""<span class="currency-suffix">${Html.esc(currencySymbol)}</span>"""
 
     val footers = List(
       HtmxSubGrid.FooterCell(1, "", "subgrid-sum-cell print-hide"),   // id
       HtmxSubGrid.FooterCell(6, "", "subgrid-sum-cell"),              // article..vatCode
-      HtmxSubGrid.FooterCell(1, vatSumCell, "num subgrid-sum-cell"),  // vat (VAT amt)
+      HtmxSubGrid.FooterCell(1, vatSumCell, "num subgrid-sum-cell"),  // vat
       HtmxSubGrid.FooterCell(1, "", "subgrid-sum-cell print-hide"),   // duedate
       HtmxSubGrid.FooterCell(1, totalCell, "num subgrid-sum-cell")    // text
     )
-
 
     val lineGrid = HtmxSubGrid.render(
       id             = s"$formId-lines",
@@ -201,18 +193,18 @@ object TransactionFormView:
           extraClass = "copy-from-select"
         )
 
+    // ── Initial title: company/fmodule.name ───────────────────────────
+    val initialTitle =
+      fmodules.find(_.id == t.modelid) match
+        case Some(f) => s"${t.company}/${f.id} ${f.name}"
+        case None    => title
+
     // ── Header section ─────────────────────────────────────────────────
-    //   Row 1: Id              | Transaction
-    //   Row 2: Oid             | Transaction date
-    //   Row 3: Store           | Copy from
-    //   Row 4: Account         | Period
-    //   Row 5: Contact         | Posted
-    //   Row 6: Text            | <span>
-    //   Row 7: Foot text       | <span>  (printed copy is at the bottom)
     val headerSection = HtmxCollapsible.section(
-      title = title,
-      id    = s"$formId-sec-header",
-      open  = true,
+      title   = initialTitle,
+      titleId = "transaction-title",
+      id      = s"$formId-sec-header",
+      open    = true,
       content =
         s"""
            |${HtmxFields.textRow("Id",  s"$formId-id",  "id_display", t.id.toString, readonly = !isCreate)}
@@ -223,7 +215,7 @@ object TransactionFormView:
           options    = fmodules.map(f => f.id.toString -> s"${f.id} ${f.name}"),
           value      = t.modelid.toString,
           hxGet      = "/html/transaction-list",
-          hxTarget   = "#transaction-list-card .card-content",
+          hxTarget   = "#transaction-list-placeholder",
           hxInclude  = s"#$formId [name='company']",
           hxTrigger  = "change",
           extraClass = "filter-select"
@@ -259,8 +251,11 @@ object TransactionFormView:
         )}
            |${HtmxFields.checkboxRow("Posted", s"$formId-posted", "posted", t.posted)}
            |
-           |<label class="label print-foot-label" for="$formId-text">Text</label>
-           |<textarea id="$formId-text" name="text" class="textarea span-value">${Html.esc(t.text)}</textarea>
+           |<label class="label print-foot-daisy-label" for="$formId-text">Text</label>
+           |<textarea id="$formId-text" name="text" class="daisy-textarea span-value">${Html.esc(t.text)}</textarea>
+           |
+           |<label class="label print-foot-daisy-label" for="$formId-foot">Foot text</label>
+           |<textarea id="$formId-foot" name="footText" class="daisy-textarea span-value print-foot-daisy-label">${Html.esc(t.footText)}</textarea>
            |""".stripMargin)
 
     val linesBlock =
@@ -270,22 +265,25 @@ object TransactionFormView:
          |</div>
          |""".stripMargin
 
-    // Printed foot text — rendered after the subgrid so it lands at
-    // the bottom of the printed page. Hidden on screen.
-    //   <div class="print-foot-box">${Html.esc(t.footText)}</div>
-    //<div class="print-foot-grid">
-    //<textarea id="$formId-text" name="text" class="textarea span-value">${Html.esc(t.footText)}</textarea>
-    //</div>
     val footTextPrintBlock =
       s"""
          |<div class="print-foot-grid">
-         |<textarea id="$formId-text" name="text" class="textarea span-value">${Html.esc(t.footText)}</textarea>
+         |<textarea id="$formId-text" name="text" class="daisy-textarea span-value">${Html.esc(t.footText)}</textarea>
          |</div>
          |""".stripMargin
+
+    // ── Title update on fmodule change ────────────────────────────────
+    val titleUpdate = HtmxTitleUpdates.fmoduleTitleUpdate(
+      formId  = formId,
+      titleId = "transaction-title",
+      company = t.company
+    )
+
     s"""
        |<form id="$formId" class="$formClass"
        |      hx-put="/html/transaction"
        |      hx-target="#$formId" hx-swap="outerHTML"
+       |      hx-on:change="$titleUpdate"
        |      hx-on::after-request="if(event.detail.requestConfig.verb === 'put' && event.detail.successful){ var c=document.getElementById('$formId-fmodule'); if(c) htmx.trigger(c,'change'); }">
        |
        |  ${HtmxFields.hiddenField("id",      t.id.toString)}

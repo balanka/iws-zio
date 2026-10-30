@@ -10,100 +10,116 @@ object HtmxToolbar:
               newFormInclude: String = "",
               showEdit:       Boolean = true
             ): String =
-    val newBtnAttrs =
-      if newFormUrl.nonEmpty then
-        s"""hx-get="$newFormUrl" hx-include="$newFormInclude""""
-      else
-        s"""hx-get="/html/$prefix/new-form/$modelid/$company""""
 
-    val editButton =
+    val newAction =
+      if newFormUrl.nonEmpty then
+        s"""hx-get="$newFormUrl" hx-include="$newFormInclude" hx-target="#$prefix-form" hx-swap="outerHTML""""
+      else
+        s"""hx-get="/html/$prefix/new-form/$modelid/$company" hx-target="#$prefix-form" hx-swap="outerHTML""""
+
+    val newBtn = HtmxButtons.iconButton(
+      tooltip = "Create a new record",
+      action  = newAction,
+      icon    = MuiIcons.addIcon)
+
+    val editBtn =
       if showEdit then
-        s"""|      <button type="button"
-            |              class="btn btn-xs btn-outline"
-            |              id="toggle-edit-btn"
-            |              data-edit-target="#$prefix-form"
-            |              title="Toggle edit mode">
-            |        <span class="edit-label">Edit</span>
-            |      </button>
-            |""".stripMargin
+        HtmxButtons.iconButton(
+          tooltip = "Toggle edit mode",
+          id      = "toggle-edit-btn",
+          action  = s"""data-edit-target="#$prefix-form"""",
+          icon    = MuiIcons.editIcon)
       else ""
 
+    val saveBtn = HtmxButtons.iconButton(
+      tooltip    = "Save the form",
+      icon       = MuiIcons.saveIcon,
+      buttonType = "submit",
+      formTarget = s"$prefix-form",
+      extraClass = "toolbar-btn-primary"
+    )
+
+    val addLineBtn = HtmxButtons.iconButton(
+      tooltip = "Add a new line to the active grid",
+      id      = "add-line-btn",
+      action  = """onclick="window.iwsAddLineToActiveGrid && window.iwsAddLineToActiveGrid()"""",
+      icon    = MuiIcons.addLineIcon
+    )
+
+    val printBtn = HtmxButtons.iconButton(
+      tooltip = "Print this record",
+      action  = s"""onclick="window.iwsPrintForm && window.iwsPrintForm('$prefix')"""",
+      icon    = MuiIcons.localPrinterIcon
+    )
+
+    val searchBtn = HtmxButtons.labelledButton(
+      label = "Show Search",
+      id    = "toggle-search-btn",
+      title = "Show / hide the search field",
+      icon  = MuiIcons.searchIcon)
+
+    val listBtn = HtmxButtons.labelledButton(
+      label = "Hide List",
+      id    = "hide-list-btn",
+      title = "Show / hide the list",
+      icon  = MuiIcons.listIcon1)
+
     s"""
-       |<div class="card bg-base-100 shadow-sm">
-       |  <div class="card-body compact py-1">
-       |    <div class="htmx-toolbar">
+       |<div class="daisy-card bg-base-100 shadow-sm">
+       |  <div class="daisy-card-body compact py-1">
+       |    <div class="htmx-toolbar"
+       |      hx-on:click="
+       |        var t = event.target.closest('button');
+       |        if (!t) return;
        |
-       |      <button type="button"
-       |              class="btn btn-xs btn-outline"
-       |              $newBtnAttrs
-       |              hx-target="#$prefix-form"
-       |              hx-swap="outerHTML"
-       |              title="Create a new record">
-       |        <span>New</span>
-       |      </button>
+       |        if (t.id === 'hide-form-btn') {
+       |          var f = document.getElementById('${prefix}-form');
+       |          if (f) {
+       |            f.classList.toggle('hidden');
+       |            var lbl = t.querySelector('.toggle-daisy-label');
+       |            if (lbl) lbl.textContent = f.classList.contains('hidden') ? 'Show Form' : 'Hide Form';
+       |          }
+       |        }
        |
-       |$editButton
-       |      <button type="submit"
-       |              form="$prefix-form"
-       |              class="btn btn-xs btn-primary"
-       |              title="Save the form">
-       |        <span>Save</span>
-       |      </button>
+       |        if (t.id === 'hide-list-btn') {
+       |          var l = document.getElementById('${prefix}-list-card');
+       |          if (l) {
+       |            l.classList.toggle('hidden');
+       |            var lbl = t.querySelector('.toggle-daisy-label');
+       |            if (lbl) lbl.textContent = l.classList.contains('hidden') ? 'Show List' : 'Hide List';
+       |          }
+       |        }
        |
-       |      <button type="button"
-       |              class="btn btn-xs btn-outline"
-       |              id="add-line-btn"
-       |              onclick="window.iwsAddLineToActiveGrid && window.iwsAddLineToActiveGrid()"
-       |              title="Add a new line to the active grid">
-       |        <span>+ Add line</span>
-       |      </button>
+       |        if (t.id === 'toggle-search-btn') {
+       |          var s = document.getElementById('daisy-table-search-wrapper');
+       |          if (s) {
+       |            s.classList.toggle('hidden');
+       |            t.classList.toggle('is-open');
+       |          }
+       |        }
+       |      ">
        |
-       |      <button type="button"
-       |              class="btn btn-xs btn-outline"
-       |              onclick="window.iwsPrintForm && window.iwsPrintForm('$prefix')"
-       |              title="Print this record">
-       |        <span>Print</span>
-       |      </button>
+       |      <!-- Left group: action buttons -->
+       |      $newBtn
+       |      $addLineBtn
+       |      $editBtn
+       |      $saveBtn
+       |      $printBtn
        |
-       |      <span class="toolbar-sep"></span>
-       |
-       |      <button type="button"
-       |              class="btn btn-xs btn-outline"
-       |              data-toggle="#$prefix-form-card"
-       |              data-label-show="Show Form"
-       |              data-label-hide="Hide Form"
-       |              title="Show / hide the form">
-       |        <span class="toggle-arrow">▾</span>
-       |        <span class="toggle-label">Hide Form</span>
-       |      </button>
-       |
-       |      <button type="button"
-       |              class="btn btn-xs btn-outline"
-       |              data-toggle="#$prefix-list-card"
-       |              data-label-show="Show List"
-       |              data-label-hide="Hide List"
-       |              title="Show / hide the list">
-       |        <span class="toggle-arrow">▾</span>
-       |        <span class="toggle-label">Hide List</span>
-       |      </button>
-       |
-       |      <button type="button"
-       |              class="btn btn-xs btn-outline"
-       |              id="toggle-search-btn"
-       |              title="Show / hide the search field">
-       |        <span class="toggle-arrow">▸</span>
-       |        <span class="toggle-label">Show Search</span>
-       |      </button>
-       |
-       |      <label class="page-size ms-auto">
-       |        <span>Density</span>
-       |        <select id="density-select" class="select select-xs density-select">
-       |          <option value="xdense">Extra dense</option>
-       |          <option value="compact">Compact</option>
-       |          <option value="normal">Normal</option>
-       |          <option value="spacious">Spacious</option>
-       |        </select>
-       |      </label>
+       |      <!-- Right group: toggles + density -->
+       |      <div class="toolbar-right-group ms-auto">
+       |        $listBtn
+       |        $searchBtn
+       |        <label class="page-size">
+       |          <span>Density</span>
+       |          <select id="density-select" class="select daisy-select-xs density-daisy-select">
+       |            <option value="xdense">Extra dense</option>
+       |            <option value="compact">Compact</option>
+       |            <option value="normal">Normal</option>
+       |            <option value="spacious">Spacious</option>
+       |          </select>
+       |        </label>
+       |      </div>
        |
        |    </div>
        |  </div>

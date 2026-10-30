@@ -46,24 +46,7 @@ private[repository] object FModuleRepositorySQL:
 
   private val mfCodec =
     (int4 *: varchar *: varchar *: timestamp *: timestamp *: timestamp *: varchar  *:bool  *: varchar *:varchar *: varchar *:varchar *: varchar *:varchar *:int4 *: varchar)
-//  private[repository] def encodeIt(st: Fmodule): TYPE =
-//    (st.id,
-//      st.name,
-//      st.description,
-//      st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
-//      st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
-//      st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
-//      st.account,
-//      st.isDebit,
-//      st.parent,
-//      st.copyFrom,
-//      st.accFilter,
-//      st.oaccFilter,
-//      st.template1,
-//      st.template2,
-//      st.modelid,
-//      st.company
-//    )
+
   val mfDecoder: Decoder[Fmodule] = mfCodec.map :
     case (id, name, description, enterdate, changedate, postingdate, account, isDebit,  parent, copyFrom, accFilter
      , oaccFilter, template1, template2,modelid, company) =>
@@ -134,7 +117,11 @@ private[repository] object FModuleRepositorySQL:
     sql"""INSERT INTO fmodule (id, name, description, enterdate,changedate, postingdate,  account, is_debit, parent
          , copy_from, acc_filter, oacc_filter,  template1, template2, modelid, company ) VALUES $mfEncoder """.command
 
-  def insertAll(n:Int): Command[List[Fmodule.TYPE]]= sql"INSERT INTO fmodule VALUES ${mfCodec.values.list(n)}".command
+  def insertAll(n:Int): Command[List[Fmodule.TYPE]]=
+    sql"""INSERT INTO fmodule 
+          (id, name, description, enterdate,changedate, postingdate,  account, is_debit, parent
+         , copy_from, acc_filter, oacc_filter,  template1, template2, modelid, company )
+         VALUES ${mfCodec.values.list(n)}""".command
 
   val UPDATE: Command[Fmodule.TYPE2] =
     sql"""UPDATE fmodule

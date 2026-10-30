@@ -8,21 +8,18 @@ object HtmxSubGrid:
     case Text, Number, Money, Date, Select, Computed
 
   case class Column(field: String,
-                     label: String,
-                     cssClass: String = "",
-                     options: List[(String, String)] = Nil,
-                     optionData: Map[String, Map[String, String]] = Map.empty,
-                     readonly: Boolean = false,
-                     kind: CellKind = CellKind.Text,
-                     expr: String = "",
-                     hidden: Boolean = false,
-                     resizable: Boolean = false,
-                     printHidden: Boolean = false)
-
+                    label: String,
+                    cssClass: String = "",
+                    options: List[(String, String)] = Nil,
+                    optionData: Map[String, Map[String, String]] = Map.empty,
+                    readonly: Boolean = false,
+                    kind: CellKind = CellKind.Text,
+                    expr: String = "",
+                    hidden: Boolean = false,
+                    resizable: Boolean = false,
+                    printHidden: Boolean = false)
 
   case class Row(cells:  List[String], hidden: Map[String, String] = Map.empty)
-
-
 
   /** A single cell in the subgrid's <tfoot> row.
    * `colspan` must sum, across all footer cells, to the number of
@@ -43,12 +40,15 @@ object HtmxSubGrid:
               currencySymbol: String = "",
               footers:        List[FooterCell] = Nil
             ): String =
-    if readonly then renderReadonly(prefix, columns, rows)
+    if readonly then renderReadonly(id, prefix, columns, rows)
     else            renderEditable(id, prefix, fkField, fkValue, columns, rows, currencySymbol, footers)
 
   // ── read-only (whole grid) ──────────────────────────────────────────────
 
-  private def renderReadonly(prefix: String, columns: List[Column], rows: List[Row]): String =
+  private def renderReadonly(id: String,
+                             prefix: String,
+                             columns: List[Column],
+                             rows: List[Row]): String =
     val visible = columns.filterNot(_.hidden)
     val headerCells = visible.map(c => s"<th>${esc(c.label)}</th>").mkString
     val bodyRows =
@@ -65,8 +65,8 @@ object HtmxSubGrid:
         }.mkString
 
     s"""
-       |<div class="htmx-subgrid htmx-subgrid-readonly" data-prefix="$prefix">
-       |  <table class="table table-xs table-zebra">
+       |<div id="$id" class="htmx-subgrid htmx-subgrid-readonly" data-prefix="$prefix">
+       |  <table class="daisy-table table-xs daisy-table-zebra">
        |    <thead><tr>$headerCells</tr></thead>
        |    <tbody>$bodyRows</tbody>
        |  </table>
@@ -127,14 +127,14 @@ object HtmxSubGrid:
             val sel = if v == value then " selected" else ""
             s"""<option value="${esc(v)}"$sel${optionAttrs(col, v)}>${esc(label)}</option>"""
           }.mkString
-          s"""<select class="select select-xs ${esc(col.cssClass)}"
+          s"""<select class="daisy-select daisy-select-xs ${esc(col.cssClass)}"
              |        name="$prefix.$idx.${esc(col.field)}">
              |  $opts
              |</select>""".stripMargin
 
         case CellKind.Money =>
-          s"""<span class="input-money">
-             |  <input class="input input-xs num ${esc(col.cssClass)}"
+          s"""<span class="daisy-input-money">
+             |  <input class="daisy-input daisy-input-xs num ${esc(col.cssClass)}"
              |         type="number" step="0.01"
              |         name="$prefix.$idx.${esc(col.field)}"
              |         value="${esc(value)}" />
@@ -142,19 +142,19 @@ object HtmxSubGrid:
              |</span>""".stripMargin
 
         case CellKind.Number =>
-          s"""<input class="input input-xs num ${esc(col.cssClass)}"
+          s"""<input class="daisy-input daisy-input-xs num ${esc(col.cssClass)}"
              |       type="number" step="1"
              |       name="$prefix.$idx.${esc(col.field)}"
              |       value="${esc(value)}" />""".stripMargin
 
         case CellKind.Date =>
-          s"""<input class="input input-xs ${esc(col.cssClass)}"
+          s"""<input class="daisy-input daisy-input-xs ${esc(col.cssClass)}"
              |       type="date"
              |       name="$prefix.$idx.${esc(col.field)}"
              |       value="${esc(value)}" />""".stripMargin
 
         case CellKind.Computed =>
-          s"""<span class="input-money calc-money">
+          s"""<span class="daisy-input-money calc-money">
              |  <span class="calc-cell num ${esc(col.cssClass)}"
              |        data-expr="${esc(col.expr)}"
              |        tabindex="-1"
@@ -171,13 +171,13 @@ object HtmxSubGrid:
              |</span>""".stripMargin
 
         case CellKind.Text if col.readonly =>
-          s"""<input class="input input-xs ${esc(col.cssClass)} fk-cell"
+          s"""<input class="daisy-input daisy-input-xs ${esc(col.cssClass)} fk-cell"
              |       tabindex="-1"
              |       name="$prefix.$idx.${esc(col.field)}"
              |       value="${esc(value)}" readonly />""".stripMargin
 
         case CellKind.Text =>
-          s"""<input class="input input-xs ${esc(col.cssClass)}"
+          s"""<input class="daisy-input daisy-input-xs ${esc(col.cssClass)}"
              |       name="$prefix.$idx.${esc(col.field)}"
              |       value="${esc(value)}" />""".stripMargin
 
@@ -206,7 +206,7 @@ object HtmxSubGrid:
       s"""<tr>
          |  $visibleCells
          |  <td class="subgrid-actions">
-         |    <button type="button" class="btn btn-xs btn-ghost"
+         |    <button type="button" class="daisy-btn btn-xs daisy-btn-ghost"
          |            onclick="removeSubRow(this)">×</button>
          |    ${hiddenFor(idx.toString, row.hidden)}$hiddenCells
          |  </td>
@@ -233,12 +233,13 @@ object HtmxSubGrid:
       s"""<tr>
          |  $templateVisible
          |  <td class="subgrid-actions">
-         |    <button type="button" class="btn btn-xs btn-ghost"
+         |    <button type="button" class="daisy-btn btn-xs daisy-btn-ghost"
          |            onclick="removeSubRow(this)">×</button>
          |    <input type="hidden" name="$prefix.__INDEX__.${esc(fkField)}" value="${esc(fkValue)}" />
          |    $templateHidden
          |  </td>
          |</tr>""".stripMargin
+
     val tfootHtml =
       if footers.isEmpty then ""
       else
@@ -248,8 +249,9 @@ object HtmxSubGrid:
           s"""<td colspan="${f.colspan}" class="${esc(cls)}">${f.content}</td>"""
         }.mkString
         s"""<tfoot><tr class="subgrid-foot-row">$cells<td class="subgrid-actions"></td></tr></tfoot>"""
+
     s"""
-       |<div class="htmx-subgrid"
+       |<div id="$id" class="htmx-subgrid"
        |     data-prefix="$prefix"
        |     data-grid-id="$id"
        |     data-fk-field="$fkField">

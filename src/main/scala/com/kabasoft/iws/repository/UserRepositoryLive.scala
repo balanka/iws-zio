@@ -18,7 +18,7 @@ final case class UserRepositoryLive(postgres: Resource[Task, Session[Task]], rep
 
   override def create(c: User): ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
   override def create(list: List[User]):ZIO[Any, RepositoryError, Int] =
-    executeWithTx(postgres, list.map(User.encodeIt), insertAll(list.size), list.size)
+    executeWithTx(postgres, list.map(User.encodeIt3), insertAll(list.size), list.size)
   override def modify(model: User):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, User.encodeIt2, UPDATE, 1)
   override def modify(models: List[User]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, User.encodeIt2)
   def modifyPwd(model: User): ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, (model.userName, model.modelid, model.company), updatePwd, 1)
@@ -72,33 +72,21 @@ object UserRepositoryLive:
     ZLayer.fromFunction(new UserRepositoryLive(_, _))
 
 object UserRepositorySQL:
-  type TYPE = (Int, String, String, String, String, String, String, String, String, String, Int)
+  type TYPE = ( String, String, String, String, String, String, String, String, String, Int)
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 
   private val mfCodec =
-    (int4 *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar  *: varchar *: varchar *: varchar *: int4)
+    (int4 *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: int4)
 
-  private[repository] def encodeIt(st: User): TYPE =
-    (
-      st.id,
-      st.userName,
-      st.firstName,
-      st.lastName,
-      st.hash,
-      st.phone,
-      st.email,
-      st.department,
-      st.menu,
-      st.company,
-      st.modelid
-    )
+  private val mfCodec1 =
+    (varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar *:varchar *:int4  *: varchar  )
 
   val mfDecoder: Decoder[User] = mfCodec.map:
       case (id, userName, firstName, lastName, hash, phone, email, department, menu, company, modelid) =>
           User(id, userName, firstName, lastName, hash, phone, email, department, menu, company, modelid)
 
-  val mfEncoder: Encoder[User] = mfCodec.values.contramap(encodeIt)
+  val mfEncoder: Encoder[User] = mfCodec1.values.contramap(User.encodeIt3)
 
   def base =
     sql""" SELECT id, user_name, first_name, last_name, hash, phone, email, department, menu, company, modelid
@@ -109,11 +97,6 @@ object UserRepositorySQL:
            FROM   users
            WHERE id  IN ${int4.list(nr)} AND  modelid = $int4 AND company = $varchar
            ORDER BY user_name ASC""".query(mfDecoder)
-
-
-//  val ROLE_RIGHTS: Query[Int *:String *: EmptyTuple, (Int, Int, String, String, Int)] =
-//     sql"""SELECT moduleid, roleid, short, company, modelid from user_right
-//            where roleid=$int4 and company=$varchar """.query(Int, Int, String, String, Int)
 
   val BY_ID: Query[Int *: Int *: String *: EmptyTuple, User] =
     sql"""SELECT id, user_name, first_name, last_name, hash, phone, email, department, menu, company, modelid
@@ -133,10 +116,15 @@ object UserRepositorySQL:
            WHERE  modelid = $int4 AND company = $varchar
            ORDER BY user_name ASC""".query(mfDecoder)
 
-  val insert: Command[User] = sql"""INSERT INTO User VALUES $mfEncoder """.command
+  val insert: Command[User] =
+    sql"""INSERT INTO users
+         ( user_name, first_name, last_name, hash, phone, email, department, menu, modelid, company)
+         VALUES $mfEncoder """.command
 
-  def insertAll(n:Int): Command[List[TYPE]] =
-    sql"INSERT INTO users VALUES ${mfCodec.values.list(n)}".command
+  def insertAll(n:Int): Command[List[User.TYPE3]] =
+    sql"""INSERT INTO users
+         ( user_name, first_name, last_name, hash, phone, email, department, menu, modelid, company)
+         VALUES ${mfCodec1.values.list(n)}""".command
 
 
     

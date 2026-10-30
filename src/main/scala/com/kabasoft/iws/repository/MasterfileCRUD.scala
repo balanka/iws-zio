@@ -400,36 +400,22 @@ trait MasterfileCRUD:
                   xa.rollback
       .mapBoth(e => RepositoryError(e.getMessage), _ => size)
 
-//  def executeWithTx(postgres: Resource[Task, Session[Task]], commands: List[Command[Void]]): ZIO[Any, RepositoryError, Int] =
-//    commands.traverse { cmd =>
-//      postgres
-//        .use: session =>
-//          session.transaction.use: xa =>
-//            session
-//              .execute(cmd) //.debug("ffffffffffffffff")
-//              .recoverWith:
-//                case SqlState.UniqueViolation(ex) =>
-//                  ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
-//                    xa.rollback
-//                case ex =>
-//                  ZIO.logInfo(s"Error: ${ex.getMessage} rolling back...!!!!") *>
-//                    xa.rollback
-//        .mapBoth(e => RepositoryError(e.getMessage), _ => 1)
-//    }.map(_.sum)
-
   def executeWithTx[A](postgres: Resource[Task, Session[Task]], commands: List[(Command[Any], Any)]): Task[Int] =
     commands.traverse { command =>
       postgres
        .use: session =>
           session.transaction.use: xa =>
               session
-                .prepare(command._1)
+                .prepare(command._1).debug("<<<<<<<<<prepare>>>>>>")
                   .flatMap: cmd =>
-                   xa.savepoint
-                   cmd.execute(command._2).recoverWith:
+                  // xa.savepoint
+                   cmd.execute(command._2).debug("vcbccvcvcvcvvc>>>>>>>").recoverWith:
                      case SqlState.UniqueViolation(ex) =>
                          ZIO.logInfo(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
                          xa.rollback
+                     case SqlState.DatatypeMismatch(ex) =>
+                       ZIO.logInfo(s"DatatypeMismatch: ${ex.arguments}, rolling back...") *>
+                       xa.rollback
                      case _ =>
                           ZIO.logInfo(s"Error:  rolling back...") *> xa.rollback
       .mapBoth(e => e, _ => 1)

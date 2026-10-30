@@ -35,37 +35,37 @@ object AccountFormView:
        |  <input type="hidden" name="company" value="${esc(acc.company)}" />
        |
        |  <!-- Row 1: Id | Name -->
-       |  <label class="label" for="account-id">Id</label>
-       |  <input id="account-id" class="input input-xs w-full" name="id_display"
+       |  <label class="daisy-label" for="account-id">Id</label>
+       |  <input id="account-id" class="daisy-input daisy-input-xs w-full" name="id_display"
        |         value="${esc(acc.id)}" readonly />
-       |  <label class="label" for="account-name">Name</label>
-       |  <input id="account-name" class="input input-xs w-full" name="name"
+       |  <label class="daisy-label" for="account-name">Name</label>
+       |  <input id="account-name" class="daisy-input daisy-input-xs w-full" name="name"
        |         value="${esc(acc.name)}" />
        |
        |  <!-- Row 2: Parent (cols 3-4 empty) -->
-       |  <label class="label" for="account-parent">Parent</label>
-       |  <select id="account-parent" class="select select-xs w-full" name="account">
+       |  <label class="daisy-label" for="account-parent">Parent</label>
+       |  <select id="account-parent" class="daisy-select daisy-select-xs w-full" name="account">
        |    $opts
        |  </select>
        |
        |  <!-- Row 3: Description | Currency -->
-       |  <label class="label" for="account-desc">Description</label>
-       |  <textarea id="account-desc" class="textarea textarea-xs w-full" name="description">${esc(acc.description)}</textarea>
-       |  <label class="label" for="account-currency">Currency</label>
-       |  <input id="account-currency" class="input input-xs w-full" name="currency"
+       |  <label class="daisy-label" for="account-desc">Description</label>
+       |  <textarea id="account-desc" class="daisy-textarea daisy-textarea-xs w-full" name="description">${esc(acc.description)}</textarea>
+       |  <label class="daisy-label" for="account-currency">Currency</label>
+       |  <input id="account-currency" class="daisy-input daisy-input-xs w-full" name="currency"
        |         value="${esc(acc.currency)}" />
        |
        |  <!-- Row 4: Is debit | Balance sheet -->
-       |  <label class="label" for="account-debit">Is debit</label>
-       |  <input id="account-debit" type="checkbox" class="checkbox checkbox-xs"
+       |  <label class="daisy-label" for="account-debit">Is debit</label>
+       |  <input id="account-debit" type="checkbox" class="daisy-checkbox checkbox-xs"
        |         name="isDebit"$checkedDebit />
-       |  <label class="label" for="account-bs">Balance sheet</label>
-       |  <input id="account-bs" type="checkbox" class="checkbox checkbox-xs"
+       |  <label class="daisy-label" for="account-bs">Balance sheet</label>
+       |  <input id="account-bs" type="checkbox" class="daisy-checkbox checkbox-xs"
        |         name="balancesheet"$checkedBs />
        |
        |  <!-- Row 5: Save -->
        |  <span></span>
-       |  <button type="submit" class="btn btn-primary btn-xs justify-self-start">Save</button>
+       |  <button type="submit" class="daisy-btn btn-primary daisy-btn-xs justify-self-start">Save</button>
        |  <span></span>
        |  <span></span>
        |</form>

@@ -11,7 +11,7 @@ object FinancialsListView:
       filter = HtmxTable.FilterKind.Text, resizable = true),
     HtmxTable.Column("modelid",    "Model",       Some("20px"),
       filter = HtmxTable.FilterKind.Number, resizable = true),
-    HtmxTable.Column("period",     "Period",  Some("16px"),
+    HtmxTable.Column("period",     "Period",  Some("40px"),
       filter = HtmxTable.FilterKind.Number),
     HtmxTable.Column("contact",    "Contact", Some("20px"),
       filter = HtmxTable.FilterKind.Text,  resizable = true),
@@ -59,7 +59,7 @@ object FinancialsListView:
       ),
       cellClasses  = (_: FinancialsTransaction) => List(
         "", "", "", "", "", "", "",
-        "num-cell",       // ← Total — right-aligned
+        "text-right",       // ← Total — right-aligned
         ""
       ),
       detailUrl    = (t: FinancialsTransaction) =>

@@ -27,24 +27,15 @@ object HtmxCombinedLayout:
        |
        |    $toolbarHtml
        |
-       |    <div id="$prefix-form-card" class="card bg-base-100 shadow-sm">
-       |      <div class="card-body compact">
-       |        <div class="card-header-row">
-       |          <h2 class="card-title">${Html.esc(title)}</h2>
-       |          <button type="button" class="btn btn-ghost btn-xs"
-       |                  data-toggle="#$prefix-form-card"
-       |                  data-label-show="Show" data-label-hide="Hide">
-       |            <span class="toggle-arrow">▾</span>
-       |            <span class="toggle-label">Hide</span>
-       |          </button>
-       |        </div>
-       |        <div class="card-content">$formHtml</div>
+       |    <div id="$prefix-form-card" class="daisy-card bg-base-100 shadow-sm">
+       |      <div class="daisy-card-body compact">
+       |        <div class="daisy-card-content">$formHtml</div>
        |      </div>
        |    </div>
        |
-       |    <div id="$prefix-list-card" class="card bg-base-100 shadow-sm">
-       |      <div class="card-body compact">
-       |        <div class="card-content"
+       |    <div id="$prefix-list-card" class="daisy-card bg-base-100 shadow-sm">
+       |      <div class="daisy-card-body compact">
+       |        <div class="daisy-card-content"
        |             hx-get="/html/${prefix}-list"
        |             hx-trigger="iws:list-refresh from:body"
        |             hx-target="this"

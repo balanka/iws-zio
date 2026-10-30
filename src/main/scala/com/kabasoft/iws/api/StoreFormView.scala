@@ -60,7 +60,7 @@ object StoreFormView:
        |  ${HtmxFields.accountRow("Expense account", s"$formId-oaccount", "oaccount", accounts, s.oaccount)}
        |
        |  <div class="subgrid-block">
-       |    <label class="label">Stocks</label>
+       |    <label class="daisy-label">Stocks</label>
        |    $stockGrid
        |  </div>
        |</form>

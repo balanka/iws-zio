@@ -130,14 +130,16 @@ final case  class FinancialsRepositoryLive(postgres: Resource[Task, Session[Task
               ZIO.succeed(master).tap { m =>
                 ZIO.logInfo(s"updating  old master: $m") *>
                 exec(pcuMaster, FinancialsTransaction.encodeIt2(m)) *>
+                  ZIO.logInfo(s"Deleting old details: ") *>
+                  ZIO.foreachDiscard(details2DeleteFilter(m).map(FinancialsTransactionDetails.encodeIt3))(exec(pcdDetails, _)) *>
                   ZIO.logInfo(s"updating  old details: ${details2UpdateFilter(m)}") *>
                   ZIO.foreachDiscard(details2UpdateFilter(m).map(FinancialsTransactionDetails.encodeIt2))(exec(pcuDetails, _)) *>
                   ZIO.foreachDiscard(newDetailsFilter(m)) { d =>
                     ZIO.logInfo(s"Inserting new details: $d") *>
                     withId(seqDetail, id => Details2Details(d, id)).tap(exec(pciDetails, _))
-                  } *>
-                  ZIO.logInfo(s"Deleting old details: ") *>
-                  ZIO.foreachDiscard(details2DeleteFilter(m).map(FinancialsTransactionDetails.encodeIt3))(exec(pcdDetails, _))
+                  } //*>
+//                  ZIO.logInfo(s"Deleting old details: ") *>
+//                  ZIO.foreachDiscard(details2DeleteFilter(m).map(FinancialsTransactionDetails.encodeIt3))(exec(pcdDetails, _))
               }
             }
           )

@@ -212,21 +212,21 @@ object HtmxPage:
       |      if (window.iwsRecomputeGrid) window.iwsRecomputeGrid(grid);
       |    };
       |
-      |    window.removeSubRow = function (btn) {
-      |      var tr = btn.closest('tr');
-      |      if (!tr) return;
-      |      var grid = tr.closest('.htmx-subgrid');
+      |   window.removeSubRow = function (btn) {
+      |     var tr = btn.closest('tr');
+      |     if (!tr) return;
+      |       var grid = tr.closest('.htmx-subgrid');
       |
-      |      // Mark row as deleted — server convention: id = -2
-      |      var idEl = tr.querySelector('[name$=".id"]');
-      |      if (idEl) idEl.value = '-2';
+      |     // Mark row as deleted — server convention: transid = -2
+      |     var transidEl = tr.querySelector('[name$=".transid"]');
+      |   if (transidEl) transidEl.value = '-2';
       |
-      |      // Keep the row in the DOM (so its fields still submit), hide it.
-      |      tr.style.display = 'none';
-      |      tr.classList.add('row-deleted');
+      |   // Keep the row in the DOM (so its fields still submit), hide it.
+      |   tr.style.display = 'none';
+      |   tr.classList.add('row-deleted');
       |
-      |      if (window.iwsRecomputeGrid && grid) window.iwsRecomputeGrid(grid);
-      |    };
+      |   if (window.iwsRecomputeGrid && grid) window.iwsRecomputeGrid(grid);
+      | };
       |
       |    // Any edit to an existing row marks it dirty → transid = -1.
       |    // New rows (id = -1) and deleted rows (id = -2) are left alone.
@@ -783,9 +783,9 @@ object HtmxPage:
        |<body class="bg-base-200 hide-search">
        |  <div class="container mx-auto max-w-3xl">
        |    <div class="htmx-page-wrapper">
-       |      <div class="card bg-base-100 shadow-sm">
-       |        <div class="card-body compact">
-       |          <h2 class="card-title mb-4">${Html.esc(title)}</h2>
+       |      <div class="daisy-card bg-base-100 shadow-sm">
+       |        <div class="daisy-card-body compact">
+       |          <h2 class="daisy-card-title mb-4">${Html.esc(title)}</h2>
        |          $formHtml
        |        </div>
        |      </div>
@@ -801,7 +801,7 @@ object HtmxPage:
        |<head>
        |  <meta charset="utf-8" />
        |  <title>${Html.esc(title)}</title>
-       |  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+       |  <link href="https://cdn.jsdelivr.net/npm/daisyui@5/dist/full.min.css" rel="stylesheet" type="text/css" />
        |  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
        |  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
        |  $densityBootstrap

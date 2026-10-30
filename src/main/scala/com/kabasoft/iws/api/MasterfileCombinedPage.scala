@@ -29,26 +29,26 @@ object MasterfileCombinedPage:
                |
                |    ${HtmxToolbar.render("masterfile", modelid, company)}
                |
-               |    <div id="masterfile-form-card" class="card bg-base-100 shadow-sm">
-               |      <div class="card-body compact">
-               |        <div class="card-header-row">
-               |          <h2 class="card-title">${Html.esc(title)}</h2>
-               |          <button type="button" class="btn btn-ghost btn-xs"
+               |    <div id="masterfile-form-card" class="daisy-card bg-base-100 shadow-sm">
+               |      <div class="daisy-card-body compact">
+               |        <div class="daisy-card-header-row">
+               |          <h2 class="daisy-card-title">${Html.esc(title)}</h2>
+               |          <button type="button" class="daisy-btn btn-ghost daisy-btn-xs"
                |                  data-toggle="#masterfile-form-card"
                |                  data-label-show="Show" data-label-hide="Hide">
                |            <span class="toggle-arrow">▾</span>
-               |            <span class="toggle-label">Hide</span>
+               |            <span class="toggle-daisy-label">Hide</span>
                |          </button>
                |        </div>
-               |        <div class="card-content">
+               |        <div class="daisy-card-content">
                |          <div id="masterfile-form">$formHtml</div>
                |        </div>
                |      </div>
                |    </div>
                |
-               |    <div id="masterfile-list-card" class="card bg-base-100 shadow-sm">
-               |      <div class="card-body compact">
-               |        <div class="card-content">$listHtml</div>
+               |    <div id="masterfile-list-card" class="daisy-card bg-base-100 shadow-sm">
+               |      <div class="daisy-card-body compact">
+               |        <div class="daisy-card-content">$listHtml</div>
                |      </div>
                |    </div>
                |

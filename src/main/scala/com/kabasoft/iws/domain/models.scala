@@ -449,50 +449,51 @@ final case class Company(
                           enterdate: Instant = Instant.now(),
                           changedate: Instant = Instant.now(),
                           postingdate: Instant = Instant.now(),
+                          pageHeaderText:String ="",
+                          pageFooterText:String ="",
+                          headerText:String ="",
+                          footerText:String ="",
+                          logoContent:String ="",
+                          logoName:String ="",
+                          contentType:String ="",
                         )
 object Company:
   type TYPE= (
-    String,
-      String,
-      String,
-      String,
-      String,
-      String,
-      String,
-      String,
-      String,
-      String,
-      String,
-      String,
-      String,
-      String,
-      String,
-      String,
-      String,
-      String,
-      String,
-      String,
-      String,
-      String,
-      String,
-      Int
-    )
-  type TYPE2 = (String, String, String, String, String, String, String, String, String, String, String, String, String,
-    String, String, String, String, String, String, String, String, String, String, Int)
-  type TYPE3=(String,String,String,String,String,String,String,String,String,String,String,String,String,String,String,String,String,String,String,String, String, Int)
-  //def apply(c:TYPE):Company = Company(c._1, c._2,c._3,c._4,c._5,c._6,c._7,c._8,c._9,c._10
-  //  ,c._11,c._12,c._13,c._14,c._15, c._16,c._17,c._18,c._19, c._20, c._21, c._22, c._23, List.empty[BankAccount])
-  def dummy:Company = Company("-1",  "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ModelId.COMPANY.modelid, Nil)
+    String, String, String, String, String, String, String, String, String, String, String, String, String, String
+    , String, String, String, String, String, String, String, String, String, Int, LocalDateTime, LocalDateTime
+    , LocalDateTime, String, String, String, String, String, String, String)
 
-  def encodeIt(st: Company): TYPE2 =
-    (st.id, st.name,  st.street, st.zip, st.city, st.state, st.country, st.email, st.contact, st.phone, st.bankAcc,
-      st.description, st.taxCode, st.vatCode, st.currency, st.locale, st.balanceSheetAcc, st.incomeStmtAcc, st.purchasingClearingAcc,
-      st.salesClearingAcc, st.cashAcc, st.account, st.oaccount, st.modelid)
+  type TYPE2 = (String, String, String, String, String, String, String, String, String, String, String, String, String,
+    String, String, String, String, String, String, String, String, String, String, Int, String,String,String,String
+    ,String,String,String)
+
+  type TYPE3 = (String, String, String, String, String, String, String, String, String, String, String, String, String,
+    String, String, String, String, String, String, String, String, String, String, String, String, String, String, String
+    , String, String, Int)
+
+  def dummy:Company = Company("-1",  "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""
+    , "", ModelId.COMPANY.modelid, Nil, Instant.now(), Instant.now(), Instant.now(),  "", "", "", "", "", "", "")
+
+  def encodeIt(st: Company): TYPE =
+    (st.id, st.name, st.street, st.zip, st.city, st.state, st.country, st.email, st.contact, st.phone, st.bankAcc,
+      st.description, st.taxCode, st.vatCode, st.currency, st.locale, st.account, st.oaccount,
+      st.balanceSheetAcc, st.incomeStmtAcc, st.purchasingClearingAcc, st.salesClearingAcc, st.cashAcc, st.modelid,
+      st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
+      st.changedate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
+      st.postingdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,
+      st.pageHeaderText, st.pageFooterText, st.headerText, st.footerText, st.logoContent, st.logoName, st.contentType)
 
   def encodeIt2(st: Company): TYPE2 =
+    (st.name, st.street, st.zip, st.city, st.state, st.country, st.email, st.contact, st.phone, st.bankAcc, st.description
+      , st.taxCode, st.vatCode, st.currency, st.locale, st.balanceSheetAcc, st.incomeStmtAcc, st.purchasingClearingAcc
+      , st.salesClearingAcc, st.cashAcc, st.account, st.oaccount, st.id, st.modelid
+      , st.pageHeaderText, st.pageFooterText, st.headerText, st.footerText, st.logoContent, st.logoName, st.contentType)
+  
+  def encodeIt3(st: Company): TYPE3 =
     (st.name,  st.street, st.zip, st.city, st.state, st.country, st.email, st.contact, st.phone, st.bankAcc, st.description
       , st.taxCode, st.vatCode, st.currency, st.locale, st.balanceSheetAcc, st.incomeStmtAcc, st.purchasingClearingAcc
-      , st.salesClearingAcc, st.cashAcc, st.account, st.oaccount, st.id, st.modelid)
+      , st.salesClearingAcc, st.cashAcc, st.account, st.oaccount, st.pageHeaderText, st.pageFooterText, st.headerText
+      , st.footerText, st.logoContent, st.logoName, st.contentType, st.id, st.modelid)
 
 
 abstract class AppError
@@ -2045,13 +2046,18 @@ final case class User(
 object User:
   type TYPE = (Int, String, String, String, String, String, String, String, String, String, Int)
   type TYPE2 = (String, String, String, String, String, String, Int, Int, String)
+  type TYPE3 = (String, String, String, String, String, String, String, String, Int, String)
   def apply(u: TYPE): User = new User( u._1, u._2,u._3,u._4,u._5,u._6,u._7,u._8,u._9, u._10, u._11)
   val dummy: User = new User( -1, "dummy", "dummy", "dummy", "dummy", "dummy", "dummy", "dummy", "dummy", "dummy", ModelId.USER.modelid)
 
   def encodeIt(st: User): TYPE =
     (st.id, st.userName, st.firstName, st.lastName, st.hash, st.phone, st.email, st.department, st.menu, st.company, st.modelid)
+
   def encodeIt2(st: User): TYPE2 =
     (st.firstName, st.lastName, st.phone, st.email, st.department, st.menu, st.id, st.modelid, st.company)
+    
+  def encodeIt3(st: User): TYPE3 =
+    (st.userName, st.firstName, st.lastName, st.hash, st.phone, st.email, st.department, st.menu,  st.modelid, st.company)
 
 final case class LoginRequest(userName: String, password: String, company: String, language:String)
 object LoginRequest:
