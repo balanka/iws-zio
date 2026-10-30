@@ -5,14 +5,16 @@ import com.kabasoft.iws.domain.Transaction
 object TransactionListView:
 
   private val columns = List(
-    HtmxTable.Column("id",      "Id",      Some("100px"),
-      filter = HtmxTable.FilterKind.Number),
+    HtmxTable.Column("id",      "Id",      Some("80px"),
+      filter = HtmxTable.FilterKind.Number,
+      resizable = true),
     HtmxTable.Column("oid",     "Oid",
       filter = HtmxTable.FilterKind.Text),
     HtmxTable.Column("modelid", "Model",   Some("80px"),
       filter = HtmxTable.FilterKind.Number),
     HtmxTable.Column("period",  "Period",  Some("90px"),
-      filter = HtmxTable.FilterKind.Number),
+      filter = HtmxTable.FilterKind.Number,
+      resizable = true),
     HtmxTable.Column("contact", "Contact",
       filter = HtmxTable.FilterKind.Text),
     HtmxTable.Column("account", "Account", Some("100px"),
@@ -23,7 +25,8 @@ object TransactionListView:
       filter    = HtmxTable.FilterKind.Text,
       resizable = true),
     HtmxTable.Column("total",   "Total",   Some("140px"),
-      filter = HtmxTable.FilterKind.Number),
+      filter    = HtmxTable.FilterKind.Number,
+      cssClass  = "num"),
     HtmxTable.Column("posted",  "Posted",  Some("80px"),
       filter        = HtmxTable.FilterKind.Select,
       filterOptions = List("true" -> "Posted", "false" -> "Draft"),
@@ -70,5 +73,6 @@ object TransactionListView:
         s"/html/transaction/${t.id}/${t.modelid}/${t.company}",
       query        = query,
       rowMode      = rowMode,
-      filterValues = filterValues
+      filterValues = filterValues,
+      maxHeight    = "calc(100vh - 500px)"
     )
