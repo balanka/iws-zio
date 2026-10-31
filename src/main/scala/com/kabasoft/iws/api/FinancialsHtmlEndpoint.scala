@@ -90,6 +90,26 @@ object FinancialsHtmlEndpoint:
       posted = false, modelid = modelid,
       company = company, text = "", footText = "", lines = Nil)
 
+  private def applySort(
+                         rows: List[FinancialsTransaction],
+                         sort: List[(String, String)]
+                       ): List[FinancialsTransaction] =
+    sort.foldRight(rows) { case ((key, dir), acc) =>
+      val ord: Ordering[FinancialsTransaction] = key match {
+        case "id" => Ordering.by(_.id)
+        case "oid" => Ordering.by(_.oid)
+        case "modelid" => Ordering.by(_.modelid)
+        case "period" => Ordering.by(_.period)
+        case "costcenter" => Ordering.by(_.costcenter)
+        case "contact" => Ordering.by(_.contact)
+        case "account" => Ordering.by(_.account)
+        case "text" => Ordering.by(_.text)
+        case "posted" => Ordering.by(_.posted)
+        case _ => Ordering.by(_.id)
+      }
+      val ordered = acc.sorted(using ord)
+      if dir == "desc" then ordered.reverse else ordered
+    }
   // ── Loaders ────────────────────────────────────────────────────────────
 
   private def loadLists(company: String) =
@@ -284,8 +304,8 @@ object FinancialsHtmlEndpoint:
                       t.oid.toLowerCase.contains(query.toLowerCase) ||
                       t.text.toLowerCase.contains(query.toLowerCase))
                   .filter(t => filters.forall { case (k, v) => matches(t, k, v) })
-
-              val slice = filtered.slice(page * size, page * size + size)
+              val sorted = applySort(filtered, sort)
+              val slice = sorted.slice(page * size, page * size + size)
               HtmxResponse.html(
                 FinancialsListView.render(
                   page         = HtmxTable.Page(slice, page, size, filtered.size.toLong, sort),

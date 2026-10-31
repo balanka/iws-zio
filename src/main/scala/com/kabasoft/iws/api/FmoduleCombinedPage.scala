@@ -1,6 +1,7 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.{Fmodule, ModelId}
+import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.repository.{AccountRepository, FModuleRepository}
 import zio._
 import zio.http._
@@ -18,61 +19,65 @@ object FmoduleCombinedPage:
       modelid = ModelId.FMODULE.modelid,
       company = company)
 
-  private val pageGet: Route[FModuleRepository & AccountRepository, Response] =
+  private type Repos = FModuleRepository & AccountRepository
+
+  private def buildBody(company: String): ZIO[Repos, RepositoryError, String] =
+    for {
+      all  <- FModuleRepository.all((ModelId.FMODULE.modelid, company))
+      accs <- AccountRepository.all((ModelId.ACCOUNT.modelid, company))
+    } yield {
+      val sorted      = all.sortBy(_.id)
+      val initialSize = 20
+      val slice       = sorted.take(initialSize)
+      val page        = HtmxTable.Page(slice, 0, initialSize, sorted.size.toLong)
+
+      val formHtml = FmoduleFormView.render(blank(company), accs, mode = "view")
+      val listHtml = FmoduleListView.render(
+        page, company, "",
+        rowMode  = HtmxTable.RowMode.Fetch("#fmodule-form"),
+        detailFn = m => s"/html/fmodule/${m.id}/${m.modelid}/${m.company}")
+
+      s"""
+         |<div class="container mx-auto max-w-5xl">
+         |  <div class="htmx-page-wrapper">
+         |
+         |    ${HtmxToolbar.render(prefix, ModelId.FMODULE.modelid, company)}
+         |
+         |    <div id="$prefix-form-card" class="daisy-card bg-base-100 shadow-sm">
+         |      <div class="daisy-card-body compact">
+         |        <div class="daisy-card-content">
+         |          <div id="$prefix-form">$formHtml</div>
+         |        </div>
+         |      </div>
+         |    </div>
+         |
+         |    <div id="$prefix-list-card" class="daisy-card bg-base-100 shadow-sm">
+         |      <div class="daisy-card-body compact">
+         |        <div class="daisy-card-content">$listHtml</div>
+         |      </div>
+         |    </div>
+         |
+         |  </div>
+         |</div>
+         |""".stripMargin
+    }
+
+  private def render(company: String): ZIO[Repos, Nothing, Response] =
+    buildBody(company)
+      .map(bodyHtml => HtmxResponse.htmlNoCache(HtmxPage.renderRaw("Fmodule", bodyHtml)))
+      .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
+
+  private def renderFragment(company: String): ZIO[Repos, Nothing, Response] =
+    buildBody(company)
+      .map(bodyHtml => HtmxResponse.htmlNoCache(bodyHtml))
+      .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
+
+  private val pageGet: Route[Repos, Response] =
     Method.GET / "fmodule-combined-htmx" / string("company") ->
-      handler { (company: String, _: Request) =>
-        (for {
-          all  <- FModuleRepository.all((ModelId.FMODULE.modelid, company))
-          accs <- AccountRepository.all((ModelId.ACCOUNT.modelid, company))
-        } yield {
-          val sorted      = all.sortBy(_.id)
-          val initialSize = 20
-          val slice       = sorted.take(initialSize)
-          val page        = HtmxTable.Page(slice, 0, initialSize, sorted.size.toLong)
+      handler { (company: String, _: Request) => render(company) }
 
-          val formHtml = FmoduleFormView.render(blank(company), accs, mode = "view")
-          val listHtml = FmoduleListView.render(
-            page, company, "",
-            rowMode  = HtmxTable.RowMode.Fetch("#fmodule-form"),
-            detailFn = m => s"/html/fmodule/${m.id}/${m.modelid}/${m.company}")
+  private val fragmentGet: Route[Repos, Response] =
+    Method.GET / "html" / "fmodule-combined" / string("company") ->
+      handler { (company: String, _: Request) => renderFragment(company) }
 
-          val bodyHtml =
-            s"""
-               |<div class="container mx-auto max-w-5xl">
-               |  <div class="htmx-page-wrapper">
-               |
-               |    ${HtmxToolbar.render(prefix, ModelId.FMODULE.modelid, company)}
-               |
-               |    <div id="$prefix-form-card" class="daisy-card bg-base-100 shadow-sm">
-               |      <div class="daisy-card-body compact">
-               |        <div class="daisy-card-header-row">
-               |          <h2 class="daisy-card-title">Fmodule</h2>
-               |          <button type="button" class="daisy-btn btn-ghost daisy-btn-xs"
-               |                  data-toggle="#$prefix-form-card"
-               |                  data-label-show="Show" data-label-hide="Hide">
-               |            <span class="toggle-arrow">▾</span>
-               |            <span class="toggle-daisy-label">Hide</span>
-               |          </button>
-               |        </div>
-               |        <div class="daisy-card-content">
-               |          <div id="$prefix-form">$formHtml</div>
-               |        </div>
-               |      </div>
-               |    </div>
-               |
-               |    <div id="$prefix-list-card" class="daisy-card bg-base-100 shadow-sm">
-               |      <div class="daisy-card-body compact">
-               |        <div class="daisy-card-content">$listHtml</div>
-               |      </div>
-               |    </div>
-               |
-               |  </div>
-               |</div>
-               |""".stripMargin
-
-          HtmxResponse.html(HtmxPage.renderRaw("Fmodule", bodyHtml))
-          HtmxResponse.htmlNoCache(HtmxPage.renderRaw("Fmodule", bodyHtml))
-        }).catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
-      }
-
-  val routes: Routes[FModuleRepository & AccountRepository, Response] = Routes(pageGet)
+  val routes: Routes[Repos, Response] = Routes(pageGet, fragmentGet)

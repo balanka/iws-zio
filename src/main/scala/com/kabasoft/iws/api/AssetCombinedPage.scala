@@ -1,6 +1,7 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.{Asset, ModelId}
+import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.repository.{AccountRepository, AssetRepository}
 import zio._
 import zio.http._
@@ -18,61 +19,64 @@ object AssetCombinedPage:
       amount = BigDecimal("0.00"), rate = BigDecimal("0.00"),
       frequency = 1, currency = "EUR")
 
-  private val pageGet: Route[AssetRepository & AccountRepository, Response] =
+  private type Repos = AssetRepository & AccountRepository
+
+  private def buildBody(company: String): ZIO[Repos, RepositoryError, String] =
+    for {
+      all  <- AssetRepository.all((ModelId.ASSET.modelid, company))
+      accs <- AccountRepository.all((ModelId.ACCOUNT.modelid, company))
+    } yield {
+      val sorted      = all.sortBy(_.id)
+      val initialSize = 20
+      val slice       = sorted.take(initialSize)
+      val page        = HtmxTable.Page(slice, 0, initialSize, sorted.size.toLong)
+
+      val formHtml = AssetFormView.render(blank(company), accs, mode = "view")
+      val listHtml = AssetListView.render(
+        page, company, "",
+        rowMode  = HtmxTable.RowMode.Fetch("#asset-form"),
+        detailFn = a => s"/html/asset/${a.id}/${a.modelid}/${a.company}")
+
+      s"""
+         |<div class="container mx-auto max-w-5xl">
+         |  <div class="htmx-page-wrapper">
+         |
+         |    ${HtmxToolbar.render(prefix, ModelId.ASSET.modelid, company)}
+         |
+         |    <div id="$prefix-form-card" class="daisy-card bg-base-100 shadow-sm">
+         |        <div class="daisy-card-content">
+         |          $formHtml
+         |        </div>
+         |      </div>
+         |    </div>
+         |
+         |    <div id="$prefix-list-card" class="daisy-card bg-base-100 shadow-sm">
+         |      <div class="daisy-card-body compact">
+         |        <div class="daisy-card-content">$listHtml</div>
+         |      </div>
+         |    </div>
+         |
+         |  </div>
+         |</div>
+         |""".stripMargin
+    }
+
+  private def render(company: String): ZIO[Repos, Nothing, Response] =
+    buildBody(company)
+      .map(bodyHtml => HtmxResponse.htmlNoCache(HtmxPage.renderRaw("Asset", bodyHtml)))
+      .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
+
+  private def renderFragment(company: String): ZIO[Repos, Nothing, Response] =
+    buildBody(company)
+      .map(bodyHtml => HtmxResponse.htmlNoCache(bodyHtml))
+      .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
+
+  private val pageGet: Route[Repos, Response] =
     Method.GET / "asset-combined-htmx" / string("company") ->
-      handler { (company: String, _: Request) =>
-        (for {
-          all  <- AssetRepository.all((ModelId.ASSET.modelid, company))
-          accs <- AccountRepository.all((ModelId.ACCOUNT.modelid, company))
-        } yield {
-          val sorted      = all.sortBy(_.id)
-          val initialSize = 20
-          val slice       = sorted.take(initialSize)
-          val page        = HtmxTable.Page(slice, 0, initialSize, sorted.size.toLong)
+      handler { (company: String, _: Request) => render(company) }
 
-          val formHtml = AssetFormView.render(blank(company), accs, mode = "view")
-          val listHtml = AssetListView.render(
-            page, company, "",
-            rowMode  = HtmxTable.RowMode.Fetch("#asset-form"),
-            detailFn = a => s"/html/asset/${a.id}/${a.modelid}/${a.company}")
+  private val fragmentGet: Route[Repos, Response] =
+    Method.GET / "html" / "asset-combined" / string("company") ->
+      handler { (company: String, _: Request) => renderFragment(company) }
 
-          val bodyHtml =
-            s"""
-               |<div class="container mx-auto max-w-5xl">
-               |  <div class="htmx-page-wrapper">
-               |
-               |    ${HtmxToolbar.render(prefix, ModelId.ASSET.modelid, company)}
-               |
-               |    <div id="$prefix-form-card" class="daisy-card bg-base-100 shadow-sm">
-               |      <div class="daisy-card-body compact">
-               |        <div class="daisy-card-header-row">
-               |          <h2 class="daisy-card-title">Asset</h2>
-               |          <button type="button" class="daisy-btn btn-ghost daisy-btn-xs"
-               |                  data-toggle="#$prefix-form-card"
-               |                  data-label-show="Show" data-label-hide="Hide">
-               |            <span class="toggle-arrow">▾</span>
-               |            <span class="toggle-daisy-label">Hide</span>
-               |          </button>
-               |        </div>
-               |        <div class="daisy-card-content">
-               |          $formHtml
-               |        </div>
-               |      </div>
-               |    </div>
-               |
-               |    <div id="$prefix-list-card" class="daisy-card bg-base-100 shadow-sm">
-               |      <div class="daisy-card-body compact">
-               |        <div class="daisy-card-content">$listHtml</div>
-               |      </div>
-               |    </div>
-               |
-               |  </div>
-               |</div>
-               |""".stripMargin
-
-          HtmxResponse.html(HtmxPage.renderRaw("Asset", bodyHtml))
-          HtmxResponse.htmlNoCache(HtmxPage.renderRaw("Asset", bodyHtml))
-        }).catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
-      }
-
-  val routes: Routes[AssetRepository & AccountRepository, Response] = Routes(pageGet)
+  val routes: Routes[Repos, Response] = Routes(pageGet, fragmentGet)

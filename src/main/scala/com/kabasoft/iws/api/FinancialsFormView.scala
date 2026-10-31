@@ -68,6 +68,7 @@ object FinancialsFormView:
       .map(_.amount)
       .foldLeft(java.math.BigDecimal.ZERO)(_.add(_))
 
+ 
   // ── Main render ─────────────────────────────────────────────────────────
 
   def render(
@@ -226,8 +227,9 @@ object FinancialsFormView:
     // Event delegation on the <form>: only fires when #$formId-fmodule changes.
     // ── Title update on fmodule change (delegated on the form) ──────────
     val titleUpdate = HtmxTitleUpdates.fmoduleTitleUpdate(
-      formId = formId,
+      formId  = formId,
       titleId = "financials-title",
+      cardId  = "financials-card-title",
       company = t.company
     )
 

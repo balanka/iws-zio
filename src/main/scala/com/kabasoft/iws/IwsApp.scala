@@ -110,7 +110,6 @@ object IwsApp extends ZIOAppDefault {
           ++ StoreCombinedPage.routes ++ StoreHtmlEndpoint.routes
           ++ VatCombinedPage.routes ++ VatHtmlEndpoint.routes
           ++ ContactCombinedPage.routes ++ ContactHtmlEndpoint.routes
-          ++ StoreCombinedPage.routes ++ StoreHtmlEndpoint.routes
           ++ PermissionCombinedPage.routes ++ PermissionHtmlEndpoint.routes
           ++ AssetCombinedPage.routes ++ AssetHtmlEndpoint.routes
           ++ UserCombinedPage.routes ++ UserHtmlEndpoint.routes

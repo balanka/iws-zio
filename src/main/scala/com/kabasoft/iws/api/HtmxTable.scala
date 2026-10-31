@@ -208,8 +208,8 @@ object HtmxTable:
         val glyph = if dir == "asc" then "▲" else "▼"
         if p.sort.length == 1 then s" $glyph"
         else s" ${sortIdx + 1}$glyph"
-    val style  = c.width.map(w => s"""style="width:$w"""").getOrElse("")
-    val resiz  = if c.resizable then " resizable-th" else ""
+    val style = c.width.map(w => s"""style="width:$w"""").getOrElse("")
+    val resiz = if c.resizable then " resizable-th" else ""
     val handle =
       if c.resizable then
         s"""<span class="col-resizer" data-col-key="${esc(c.key)}" title="Drag to resize"></span>"""
@@ -217,12 +217,9 @@ object HtmxTable:
     s"""<th class="th-${esc(c.key)}$resiz" data-col-key="${esc(c.key)}" $style>
        |  <a class="daisy-table-sort"
        |     data-sort-key="${esc(c.key)}"
+       |     data-table-path="$path"
        |     title="Click to sort. Shift+click to add to sort."
-       |     hx-get="$path"
-       |     hx-include="$carryAll"
-       |     hx-target="closest .htmx-daisy-table-wrapper"
-       |     hx-swap="outerHTML"
-       |     hx-push-url="true">${esc(c.label)}$arrow</a>
+       |     style="cursor:pointer;">${esc(c.label)}$arrow</a>
        |  $handle
        |</th>""".stripMargin
 

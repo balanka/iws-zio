@@ -17,7 +17,29 @@ object TransactionHtmlEndpoint:
       PartnerRepository & StoreRepository & TransactionRepository &
       TransactionService & VatRepository
 
-  // ── Params → entity ────────────────────────────────────────────────────
+
+  private def applySort(
+                         rows: List[Transaction],
+                         sort: List[(String, String)]
+                       ): List[Transaction] =
+    sort.foldRight(rows) { case ((key, dir), acc) =>
+      val ord: Ordering[Transaction] = key match {
+        case "id" => Ordering.by(_.id.toLong)
+        case "oid" => Ordering.by(_.oid)
+        case "modelid" => Ordering.by(_.modelid)
+        case "period" => Ordering.by(_.period)
+        case "contact" => Ordering.by(_.contact)
+        case "account" => Ordering.by(_.account)
+        case "store" => Ordering.by(_.store)
+        case "text" => Ordering.by(_.text)
+        case "total" => Ordering.by(t => t.lines.map(_.amount).foldLeft(java.math.BigDecimal.ZERO)(_.add(_)))
+        case "posted" => Ordering.by(_.posted)
+        case _ => Ordering.by(_.id)
+      }
+      val ordered = acc.sorted(using ord)
+      if dir == "desc" then ordered.reverse else ordered
+    }
+
 
   private def applyParams(
                            base:   Transaction,
@@ -328,8 +350,9 @@ object TransactionHtmlEndpoint:
                       t.oid.toLowerCase.contains(query.toLowerCase) ||
                       t.text.toLowerCase.contains(query.toLowerCase))
                   .filter(t => filters.forall { case (k, v) => matches(t, k, v) })
-
-              val slice = filtered.slice(page * size, page * size + size)
+              val sorted = applySort(filtered, sort)
+              val slice = sorted.slice(page * size, page * size + size)
+             // val slice = filtered.slice(page * size, page * size + size)
               HtmxResponse.html(
                 TransactionListView.render(
                   page = HtmxTable.Page(slice, page, size, filtered.size.toLong, sort),

@@ -276,9 +276,10 @@ object TransactionFormView:
     val titleUpdate = HtmxTitleUpdates.fmoduleTitleUpdate(
       formId  = formId,
       titleId = "transaction-title",
+      cardId  = "transaction-card-title",
       company = t.company
     )
-
+    
     s"""
        |<form id="$formId" class="$formClass"
        |      hx-put="/html/transaction"

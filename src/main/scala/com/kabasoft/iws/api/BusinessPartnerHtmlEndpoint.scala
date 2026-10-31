@@ -293,11 +293,3 @@ object BusinessPartnerHtmlEndpoint:
       customerGet, supplierGet, employeeGet,
       customerPut, supplierPut, employeePut
     ) @@ Middleware.debug
-
-//  val routes: Routes[Repos, Response] =
-//    Routes(
-//      customerList, supplierList, employeeList,
-//      formNew,
-//      customerGet,  supplierGet,  employeeGet,
-//      customerPut,  supplierPut,  employeePut
-//    ) @@ Middleware.debug

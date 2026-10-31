@@ -1,6 +1,7 @@
 package com.kabasoft.iws.api
 
 import com.kabasoft.iws.domain.{Article, ModelId}
+import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.repository.{AccountRepository, ArticleRepository, VatRepository}
 import zio._
 import zio.http._
@@ -9,6 +10,8 @@ import java.math.BigDecimal
 object ArticleCombinedPage:
 
   private val prefix = "article"
+
+  private type Repos = ArticleRepository & AccountRepository & VatRepository
 
   private def blank(company: String): Article =
     Article(
@@ -30,67 +33,65 @@ object ArticleCombinedPage:
       company        = company
     )
 
-  private val pageGet: Route[ArticleRepository & AccountRepository & VatRepository, Response] =
+  private def buildBody(company: String): ZIO[Repos, RepositoryError, String] =
+    for {
+      all  <- ArticleRepository.all((ModelId.ARTICLE.modelid, company))
+      accs <- AccountRepository.all((ModelId.ACCOUNT.modelid, company))
+      vats <- VatRepository.all((ModelId.VAT.modelid, company))
+    } yield {
+      val sorted      = all.sortBy(_.id)
+      val initialSize = 20
+      val slice       = sorted.take(initialSize)
+      val page        = HtmxTable.Page(slice, 0, initialSize, sorted.size.toLong)
+
+      val formHtml = ArticleFormView.render(blank(company), accs, vats, mode = "view")
+      val listHtml = ArticleListView.render(
+        page, company, "",
+        rowMode  = HtmxTable.RowMode.Fetch("#article-form"),
+        detailFn = a => s"/html/article/${a.id}/${a.modelid}/${a.company}"
+      )
+
+      s"""
+         |<div class="container mx-auto max-w-5xl">
+         |  <div class="htmx-page-wrapper">
+         |
+         |    ${HtmxToolbar.render(prefix, ModelId.ARTICLE.modelid, company)}
+         |
+         |    <div id="$prefix-form-card" class="daisy-card bg-base-100 shadow-sm">
+         |      <div class="daisy-card-body compact">
+         |        <div class="daisy-card-content">
+         |          $formHtml
+         |        </div>
+         |      </div>
+         |    </div>
+         |
+         |    <div id="$prefix-list-card" class="daisy-card bg-base-100 shadow-sm">
+         |      <div class="daisy-card-body compact">
+         |        <div class="daisy-card-content">$listHtml</div>
+         |      </div>
+         |    </div>
+         |
+         |  </div>
+         |</div>
+         |""".stripMargin
+    }
+
+  private def render(company: String): ZIO[Repos, Nothing, Response] =
+    buildBody(company)
+      .map(bodyHtml => HtmxResponse.htmlNoCache(HtmxPage.renderRaw("Article", bodyHtml)))
+      .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
+
+  private def renderFragment(company: String): ZIO[Repos, Nothing, Response] =
+    buildBody(company)
+      .map(bodyHtml => HtmxResponse.htmlNoCache(bodyHtml))
+      .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
+
+  private val pageGet: Route[Repos, Response] =
     Method.GET / "article-combined-htmx" / string("company") ->
-      handler { (company: String, _: Request) =>
-        (for {
-          all  <- ArticleRepository.all((ModelId.ARTICLE.modelid, company))
-          accs <- AccountRepository.all((ModelId.ACCOUNT.modelid, company))
-          vats <- VatRepository.all((ModelId.VAT.modelid, company))
-        } yield {
-          val sorted      = all.sortBy(_.id)
-          val initialSize = 20
-          val slice       = sorted.take(initialSize)
-          val page        = HtmxTable.Page(slice, 0, initialSize, sorted.size.toLong)
+      handler { (company: String, _: Request) => render(company) }
 
-          // Default form is read-only view mode.
-          val formHtml = ArticleFormView.render(blank(company), accs, vats, mode = "view")
-          val listHtml = ArticleListView.render(
-            page, company, "",
-            rowMode  = HtmxTable.RowMode.Fetch("#article-form"),
-            detailFn = a => s"/html/article/${a.id}/${a.modelid}/${a.company}"
-          )
+  private val fragmentGet: Route[Repos, Response] =
+    Method.GET / "html" / "article-combined" / string("company") ->
+      handler { (company: String, _: Request) => renderFragment(company) }
 
-          val bodyHtml =
-            s"""
-               |<div class="container mx-auto max-w-5xl">
-               |  <div class="htmx-page-wrapper">
-               |
-               |    ${HtmxToolbar.render(prefix, ModelId.ARTICLE.modelid, company)}
-               |
-               |    <div id="$prefix-form-card" class="daisy-card bg-base-100 shadow-sm">
-               |      <div class="daisy-card-body compact">
-               |        <div class="daisy-card-header-row">
-               |          <h2 class="daisy-card-title">Article</h2>
-               |          <button type="button"
-               |                  class="daisy-btn btn-ghost daisy-btn-xs"
-               |                  data-toggle="#$prefix-form-card"
-               |                  data-label-show="Show"
-               |                  data-label-hide="Hide">
-               |            <span class="toggle-arrow">▾</span>
-               |            <span class="toggle-daisy-label">Hide</span>
-               |          </button>
-               |        </div>
-               |        <div class="daisy-card-content">
-               |          $formHtml
-               |        </div>
-               |      </div>
-               |    </div>
-               |
-               |    <div id="$prefix-list-card" class="daisy-card bg-base-100 shadow-sm">
-               |      <div class="daisy-card-body compact">
-               |        <div class="daisy-card-content">$listHtml</div>
-               |      </div>
-               |    </div>
-               |
-               |  </div>
-               |</div>
-               |""".stripMargin
-
-          HtmxResponse.html(HtmxPage.renderRaw("Article", bodyHtml))
-          HtmxResponse.htmlNoCache(HtmxPage.renderRaw("Article", bodyHtml))
-        }).catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
-      }
-
-  val routes: Routes[ArticleRepository & AccountRepository & VatRepository, Response] =
-    Routes(pageGet)
+  val routes: Routes[Repos, Response] = Routes(pageGet, fragmentGet)
