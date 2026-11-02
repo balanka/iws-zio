@@ -6,7 +6,7 @@ ARG TARGETARCH
 
 WORKDIR /app
 
-COPY target/scala-3.9.0/iws-api-assembly-*.jar ./iws-api.jar
+COPY target/scala-3.10.0/iws-api-assembly-*.jar ./iws-api.jar
 COPY graal/ ./graal/
 
 RUN native-image \

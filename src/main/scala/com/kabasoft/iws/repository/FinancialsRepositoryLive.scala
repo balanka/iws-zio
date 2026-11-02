@@ -20,133 +20,76 @@ final case  class FinancialsRepositoryLive(postgres: Resource[Task, Session[Task
   import FinancialsRepositoryLive.{ sequenceNames, FINANCIAL_SEQUENCE_PREF, FINANCIAL_DETAIL_SEQUENCE_PREF
     , newMasterFilter, oldMasterFilter, master2master, master2Details, Details2Details, newDetailsFilter, details2DeleteFilter, details2UpdateFilter}
 
-  def insertTransact(session: Session[Task], models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =
-      ZIO.uninterruptibleMask { restore =>
-         restore(session.transaction.use { xa =>
-            restore(session.prepareR(insert).use { pciMaster =>
-              restore(session.prepareR(insertDetails).use { pciDetails =>
-                exec(xa, pciMaster, pciDetails, master2master, master2Details, Details2Details,
-                  models, session,
-                  sequenceNames(FINANCIAL_SEQUENCE_PREF, FINANCIAL_DETAIL_SEQUENCE_PREF, models)
-                ).catchAll { repoError =>ZIO.fail(new Throwable(repoError.message))
-              }
-            })
-        })
-      }).mapError(e => RepositoryError(e.getMessage))
-    }
+  private def transactModifyInternal(
+                                      s: Session[Task],
+                                      models: List[FinancialsTransaction]
+                                    ): Task[List[FinancialsTransaction]] =
+    s.transaction.use { _ => // ← the ONE transaction
+      val (seqMaster, seqDetail) = sequenceNames(
+        FinancialsRepositoryLive.FINANCIAL_SEQUENCE_PREF,
+        FinancialsRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF,
+        models
+      )
 
-  def transact(s: Session[Task], models: List[FinancialsTransaction]): Task[Unit] = {
-    def nextId(name: String): ZIO[Any, Throwable, Long] = s.unique(sequenceQuery)(name)
-    def withId[A](name: String, f: Long => A): ZIO[Any, Throwable, A] = nextId(name).map(f)
+      def nextId(company: String): Task[Long] = s.unique(sequenceQuery)(company)
 
-    (for {
-      pciMaster <- s.prepareR(insert)
-      pcuMaster <- s.prepareR(UPDATE)
-      pciDetails <- s.prepareR(insertDetails)
-      pcuDetails <- s.prepareR(UPDATE_DETAILS)
-      pcdDetails <- s.prepareR(DELETE_DETAILS)
-    } yield (pciMaster, pcuMaster, pciDetails, pcuDetails, pcdDetails)).use {
-      case (pciMaster, pcuMaster, pciDetails, pcuDetails, pcdDetails) =>
-        // Add new masters if any
-        ZIO.foreachDiscard(newMasterFilter(models)) { master =>
-          val (masterSeq, detailSeq) = sequenceNames (FINANCIAL_SEQUENCE_PREF, FINANCIAL_DETAIL_SEQUENCE_PREF,models)
-          withId(masterSeq, id => master2master(master, id)).flatMap { masterWithId =>
-            ZIO.logInfo(s"Insert master: $masterWithId") *>
-              pciMaster.execute(masterWithId) *>
-              ZIO.foreachDiscard(master2Details(masterWithId, masterWithId.id)) { detail =>
-                withId(detailSeq, id => Details2Details(detail, id)).flatMap { detailWithId =>
-                  ZIO.logInfo(s"Insert detail: $detailWithId") *>
-                    pciDetails.execute(detailWithId)
+      def exec[A](cmd: PreparedCommand[Task, A], value: A): Task[Unit] =
+        cmd.execute(value).unit
+
+      def withId[A](company: String, f: Long => A): Task[A] =
+        nextId(company).map(f)
+
+      (for {
+        pciMaster <- s.prepareR(insert)
+        pcuMaster <- s.prepareR(UPDATE)
+        pciDetails <- s.prepareR(insertDetails)
+        pcuDetails <- s.prepareR(UPDATE_DETAILS)
+        pcdDetails <- s.prepareR(DELETE_DETAILS)
+      } yield (pciMaster, pcuMaster, pciDetails, pcuDetails, pcdDetails)).use {
+        case (pciMaster, pcuMaster, pciDetails, pcuDetails, pcdDetails) =>
+          for {
+            newMasters <- ZIO.collectAll(
+              newMasterFilter(models).map { master =>
+                withId(seqMaster, id => master2master(master, id)).tap { m =>
+                  ZIO.logInfo(s"Insert new master: $m  ") *>
+                    exec(pciMaster, m) *>
+                    ZIO.foreachDiscard(master2Details(m, m.id)) { d =>
+                      ZIO.logInfo(s"Insert new details: $d") *>
+                        withId(seqDetail, id => Details2Details(d, id)).tap(exec(pciDetails, _))
+                    }
                 }
               }
-          }
-        }.*>(
+            )
 
-        // Update Old masters, if any to
-        ZIO.foreachDiscard(oldMasterFilter(models)) { master =>
-          val (_, detailSeq) = sequenceNames ( FINANCIAL_SEQUENCE_PREF, FINANCIAL_DETAIL_SEQUENCE_PREF, models)
-          pcuMaster.execute(FinancialsTransaction.encodeIt2(master)) *>
-            ZIO.foreachDiscard(details2UpdateFilter(master).tapEach( m =>ZIO.logInfo(s"Update old details: $m"))
-              .map(FinancialsTransactionDetails.encodeIt2))(pcuDetails.execute) *>
-            ZIO.foreachDiscard(newDetailsFilter(master)) { detail =>
-              withId(detailSeq, id => Details2Details(detail, id)).flatMap { detailWithId =>
-                ZIO.logInfo(s"Insert new details: $detailWithId") *>
-                  pciDetails.execute(detailWithId)
+            updatedMasters <- ZIO.collectAll(
+              oldMasterFilter(models).map { master =>
+                ZIO.succeed(master).tap { m =>
+                  ZIO.logInfo(s"updating  old master: $m") *>
+                    exec(pcuMaster, FinancialsTransaction.encodeIt2(m)) *>
+                    ZIO.logInfo(s"Deleting old details: ") *>
+                    ZIO.foreachDiscard(details2DeleteFilter(m).map(FinancialsTransactionDetails.encodeIt3))(exec(pcdDetails, _)) *>
+                    ZIO.logInfo(s"updating  old details: ${details2UpdateFilter(m)}") *>
+                    ZIO.foreachDiscard(details2UpdateFilter(m).map(FinancialsTransactionDetails.encodeIt2))(exec(pcuDetails, _)) *>
+                    ZIO.foreachDiscard(newDetailsFilter(m)) { d =>
+                      ZIO.logInfo(s"Inserting new details: $d") *>
+                        withId(seqDetail, id => Details2Details(d, id)).tap(exec(pciDetails, _))
+                    }
+                }
               }
-            } *>
-             // delete lines to delete if any to
-            ZIO.foreachDiscard(details2DeleteFilter(master).tapEach( m =>ZIO.logInfo(s"Delete old details: $m"))
-               .map(FinancialsTransactionDetails.encodeIt3))(pcdDetails.execute)
-        }
-        )
+            )
+          } yield (newMasters ++ updatedMasters).toList
+      }
     }
-  }
+
   override def create(c: FinancialsTransaction): ZIO[Any, RepositoryError, FinancialsTransaction] = for {
     trans <- modify(List(c)).map(_.headOption.getOrElse(FinancialsTransaction.dummy))
-    //trans <- create(List(c)).map(_.headOption.getOrElse(FinancialsTransaction.dummy))
        _ <- ZIO.logInfo(s"Inserted : $trans")
     trans2 <- getById(trans.id, trans.modelid, trans.company)
   } yield trans2
 
   override def create(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]] = modify(models)
 
-  private def transactModifyInternal(s: Session[Task], models: List[FinancialsTransaction]): Task[List[FinancialsTransaction]] = {
-    val (seqMaster, seqDetail) = sequenceNames(
-      FinancialsRepositoryLive.FINANCIAL_SEQUENCE_PREF,
-      FinancialsRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF,
-      models
-    )
 
-    def nextId(company: String): Task[Long] = s.unique(sequenceQuery)(company)
-
-    def exec[A](cmd: PreparedCommand[Task, A], value: A): Task[Unit] = cmd.execute(value).unit
-
-    def withId[A](company: String, f: Long => A): Task[A] = nextId(company).map(f)
-
-    (for {
-      pciMaster <- s.prepareR(insert)
-      pcuMaster <- s.prepareR(UPDATE)
-      pciDetails <- s.prepareR(insertDetails)
-      pcuDetails <- s.prepareR(UPDATE_DETAILS)
-      pcdDetails <- s.prepareR(DELETE_DETAILS)
-    } yield (pciMaster, pcuMaster, pciDetails, pcuDetails, pcdDetails)).use {
-      case (pciMaster, pcuMaster, pciDetails, pcuDetails, pcdDetails) =>
-        for {
-          newMasters <- ZIO.collectAll(
-            newMasterFilter(models).map { master =>
-              withId(seqMaster, id => master2master(master, id)).tap { m =>
-                ZIO.logInfo(s"Insert new master: $m  ") *>
-                exec(pciMaster, m) *>
-                  ZIO.foreachDiscard(master2Details(m, m.id)) { d =>
-                    ZIO.logInfo(s"Insert new details: $d") *>
-                    withId(seqDetail, id => Details2Details(d, id)).tap(exec(pciDetails, _))
-                  }
-              }
-            }
-          )
-
-          updatedMasters <- ZIO.collectAll(
-            oldMasterFilter(models).map { master =>
-              ZIO.succeed(master).tap { m =>
-                ZIO.logInfo(s"updating  old master: $m") *>
-                exec(pcuMaster, FinancialsTransaction.encodeIt2(m)) *>
-                  ZIO.logInfo(s"Deleting old details: ") *>
-                  ZIO.foreachDiscard(details2DeleteFilter(m).map(FinancialsTransactionDetails.encodeIt3))(exec(pcdDetails, _)) *>
-                  ZIO.logInfo(s"updating  old details: ${details2UpdateFilter(m)}") *>
-                  ZIO.foreachDiscard(details2UpdateFilter(m).map(FinancialsTransactionDetails.encodeIt2))(exec(pcuDetails, _)) *>
-                  ZIO.foreachDiscard(newDetailsFilter(m)) { d =>
-                    ZIO.logInfo(s"Inserting new details: $d") *>
-                    withId(seqDetail, id => Details2Details(d, id)).tap(exec(pciDetails, _))
-                  } //*>
-//                  ZIO.logInfo(s"Deleting old details: ") *>
-//                  ZIO.foreachDiscard(details2DeleteFilter(m).map(FinancialsTransactionDetails.encodeIt3))(exec(pcdDetails, _))
-              }
-            }
-          )
-        } yield (newMasters ++ updatedMasters).toList
-    }
-  }
-  
   override def modify(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, List[FinancialsTransaction]] =
     postgres.use { session =>
       transactModifyInternal(session, models) // Utilise la version Task
@@ -212,15 +155,18 @@ final case  class FinancialsRepositoryLive(postgres: Resource[Task, Session[Task
     transactions <- queryWithTx(postgres, (modelid, companyId, posted, fromPeriod, toPeriod), FIND_4_PERIOD)
     details <-  transactions.map(withLines).flip
   } yield details
-  
-    
-  def delete(p: (Long, Int, String)): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
+
+
+  override def delete(p: (Long, Int, String)): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
+
   override def deleteAll(models: List[FinancialsTransaction]): ZIO[Any, RepositoryError, Int] =
-    (postgres
-      .use:
-        session =>
-          session.execute(DELETE_ALL)*> session.execute(DELETE_ALL_DETAILS)
-      .mapBoth(e => RepositoryError(e.getMessage), _ => 1))
+    postgres
+      .use { session =>
+        session.transaction.use { _ =>
+          session.execute(DELETE_ALL_DETAILS) *> session.execute(DELETE_ALL)
+        }
+      }
+      .mapBoth(e => RepositoryError(e.getMessage), _ => 1)
 
 
 object FinancialsRepositoryLive:
@@ -264,7 +210,6 @@ object FinancialsTransactionRepositorySQL:
         , toInstant(postingdate), period, posted, modelid, company, text, footText, file_content)
 
   val mfEncoder1: Encoder[FinancialsTransaction] = (financialsTransactionCodec.values.contramap(FinancialsTransaction.encodeIt))
-  //val mfEncoder: Encoder[FinancialsTransaction] = financialsTransactionCodec4.values.contramap(FinancialsTransaction.encodeIt4)
   val detailsEncoder: Encoder[FinancialsTransactionDetails] = financialsDetailsTransactionCodec.values.contramap(FinancialsTransactionDetails.encodeIt)
 
   def detailsDecoder: Decoder[FinancialsTransactionDetails] = financialsDetailsTransactionCodec.map:
@@ -374,7 +319,7 @@ object FinancialsTransactionRepositorySQL:
           WHERE id=$int8 and company= $varchar and modelid = $int4""".command
 
   val updatePosted: Command[ String *:Long *: Int *: String*: EmptyTuple] = 
-    sql"""UPDATE master_compta UPDATE SET posted = true, account = $varchar
+    sql"""UPDATE master_compta SET posted = true, account = $varchar
             WHERE id =$int8 AND modelid = $int4 AND  company =$varchar and posted=false
           """.command
   

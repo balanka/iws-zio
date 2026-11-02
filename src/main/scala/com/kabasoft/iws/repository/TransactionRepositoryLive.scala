@@ -36,7 +36,8 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
       transactModifyInternal(session, models)
     }.mapError(e => RepositoryError(e.getMessage))
 
-  private def transactModifyInternal(s: Session[Task], models: List[Transaction]): Task[List[Transaction]] = {
+  private def transactModifyInternal(s: Session[Task], models: List[Transaction]): Task[List[Transaction]] =
+    s.transaction.use { _ =>
     val (seqMaster, seqDetail) = sequenceNames(
       TransactionRepositoryLive.TRANSACTION_SEQUENCE_PREF,
       TransactionRepositoryLive.TRANSACTION_DETAIL_SEQUENCE_PREF,
@@ -124,13 +125,15 @@ final case  class TransactionRepositoryLive(postgres: Resource[Task, Session[Tas
   override def find4Period(fromPeriod: Int, toPeriod: Int, posted:Boolean, companyId: String): ZIO[Any, RepositoryError, List[Transaction]] =
     queryWithTx(postgres, (posted, fromPeriod, toPeriod, companyId), BY_PERIOD)
   override def delete(p:(Long, Int, String)): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
-  override def deleteAll(): ZIO[Any, RepositoryError, Int] =
-    (postgres
-      .use:
-        session =>
-          session.execute(DELETE_All)*> session.execute(DELETE_ALL_DETAILS)
-      .mapBoth(e => RepositoryError(e.getMessage), _ => 1))
 
+  override def deleteAll(): ZIO[Any, RepositoryError, Int] =
+    postgres
+      .use { session =>
+        session.transaction.use { _ =>
+          session.execute(DELETE_ALL_DETAILS) *> session.execute(DELETE_All) // ← details first
+        }
+      }
+      .mapBoth(e => RepositoryError(e.getMessage), _ => 1)
 
 object TransactionRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]] & AccountRepository& ArticleRepository, Throwable, TransactionRepository] =
@@ -234,7 +237,7 @@ private[repository] object TransactionRepositorySQL:
           , vat, text, company, modelid) VALUES $detailsEncoder """.command
 
   val updatePosted: Command[Long *: Int *:  String *: EmptyTuple] =
-    sql"""UPDATE transaction UPDATE SET posted = true
+    sql"""UPDATE transaction  SET posted = true
             WHERE id =$int8 AND modelid = $int4 AND  company =$varchar
           """.command
 

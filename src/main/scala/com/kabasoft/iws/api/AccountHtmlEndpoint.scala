@@ -14,11 +14,20 @@ object AccountHtmlEndpoint:
       body = Body.fromString(body, java.nio.charset.StandardCharsets.UTF_8)
     )
 
+  private def escapeHtml(s: String): String =
+    s.replace("&", "&amp;")
+      .replace("<", "&lt;")
+      .replace(">", "&gt;")
+      .replace("\"", "&quot;")
+
   private def errorHtml(message: String): Response =
     Response(
-      status = Status.InternalServerError,
+      status = Status.Ok,
       headers = Headers(Header.ContentType(MediaType.text.html)),
-      body = Body.fromString(s"""<p style="color:red">Error: $message</p>""", java.nio.charset.StandardCharsets.UTF_8)
+      body = Body.fromString(
+        s"""<p class="error" style="color:red">Error: ${escapeHtml(message)}</p>""",
+        java.nio.charset.StandardCharsets.UTF_8
+      )
     )
 
   private val listGet: Route[AccountRepository, Response] =

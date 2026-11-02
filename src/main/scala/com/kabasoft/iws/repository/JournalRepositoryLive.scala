@@ -20,9 +20,17 @@ final case class JournalRepositoryLive(postgres: Resource[Task, Session[Task]]) 
   private def master2master(m: Journal, idx: Long) = m.copy(id = idx)
 
   def transact(session: Session[Task], models: List[Journal], sequenceName: String): Task[Unit] =
-    session.transaction.use: xa =>
-      session.prepareR(insert).use: pci =>
-        tryExec(xa, session, pci, master2master, models, sequenceName)
+    session.transaction.use { xa =>
+      session.prepareR(insert).use { pci =>
+        models.traverse_ { master =>
+          for {
+            transid <- session.unique(sequenceQuery)(sequenceName)
+            _ <- pci.execute(master2master(master, transid))
+          } yield ()
+        }
+      }
+    }
+
   override def create(c: Journal):ZIO[Any, RepositoryError, Int]=executeWithTx(postgres, c, insert, 1)
   override def create(models: List[Journal]):ZIO[Any, RepositoryError, Int] =
     postgres

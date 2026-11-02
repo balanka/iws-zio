@@ -27,25 +27,31 @@ final case  class BankStatementRepositoryLive(postgres: Resource[Task, Session[T
     val company: String = models.headOption.getOrElse(BankStatement.dummy).company
     s"${prefix}_$company"
   }
-//  def buildId(transactions: List[FinancialsTransaction]): List[FinancialsTransaction] =
-//    transactions.zipWithIndex.map { case (ftr, i) =>
-//    val idx = Instant.now().getNano + i.toLong
-//    ftr.copy(contact = idx, lines = ftr.lines.map(_.copy(transid = idx)), period = common.getPeriod(ftr.transdate))
-//  }
 
   def transact(session: Session[Task], models: List[BankStatement]): Task[Unit] =
-    session.transaction.use: xa =>
-      session.prepareR(insert).use: pci =>
-        tryExec(xa, session, pci, fnSetId, models, sequenceName(BANK_STATEMENT_SEQUENCE_PREF, models))
+    session.transaction.use { _ =>
+      session.prepareR(insert).use { pci =>
+        models.traverse_ { master =>
+          for {
+            transid <- session.unique(sequenceQuery)(
+              sequenceName(BANK_STATEMENT_SEQUENCE_PREF, models))
+            _ <- pci.execute(fnSetId(master, transid))
+          } yield ()
+        }
+      }
+    }
+
 
   private def transact(session: Session[Task], models: List[FinancialsTransaction], oldmodels: List[BankStatement]): Task[Unit] =
+    session.transaction.use { xa =>
       session.prepareR(FinancialsTransactionRepositorySQL.insert).use: pciMaster =>
         session.prepareR(FinancialsTransactionRepositorySQL.insertDetails).use: pciDetails =>
           session.prepareR(UPDATE).use: pcuMaster =>
-            execZ (session, pciMaster, pciDetails, pcuMaster, fnSetMasterId, fnSetDetailsTransId, fnSetDetailsId
-              , BankStatement.encodeIt2, models, oldmodels 
+            execZ(xa, session, pciMaster, pciDetails, pcuMaster, fnSetMasterId, fnSetDetailsTransId, fnSetDetailsId
+              , BankStatement.encodeIt2, models, oldmodels
               , FinancialsRepositoryLive.sequenceNames(FinancialsRepositoryLive.FINANCIAL_SEQUENCE_PREF
                 , FinancialsRepositoryLive.FINANCIAL_DETAIL_SEQUENCE_PREF, models))
+    }
 
   override def create(c: BankStatement):ZIO[Any, RepositoryError, Int] = create(List(c))
   override def create(models: List[BankStatement]):ZIO[Any, RepositoryError, Int]=

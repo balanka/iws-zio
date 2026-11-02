@@ -8,4 +8,4 @@ node_modules
 Dockerfile*
 docker-compose*
 target/*
-!target/scala-3.9.0/iws-api-assembly-*.jar
+!target/scala-*/iws-api-assembly-*.jar

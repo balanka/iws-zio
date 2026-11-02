@@ -26,10 +26,18 @@ final case class TransactionLogRepositoryLive(postgres: Resource[Task, Session[T
   
   private def master2master(m: TransactionLog, idx: Long) = m.copy(id = idx)
 
-  def transact (session: Session[Task],  models: List[TransactionLog], sequenceName:String): Task[Unit] =
-    session.transaction.use: xa =>
-      session.prepareR(insert).use: pci =>
-         tryExec(xa, session, pci, master2master,  models, sequenceName)
+  def transact(session: Session[Task], models: List[TransactionLog], sequenceName:String): Task[Unit] =
+    session.transaction.use { xa =>
+      session.prepareR(insert).use { pci =>
+        models.traverse_ { master =>
+          for {
+            transid <- session.unique(sequenceQuery)(sequenceName)
+            _ <- pci.execute(master2master(master, transid))
+          } yield ()
+        }
+      }
+    }
+
   
   def create(item: TransactionLog): ZIO[Any, RepositoryError, Int]= create(List(item))
   def create(models: List[TransactionLog]): ZIO[Any, RepositoryError, Int]=
@@ -52,12 +60,14 @@ final case class TransactionLogRepositoryLive(postgres: Resource[Task, Session[T
     queryWithTx(postgres, (store, article, fromPeriod, toPeriod, company), BY_STORE_ARTICLE_PERIOD)
 
   override def deleteAll(): ZIO[Any, RepositoryError, Int] =
-    (postgres
-      .use:
-        session =>
-          session.execute(DELETE)
-      .mapBoth(e => RepositoryError(e.getMessage), _ => 1))
-    
+    postgres
+      .use { session =>
+        session.transaction.use { _ =>
+          session.execute(DELETE) 
+        }
+      }
+      .mapBoth(e => RepositoryError(e.getMessage), _ => 1)
+      
 
 object TransactionLogRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]], RepositoryError, TransactionLogRepository] =
@@ -71,11 +81,7 @@ object TransactionLogRepositorySQL:
     (varchar *:int8 *: varchar *: varchar *: varchar *: numeric(12, 2) *: numeric(12, 2) *: numeric(12, 2) *: varchar *: numeric(12, 2) *: numeric(12, 2) *: varchar *: timestamp *: varchar *: varchar *:timestamp*: timestamp*: timestamp *: int4 *:  varchar *: int4)
 
   val mfEncoder: Encoder[TransactionLog] = mfCodec.values.contramap(TransactionLog.encodeIt)
-  //val mfEncoder2: Encoder[TransactionLog] = mfCodec2.values.contramap(TransactionLog.encodeIt2)
-//al detailsDecoder: Decoder[TransactionDetails] = transactionDetailsCodec.map:
-  //      case (id, transid, article, articleName, quantity, unit, price, currency, duedate, vatCode, vat, text, company, modelid) =>
-  //        TransactionDetails(id, transid, article, articleName, quantity.bigDecimal, unit, price.bigDecimal, currency
-  //          , toInstant(duedate), vatCode, vat.bigDecimal, text, company, modelid)
+
   
   val mfDecoder: Decoder[TransactionLog] = mfCodec.map:
     case (id, contact, transid, oid, store, account, article, quantity, stock, wholeStock, unit, price, avgPrice, currency

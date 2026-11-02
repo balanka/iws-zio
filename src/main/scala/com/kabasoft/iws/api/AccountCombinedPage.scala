@@ -44,17 +44,6 @@ object AccountCombinedPage:
          |
          |    <div id="$prefix-form-card" class="daisy-card bg-base-100 shadow-sm">
          |      <div class="daisy-card-body compact">
-         |        <div class="daisy-card-header-row">
-         |          <h2 class="daisy-card-title" id="$prefix-card-title">Account</h2>
-         |          <button type="button"
-         |                  class="daisy-btn btn-ghost daisy-btn-xs"
-         |                  data-toggle="#$prefix-form-card"
-         |                  data-label-show="Show"
-         |                  data-label-hide="Hide">
-         |            <span class="toggle-arrow">▾</span>
-         |            <span class="toggle-daisy-label">Hide</span>
-         |          </button>
-         |        </div>
          |        <div class="daisy-card-content">
          |          <div id="$prefix-form">$formHtml</div>
          |        </div>

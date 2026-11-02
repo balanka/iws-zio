@@ -70,6 +70,7 @@ object ModuleRepositorySQL:
     sql"""INSERT INTO module
             (id, name, description, path, parent, enterdate, changedate, postingdate, company, modelid)
             VALUES $mfEncoder""".command
+
   def insertAll(n:Int): Command[List[Module.TYPE]] = sql"""INSERT INTO module
      (id, name, description, path, parent, enterdate, changedate, postingdate, company, modelid)
      VALUES ${mfCodec.values.list(n)}""".command

@@ -60,7 +60,7 @@ lazy val root = (project in file("."))
         organization := "KABA Soft GmbH",
         version := sys.props.getOrElse("app.version",
           sys.env.getOrElse("APP_VERSION", "4.0.5")),
-         scalaVersion := "3.9.0"
+         scalaVersion := "3.10.0"
       )
     ),
     name           := "iws-api",

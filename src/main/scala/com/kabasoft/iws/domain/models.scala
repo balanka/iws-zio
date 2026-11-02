@@ -2074,6 +2074,7 @@ object Role:
   type TYPE2= (Int, String, String, LocalDateTime, LocalDateTime, LocalDateTime, String, Int)
   type TYPE3= ( String, String, Int, Int, String)
   def apply(c:TYPE):Role = Role(c._1, c._2, c._3, c._4, c._5, c._6, c._7, c._8, List.empty[UserRight])
+  
   def encodeIt(st: Role): TYPE2 =
     (st.id, st.name, st.description,
       st.enterdate.atZone(ZoneId.of("Europe/Paris")).toLocalDateTime,

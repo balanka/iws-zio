@@ -36,38 +36,67 @@ final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
       , insert, BankAccountRepositorySQL.insert, CompanyRepositorySQL.UPDATE, BankAccountRepositorySQL.UPDATE_BANK_ACCOUNT
       , BankAccountRepositorySQL.DELETE_BANK_ACCOUNT)
 
-  override def create(c: Company): ZIO[Any, RepositoryError, Int] = for {
-      modules <- moduleRepo.all(ModelId.MODULE.modelid, "5700")
-      fmodules <- fmoduleRepo.all(ModelId.FMODULE.modelid, "5700")
-      users <- userRepo.all(ModelId.USER.modelid, "5700")
-      roles <- roleRepo.all(ModelId.ROLE.modelid, "5700")
-      permissions <- permissionRepo.all(ModelId.PERMISSION.modelid, "5700")
-      userRoles <- roleRepo.allUserRoles(ModelId.USER_ROLE.modelid, "5700")
-      userRights <- roleRepo.allRights(ModelId.USER_RIGHT.modelid, "5700")
-      details_compta_seq_command = createSequence(FINANCIAL_DETAIL_SEQUENCE_PREF, c.id)
-      transaction_details_seq_command = createSequence(TRANSACTION_DETAIL_SEQUENCE_PREF, c.id)
-      transaction_log_seq_command = createSequence(TRANSACTION_LOG_SEQUENCE_PREF, c.id)
-      journal_seq_command = createSequence(JOURNAL_SEQUENCE_PREF, c.id)
-      bankStmt_seq_command = createSequence(BANK_STATEMENT_SEQUENCE_PREF, c.id)
-      commands: List[(Command[Any], Any)] = List(
-        cmdWithArg(insert, c),
-        cmdWithArg(ModuleRepositorySQL.insertAll(modules.size), modules.map(_.copy(company = c.id)).map(Module.encodeIt)),
-        cmdWithArg(FModuleRepositorySQL.insertAll(fmodules.size), fmodules.map(_.copy(company = c.id)).map(Fmodule.encodeIt)),
-        cmdWithArg(UserRepositorySQL.insertAll(users.size), users.map(_.copy(company = c.id)).map(User.encodeIt3)),
-        cmdWithArg(PermissionRepositorySQL.insertAll(permissions.size), permissions.map(_.copy(company = c.id)).map(Permission.encodeIt)),
-        cmdWithArg(RoleRepositorySQL.insertAll(roles.size), roles.map(_.copy(company = c.id)).map(Role.encodeIt)),
-        cmdWithArg(RoleRepositorySQL.insertUserRole(userRoles.size), userRoles.map(_.copy(company = c.id)).map(UserRole.encodeIt)),
-        cmdWithArg(RoleRepositorySQL.insertUserRight(userRights.size), userRights.map(_.copy(company = c.id)).map(UserRight.encodeIt)),
-        cmdWithArg(details_compta_seq_command, skunk.Void),
-        cmdWithArg(transaction_details_seq_command, skunk.Void),
-        cmdWithArg(transaction_log_seq_command, skunk.Void),
-        cmdWithArg(journal_seq_command, skunk.Void),
-        cmdWithArg(bankStmt_seq_command, skunk.Void)
-      )
-      _ <- ZIO.logInfo(s"insert.sql = ${insert.sql}")
-      result <- executeWithTx(postgres, commands).mapError(t => RepositoryError(t.getMessage))
-    } yield result
+  override def create(c: Company): ZIO[Any, RepositoryError, Int] =
+    postgres
+      .use { session =>
+        session.transaction.use { _ =>
+          (for {
+            // ── pre-reads ──
+            modules     <- moduleRepo.all(ModelId.MODULE.modelid, "5700")
+            fmodules    <- fmoduleRepo.all(ModelId.FMODULE.modelid, "5700")
+            users       <- userRepo.all(ModelId.USER.modelid, "5700")
+            roles       <- roleRepo.all(ModelId.ROLE.modelid, "5700")
+            permissions <- permissionRepo.all(ModelId.PERMISSION.modelid, "5700")
+            userRoles   <- roleRepo.allUserRoles(ModelId.USER_ROLE.modelid, "5700")
+            userRights  <- roleRepo.allRights(ModelId.USER_RIGHT.modelid, "5700")
+            commands: List[(Command[Any], Any)] = List(
+              cmdWithArg(insert, c),
+              cmdWithArg(ModuleRepositorySQL.insertAll(modules.size),
+                modules.map(_.copy(company = c.id)).map(Module.encodeIt)),
+              cmdWithArg(FModuleRepositorySQL.insertAll(fmodules.size),
+                fmodules.map(_.copy(company = c.id)).map(Fmodule.encodeIt)),
+              cmdWithArg(UserRepositorySQL.insertAll(users.size),
+                users.map(_.copy(company = c.id)).map(User.encodeIt3)),
+              cmdWithArg(PermissionRepositorySQL.insertAll(permissions.size),
+                permissions.map(_.copy(company = c.id)).map(Permission.encodeIt)),
+              cmdWithArg(RoleRepositorySQL.insertAll(roles.size),
+                roles.map(_.copy(company = c.id)).map(Role.encodeIt)),
+              cmdWithArg(RoleRepositorySQL.insertUserRole(userRoles.size),
+                userRoles.map(_.copy(company = c.id)).map(UserRole.encodeIt)),
+              cmdWithArg(RoleRepositorySQL.insertUserRight(userRights.size),
+                userRights.map(_.copy(company = c.id)).map(UserRight.encodeIt))
+            )
 
+            // ── Command[Void] commands (CREATE SEQUENCE) ──
+            voidCommands: List[Command[Void]] = List(
+              createSequence(FINANCIAL_DETAIL_SEQUENCE_PREF, c.id),
+              createSequence(TRANSACTION_DETAIL_SEQUENCE_PREF, c.id),
+              createSequence(TRANSACTION_LOG_SEQUENCE_PREF, c.id),
+              createSequence(JOURNAL_SEQUENCE_PREF, c.id),
+              createSequence(BANK_STATEMENT_SEQUENCE_PREF, c.id)
+            )
+
+            _ <- ZIO.logInfo(s"insert.sql = ${insert.sql}")
+
+            // ── writes: arg-bearing commands ──
+            _ <- ZIO.foreachDiscard(commands) { case (cmd, arg) =>
+              session.prepare(cmd).flatMap(_.execute(arg))
+            }
+
+            // ── writes: void commands ──
+            _ <- ZIO.foreachDiscard(voidCommands) { cmd =>
+              session.execute(cmd)
+            }
+          } yield commands.size + voidCommands.size)
+            // ── collapse the union to Throwable so transaction.use accepts it ──
+            .mapError {
+              case re: RepositoryError =>  new RuntimeException(re.message, null)
+              case t: Throwable         => t
+            }
+        }
+      }
+      // ── outer: convert Throwable back to RepositoryError ──
+      .mapError(e => RepositoryError(e.getMessage))
   //override def create(c: Company): ZIO[Any, RepositoryError, Int] = create(List(c))
   override def create(models: List[Company]): ZIO[Any, RepositoryError, Int] =
     (postgres
@@ -116,8 +145,11 @@ final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
     queryWithTx(postgres, (ids, modelid), ALL_BY_ID(ids.length))
 
   override def delete(p: (String, Int)):ZIO[Any, RepositoryError, Int] =  executeWithTx(postgres, p, DELETE, 1)
-  override def deleteAll(p: List[(String, Int)]): ZIO[Any, RepositoryError, Int] = 
-    p.map(l => executeWithTx(postgres, l, DELETE, 1)).flip.map(_.size)
+
+
+  override def deleteAll(p: List[(String, Int)]): ZIO[Any, RepositoryError, Int] =
+      executeWithTx(postgres, p.map(l => cmdWithArg(DELETE, l)))
+       .mapError(t => RepositoryError(t.getMessage))
 
 
 object CompanyRepositoryLive:
@@ -202,7 +234,7 @@ private[repository] object CompanyRepositorySQL:
           , country =$varchar, email =$varchar, contact =$varchar, phone =$varchar, bank_acc =$varchar, description =$varchar
           , tax_code =$varchar, vat_code =$varchar, currency =$varchar, locale =$varchar, balance_sheet_acc =$varchar 
           , income_stmt_acc =$varchar, purchasing_clearing_acc =$varchar, sales_clearing_acc =$varchar,  cash_acc=$varchar
-          , account=$varchar, oaccount=$varchar  pageheadertext=$varchar , pagefootertext=$varchar, headertext=$varchar
+          , account=$varchar, oaccount=$varchar,  pageheadertext=$varchar, pagefootertext=$varchar, headertext=$varchar
           , footertext=$varchar, logocontent=$varchar, logoname=$varchar, contenttype=$varchar
           WHERE id=$varchar and modelid=$int4""".command
 
@@ -214,7 +246,7 @@ private[repository] object CompanyRepositorySQL:
   }
 
   def sequenceName(sequenceName: String, companyId: String): String =
-    s"${sequenceName}_${companyId}}"
+    s"${sequenceName}_${companyId}"
 
   def cmdWithArg[A](cmd: Command[A], arg: A): (Command[Any], Any) = {
     //ZIO.logInfo(s"cmd.sql ${cmd.sql}") *>
