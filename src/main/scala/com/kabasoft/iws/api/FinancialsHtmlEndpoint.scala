@@ -1,5 +1,6 @@
 package com.kabasoft.iws.api
 
+import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{
   FinancialsTransaction, FinancialsTransactionDetails, ModelId
 }
@@ -16,7 +17,7 @@ object FinancialsHtmlEndpoint:
 
   type FormEnv =
     AccountRepository & FModuleRepository & FinancialsRepository &
-      FinancialsService & PartnerRepository & StoreRepository
+      FinancialsService & PartnerRepository & StoreRepository & FormLists.Cache
 
   private def bd(s: String, fallback: String = "0"): java.math.BigDecimal =
     Option(s).map(_.trim).filter(v =>
@@ -90,39 +91,46 @@ object FinancialsHtmlEndpoint:
       posted = false, modelid = modelid,
       company = company, text = "", footText = "", lines = Nil)
 
-  private def applySort(
-                         rows: List[FinancialsTransaction],
-                         sort: List[(String, String)]
-                       ): List[FinancialsTransaction] =
-    sort.foldRight(rows) { case ((key, dir), acc) =>
-      val ord: Ordering[FinancialsTransaction] = key match {
-        case "id" => Ordering.by(_.id)
-        case "oid" => Ordering.by(_.oid)
-        case "modelid" => Ordering.by(_.modelid)
-        case "period" => Ordering.by(_.period)
-        case "costcenter" => Ordering.by(_.costcenter)
-        case "contact" => Ordering.by(_.contact)
-        case "account" => Ordering.by(_.account)
-        case "text" => Ordering.by(_.text)
-        case "posted" => Ordering.by(_.posted)
-        case _ => Ordering.by(_.id)
-      }
-      val ordered = acc.sorted(using ord)
-      if dir == "desc" then ordered.reverse else ordered
-    }
+  private def orderingFor(key: String): Option[Ordering[FinancialsTransaction]] =
+    key match
+      case "id" => Some(Ordering.by(_.id))
+      case "oid" => Some(Ordering.by(_.oid))
+      case "modelid" => Some(Ordering.by(_.modelid))
+      case "period" => Some(Ordering.by(_.period))
+      case "costcenter" => Some(Ordering.by(_.costcenter))
+      case "contact" => Some(Ordering.by(_.contact))
+      case "account" => Some(Ordering.by(_.account))
+      case "text" => Some(Ordering.by(_.text))
+      case "posted" => Some(Ordering.by(_.posted))
+      case _ => None
+
+  private def searchText(t: FinancialsTransaction, q: String): Boolean =
+    t.id.toString.contains(q) ||
+      t.oid.toLowerCase.contains(q) ||
+      t.text.toLowerCase.contains(q)
+
+  private def matches(t: FinancialsTransaction, key: String, value: String): Boolean =
+    if value.isEmpty then true
+    else
+      val v = value.trim.toLowerCase
+      key match
+        case "id" => t.id.toString.contains(v)
+        case "oid" => t.oid.toLowerCase.contains(v)
+        case "modelid" => t.modelid.toString.contains(v)
+        case "period" => t.period.toString.contains(v)
+        case "contact" => t.contact.toLowerCase.contains(v)
+        case "costcenter" => t.costcenter.toLowerCase.contains(v)
+        case "text" => t.text.toLowerCase.contains(v)
+        case "total" =>
+          val tot = t.lines.map(_.amount).foldLeft(java.math.BigDecimal.ZERO)(_.add(_))
+          tot.toString.contains(v)
+        case "posted" => t.posted.toString == value
+        case _ => true
+
   // ── Loaders ────────────────────────────────────────────────────────────
 
-  private def loadLists(company: String) =
-    for {
-      accs     <- AccountRepository.all((ModelId.ACCOUNT.modelid, company))
-      stores   <- StoreRepository.all((ModelId.STORE.modelid, company))
-      contacts <- PartnerRepository.all((ModelId.CONTACT.modelid, company))
-      fmodules <- FModuleRepository.all((ModelId.FMODULE.modelid, company))
-    } yield FormData(
-      accounts = accs,
-      stores   = stores,
-      contacts = contacts,
-      fmodules = fmodules)
+  private def loadLists(company: String): ZIO[FormEnv, RepositoryError, FormLists.FormData] =
+    FormLists.loadBase(company, ModelId.FINANCIALS.modelid)
 
   private def loadCandidates(company: String, modelid: Int)
   : ZIO[FinancialsRepository, Nothing, List[FinancialsTransaction]] =
@@ -183,7 +191,6 @@ object FinancialsHtmlEndpoint:
         val srcId   = req.queryParam("copyFrom").flatMap(_.toLongOption)
         val modelid = req.queryParam("record_modelid").flatMap(_.toIntOption).getOrElse(-1)
         val company = req.queryParam("company").getOrElse("")
-
         (srcId, modelid, company) match
           case (Some(sid), m, c) if m > 0 && c.nonEmpty =>
             (for {
@@ -199,12 +206,12 @@ object FinancialsHtmlEndpoint:
                 contacts           = data.contacts,
                 copyFromCandidates = candidates,
                 mode               = "create"),
-              "iws:list-refresh")
-              )
+              "iws:list-refresh"))
               .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
           case _ =>
             ZIO.succeed(Response.status(Status.BadRequest))
       }
+
   private val formPut: Route[FormEnv, Response] =
     Method.PUT / "html" / "financials" ->
       handler { (req: Request) =>
@@ -228,11 +235,8 @@ object FinancialsHtmlEndpoint:
               .orElse(params.get("modelid").flatMap(_.toIntOption).filter(_ > 0))
 
           modelid = modelid0.getOrElse(ModelId.FINANCIALS.modelid)
-
           mode = if rawMode == "create" || lookupId.isEmpty then "create" else "view"
-
           data <- loadLists(company)
-
           existing <- if mode == "create" then ZIO.succeed(blank(company, modelid))
           else
             lookupId match
@@ -287,8 +291,7 @@ object FinancialsHtmlEndpoint:
         val filterKeys = List(
           "id", "oid", "modelid", "period",
           "contact", "costcenter", "text", "total", "posted")
-        val filters: Map[String, String] =
-          filterKeys.flatMap(k => req.queryParam(k).map(k -> _)).toMap
+        val filters = ListQuerySupport.filterValues(filterKeys, req.queryParam)
 
         if modelid < 0 || company.isEmpty then
           ZIO.succeed(HtmxResponse.html(
@@ -296,25 +299,20 @@ object FinancialsHtmlEndpoint:
         else
           FinancialsRepository.all((modelid, company))
             .map { all =>
-              val filtered =
-                all
-                  .filter(t =>
-                    query.isEmpty ||
-                      t.id.toString.contains(query) ||
-                      t.oid.toLowerCase.contains(query.toLowerCase) ||
-                      t.text.toLowerCase.contains(query.toLowerCase))
-                  .filter(t => filters.forall { case (k, v) => matches(t, k, v) })
-              val sorted = applySort(filtered, sort)
-              val slice = sorted.slice(page * size, page * size + size)
+              val filtered = ListQuerySupport.applyFilters(
+                all, query, filters, searchText, matches)
+              val sorted  = ListQuerySupport.applySort (filtered, sort, orderingFor)
+              val (slice, total) = ListQuerySupport.paginate(sorted, page, size)
               HtmxResponse.html(
                 FinancialsListView.render(
-                  page         = HtmxTable.Page(slice, page, size, filtered.size.toLong, sort),
+                  page         = HtmxTable.Page(slice, page, size, total, sort),
                   company      = company,
                   query        = query,
                   filterValues = filters))
             }
             .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
+
   private val formPrint: Route[FormEnv, Response] =
     Method.GET / "html" / "financials" / "print" / string("id") / int("modelid") / string("company") ->
       handler { (id: String, modelid: Int, company: String, _: Request) =>
@@ -343,28 +341,6 @@ object FinancialsHtmlEndpoint:
             ZIO.succeed(Response.status(Status.BadRequest))
       }
 
-  private def matches(
-                       t:     FinancialsTransaction,
-                       key:   String,
-                       value: String
-                     ): Boolean =
-    if value.isEmpty then true
-    else
-      val v = value.trim.toLowerCase
-      key match
-        case "id"         => t.id.toString.contains(v)
-        case "oid"        => t.oid.toLowerCase.contains(v)
-        case "modelid"    => t.modelid.toString.contains(v)
-        case "period"     => t.period.toString.contains(v)
-        case "contact"    => t.contact.toLowerCase.contains(v)
-        case "costcenter" => t.costcenter.toLowerCase.contains(v)
-        case "text"       => t.text.toLowerCase.contains(v)
-        case "total"      =>
-          val tot = t.lines.map(_.amount)
-            .foldLeft(java.math.BigDecimal.ZERO)(_.add(_))
-          tot.toString.contains(v)
-        case "posted"     => t.posted.toString == value
-        case _            => true
 
-  val routes: Routes[FormEnv, Response] =
-    Routes(formNew, formGet, formCopyFrom, formPut, listGet, formPrint) @@ Middleware.debug
+
+  val routes: Routes[FormEnv, Response] =Routes(formNew, formGet, formCopyFrom, formPut, listGet, formPrint) @@ Middleware.debug

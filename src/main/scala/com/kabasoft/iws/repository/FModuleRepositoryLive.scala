@@ -6,7 +6,7 @@ import skunk._
 import skunk.codec.all._
 import skunk.implicits._
 import zio.{Task, ZIO, ZLayer }
-import com.kabasoft.iws.domain.Fmodule
+import com.kabasoft.iws.domain.{Fmodule, ModelId}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.repository.FinancialsRepositoryLive.FINANCIAL_SEQUENCE_PREF
 import com.kabasoft.iws.repository.TransactionRepositoryLive.TRANSACTION_SEQUENCE_PREF
@@ -17,10 +17,10 @@ final case class FModuleRepositoryLive(postgres: Resource[Task, Session[Task]]) 
   import FModuleRepositorySQL.*
 
   override def create(c: Fmodule):ZIO[Any, RepositoryError, Int]= {
-    if (c.parent === "1300") {
+    if (c.parent === ModelId.FINANCIALS.modelid.toString) {
       val command = createSequence(FINANCIAL_SEQUENCE_PREF, c.company, c.id)
       executeWithTx(postgres, command, 1) *>  executeWithTx(postgres, c, insert, 1)
-    } else if (c.parent === "1301") {
+    } else if (c.parent === ModelId.TRANSACTION.modelid.toString) {
       val command = createSequence(TRANSACTION_SEQUENCE_PREF, c.company, c.id)
       executeWithTx(postgres, command, 1 ) *> executeWithTx(postgres, c, insert, 1)
     } else executeWithTx(postgres, c, insert, 1)
@@ -32,8 +32,11 @@ final case class FModuleRepositoryLive(postgres: Resource[Task, Session[Task]]) 
   override def getById(p: (Int, Int, String)): ZIO[Any, RepositoryError, Fmodule] = queryWithTxUnique(postgres, p, BY_ID)
   override def getBy(ids: List[Int], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Fmodule]] =
     queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
-    
-  def delete(p: (Int, Int, String)):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
+
+  override def getByParent(modelid: Int, parent: String, company: String): ZIO[Any, RepositoryError, List[Fmodule]] = 
+    ZIO.logInfo(s"BY_PARENT = $parent") *> queryWithTx(postgres, (modelid, parent, company), BY_PARENT)
+
+  override def delete(p: (Int, Int, String)):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
 
 object FModuleRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]], RepositoryError, FModuleRepository] =
@@ -98,14 +101,21 @@ private[repository] object FModuleRepositorySQL:
            FROM   fmodule
            WHERE id  IN ${int4.list(nr)} AND  modelid = $int4 AND company = $varchar
            ORDER BY id ASC""".query(mfDecoder)
-
+  
   val BY_ID: Query[Int *: Int *: String *: EmptyTuple, Fmodule] =
     sql"""SELECT id, name, description, enterdate, changedate,postingdate, account, is_debit, parent, copy_from, acc_filter,
       oacc_filter, template1, template2, modelid, company
            FROM   fmodule
            WHERE id = $int4 AND modelid = $int4 AND company = $varchar
            ORDER BY id ASC""".query(mfDecoder)
-
+           
+  val BY_PARENT: Query[Int *: String *: String *: EmptyTuple, Fmodule] =
+    sql"""SELECT id, name, description, enterdate, changedate,postingdate, account, is_debit, parent, copy_from, acc_filter,
+      oacc_filter, template1, template2, modelid, company
+           FROM   fmodule
+           WHERE  modelid = $int4 AND parent = $varchar AND company = $varchar
+           ORDER BY id ASC""".query(mfDecoder) 
+                    
   val ALL: Query[Int *: String *: EmptyTuple, Fmodule] =
     sql"""SELECT id, name, description, enterdate, changedate, postingdate, account, is_debit, parent, copy_from, acc_filter,
       oacc_filter, template1, template2, modelid, company

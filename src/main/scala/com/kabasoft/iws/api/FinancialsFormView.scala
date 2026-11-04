@@ -7,8 +7,6 @@ import HtmxFields.{comboRow, fmtDate}
 
 object FinancialsFormView:
 
-  // ── Line columns ────────────────────────────────────────────────────────
-
   private def lineColumns(accounts: List[Account]): List[HtmxSubGrid.Column] =
     val accountOptions    = accounts.map(a => a.id -> s"${a.id} ${a.name}")
     val accountOptionData = accounts.map(a => a.id -> Map("name" -> a.name)).toMap
@@ -146,13 +144,6 @@ object FinancialsFormView:
         )
 
     // ── Header section ─────────────────────────────────────────────────
-    //   Row 1: Id              | Financials
-    //   Row 2: Oid             | Transaction date
-    //   Row 3: Cost center     | Copy from
-    //   Row 4: Account         | Period
-    //   Row 5: Contact         | Posted
-    //   Row 6: Text            | <span>
-    //   Row 7: Foot text       | <span>
     val headerSection = HtmxCollapsible.section(
       title   = title,
       titleId = "financials-title",     // ← new: stable id for JS updates
@@ -250,30 +241,3 @@ object FinancialsFormView:
        |  $footTextPrintBlock
        |</form>
        |""".stripMargin
-    
-//    
-//    val titleUpdate =
-//      s"""if (event.target.id === '$formId-fmodule') {
-//         |  var sel = event.target.options[event.target.selectedIndex];
-//         |  var fmoduleName = sel ? sel.textContent.trim() : '';
-//         |  var titleEl = document.getElementById('financials-title');
-//         |  if (titleEl) titleEl.textContent = '${Html.esc(t.company)}/' + fmoduleName;
-//         |}""".stripMargin
-//
-//    s"""
-//       |<form id="$formId" class="$formClass"
-//       |      hx-put="/html/financials"
-//       |      hx-target="#$formId" hx-swap="outerHTML"
-//       |      hx-on:change="$titleUpdate"
-//       |      hx-on::after-request="if(event.detail.requestConfig.verb === 'put' && event.detail.successful){ var c=document.getElementById('$formId-fmodule'); if(c) htmx.trigger(c,'change'); }">
-//       |
-//       |  ${HtmxFields.hiddenField("id",           t.id.toString)}
-//       |  ${HtmxFields.hiddenField("company",      t.company)}
-//       |  ${HtmxFields.hiddenField("mode",         mode)}
-//       |  ${HtmxFields.hiddenField("record_modelid", t.modelid.toString)}
-//       |
-//       |  $headerSection
-//       |  $linesBlock
-//       |  $footTextPrintBlock
-//       |</form>
-//       |""".stripMargin

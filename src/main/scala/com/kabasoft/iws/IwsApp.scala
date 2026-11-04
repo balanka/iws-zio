@@ -50,13 +50,7 @@ import java.time.Clock
 import java.util
 import scala.annotation.nowarn
 import scala.language.postfixOps
-import com.kabasoft.iws.api.{AccountCombinedPage, AccountHtmlEndpoint, AccountListPage, AccountPage, ArticleCombinedPage
-  , ArticleHtmlEndpoint, ArticlePage, AssetCombinedPage, AssetHtmlEndpoint, BusinessPartnerCombinedPage
-  , BusinessPartnerHtmlEndpoint, CompanyCombinedPage, CompanyHtmlEndpoint, ContactCombinedPage, ContactHtmlEndpoint
-  , FmoduleCombinedPage, FmoduleHtmlEndpoint, MasterfileCombinedPage, MasterfileHtmlEndpoint, PartnerHtmlEndpoint
-  , PartnerPage, PermissionCombinedPage, PermissionHtmlEndpoint, StoreCombinedPage, StoreHtmlEndpoint
-  , TransactionCombinedPage, TransactionHtmlEndpoint, FinancialsHtmlEndpoint, FinancialsCombinedPage
-  , UserCombinedPage, UserHtmlEndpoint, VatCombinedPage, VatHtmlEndpoint}
+import com.kabasoft.iws.api.{AccountCombinedPage, AccountHtmlEndpoint, AccountListPage, AccountPage, ArticleCombinedPage, ArticleHtmlEndpoint, ArticlePage, AssetCombinedPage, AssetHtmlEndpoint, BusinessPartnerCombinedPage, BusinessPartnerHtmlEndpoint, CompanyCombinedPage, CompanyHtmlEndpoint, ContactCombinedPage, ContactHtmlEndpoint, FinancialsCombinedPage, FinancialsHtmlEndpoint, FmoduleCombinedPage, FmoduleHtmlEndpoint, FormLists, MasterfileCombinedPage, MasterfileHtmlEndpoint, PartnerHtmlEndpoint, PartnerPage, PermissionCombinedPage, PermissionHtmlEndpoint, StoreCombinedPage, StoreHtmlEndpoint, TransactionCombinedPage, TransactionHtmlEndpoint, UserCombinedPage, UserHtmlEndpoint, VatCombinedPage, VatHtmlEndpoint}
 object IwsApp extends ZIOAppDefault {
 
   implicit val clock: Clock = Clock.systemUTC
@@ -80,6 +74,7 @@ object IwsApp extends ZIOAppDefault {
       Config.default.binding(api_hostName, api_port)
     ) >>> Server.live
   }
+
 
   private val httpApp = (AccountRoutes++assetRoutes ++ supplierRoutes++ customerRoutes ++ moduleRoutes ++ companyRoutes
    ++ bankStmtRoutes++transactionRoutes ++fmoduleRoutes++employeeRoutes++articleRoutes++salaryItemRoutes
@@ -120,11 +115,11 @@ object IwsApp extends ZIOAppDefault {
           ++ FinancialsHtmlEndpoint.routes ++  FinancialsCombinedPage.routes
           ++ (httpApp @@ bearerAuthWithContext2)
         )
-//        .serve(loginRoutes++expose ++ VatPage.routes ++ VatHtmlEndpoint.routes ++ httpApp@@bearerAuthWithContext2)
         .provide(
           serverLayer,
           appResourcesL.project(_.postgres),
           appResourcesL,
+          FormLists.cacheLayer,
           appConfig,
           ArticleRepositoryLive.live,
           PacServiceLive.live,

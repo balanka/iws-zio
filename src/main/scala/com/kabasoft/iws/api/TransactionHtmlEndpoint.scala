@@ -1,5 +1,6 @@
 package com.kabasoft.iws.api
 
+import com.kabasoft.iws.domain.AppError.RepositoryError
 import com.kabasoft.iws.domain.{ModelId, Transaction, TransactionDetails, Vat}
 import com.kabasoft.iws.repository.{
   AccountRepository, ArticleRepository, FModuleRepository,
@@ -15,31 +16,47 @@ object TransactionHtmlEndpoint:
   type FormEnv =
     AccountRepository & ArticleRepository & FModuleRepository &
       PartnerRepository & StoreRepository & TransactionRepository &
-      TransactionService & VatRepository
+      TransactionService & VatRepository & FormLists.Cache
 
+  private def orderingFor(key: String): Option[Ordering[Transaction]] =
+    key match
+      case "id" => Some(Ordering.by(_.id.toLong))
+      case "oid" => Some(Ordering.by(_.oid))
+      case "modelid" => Some(Ordering.by(_.modelid))
+      case "period" => Some(Ordering.by(_.period))
+      case "contact" => Some(Ordering.by(_.contact))
+      case "account" => Some(Ordering.by(_.account))
+      case "store" => Some(Ordering.by(_.store))
+      case "text" => Some(Ordering.by(_.text))
+      case "total" =>
+        Some(Ordering.by((t: Transaction) =>
+          t.lines.map(_.amount).foldLeft(java.math.BigDecimal.ZERO)(_.add(_))))
+      case "posted" => Some(Ordering.by(_.posted))
+      case _ => None
 
-  private def applySort(
-                         rows: List[Transaction],
-                         sort: List[(String, String)]
-                       ): List[Transaction] =
-    sort.foldRight(rows) { case ((key, dir), acc) =>
-      val ord: Ordering[Transaction] = key match {
-        case "id" => Ordering.by(_.id.toLong)
-        case "oid" => Ordering.by(_.oid)
-        case "modelid" => Ordering.by(_.modelid)
-        case "period" => Ordering.by(_.period)
-        case "contact" => Ordering.by(_.contact)
-        case "account" => Ordering.by(_.account)
-        case "store" => Ordering.by(_.store)
-        case "text" => Ordering.by(_.text)
-        case "total" => Ordering.by(t => t.lines.map(_.amount).foldLeft(java.math.BigDecimal.ZERO)(_.add(_)))
-        case "posted" => Ordering.by(_.posted)
-        case _ => Ordering.by(_.id)
-      }
-      val ordered = acc.sorted(using ord)
-      if dir == "desc" then ordered.reverse else ordered
-    }
+  private def searchText(t: Transaction, q: String): Boolean =
+    t.id.toString.contains(q) ||
+      t.oid.toLowerCase.contains(q) ||
+      t.text.toLowerCase.contains(q)
 
+  private def matches(t: Transaction, key: String, value: String): Boolean =
+    if value.isEmpty then true
+    else
+      val v = value.trim.toLowerCase
+      key match
+        case "id" => t.id.toString.contains(v)
+        case "oid" => t.oid.toLowerCase.contains(v)
+        case "modelid" => t.modelid.toString.contains(v)
+        case "period" => t.period.toString.contains(v)
+        case "contact" => t.contact.toLowerCase.contains(v)
+        case "account" => t.account.toLowerCase.contains(v)
+        case "store" => t.store.toLowerCase.contains(v)
+        case "text" => t.text.toLowerCase.contains(v)
+        case "total" =>
+          val tot = t.lines.map(_.amount).foldLeft(java.math.BigDecimal.ZERO)(_.add(_))
+          tot.toString.contains(v)
+        case "posted" => t.posted.toString == value
+        case _ => true
 
   private def applyParams(
                            base:   Transaction,
@@ -113,23 +130,10 @@ object TransactionHtmlEndpoint:
       company = company, text = "", footText = "", lines = Nil)
 
   // ── Shared loaders ─────────────────────────────────────────────────────
+  private def loadLists(company: String): ZIO[FormEnv, RepositoryError, FormLists.FormData] =
+    FormLists.loadWithArticlesAndVats(company, ModelId.TRANSACTION.modelid)
 
-  private def loadLists(company: String) =
-    for {
-      accs     <- AccountRepository.all((ModelId.ACCOUNT.modelid, company))
-      arts     <- ArticleRepository.all((ModelId.ARTICLE.modelid, company))
-      vats     <- VatRepository.all((ModelId.VAT.modelid, company))
-      stores   <- StoreRepository.all((ModelId.STORE.modelid, company))
-      contacts <- PartnerRepository.all((ModelId.CONTACT.modelid, company))
-      fmodules <- FModuleRepository.all((ModelId.FMODULE.modelid, company))
-    } yield FormData(
-      accounts = accs,
-      articles = arts,
-      vats     = vats,
-      stores   = stores,
-      contacts = contacts,
-      fmodules = fmodules)
-
+  
   private def loadCandidates(company: String, modelid: Int)
   : ZIO[TransactionRepository, Nothing, List[Transaction]] =
     if modelid <= 0 || company.isEmpty then ZIO.succeed(Nil)
@@ -158,7 +162,8 @@ object TransactionHtmlEndpoint:
             vats               = data.vats,
             contacts           = data.contacts,
             copyFromCandidates = candidates,
-            mode               = "create")))
+            mode               = "create",
+            title              = "Transaction")))
           .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 
@@ -181,7 +186,8 @@ object TransactionHtmlEndpoint:
                 vats               = data.vats,
                 contacts           = data.contacts,
                 copyFromCandidates = candidates,
-                mode               = "view")))
+                mode               = "view",
+                title              = "Transaction")))
               .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
           case None => ZIO.succeed(Response.status(Status.BadRequest))
       }
@@ -192,7 +198,6 @@ object TransactionHtmlEndpoint:
         val srcId   = req.queryParam("copyFrom").flatMap(_.toLongOption)
         val modelid = req.queryParam("record_modelid").flatMap(_.toIntOption).getOrElse(-1)
         val company = req.queryParam("company").getOrElse("")
-
         (srcId, modelid, company) match
           case (Some(sid), m, c) if m > 0 && c.nonEmpty =>
             (for {
@@ -200,22 +205,23 @@ object TransactionHtmlEndpoint:
               data       <- loadLists(c)
               candidates <- loadCandidates(c, m)
             } yield HtmxResponse.htmlWithTrigger(
-                TransactionFormView.render(
-                  t                  = cloned,
-                  fmodules           = data.fmodules,
-                  stores             = data.stores,
-                  accounts           = data.accounts,
-                  articles           = data.articles,
-                  vats               = data.vats,
-                  contacts           = data.contacts,
-                  copyFromCandidates = candidates,
-                  mode               = "create"),
-                "iws:list-refresh")
-              )
+              TransactionFormView.render(
+                t                  = cloned,
+                fmodules           = data.fmodules,
+                stores             = data.stores,
+                accounts           = data.accounts,
+                articles           = data.articles,
+                vats               = data.vats,
+                contacts           = data.contacts,
+                copyFromCandidates = candidates,
+                mode               = "create",
+                title              = "Transaction"),
+              "iws:list-refresh"))
               .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
           case _ =>
             ZIO.succeed(Response.status(Status.BadRequest))
       }
+
   private val formPut: Route[FormEnv, Response] =
     Method.PUT / "html" / "transaction" ->
       handler { (req: Request) =>
@@ -230,20 +236,15 @@ object TransactionHtmlEndpoint:
             ZIO.fail(new RuntimeException("Missing 'company' in form submission"))
           else ZIO.unit
 
-          // A positive id is the only valid signal for "modify an existing row".
           lookupId =
             params.get("id_display").flatMap(_.toLongOption).filter(_ > 0)
               .orElse(params.get("id").flatMap(_.toLongOption).filter(_ > 0))
 
-          // Prefer record_modelid (immutable). Fall back to the combo's modelid.
           modelid0 =
             params.get("record_modelid").flatMap(_.toIntOption).filter(_ > 0)
               .orElse(params.get("modelid").flatMap(_.toIntOption).filter(_ > 0))
 
           modelid = modelid0.getOrElse(ModelId.TRANSACTION.modelid)
-
-          // Effective mode: "create" if the form said so OR we have no valid
-          // id to look up.
           mode = if rawMode == "create" || lookupId.isEmpty then "create" else "view"
 
           data <- loadLists(company)
@@ -260,8 +261,6 @@ object TransactionHtmlEndpoint:
 
           toSave = applyParams(existing, params, data.vats)
 
-          // create returns the fully persisted entity (with its new positive id).
-          // modify returns a row count, so reload after modify.
           fresh  <- if mode == "create" then TransactionRepository.create(toSave)
           else
             for {
@@ -284,48 +283,24 @@ object TransactionHtmlEndpoint:
             vats               = data.vats,
             contacts           = data.contacts,
             copyFromCandidates = candidates,
-            mode               = "view"),
+            mode               = "view",
+            title              = "Transaction"),
           "iws:list-refresh"))
           .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
 
-  /** Column filters — one `case` per column that has a filter.
-   * Empty string means "no filter applied".
-   */
-  private def matches(
-                       t: Transaction,
-                       key: String,
-                       value: String
-                     ): Boolean =
-    if value.isEmpty then true
-    else
-      val v = value.trim.toLowerCase
-      key match
-        case "id" => t.id.toString.contains(v)
-        case "oid" => t.oid.toLowerCase.contains(v)
-        case "modelid" => t.modelid.toString.contains(v)
-        case "period" => t.period.toString.contains(v)
-        case "contact" => t.contact.toLowerCase.contains(v)
-        case "account" => t.account.toLowerCase.contains(v)
-        case "store" => t.store.toLowerCase.contains(v)
-        case "text" => t.text.toLowerCase.contains(v)
-        case "total" =>
-          val tot = t.lines.map(_.amount)
-            .foldLeft(java.math.BigDecimal.ZERO)(_.add(_))
-          tot.toString.contains(v)
-        case "posted" => t.posted.toString == value
-        case _ => true
+
 
   private val listGet: Route[FormEnv, Response] =
     Method.GET / "html" / "transaction-list" ->
       handler { (req: Request) =>
         val modelid = req.queryParam("modelid").flatMap(_.toIntOption).getOrElse(-1)
         val company = req.queryParam("company").getOrElse("")
-        val page = req.queryParam("page").flatMap(_.toIntOption).getOrElse(0)
-        val query = req.queryParam("q").getOrElse("")
-        val size = req.queryParam("size").flatMap(_.toIntOption)
+        val page    = req.queryParam("page").flatMap(_.toIntOption).getOrElse(0)
+        val query   = req.queryParam("q").getOrElse("")
+        val size    = req.queryParam("size").flatMap(_.toIntOption)
           .filter(HtmxTable.pageSizes.contains).getOrElse(20)
-        val sort = req.queryParam("sort")
+        val sort    = req.queryParam("sort")
           .map(HtmxTable.Page.parseSort)
           .filter(_.nonEmpty)
           .getOrElse(HtmxTable.Page.defaultSort)
@@ -333,8 +308,7 @@ object TransactionHtmlEndpoint:
         val filterKeys = List(
           "id", "oid", "modelid", "period",
           "contact", "account", "store", "text", "total", "posted")
-        val filters: Map[String, String] =
-          filterKeys.flatMap(k => req.queryParam(k).map(k -> _)).toMap
+        val filters = ListQuerySupport.filterValues(filterKeys, req.queryParam)
 
         if modelid < 0 || company.isEmpty then
           ZIO.succeed(HtmxResponse.html(
@@ -342,33 +316,27 @@ object TransactionHtmlEndpoint:
         else
           TransactionRepository.all((modelid, company))
             .map { all =>
-              val filtered =
-                all
-                  .filter(t =>
-                    query.isEmpty ||
-                      t.id.toString.contains(query) ||
-                      t.oid.toLowerCase.contains(query.toLowerCase) ||
-                      t.text.toLowerCase.contains(query.toLowerCase))
-                  .filter(t => filters.forall { case (k, v) => matches(t, k, v) })
-              val sorted = applySort(filtered, sort)
-              val slice = sorted.slice(page * size, page * size + size)
-             // val slice = filtered.slice(page * size, page * size + size)
+              val filtered = ListQuerySupport.applyFilters(
+                all, query, filters, searchText, matches)
+              val sorted  = ListQuerySupport.applySort(filtered, sort, orderingFor)
+              val (slice, total) = ListQuerySupport.paginate(sorted, page, size)
               HtmxResponse.html(
                 TransactionListView.render(
-                  page = HtmxTable.Page(slice, page, size, filtered.size.toLong, sort),
-                  company = company,
-                  query = query,
+                  page         = HtmxTable.Page(slice, page, size, total, sort),
+                  company      = company,
+                  query        = query,
                   filterValues = filters))
             }
             .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
       }
+
   private val formPrint: Route[FormEnv, Response] =
     Method.GET / "html" / "transaction" / "print" / string("id") / int("modelid") / string("company") ->
       handler { (id: String, modelid: Int, company: String, _: Request) =>
         id.toLongOption match
           case Some(lid) =>
             (for {
-              t <- TransactionRepository.getById((lid, modelid, company))
+              t    <- TransactionRepository.getById((lid, modelid, company))
               data <- loadLists(company)
             } yield {
               val fmoduleName = data.fmodules.find(_.id == t.modelid).map(_.name).getOrElse("Transaction")
@@ -384,6 +352,7 @@ object TransactionHtmlEndpoint:
                     articles = data.articles,
                     vats = data.vats,
                     contacts = data.contacts,
+                    copyFromCandidates = Nil,
                     mode = "view",
                     title = docTitle)))
             })
