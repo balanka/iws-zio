@@ -14,8 +14,7 @@ package com.kabasoft.iws.api
 object ListQuerySupport:
 
   /** Column filter map from query params, restricted to `keys`. */
-  def filterValues(
-                    keys:   List[String],
+  def filterValues(keys:   List[String],
                     params: String => Option[String]
                   ): Map[String, String] =
     keys.flatMap(k => params(k).map(k -> _)).toMap
@@ -24,8 +23,7 @@ object ListQuerySupport:
    * Apply a list of (column, direction) sort specs, right-to-left so that
    * earlier specs are primary. Unknown keys are silently ignored.
    */
-  def applySort[T](
-                    rows: List[T],
+  def applySort[T](rows: List[T],
                     sort: List[(String, String)],
                     orderingFor: String => Option[Ordering[T]]
                   ): List[T] =
@@ -42,8 +40,7 @@ object ListQuerySupport:
     (rows.slice(page * size, page * size + size), rows.size.toLong)
 
   /** Apply free-text search (substring, case-insensitive) and column filters. */
-  def applyFilters[T](
-                       rows: List[T],
+  def applyFilters[T](rows: List[T],
                        query: String,
                        filters: Map[String, String],
                        searchText: (T, String) => Boolean,
