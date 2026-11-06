@@ -1,0 +1,36 @@
+# ---------- Stage 1: Build the native binary (Linux, glibc) ----------
+FROM ghcr.io/graalvm/native-image-community:24 AS builder
+
+WORKDIR /app
+
+COPY target/scala-3.9.0/iws-api-assembly-*.jar ./iws-api.jar
+COPY graal/ ./graal/
+
+RUN native-image \
+    --no-fallback \
+    -H:+ReportExceptionStackTraces \
+    -H:ConfigurationFileDirectories=graal/ \
+    -H:IncludeResources=application\.conf \
+    -H:IncludeResources=reference\.conf \
+    --enable-url-protocols=http,https \
+    --initialize-at-build-time=scala,org.slf4j \
+    --initialize-at-run-time=io.netty,com.zaxxer \
+    -J-Xmx6g \
+    -jar iws-api.jar \
+    iws-api
+
+# ---------- Stage 2: Runtime (Debian slim — glibc, same as builder) ----------
+FROM debian:bookworm-slim
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates tzdata \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY --from=builder /app/iws-api /app/iws-api
+RUN chmod +x /app/iws-api
+
+EXPOSE 8080
+
+ENTRYPOINT ["/app/iws-api"]

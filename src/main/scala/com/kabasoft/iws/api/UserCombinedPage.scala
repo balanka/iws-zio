@@ -1,0 +1,85 @@
+package com.kabasoft.iws.api
+
+import com.kabasoft.iws.domain.{ModelId, User}
+import com.kabasoft.iws.domain.AppError.RepositoryError
+import com.kabasoft.iws.repository.UserRepository
+import zio._
+import zio.http._
+
+object UserCombinedPage:
+
+  private val prefix = "user"
+
+  private def blank(company: String): User =
+    User(
+      id = -1, userName = "", firstName = "", lastName = "",
+      hash = "", phone = "", email = "", department = "", menu = "",
+      company = company, modelid = ModelId.USER.modelid,
+      roles = Nil, rights = Nil, modules = Nil)
+
+  private def buildBody(company: String): ZIO[UserRepository, RepositoryError, String] =
+    UserRepository.all((ModelId.USER.modelid, company)).map { all =>
+      val sorted      = all.sortBy(_.id)
+      val initialSize = 20
+      val slice       = sorted.take(initialSize)
+      val page        = HtmxTable.Page(slice, 0, initialSize, sorted.size.toLong)
+
+      val formHtml = UserFormView.render(blank(company), mode = "view")
+      val listHtml = UserListView.render(
+        page, company, "",
+        rowMode  = HtmxTable.RowMode.Fetch("#user-form"),
+        detailFn = u => s"/html/user/${u.id}/${u.modelid}/${u.company}")
+
+      s"""
+         |<div class="container mx-auto max-w-5xl">
+         |  <div class="htmx-page-wrapper">
+         |
+         |    ${HtmxToolbar.render(prefix, ModelId.USER.modelid, company)}
+         |
+         |    <div id="$prefix-form-card" class="daisy-card bg-base-100 shadow-sm">
+         |      <div class="daisy-card-body compact">
+         |        <div class="daisy-card-header-row">
+         |          <h2 class="daisy-card-title" id="$prefix-card-title">User</h2>
+         |          <button type="button" class="daisy-btn btn-ghost daisy-btn-xs"
+         |                  data-toggle="#$prefix-form-card"
+         |                  data-label-show="Show" data-label-hide="Hide">
+         |            <span class="toggle-arrow">▾</span>
+         |            <span class="toggle-daisy-label">Hide</span>
+         |          </button>
+         |        </div>
+         |        <div class="daisy-card-content">
+         |          <div id="$prefix-form">$formHtml</div>
+         |        </div>
+         |      </div>
+         |    </div>
+         |
+         |    <div id="$prefix-list-card" class="daisy-card bg-base-100 shadow-sm">
+         |      <div class="daisy-card-body compact">
+         |        <div class="daisy-card-content">$listHtml</div>
+         |      </div>
+         |    </div>
+         |
+         |  </div>
+         |</div>
+         |""".stripMargin
+    }
+
+  private def render(company: String): ZIO[UserRepository, Nothing, Response] =
+    buildBody(company)
+      .map(bodyHtml => HtmxResponse.htmlNoCache(HtmxPage.renderRaw("User", bodyHtml)))
+      .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
+
+  private def renderFragment(company: String): ZIO[UserRepository, Nothing, Response] =
+    buildBody(company)
+      .map(bodyHtml => HtmxResponse.htmlNoCache(bodyHtml))
+      .catchAll(err => ZIO.succeed(HtmxResponse.errorHtml(err.toString)))
+
+  private val pageGet: Route[UserRepository, Response] =
+    Method.GET / "user-combined-htmx" / string("company") ->
+      handler { (company: String, _: Request) => render(company) }
+
+  private val fragmentGet: Route[UserRepository, Response] =
+    Method.GET / "html" / "user-combined" / string("company") ->
+      handler { (company: String, _: Request) => renderFragment(company) }
+
+  val routes: Routes[UserRepository, Response] = Routes(pageGet, fragmentGet)

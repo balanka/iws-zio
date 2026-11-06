@@ -30,7 +30,7 @@ object ModuleRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]], RepositoryError, ModuleRepository] =
     ZLayer.fromFunction(new ModuleRepositoryLive(_))
 
-private[repository] object ModuleRepositorySQL:
+object ModuleRepositorySQL:
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 
@@ -66,8 +66,14 @@ private[repository] object ModuleRepositorySQL:
            WHERE  modelid = $int4 AND company = $varchar
            ORDER BY id ASC""".query(mfDecoder)
 
-  val insert: Command[Module] = sql"""INSERT INTO module VALUES $mfEncoder""".command
-  def insertAll(n:Int): Command[List[Module.TYPE]] = sql"INSERT INTO module VALUES ${mfCodec.values.list(n)}".command
+  val insert: Command[Module] =
+    sql"""INSERT INTO module
+            (id, name, description, path, parent, enterdate, changedate, postingdate, company, modelid)
+            VALUES $mfEncoder""".command
+
+  def insertAll(n:Int): Command[List[Module.TYPE]] = sql"""INSERT INTO module
+     (id, name, description, path, parent, enterdate, changedate, postingdate, company, modelid)
+     VALUES ${mfCodec.values.list(n)}""".command
 
   val UPDATE: Command[Module.TYPE2] =
     sql"""UPDATE module

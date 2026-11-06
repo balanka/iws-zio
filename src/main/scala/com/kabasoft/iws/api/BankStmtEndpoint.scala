@@ -1,14 +1,14 @@
 package com.kabasoft.iws.api
 import com.kabasoft.iws.domain.AppError.*
-import com.kabasoft.iws.domain.{AppError, BankStatement}
+import com.kabasoft.iws.domain.{AppError, BankStatement, ModelId}
 import com.kabasoft.iws.repository.Schema.{bankStatementsSchema, repositoryErrorSchema}
-import com.kabasoft.iws.repository.Schema._
-import com.kabasoft.iws.repository._
+import com.kabasoft.iws.repository.Schema.*
+import com.kabasoft.iws.repository.*
 import com.kabasoft.iws.service.BankStatementService
 import zio.schema.Schema
 import zio.*
 import zio.http.*
-import zio.http.codec.PathCodec.{path, int, string, long}
+import zio.http.codec.PathCodec.{int, long, path, string}
 import zio.http.codec.*
 import zio.http.endpoint.Endpoint
 
@@ -103,7 +103,7 @@ object BankStmtEndpoint:
     bsImportAPI.implement: (path, header, char, extension, company, _) =>
       ZIO.logInfo(s"Import bank statement header:${header} char:${char} extension: ${extension} company ${company} path: ${path.replace(".", "/")}") *>
         BankStatementService.importBankStmt(path.replace(".", "/"), header, char, extension, company ) *>
-        BankStatementRepository.all(BankStatement.MODELID, company)
+        BankStatementRepository.all(ModelId.BANK_STATEMENT.modelid, company)
 
   val bsPostBSRoute  =
     bsPost.implement: (company, id, _) =>

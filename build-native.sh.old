@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+VERSION="${1:?usage: $0 <version> <arch>}"
+ARCH="${2:?usage: $0 <version> <arch>}"
+
+APP_VERSION="$VERSION" sbt clean assembly
+JAR="target/scala-3.9.0/iws-api-assembly-${VERSION}.jar"
+[[ -f "$JAR" ]] || { echo "missing $JAR" >&2; exit 1; }
+
+docker buildx build \
+  --platform "linux/${ARCH}" \
+  -f Dockerfile.native-scratch \
+  -t "bateka/iws-api:${VERSION}-native-${ARCH}-distroless" \
+  --load .

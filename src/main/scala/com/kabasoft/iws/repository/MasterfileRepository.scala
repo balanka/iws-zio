@@ -12,6 +12,7 @@ trait MasterfileRepository:
   def all(Id: (Int, String)): ZIO[Any, RepositoryError, List[Masterfile]]
   def getById(Id: (String, Int, String)): ZIO[Any, RepositoryError, Masterfile]
   def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Masterfile]]
+  def getByParent(parent: String, modelid: Int, company: String): ZIO[Any, RepositoryError, List[Masterfile]]
   def delete(p: (String, Int, String)): ZIO[Any, RepositoryError, Int]
   def deleteAll(p: List[(String, Int, String)]): ZIO[Any, RepositoryError, Int]
 
@@ -27,7 +28,9 @@ object MasterfileRepository:
   def all(Id: (Int, String)): ZIO[MasterfileRepository, RepositoryError, List[Masterfile]] =
     ZIO.serviceWithZIO[MasterfileRepository](_.all(Id).mapError(e => RepositoryError(e.message)))
   def getById(Id: (String, Int, String)): ZIO[MasterfileRepository, RepositoryError, Masterfile]=
-    ZIO.serviceWithZIO[MasterfileRepository](_.getById(Id).mapError(e => RepositoryError(e.message)))
+      ZIO.serviceWithZIO[MasterfileRepository](_.getById(Id).mapError(e => RepositoryError(e.message)))
+  def getByParent(parent: String, modelid: Int, company: String): ZIO[MasterfileRepository, RepositoryError, List[Masterfile]]=
+    ZIO.serviceWithZIO[MasterfileRepository](_.getByParent(parent, modelid, company).mapError(e => RepositoryError(e.message)))
   def getBy(ids: List[String], modelid: Int, company: String): ZIO[MasterfileRepository, RepositoryError, List[Masterfile]]=
     ZIO.serviceWithZIO[MasterfileRepository](_.getBy(ids, modelid, company).mapError(e => RepositoryError(e.message)))
   def delete(p: (String, Int, String)): ZIO[MasterfileRepository, RepositoryError, Int] =

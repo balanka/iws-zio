@@ -1,14 +1,13 @@
 package com.kabasoft.iws.repository
 
 import cats.effect.Resource
-import cats.syntax.all._
-import cats._
-import skunk._
-import skunk.codec.all._
-import skunk.implicits._
-//import zio.stream.interop.fs2z.*
+import cats.syntax.all.*
+import cats.*
+import skunk.*
+import skunk.codec.all.*
+import skunk.implicits.*
 import zio.{Task, ZIO, ZLayer}
-import com.kabasoft.iws.domain.{Role, User, UserRight, UserRole}
+import com.kabasoft.iws.domain.{ModelId, Role, User}
 import com.kabasoft.iws.domain.AppError.RepositoryError
 
 import java.time.{Instant, LocalDateTime, ZoneId}
@@ -19,7 +18,7 @@ final case class UserRepositoryLive(postgres: Resource[Task, Session[Task]], rep
 
   override def create(c: User): ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, c, insert, 1)
   override def create(list: List[User]):ZIO[Any, RepositoryError, Int] =
-    executeWithTx(postgres, list.map(User.encodeIt), insertAll(list.size), list.size)
+    executeWithTx(postgres, list.map(User.encodeIt3), insertAll(list.size), list.size)
   override def modify(model: User):ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, model, User.encodeIt2, UPDATE, 1)
   override def modify(models: List[User]):ZIO[Any, RepositoryError, Int] = executeBatchWithTxK(postgres, models, UPDATE, User.encodeIt2)
   def modifyPwd(model: User): ZIO[Any, RepositoryError, Int]= executeWithTx(postgres, (model.userName, model.modelid, model.company), updatePwd, 1)
@@ -31,13 +30,13 @@ final case class UserRepositoryLive(postgres: Resource[Task, Session[Task]], rep
   } yield users
 
   private def setRoleAndRight(p: (String, List[User]) ):ZIO[Any, RepositoryError, List[User]] = for {
-    roles <- repo.all(Role.MODEL_ID, p._1)
-    user_rights <- repo.allRights(UserRight.MODEL_ID, p._1)
-    all_user_roles <- repo.allUserRoles(UserRole.MODEL_ID, p._1)
+    roles <- repo.all(ModelId.ROLE.modelid, p._1)
+    user_rights <- repo.allRights(ModelId.USER_RIGHT.modelid, p._1)
+    all_user_roles <- repo.allUserRoles(ModelId.USER_ROLE.modelid, p._1)
     users_ = p._2
-    _ <- ZIO.logInfo(s" roles ${roles}")
-    _ <- ZIO.logInfo(s" user_rights ${user_rights}")
-    _ <- ZIO.logInfo(s" all_user_roles ${all_user_roles}")
+    //_ <- ZIO.logInfo(s" roles ${roles}")
+    //_ <- ZIO.logInfo(s" user_rights ${user_rights}")
+    //_ <- ZIO.logInfo(s" all_user_roles ${all_user_roles}")
   }yield {
     val  rolesx: List[Role] = roles.map( r=>r.copy(rights = r.rights.:::(user_rights.filter(rt => rt.roleid == r.id))))
     val user_role = rolesx.filter(r=> all_user_roles.map(_.roleid).contains(r.id))
@@ -49,8 +48,8 @@ final case class UserRepositoryLive(postgres: Resource[Task, Session[Task]], rep
   }
 
   override def getById(p: (Int, Int, String)):ZIO[Any, RepositoryError, User] = for {
-    users_ <- queryWithTxUnique(postgres, p, BY_ID)
-    users <- setRoleAndRight(p._3, List(users_))
+    user <- queryWithTxUnique(postgres, p, BY_ID)
+    users <- setRoleAndRight(p._3, List(user))
   } yield users.headOption.getOrElse(User.dummy)
 
   override def getBy(ids: List[Int], modelid: Int, company: String):ZIO[Any, RepositoryError, List[User]] =
@@ -58,7 +57,9 @@ final case class UserRepositoryLive(postgres: Resource[Task, Session[Task]], rep
 
   override def getByUserName(p: (String, Int, String)):ZIO[Any, RepositoryError, User]= for {
       users_ <- queryWithTxUnique(postgres, p, BY_NAME)
+      //_<- ZIO.logInfo(s"users_ =>> ${users_}")
       users <- setRoleAndRight(p._3, List(users_))
+      //_<- ZIO.logInfo(s"users =>> ${users}")
   } yield users.headOption.getOrElse(User.dummy)
 
 
@@ -70,34 +71,22 @@ object UserRepositoryLive:
   val live: ZLayer[Resource[Task, Session[Task]] & RoleRepository, RepositoryError, UserRepository] =
     ZLayer.fromFunction(new UserRepositoryLive(_, _))
 
-private[repository] object UserRepositorySQL:
-  type TYPE = (Int, String, String, String, String, String, String, String, String, String, Int)
+object UserRepositorySQL:
+  type TYPE = ( String, String, String, String, String, String, String, String, String, Int)
   private[repository] def toInstant(localDateTime: LocalDateTime): Instant =
     localDateTime.atZone(ZoneId.of("Europe/Paris")).toInstant
 
   private val mfCodec =
-    (int4 *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar  *: varchar *: varchar *: varchar *: int4)
+    (int4 *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: int4)
 
-  private[repository] def encodeIt(st: User): TYPE =
-    (
-      st.id,
-      st.userName,
-      st.firstName,
-      st.lastName,
-      st.hash,
-      st.phone,
-      st.email,
-      st.department,
-      st.menu,
-      st.company,
-      st.modelid
-    )
+  private val mfCodec1 =
+    (varchar *: varchar *: varchar *: varchar *: varchar *: varchar *: varchar *:varchar *:int4  *: varchar  )
 
   val mfDecoder: Decoder[User] = mfCodec.map:
       case (id, userName, firstName, lastName, hash, phone, email, department, menu, company, modelid) =>
           User(id, userName, firstName, lastName, hash, phone, email, department, menu, company, modelid)
 
-  val mfEncoder: Encoder[User] = mfCodec.values.contramap(encodeIt)
+  val mfEncoder: Encoder[User] = mfCodec1.values.contramap(User.encodeIt3)
 
   def base =
     sql""" SELECT id, user_name, first_name, last_name, hash, phone, email, department, menu, company, modelid
@@ -108,11 +97,6 @@ private[repository] object UserRepositorySQL:
            FROM   users
            WHERE id  IN ${int4.list(nr)} AND  modelid = $int4 AND company = $varchar
            ORDER BY user_name ASC""".query(mfDecoder)
-
-
-//  val ROLE_RIGHTS: Query[Int *:String *: EmptyTuple, (Int, Int, String, String, Int)] =
-//     sql"""SELECT moduleid, roleid, short, company, modelid from user_right
-//            where roleid=$int4 and company=$varchar """.query(Int, Int, String, String, Int)
 
   val BY_ID: Query[Int *: Int *: String *: EmptyTuple, User] =
     sql"""SELECT id, user_name, first_name, last_name, hash, phone, email, department, menu, company, modelid
@@ -132,10 +116,15 @@ private[repository] object UserRepositorySQL:
            WHERE  modelid = $int4 AND company = $varchar
            ORDER BY user_name ASC""".query(mfDecoder)
 
-  val insert: Command[User] = sql"""INSERT INTO User VALUES $mfEncoder """.command
+  val insert: Command[User] =
+    sql"""INSERT INTO users
+         ( user_name, first_name, last_name, hash, phone, email, department, menu, modelid, company)
+         VALUES $mfEncoder """.command
 
-  def insertAll(n:Int): Command[List[TYPE]] =
-    sql"INSERT INTO users VALUES ${mfCodec.values.list(n)}".command
+  def insertAll(n:Int): Command[List[User.TYPE3]] =
+    sql"""INSERT INTO users
+         ( user_name, first_name, last_name, hash, phone, email, department, menu, modelid, company)
+         VALUES ${mfCodec1.values.list(n)}""".command
 
 
     

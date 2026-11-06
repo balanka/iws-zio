@@ -24,9 +24,13 @@ final case class MasterfileRepositoryLive(postgres: Resource[Task, Session[Task]
   override def getById(p: (String, Int, String)): ZIO[Any, RepositoryError, Masterfile] = queryWithTxUnique(postgres, p, BY_ID)
   override def getBy(ids: List[String], modelid: Int, company: String): ZIO[Any, RepositoryError, List[Masterfile]] =
       queryWithTx(postgres, (ids, modelid, company), ALL_BY_ID(ids.length))
+
+  override def getByParent(parent: String, modelid: Int, company: String): ZIO[Any, RepositoryError, List[Masterfile]] =
+    queryWithTx(postgres, (parent, modelid, company), BY_PARENT)     
+    
   override def delete(p: (String, Int, String)): ZIO[Any, RepositoryError, Int] = executeWithTx(postgres, p, DELETE, 1)
   override def deleteAll(p: List[(String, Int, String)]): ZIO[Any, RepositoryError, Int] = p.map(l => executeWithTx(postgres, l, DELETE, 1)).flip.map(_.size)
-    //executeWithTx[ List[(String, Int, String)]](postgres, p, DELETE_ALL(p.size), p.size)
+
 
 object MasterfileRepositoryLive:
  
@@ -66,6 +70,13 @@ private[repository] object MasterfileRepositorySQL:
            FROM   masterfile
            WHERE id = $varchar AND modelid = $int4 AND company = $varchar
            ORDER BY id ASC""".query(mfDecoder)
+           
+  val BY_PARENT: Query[String *: Int *: String *: EmptyTuple, Masterfile] =
+    sql"""SELECT id, name, description, parent, enterdate, changedate,postingdate, kind, area, company, modelid
+       FROM   masterfile
+       WHERE parent = $varchar AND modelid = $int4 AND company = $varchar
+       ORDER BY id ASC""".query(mfDecoder)          
+    
 
   val ALL: Query[Int *: String *: EmptyTuple, Masterfile] =
     sql"""SELECT id, name, description, parent, enterdate, changedate,postingdate, company, modelid

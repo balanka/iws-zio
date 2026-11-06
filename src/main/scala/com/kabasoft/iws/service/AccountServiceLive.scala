@@ -10,9 +10,10 @@ final class AccountServiceLive(accRepo: AccountRepository, pacRepo: PacRepositor
   def getBalance(accId: String, toPeriod: Int, companyId: String): ZIO[Any, RepositoryError, List[Account]] =
     (for {
       _<- ZIO.logInfo(s" >>>>>>>> toPeriod: $toPeriod for companyId $companyId" )
-      accounts <- accRepo.all((Account.MODELID, companyId))
+      accounts <- accRepo.all((ModelId.ACCOUNT.modelid, companyId))
       period00 = toPeriod.toString.slice(0, 4).concat("00").toInt
       pacBalances <- pacRepo.findBalance4Period(period00, toPeriod, companyId)
+     // _<- ZIO.logInfo(s" >>>>>>>> pacBalances 4 period00: $period00 pacBalances: $pacBalances" )
       allPacs = pacBalances.groupBy(_.account).map { case (_, v) => reduce(v, PeriodicAccountBalance.dummy) }
       .toList
        accountsWithBalances = allPacs.flatMap(pac =>
@@ -35,7 +36,8 @@ final class AccountServiceLive(accRepo: AccountRepository, pacRepo: PacRepositor
     val fromPeriod = currentYear.toString.concat("01").toInt
     val nr = for {
       pacs         <- pacRepo.findBalance4Period(fromPeriod, toPeriod, company)
-      allAccounts  <- accRepo.all(Account.MODELID, company)
+      _<- ZIO.logInfo(s"pacs 4 fromPeriod:$fromPeriod, toPeriod:$toPeriod pacs>>> ${pacs}")
+      allAccounts  <- accRepo.all(ModelId.ACCOUNT.modelid, company)
       currentPeriod = currentYear.toString.concat("00").toInt
       nextPeriod    = (currentYear + 1).toString.concat("00").toInt
       initial      <- pacRepo.findBalance4Period(currentPeriod, company)
@@ -51,7 +53,7 @@ final class AccountServiceLive(accRepo: AccountRepository, pacRepo: PacRepositor
       pacList      = filteredList
                        .filterNot(x => x.dbalance == zeroAmount || x.cbalance == zeroAmount)
                        .map(pac => allAccounts.find(_.id == pac.account).fold(pac)(acc => net(acc, pac, nextPeriod)))
-      oldPacs     <- pacRepo.getBy(pacList.map(_.id), PeriodicAccountBalance.MODELID, company).map(_.filterNot(x => x.id == PeriodicAccountBalance.dummy.id))
+      oldPacs     <- pacRepo.getBy(pacList.map(_.id), ModelId.PERIODIC_ACCOUNT_BALANCE.modelid, company).map(_.filterNot(x => x.id == PeriodicAccountBalance.dummy.id))
       newPacs      = pacList.filterNot(oldPacs.contains)
       pac_created <- if (newPacs.isEmpty) ZIO.succeed(1) else pacRepo.create(newPacs).debug("pac_created")
       pac_updated <- if (oldPacs.isEmpty) ZIO.succeed(1) else pacRepo.update(oldPacs).debug("pac_updated")

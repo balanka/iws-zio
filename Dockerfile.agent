@@ -1,0 +1,4 @@
+FROM eclipse-temurin:24-jre-alpine
+WORKDIR /app
+COPY target/scala-3.9.0/iws-zio-assembly-4.0.2.jar /app/iws-api.jar
+CMD ["java", "-agentlib:native-image-agent=config-merge-dir=/app/graal/", "-jar", "/app/iws-api.jar"]

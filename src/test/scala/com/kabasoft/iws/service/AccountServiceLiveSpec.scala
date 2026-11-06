@@ -3,14 +3,13 @@ package com.kabasoft.iws.service
 import com.kabasoft.iws.config.appConfig
 import com.kabasoft.iws.domain.common
 import com.kabasoft.iws.domain.AccountBuilder.{companyId, paccountId0, raccountId, zero}
-import com.kabasoft.iws.repository.container.PostgresContainer
 import com.kabasoft.iws.repository.container.PostgresContainer.appResourcesL
 import com.kabasoft.iws.repository.{AccountRepositoryLive, PacRepositoryLive}
 import zio.ZLayer
 import zio.test.TestAspect.*
 import zio.test.*
 
-import java.math.{BigDecimal, RoundingMode}
+import java.math.BigDecimal
 import java.time.{LocalDateTime, ZoneOffset}
 
 

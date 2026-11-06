@@ -1,11 +1,6 @@
 package com.kabasoft.iws.api
-
-import scala.annotation.nowarn
-
 import zio._
-
 import zio.schema.{DeriveSchema, Schema}
-
 import zio.http._
 import zio.http.codec._
 import zio.http.endpoint.{AuthType, Endpoint}
@@ -17,8 +12,6 @@ object EndpointWithMultipleUnifiedErrors extends ZIOAppDefault:
   object Book:
     implicit val schema: Schema[Book] = DeriveSchema.gen
   
-
-  @nowarn("msg=parameter .* never used")
   abstract class AppError(message: String)
 
   case class BookNotFound(message: String, bookId: Int) extends AppError(message)

@@ -3,9 +3,9 @@ package com.kabasoft.iws.repository
 import com.kabasoft.iws.config.appConfig
 import zio.test.*
 import zio.test.TestAspect.*
-import com.kabasoft.iws.domain.{Bank, Masterfile}
-import com.kabasoft.iws.repository.container.PostgresContainer
+import com.kabasoft.iws.domain.{ Masterfile, ModelId}
 import com.kabasoft.iws.repository.container.PostgresContainer.appResourcesL
+
 import java.time.Instant
 import zio.ZLayer
 
@@ -16,8 +16,8 @@ object BankRepositoryLiveSpec extends ZIOSpecDefault {
   val name = "MyBank"
 
   val banks = List(
-    Masterfile(id, name, "MyBank", "Test", Instant.now(), Instant.now(), Instant.now(), Bank.MODEL_ID, company),
-    Masterfile("4713", "MyBank2","MyBank2", "Test", Instant.now(), Instant.now(), Instant.now(), Bank.MODEL_ID, company)
+    Masterfile(id, name, "MyBank", "Test", Instant.now(), Instant.now(), Instant.now(), ModelId.BANK.modelid, company),
+    Masterfile("4713", "MyBank2","MyBank2", "Test", Instant.now(), Instant.now(), Instant.now(), ModelId.BANK.modelid, company)
   )
 
   val testLayer = ZLayer.make[MasterfileRepository](
@@ -37,12 +37,12 @@ object BankRepositoryLiveSpec extends ZIOSpecDefault {
       test("insert two new banks") {
         for {
           oneRow <- MasterfileRepository.create(banks)
-          count <- MasterfileRepository.all((Bank.MODEL_ID, company)).map(_.size)
+          count <- MasterfileRepository.all((ModelId.BANK.modelid, company)).map(_.size)
         } yield assertTrue(oneRow == 2) && assertTrue(count == 2)
       },
       test("get a Bank by its id") {
         for {
-          stmt <- MasterfileRepository.getById((id, Bank.MODEL_ID, company))
+          stmt <- MasterfileRepository.getById((id, ModelId.BANK.modelid, company))
         } yield assertTrue(stmt.name == name) && assertTrue(stmt.id==id)
       }
     ).provideLayerShared(testLayer) @@ sequential
