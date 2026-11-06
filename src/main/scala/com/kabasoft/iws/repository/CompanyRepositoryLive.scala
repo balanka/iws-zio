@@ -42,13 +42,13 @@ final case class CompanyRepositoryLive(postgres: Resource[Task, Session[Task]]
         session.transaction.use { _ =>
           (for {
             // ── pre-reads ──
-            modules     <- moduleRepo.all(ModelId.MODULE.modelid, "5700")
-            fmodules    <- fmoduleRepo.all(ModelId.FMODULE.modelid, "5700")
-            users       <- userRepo.all(ModelId.USER.modelid, "5700")
-            roles       <- roleRepo.all(ModelId.ROLE.modelid, "5700")
-            permissions <- permissionRepo.all(ModelId.PERMISSION.modelid, "5700")
-            userRoles   <- roleRepo.allUserRoles(ModelId.USER_ROLE.modelid, "5700")
-            userRights  <- roleRepo.allRights(ModelId.USER_RIGHT.modelid, "5700")
+            modules     <- moduleRepo.all(ModelId.MODULE.modelid, "1000")
+            fmodules    <- fmoduleRepo.all(ModelId.FMODULE.modelid, "1000")
+            users       <- userRepo.all(ModelId.USER.modelid, "1000")
+            roles       <- roleRepo.all(ModelId.ROLE.modelid, "1000")
+            permissions <- permissionRepo.all(ModelId.PERMISSION.modelid, "1000")
+            userRoles   <- roleRepo.allUserRoles(ModelId.USER_ROLE.modelid, "1000")
+            userRights  <- roleRepo.allRights(ModelId.USER_RIGHT.modelid, "1000")
             commands: List[(Command[Any], Any)] = List(
               cmdWithArg(insert, c),
               cmdWithArg(ModuleRepositorySQL.insertAll(modules.size),

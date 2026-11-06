@@ -2087,7 +2087,7 @@ object Role:
 final case class  UserRight (moduleid:Int,  roleid:Int, short:String, company:String, modelid:Int = ModelId.USER_RIGHT.modelid)
 object UserRight:
   type TYPE = (Int, Int, String, String, Int)
-  def encodeIt(st: UserRight): TYPE =   (st.moduleid, st.roleid, st.short, st.company,  st.moduleid)
+  def encodeIt(st: UserRight): TYPE =   (st.moduleid, st.roleid, st.short, st.company,  st.modelid)
 final case class  UserRole (userid:Int,  roleid:Int, company:String, modelid:Int = ModelId.USER_ROLE.modelid)
 object UserRole:
   type TYPE = (Int, Int, String, Int)

@@ -125,8 +125,10 @@ private[repository] object RoleRepositorySQL:
   val insert: Command[Role] = sql"""INSERT INTO role (id, name, description, enterdate
                                    , changedate, postingdate, company, modelid)  VALUES $mfEncoder """.stripMargin.command
 
-  def insertUserRight(n: Int): Command[List[UserRight.TYPE]] = sql"INSERT INTO user_right VALUES ${rightCodec.values.list(n)}".command
-  def insertUserRole(n: Int): Command[List[UserRole.TYPE]] = sql"INSERT INTO user_role VALUES ${userRoleCodec.values.list(n)}".command
+  def insertUserRight(n: Int): Command[List[UserRight.TYPE]] = sql"""INSERT INTO user_right (moduleid, roleid, short, company, modelid)
+                                                                    VALUES ${rightCodec.values.list(n)}""".command
+  def insertUserRole(n: Int): Command[List[UserRole.TYPE]] = sql"""INSERT INTO user_role (userid, roleid, company, modelid)
+     VALUES ${userRoleCodec.values.list(n)}""".command
   
   def insertAll(n:Int): Command[List[Role.TYPE2]] = sql"""INSERT INTO role (id, name, description, enterdate,
                                                          changedate, postingdate, company, modelid)
