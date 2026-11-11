@@ -3,14 +3,12 @@ package com.kabasoft.iws.repository
 import com.kabasoft.iws.config.appConfig
 import com.kabasoft.iws.domain.AccountBuilder.{companyId, faccountId, incaccountId1}
 import com.kabasoft.iws.domain.FinancialsTransactionBuilder.pacs
-import com.kabasoft.iws.domain.PeriodicAccountBalance
-import com.kabasoft.iws.repository.container.PostgresContainer
-import com.kabasoft.iws.repository.container.PostgresContainer.appResourcesL
-import com.kabasoft.iws.repository.container.PostgresContainer
+import com.kabasoft.iws.domain.{ModelId, PeriodicAccountBalance}
 import com.kabasoft.iws.repository.container.PostgresContainer.appResourcesL
 import zio.ZLayer
 import zio.test.TestAspect.*
 import zio.test.*
+
 import java.time.Instant
 import java.math.RoundingMode
 
@@ -43,10 +41,11 @@ object PacRepositoryLiveSpec extends ZIOSpecDefault {
         val fromPeriod = (toPeriod.toString.substring(0, 3)+"00").toInt
         val oneId = pacs.map(_.id).headOption.getOrElse("-1")
         val amount = new java.math.BigDecimal("100.00").setScale(2, RoundingMode.HALF_UP)
+        val modelid = ModelId.PERIODIC_ACCOUNT_BALANCE.modelid
         for {
-          row <- PacRepository.getBy(pacs.map(_.id), PeriodicAccountBalance.MODELID, companyId)
-          all <- PacRepository.all(PeriodicAccountBalance.MODELID, companyId)
-          one <- PacRepository.getById(oneId, PeriodicAccountBalance.MODELID, companyId)
+          row <- PacRepository.getBy(pacs.map(_.id), modelid, companyId)
+          all <- PacRepository.all(modelid, companyId)
+          one <- PacRepository.getById(oneId, modelid, companyId)
           balance4Period <- PacRepository.findBalance4Period( com.kabasoft.iws.domain.common.getPeriod(Instant.now), companyId)
           balance4AccountPeriod <- PacRepository.find4AccountPeriod(faccountId, fromPeriod, toPeriod, companyId)
         } yield  assertTrue(row.size==3) &&

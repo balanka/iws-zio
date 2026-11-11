@@ -1,10 +1,9 @@
 package com.kabasoft.iws.repository
 
 import com.kabasoft.iws.config.appConfig
-import com.kabasoft.iws.domain.SupplierBuilder.{bankAccount, supplier1, bankAccountId0, suppliers}
+import com.kabasoft.iws.domain.SupplierBuilder.{supplier1, suppliers}
 import com.kabasoft.iws.domain.AccountBuilder.companyId
-import com.kabasoft.iws.domain.{BankAccount, Supplier}
-import com.kabasoft.iws.repository.container.PostgresContainer
+import com.kabasoft.iws.domain.{ModelId, Supplier}
 import com.kabasoft.iws.repository.container.PostgresContainer.appResourcesL
 import zio.ZLayer
 import zio.test.TestAspect.*
@@ -31,19 +30,19 @@ object SupplierRepositoryLiveSpec extends ZIOSpecDefault {
       test("clear suppliers") {
         for
           deletedBankAcc <- BankAccountRepository.deleteAll(bankAccountIds)
-          deleted <- SupplierRepository.deleteAll((ids, Supplier.MODELID, companyId))
+          deleted <- SupplierRepository.deleteAll((ids, ModelId.SUPPLIER.modelid, companyId))
         yield assertTrue(deletedBankAcc == bankAccountIds.size) && assertTrue(deleted == ids.size)
       },
       test("insert two new supplier, modify one and look it up by id") {
         for {
           createdRow <- SupplierRepository.create(suppliers)
-          stmtz <- BankAccountRepository.getBy(suppliers.flatMap(_.bankaccounts.map(_.id)), BankAccount.MODEL_ID, companyId)
-          count <- SupplierRepository.all(Supplier.MODELID, companyId).map(_.size)
-          stmt <- SupplierRepository.getBy(suppliers.map(_.id), Supplier.MODELID, companyId)
-          stmt2 <- SupplierRepository.getById((supplier1.id, Supplier.MODELID, companyId))
+          stmtz <- BankAccountRepository.getBy(suppliers.flatMap(_.bankaccounts.map(_.id)), ModelId.BANK_ACCOUNT.modelid, companyId)
+          count <- SupplierRepository.all(ModelId.SUPPLIER.modelid, companyId).map(_.size)
+          stmt <- SupplierRepository.getBy(suppliers.map(_.id), ModelId.SUPPLIER.modelid, companyId)
+          stmt2 <- SupplierRepository.getById((supplier1.id, ModelId.SUPPLIER.modelid, companyId))
           updated <- SupplierRepository.modify(stmt2.copy(name = newName))
           updated2 <- SupplierRepository.modify(stmt.map(_.copy(name = newName)))
-          stmt3 <- SupplierRepository.getById((supplier1.id, Supplier.MODELID, companyId))
+          stmt3 <- SupplierRepository.getById((supplier1.id, ModelId.SUPPLIER.modelid, companyId))
           //stmt4 <- SupplierRepository.getByIban((bankAccount.id, Supplier.MODELID, companyId))
         } yield assertTrue(createdRow == 4) &&
           assertTrue(count == 2) &&

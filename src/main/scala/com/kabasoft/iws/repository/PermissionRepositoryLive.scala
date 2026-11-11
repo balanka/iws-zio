@@ -79,10 +79,16 @@ private[repository] object PermissionRepositorySQL:
            WHERE  modelid = $int4 AND company = $varchar
            """.query(mfDecoder)
 
-  val insert: Command[Permission] = sql"""INSERT INTO permission VALUES $mfEncoder""".command
+  val insert: Command[Permission] =
+    sql"""INSERT INTO permission 
+          (id, name, description, short, enterdate, changedate,postingdate, modelid, company)
+         VALUES $mfEncoder""".command
 
   def insertAll(n:Int): Command[List[Permission.TYPE]] =
-    sql"INSERT INTO permission VALUES ${mfCodec.values.list(n)}".command
+    sql"""INSERT INTO permission 
+          (id, name, description, short, enterdate, changedate,postingdate, modelid, company)
+         VALUES ${mfCodec.values.list(n)}""".command
+
 
   val UPDATE: Command[Permission.TYPE2] =
     sql"""UPDATE permission

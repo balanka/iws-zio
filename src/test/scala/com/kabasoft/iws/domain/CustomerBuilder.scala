@@ -29,16 +29,16 @@ object CustomerBuilder:
   //                           currency: String,
   //                           company: String,
   //                           modelid: Int = Customer.MODELID,
-  val bankAccount0 = BankAccount(bankAccountId0, "SPBIDE3XXX", customerId1, companyId, BankAccount.MODEL_ID)
-  val bankAccount = BankAccount(bankAccountId, "SPBIDE3XXX", customerId1, companyId, BankAccount.MODEL_ID)
+  val bankAccount0 = BankAccount(bankAccountId0, "SPBIDE3XXX", customerId1, companyId, ModelId.BANK_ACCOUNT.modelid)
+  val bankAccount = BankAccount(bankAccountId, "SPBIDE3XXX", customerId1, companyId, ModelId.BANK_ACCOUNT.modelid)
    val bankAccounts =  List(bankAccount0, bankAccount)
   val customer1 = Customer(customerId1, nameCustomer1, "Bintou Mady Kaba", "Bielefelder Str 1", "33615" , "Bielefeld", "NRW", "DE",  "0521-471163"
-     ,"xxx@domain.de", accountRecvId, incaccountId, taxCode, vataccountId, currency, companyId, Customer.MODELID, vtime, vtime, vtime, bankAccounts)
+     ,"xxx@domain.de", accountRecvId, incaccountId, taxCode, vataccountId, currency, "contact", companyId, ModelId.CUSTOMER.modelid, vtime, vtime, vtime, bankAccounts)
   val customer2 = Customer(customerId2, nameCustomer2, "KABA Soft GmbH", "Universitaet Str 2", "33615", "Bielefeld", "NRW", "DE",
-      "0521-4711631", "info@fabasoft.de", accountRecvId, incaccountId, taxCode, vataccountId, currency, companyId, Customer.MODELID, vtime, vtime, vtime)
+      "0521-4711631", "info@fabasoft.de", accountRecvId, incaccountId, taxCode, vataccountId, currency, "contact", companyId, ModelId.CUSTOMER.modelid, vtime, vtime, vtime)
 
   val cust = Customer(dummyId, dummyNname, dummyNname, dummyNname, dummyNname, dummyNname, dummyNname, "DE", dummyNname,
-       "dummy@dummy.com", "1215", "111111",  taxCode, "v5", currency, companyId, Customer.MODELID, vtime, vtime, vtime)
+       "dummy@dummy.com", "1215", "111111",  taxCode, "v5", currency, "contact",  companyId, ModelId.CUSTOMER.modelid, vtime, vtime, vtime)
   val custx = Customer(dummyIdx, dummyNname, dummyNname, dummyNname, dummyNname, dummyNname, dummyNname, "DE", dummyNname,
-    "dummy@dummy.com", "1215", "111111", taxCode,  "v5", currency, companyId, Customer.MODELID, vtime, vtime, vtime)
+    "dummy@dummy.com", "1215", "111111", taxCode,  "v5", currency, "contact", companyId, ModelId.CUSTOMER.modelid, vtime, vtime, vtime)
   val customers = List( customer1, customer2 )

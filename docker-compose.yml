@@ -1,0 +1,102 @@
+services:
+  iws-db:
+    image: postgres:18-alpine
+    restart: always
+    networks:
+      - node-network
+    volumes:
+      - ./iws-data-vol:/var/lib/postgresql:z
+      - ./sql:/tmp/sql
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRESQL_DATABASE}
+      - POSTGRES_USER=postgres
+    ports:
+      - "${POSTGRES_DB_PORT_FROM}:${POSTGRES_DB_PORT_TO}"
+    container_name: ${IWS_DB_CONTAINER}
+    healthcheck:
+      # pg_isready ships with the postgres image — no extra tooling needed.
+      # $${…} escapes the compose variable so the shell inside the container sees it.
+      test: ["CMD-SHELL", "pg_isready -U postgres -d $${POSTGRESQL_DATABASE}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+
+  iws-api:
+    image: bateka/iws-api:${IWS_API_IMAGE_VERSION}
+    platform: linux/arm64
+    restart: always
+    stop_grace_period: 10s
+    networks:
+      - node-network
+    ports:
+      - "${IWS_API_PORT_FROM}:${IWS_API_PORT_TO}"
+    container_name: ${IWS_API_CONTAINER}
+    env_file:
+      - IWS_DEV.env
+    environment:
+      - TRADEX_POSTGRESQL_HOST=${POSTGRESQL_HOST}
+      - TRADEX_POSTGRESQL_PORT=${POSTGRES_DB_PORT_FROM}
+      - TRADEX_POSTGRESQL_DATABASE=${POSTGRESQL_DATABASE}
+      - TRADEX_POSTGRESQL_USER=postgres
+      - TRADEX_POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD}
+      - TRADEX_POSTGRESQL_MAX=${POSTGRESQL_MAX}
+      - IWS_API_HOST=${IWS_API_HOST}
+      - IWS_API_PORT=${IWS_API_PORT}
+      - IWS_WEB_HOST=${SCHEME}://${IWS_WEB_HOST}
+    # CHANGED: wait for Postgres to actually accept connections, not just "started".
+    depends_on:
+      iws-db:
+        condition: service_healthy
+    # NOTE: no healthcheck here — the image is distroless (no sh/wget/curl/nc inside).
+    # If your binary has a health subcommand, add:
+    #   healthcheck:
+    #     test: ["CMD", "/iws-api", "health"]
+    #     interval: 5s
+    #     timeout: 3s
+    #     retries: 20
+    #     start_period: 30s
+    # …and then change iws-ui's depends_on to condition: service_healthy (below).
+
+  iws-ui:
+    image: ${IWS_WEB_IMAGE}:${IWS_WEB_IMAGE_VERSION}
+    restart: always
+    tty: true
+    networks:
+      - node-network
+    ports:
+      - "0.0.0.0:${NGINX_PORT}:${NGINX_PORT}"
+    container_name: ${IWS_WEB_CONTAINER}
+    volumes:
+      - ./working.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+      - ./iws-template:/usr/share/nginx/html/template:ro
+      - ./iws-template/env-config.js.template:/etc/nginx/templates/env-config.js.template:ro
+    env_file:
+      - IWS_DEV.env
+    environment:
+      - NODE_ENV=production
+      - NGINX_PORT=${NGINX_PORT}
+      - SERVER_NAME=${IWS_WEB_HOST:-192.168.178.102}
+      - NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
+      - REACT_APP_HOST_IP_ADDRESS=${IWS_API_HOST}
+      - REACT_APP_PORT=${IWS_API_PORT_FROM}
+      - REACT_WEB_HOST_IP_ADDRESS=${IWS_WEB_HOST}
+      - HOST=${IWS_WEB_HOST}
+      - REACT_APP_API_BASE=${REACT_APP_API_BASE}
+      - API_URL=${IWS_WEB_HOST}
+      - API_PORT=${IWS_API_PORT_TO}
+      - SCHEME=${SCHEME}
+      - REACT_APP_VERSION=${REACT_APP_VERSION}
+    command: >
+      sh -c "envsubst < /etc/nginx/templates/env-config.js.template > /usr/share/nginx/html/env-config.js && exec nginx -g 'daemon off;'"
+    # CHANGED: keep service_started for iws-api (distroless, no probe inside),
+    # unless you add a healthcheck to iws-api above — then switch to service_healthy.
+    depends_on:
+      iws-api:
+        condition: service_started
+
+networks:
+  node-network:
+    driver: bridge

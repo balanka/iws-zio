@@ -541,6 +541,7 @@ create table if not exists fmodule
     account varchar(50)  not null,
     is_debit boolean,
     parent varchar(50)  not null,
+    copy_from varchar default '',
     company varchar(50)  not null,
     modelid integer  not null
 );
@@ -567,11 +568,11 @@ create table if not exists asset
     currency     varchar(50) not null
 );
 insert into asset(id,  name, description, changedate, enterdate, postingdate, company, modelid, account, oaccount, scrap_value, life_span, dep_method, amount, rate, frequency, currency) values
-                                                                                                                                                                                      ('1804', 'BMW-220D', 'BMW-220D', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '1000', 19, '0520', '6222', 1.0, 5, 2, 33000.00, 0.30, 12, 'EUR'),
-                                                                                                                                                                                      ('IWS-01', 'IWS', 'Integriertes Finanzbuchhaltungssystem', '2019-04-11 00:00:00','2019-04-11 00:00:00', '2019-04-11 00:00:00', '1000', 19, '0135', '6222', 1.0, 5, 2, 10000.00, 1.0, 12, 'EUR'),
-                                                                                                                                                                                      ('MACB001', 'MacBook Pro 2017', 'MacBook Pro 2017', '2019-03-15 00:00:00', '2019-03-15 00:00:00','2019-03-15 00:00:00', '1000', 19, '0651', '4830', 1.0, 3, 2, 1000.00, 1.0, 12, 'EUR' ),
-                                                                                                                                                                                      ('MACB002', 'MackBookPro 2019', 'MackBookPro 2019', '2019-08-09 15:53:37', '2019-08-09 15:53:37', '2019-08-09 15:53:37', '1000', 19, '0652', '4830', 1.0, 3, 2, 1000.00, 1.0, 12, 'EUR'),
-                                                                                                                                                                                      ('MACB003', 'MackBookPro 2019-2', 'MackBookPro 2019-2', '2019-11-25 12:32:00', '2019-11-25 12:32:00', '2019-11-25 12:32:00', '1000', 19, '0653', '4830', 1.0, 3, 2, 1000.00, 1.0, 12, 'EUR');
+            ('1804', 'BMW-220D', 'BMW-220D', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '1000', 19, '0520', '6222', 1.0, 5, 2, 33000.00, 0.30, 12, 'EUR'),
+            ('IWS-01', 'IWS', 'Integriertes Finanzbuchhaltungssystem', '2019-04-11 00:00:00','2019-04-11 00:00:00', '2019-04-11 00:00:00', '1000', 19, '0135', '6222', 1.0, 5, 2, 10000.00, 1.0, 12, 'EUR'),
+            ('MACB001', 'MacBook Pro 2017', 'MacBook Pro 2017', '2019-03-15 00:00:00', '2019-03-15 00:00:00','2019-03-15 00:00:00', '1000', 19, '0651', '4830', 1.0, 3, 2, 1000.00, 1.0, 12, 'EUR' ),
+            ('MACB002', 'MackBookPro 2019', 'MackBookPro 2019', '2019-08-09 15:53:37', '2019-08-09 15:53:37', '2019-08-09 15:53:37', '1000', 19, '0652', '4830', 1.0, 3, 2, 1000.00, 1.0, 12, 'EUR'),
+            ('MACB003', 'MackBookPro 2019-2', 'MackBookPro 2019-2', '2019-11-25 12:32:00', '2019-11-25 12:32:00', '2019-11-25 12:32:00', '1000', 19, '0653', '4830', 1.0, 3, 2, 1000.00, 1.0, 12, 'EUR');
 
 drop table  if  exists article;
 create table if not exists article
@@ -665,19 +666,19 @@ insert into store (id,  name, description, account, company, modelid) values
                    ('002', 'Nebenlager', 'Nebenlager', '','1000', 35);
 insert into stock (id, store, article, quantity, charge, company, modelid) values ('31100011000', '311', '0001', 0, '', '1000', 37);
 
-insert into fmodule (id,  name, description, account, is_debit, parent, company, modelid) values
-                    (112, 'Payables', 'Payables/Supplier invoices', '1810', false, '1300', '1000', 151),
+insert into fmodule (id,  name, description, account, is_debit, parent, copy_from, company, modelid) values
+                    (112, 'Payables', 'Payables/Supplier invoices', '1810', false, '1300', '','1000', 151),
                     (114, 'Payment', 'Payment', '1810', false, '1300', '1000', 151),
-                    (122, 'Receivables', 'Receivables/Customer invoices', '1810', false, '1300', '1000', 151),
-                    (124, 'Settlement', 'Settlement', '1810', false, '1300', '1000', 151),
-                    (134, 'General ledger', 'General ledger', '1810', false, '1300', '1000', 151),
-                    (136, 'Payroll', 'Payroll', '1810', false, '1300', '1000', 151),
-                    (137,'Purchase order', 'Purchase order', '-1', false,'1301', '1000', 151),
-                    (138,'Goodreceiving', 'Goodreceiving', '-1', false,'1301', '1000', 151),
-                    (139,'Supplier invoice', 'Supplier invoice', '-1', false,'1301', '1000', 151),
-                    (109,'Sales order', 'Sales order', '-1', false,'1301', '1000', 151),
-                    (110,'Bill of delivery', 'Bill of delivery', '-1', false,'1301', '1000', 151),
-                    (111,'Customer invoice', 'Customer invoice', '-1', false,'1301', '1000', 151);
+                    (122, 'Receivables', 'Receivables/Customer invoices', '1810', false, '1300', '', '1000', 151),
+                    (124, 'Settlement', 'Settlement', '1810', false, '1300', '', '1000', 151),
+                    (134, 'General ledger', 'General ledger', '1810', false, '1300', '', '1000', 151),
+                    (136, 'Payroll', 'Payroll', '1810', false, '1300', '', '1000', 151),
+                    (137,'Purchase order', 'Purchase order', '-1', false,'1301', '', '1000', 151),
+                    (138,'Goodreceiving', 'Goodreceiving', '-1', false,'1301', '', '1000', 151),
+                    (139,'Supplier invoice', 'Supplier invoice', '-1', false,'1301', '', '1000', 151),
+                    (109,'Sales order', 'Sales order', '-1', false,'1301', '', '1000', 151),
+                    (110,'Bill of delivery', 'Bill of delivery', '-1', false,'1301', '', '1000', 151),
+                    (111,'Customer invoice', 'Customer invoice', '-1', false,'1301', '', '1000', 151);
 
 insert into role (id,  name, description, company, modelid) values
                  (-1, 'devops', 'DevOps', '1000', 121),
@@ -910,6 +911,20 @@ insert into masterfile (id, name, description, parent, enterdate,changedate,post
 values('stk','Stueck','Stueck','' ,current_timestamp, current_timestamp, current_timestamp, 15,'1000' ),
       ('ltr','Liter','Liter','' ,current_timestamp, current_timestamp, current_timestamp, 15,'1000' ),
       ('kg','Kilogramm','Kilogramm','' ,current_timestamp, current_timestamp, current_timestamp, 15,'1000' );
+
+
+insert into masterfile (id, name, description, parent, postingdate, changedate, enterdate,  company, modelid)
+values('4711','Mon premier batiment','Mon premier batiment', '', current_timestamp, current_timestamp, current_timestamp, '1000',154),
+    ('4711','Premier etage','''Premier etage', '', current_timestamp, current_timestamp, current_timestamp, '1000',155),
+    ('4712','2ieme etage','2ieme etage', '', current_timestamp, current_timestamp, current_timestamp, '1000',155),
+    ('4711','Premier Apartement','Premier Apartement', '4711', current_timestamp, current_timestamp, current_timestamp, '1000',153),
+    ('4712','2ieme Apartement','2ieme Apartement', '4711', current_timestamp, current_timestamp, current_timestamp, '1000',153),
+    ('4711','Premiere chambre','Premiere chambre', '4711', current_timestamp, current_timestamp, current_timestamp, '1000',152),
+    ('4712','2ieme chambre','2ieme chambre', '4711', current_timestamp, current_timestamp, current_timestamp, '1000',152),
+    ('4713','Premiere chambre','Premiere chambre', '4712', current_timestamp, current_timestamp, current_timestamp, '1000',152),
+    ('4714','2ieme chambre','2ieme chambre', '4712', current_timestamp, current_timestamp, current_timestamp, '1000',152);
+
+
 -- ALTER TABLE masterfile ADD UNIQUE (modelid, company);
 -- ALTER TABLE module ADD UNIQUE (modelid, company);
 -- ALTER TABLE vat ADD UNIQUE (modelid, company);
@@ -1008,3 +1023,23 @@ VALUES (1,  '1200', true, '4400', 81.00, '2023-04-09T15:50:17.598252Z', 'terms',
 -- insert  into transaction (oid, id1, store, costcenter, text, company, modelid, period) values(-1, -1, '001', '200', 'Test', '1000', 105, 202403);
 -- insert  into transaction (oid, id1, store, costcenter, text, company, modelid, period) values(-1, -1, '001', '200', 'Test', '1000', 139, 202403);
 -- ALTER TABLE account ADD PRIMARY KEY (id, company);
+
+
+drop table  if  exists room;
+create table if not exists room
+(
+    id  varchar(50) not null primary key,
+    name         varchar(255) not null,
+    parent varchar(50) not null,
+    description  varchar(255),
+    changedate    timestamp default CURRENT_DATE not null,
+    enterdate    timestamp default CURRENT_DATE not null,
+    postingdate  timestamp default CURRENT_DATE not null,
+    kind  int not null ,
+    area   numeric(12, 2),
+    company    varchar(50) not null,
+    modelId      int not null   default 152
+    );
+insert into room(id,  name, description,parent, changedate, enterdate, postingdate, kind, area, company, modelid) values
+    ('4711', 'Reichtag', 'Reichtag','-1', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '2018-11-07 00:00:00', '1', 50.00, '1000', 152);
+
