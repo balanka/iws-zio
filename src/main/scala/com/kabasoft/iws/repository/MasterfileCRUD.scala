@@ -379,7 +379,7 @@ trait MasterfileCRUD:
                                q:        Query[A, B]
                              ): ZIO[Any, RepositoryError, B] =
     postgres
-      .use(_.prepare(q).flatMap(_.unique(p)))
+      .use(_.prepare(q).flatMap(_.unique(p))).debug("ZZZZZ")
       .mapError(e => RepositoryError(e.getMessage))
 
   def queryWithTxUnique[A](
